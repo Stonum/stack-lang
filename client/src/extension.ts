@@ -4,29 +4,14 @@
  * ------------------------------------------------------------------------------------------ */
 
 import {
-  languages,
   workspace,
-  EventEmitter,
   ExtensionContext,
   window,
-  InlayHintsProvider,
-  TextDocument,
-  CancellationToken,
-  Range,
-  InlayHint,
-  TextDocumentChangeEvent,
-  ProviderResult,
-  commands,
-  WorkspaceEdit,
-  TextEdit,
-  Selection,
-  Uri,
 } from "vscode";
 
 import * as path from "path";
 
 import {
-  Disposable,
   Executable,
   LanguageClient,
   LanguageClientOptions,
@@ -37,7 +22,6 @@ import {
 let client: LanguageClient;
 
 export async function activate(context: ExtensionContext) {
-  window.showInformationMessage("activate");
 
   const traceOutputChannel = window.createOutputChannel(
     "Stack Language Server trace"
@@ -51,8 +35,6 @@ export async function activate(context: ExtensionContext) {
       "release",
       "stack-language-server.exe"
     );
-
-  window.showInformationMessage(command);
 
   const run: Executable = {
     command,
@@ -70,8 +52,6 @@ export async function activate(context: ExtensionContext) {
     debug: run,
   };
 
-  console.log(serverOptions);
-
   // If the extension is launched in debug mode then the debug server options are used
   // Otherwise the run options are used
   // Options to control the language client
@@ -88,8 +68,6 @@ export async function activate(context: ExtensionContext) {
     traceOutputChannel,
   };
 
-  window.showInformationMessage("new client");
-
   // Create the language client and start the client.
   client = new LanguageClient(
     "stack-language-server",
@@ -98,11 +76,7 @@ export async function activate(context: ExtensionContext) {
     clientOptions
   );
 
-  window.showInformationMessage("starting client");
-
   client.start();
-
-  window.showInformationMessage("client started");
 }
 
 export function deactivate(): Thenable<void> | undefined {

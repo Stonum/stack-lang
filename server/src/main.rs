@@ -1,10 +1,10 @@
-use std::collections::HashMap;
 use std::path::PathBuf;
 
-use chumsky::primitive::Custom;
 use log::debug;
 use log::error;
 use log::info;
+
+use ini::Ini;
 
 use dashmap::DashMap;
 use ropey::Rope;
@@ -55,35 +55,7 @@ impl LanguageServer for Backend {
                     }),
                     file_operations: None,
                 }),
-                // semantic_tokens_provider: Some(
-                //     SemanticTokensServerCapabilities::SemanticTokensRegistrationOptions(
-                //         SemanticTokensRegistrationOptions {
-                //             text_document_registration_options: {
-                //                 TextDocumentRegistrationOptions {
-                //                     document_selector: Some(vec![DocumentFilter {
-                //                         language: Some("stack".to_string()),
-                //                         scheme: Some("file".to_string()),
-                //                         pattern: None,
-                //                     }]),
-                //                 }
-                //             },
-                //             semantic_tokens_options: SemanticTokensOptions {
-                //                 work_done_progress_options: WorkDoneProgressOptions::default(),
-                //                 legend: SemanticTokensLegend {
-                //                     token_types: LEGEND_TYPE.into(),
-                //                     token_modifiers: vec![],
-                //                 },
-                //                 range: Some(true),
-                //                 full: Some(SemanticTokensFullOptions::Bool(true)),
-                //             },
-                //             static_registration_options: StaticRegistrationOptions::default(),
-                //         },
-                //     ),
-                // ),
-                // definition: Some(GotoCapability::default()),
                 definition_provider: Some(OneOf::Left(true)),
-                references_provider: Some(OneOf::Left(true)),
-                rename_provider: Some(OneOf::Left(true)),
                 document_symbol_provider: Some(OneOf::Left(true)),
                 ..ServerCapabilities::default()
             },
@@ -95,16 +67,52 @@ impl LanguageServer for Backend {
             .log_message(MessageType::INFO, "stack lang server initialized!")
             .await;
 
-        let folders = self.client.workspace_folders().await;
+        let mut folders: Option<Vec<Url>> = None;
+
+        let settings_path = async {
+            let params = vec![ConfigurationItem {
+                scope_uri: None,
+                section: Some("stack.iniPath".to_owned()),
+            }];
+            let cfg = self.client.configuration(params).await.ok()?;
+            match cfg.get(0).map(|s| s.to_owned()) {
+                Some(Value::String(s)) => Some(s),
+                _ => None,
+            }
+        }
+        .await;
+
+        if let Some(path) = settings_path {
+            folders = async {
+                let ini = Ini::load_from_file_noescape(path + "\\stack.ini").ok()?;
+                let app_path = ini.section(Some("AppPath"))?;
+                let folders = app_path
+                    .get_all("PRG")
+                    .filter_map(|s| Url::from_file_path(s).ok())
+                    .collect::<Vec<_>>();
+
+                Some(folders)
+            }
+            .await;
+        }
+
+        // get all workspace folders if we don't have them yet
+        if folders.is_none() {
+            folders = async {
+                let f = self.client.workspace_folders().await.ok()?;
+                f.map(|f| f.into_iter().map(|f| f.uri).collect())
+            }
+            .await;
+        }
 
         self.client
             .log_message(MessageType::INFO, "start parse definitions!")
             .await;
 
         let mut files = vec![];
-        if let Ok(Some(folders)) = folders {
+        if let Some(folders) = folders {
             for folder in folders {
-                if let Err(e) = get_files(folder.uri, &mut files).await {
+                if let Err(e) = get_files(folder, &mut files).await {
                     error!("{:?}", e);
                 }
             }
@@ -214,7 +222,6 @@ impl LanguageServer for Backend {
         &self,
         params: DocumentSymbolParams,
     ) -> Result<Option<DocumentSymbolResponse>> {
-        info!("document_symbol: {:#?}", params);
         let file_uri = params.text_document.uri;
 
         let document_symbol = || -> Option<DocumentSymbolResponse> {
@@ -223,6 +230,7 @@ impl LanguageServer for Backend {
             let defs = self
                 .definitions_map
                 .get(&file_uri.to_file_path().unwrap_or_default())?;
+
             for (def, range) in defs.iter() {
                 vec.push(SymbolInformation {
                     name: def.to_string(),
