@@ -1,0 +1,1713 @@
+{
+   "name": "stack2",
+   "scopeName": "source.stack",
+   "fileTypes": ["prg","hdl"],
+   "patterns": [
+      {
+         "include": "#statements"
+      }
+   ],
+   "repository": {
+      "statements": {
+         "patterns": [
+            {
+               "include": "#string"
+            },
+            {
+               "include": "#template"
+            },
+            {
+               "include": "#comment"
+            },
+            {
+               "include": "#literal"
+            },
+            {
+               "include": "#declaration"
+            },
+            {
+               "include": "#switch-statement"
+            },
+            {
+               "include": "#decl-block"
+            },
+            {
+               "include": "#control-statement"
+            },
+            {
+               "include": "#expression"
+            },
+            {
+               "include": "#punctuation-semicolon"
+            }
+         ]
+      },
+      "var-expr": {
+         "name": "meta.var.expr.stack",
+         "begin": "(?i:(?<!\\.|\\$)\\b((перем|var)(?!\\s+enum\\b))\\b(?!\\$))",
+         "beginCaptures": {
+            "1": {
+               "name": "storage.type.stack"
+            }
+         },
+         "end": "(?=$|;|}|(\\s+(of|in)\\s+))",
+         "patterns": [
+            {
+               "include": "#destructuring-variable"
+            },
+            {
+               "include": "#var-single-variable"
+            },
+            {
+               "include": "#variable-initializer"
+            },
+            {
+               "include": "#comment"
+            },
+            {
+               "include": "#punctuation-comma"
+            }
+         ]
+      },
+      "var-single-variable": {
+         "name": "meta.var-single-variable.expr.stack",
+         "begin": "([_$[:alpha:]][_$[:alnum:]]*)",
+         "beginCaptures": {
+            "1": {
+               "name": "variable.other.readwrite.stack"
+            }
+         },
+         "end": "(?=$|[;,=}]|(\\s+(of|in)\\s+))",
+         "patterns": [
+            {
+               "include": "#string"
+            },
+            {
+               "include": "#comment"
+            }
+         ]
+      },
+      "destructuring-variable": {
+         "patterns": [
+            {
+               "name": "meta.object-binding-pattern-variable.stack",
+               "begin": "(?<!=|:|of|in)\\s*(?=\\{)",
+               "end": "(?=$|[;,=}]|(\\s+(of|in)\\s+))",
+               "patterns": [
+                  {
+                     "include": "#object-binding-pattern"
+                  },
+                  {
+                     "include": "#comment"
+                  }
+               ]
+            },
+            {
+               "name": "meta.array-binding-pattern-variable.stack",
+               "begin": "(?<!=|:|of|in)\\s*(?=\\[)",
+               "end": "(?=$|[;,=}]|(\\s+(of|in)\\s+))",
+               "patterns": [
+                  {
+                     "include": "#array-binding-pattern"
+                  },
+                  {
+                     "include": "#comment"
+                  }
+               ]
+            }
+         ]
+      },
+      "object-binding-element": {
+         "patterns": [
+            {
+               "include": "#comment"
+            },
+            {
+               "begin": "([_$[:alpha:]][_$[:alnum:]]*)\\s*(:)",
+               "beginCaptures": {
+                  "1": {
+                     "name": "variable.object.property.stack"
+                  },
+                  "2": {
+                     "name": "punctuation.destructuring.stack"
+                  }
+               },
+               "end": "(?=,|\\})",
+               "patterns": [
+                  {
+                     "include": "#object-binding-pattern"
+                  },
+                  {
+                     "include": "#array-binding-pattern"
+                  },
+                  {
+                     "name": "variable.other.readwrite.stack",
+                     "match": "([_$[:alpha:]][_$[:alnum:]]*)"
+                  },
+                  {
+                     "include": "#variable-initializer"
+                  }
+               ]
+            },
+            {
+               "include": "#object-binding-pattern"
+            },
+            {
+               "include": "#destructuring-variable-rest"
+            },
+            {
+               "include": "#variable-initializer"
+            },
+            {
+               "include": "#punctuation-comma"
+            }
+         ]
+      },
+      "array-binding-element": {
+         "patterns": [
+            {
+               "include": "#comment"
+            },
+            {
+               "include": "#object-binding-pattern"
+            },
+            {
+               "include": "#array-binding-pattern"
+            },
+            {
+               "include": "#destructuring-variable-rest"
+            },
+            {
+               "include": "#variable-initializer"
+            },
+            {
+               "include": "#punctuation-comma"
+            }
+         ]
+      },
+      "destructuring-variable-rest": {
+         "match": "(?:(\\.\\.\\.)\\s*)?([_$[:alpha:]][_$[:alnum:]]*)",
+         "captures": {
+            "1": {
+               "name": "keyword.operator.rest.stack"
+            },
+            "2": {
+               "name": "variable.other.readwrite.stack"
+            }
+         }
+      },
+      "object-binding-pattern": {
+         "begin": "(?:(\\.\\.\\.)\\s*)?(\\{)",
+         "beginCaptures": {
+            "1": {
+               "name": "keyword.operator.rest.stack"
+            },
+            "2": {
+               "name": "punctuation.definition.binding-pattern.object.stack"
+            }
+         },
+         "end": "\\}",
+         "endCaptures": {
+            "0": {
+               "name": "punctuation.definition.binding-pattern.object.stack"
+            }
+         },
+         "patterns": [
+            {
+               "include": "#object-binding-element"
+            }
+         ]
+      },
+      "array-binding-pattern": {
+         "begin": "(?:(\\.\\.\\.)\\s*)?(\\[)",
+         "beginCaptures": {
+            "1": {
+               "name": "keyword.operator.rest.stack"
+            },
+            "2": {
+               "name": "punctuation.definition.binding-pattern.array.stack"
+            }
+         },
+         "end": "\\]",
+         "endCaptures": {
+            "0": {
+               "name": "punctuation.definition.binding-pattern.array.stack"
+            }
+         },
+         "patterns": [
+            {
+               "include": "#array-binding-element"
+            }
+         ]
+      },
+      "ternary-expression": {
+         "begin": "(?=\\?)",
+         "end": "(?=$|[;,})\\]])",
+         "patterns": [
+            {
+               "include": "#ternary-operator"
+            },
+            {
+               "include": "#expression"
+            }
+         ]
+      },
+      "ternary-operator": {
+         "begin": "(\\?)",
+         "beginCaptures": {
+            "0": {
+               "name": "keyword.operator.ternary.stack"
+            }
+         },
+         "end": "(:)",
+         "endCaptures": {
+            "0": {
+               "name": "keyword.operator.ternary.stack"
+            }
+         },
+         "patterns": [
+            {
+               "include": "#expression"
+            }
+         ]
+      },
+      "expression": {
+         "name": "meta.expression.stack",
+         "patterns": [
+            {
+               "include": "#string"
+            },
+            {
+               "include": "#template"
+            },
+            {
+               "include": "#comment"
+            },
+            {
+               "include": "#literal"
+            },
+            {
+               "include": "#function-declarationstack"
+            },
+            {
+               "include": "#function-declaration"
+            },
+            {
+               "include": "#class-declaration"
+            },
+            {
+               "include": "#anonymous-class-declaration"
+            },
+            {
+               "include": "#cast"
+            },
+            {
+               "include": "#ternary-expression"
+            },
+            {
+               "include": "#expression-operators"
+            },
+            {
+               "include": "#support-objects"
+            },
+            {
+               "include": "#function-call"
+            },
+            {
+               "include": "#identifiers"
+            },
+            {
+               "include": "#paren-expression"
+            },
+            {
+               "include": "#punctuation-comma"
+            },
+            {
+               "include": "#punctuation-accessor"
+            }
+         ]
+      },
+      "control-statement": {
+         "patterns": [
+            {
+               "name": "keyword.control.trycatch.stack",
+               "match": "(?i:(?<!\\.|\\$)\\b(try|catch|finally|throw|попытка|исключение|перехват|заключение|вызватьисключение)\\b(?!\\$))"
+            },
+            {
+               "name": "keyword.control.loop.stack",
+               "match": "(?i:(?<!\\.|\\$)\\b(пока|длявсех|для|элементов|while|forall|for|прервать|продолжить|break|continue)\\b(?!\\$))"
+            },
+            {
+               "name": "keyword.control.flow.stack",
+               "match": "(?i:(?<!\\.|\\$)\\b(вернуть|return)\\b(?!\\$))"
+            },
+            {
+               "match": "(?<!\\.|\\$)\\b(yield)\\b(?!\\$)(?:\\s*(\\*))?",
+               "captures": {
+                  "1": {
+                     "name": "keyword.control.flow.stack"
+                  },
+                  "2": {
+                     "name": "keyword.generator.asterisk.stack"
+                  }
+               }
+            },
+            {
+               "name": "keyword.control.switch.stack",
+               "match": "(?i:(?<!\\.|\\$)\\b(выборпо|выбор|switch|case)\\b(?!\\$))"
+            },
+            {
+               "name": "keyword.control.conditional.stack",
+               "match": "(?i:(?<!\\.|\\$)\\b(если|иначе|if|else)\\b(?!\\$))"
+            },
+            {
+               "name": "keyword.control.with.stack",
+               "match": "(?<!\\.|\\$)\\b(with)\\b(?!\\$)"
+            },
+            {
+               "name": "keyword.other.debugger.stack",
+               "match": "(?i:(?<!\\.|\\$)\\b(отладить|debug|отладка)\\b(?!\\$))"
+            },
+            {
+               "name": "storage.modifier.stack",
+               "match": "(?<!\\.|\\$)\\b(declare)\\b(?!\\$)"
+            }
+         ]
+      },
+      "declaration": {
+         "name": "meta.declaration.stack",
+         "patterns": [
+            {
+               "include": "#decorator"
+            },
+            {
+               "include": "#var-expr"
+            },
+            {
+               "include": "#function-declarationstack"
+            },
+            {
+               "include": "#function-declaration"
+            },
+            {
+               "include": "#class-declaration"
+            },
+            {
+               "include": "#anonymous-class-declaration"
+            },
+            {
+               "include": "#enum-declaration"
+            }
+         ]
+      },
+      "decorator": {
+         "name": "meta.decorator.stack",
+         "begin": "(?<!\\.|\\$)\\@",
+         "beginCaptures": {
+            "0": {
+               "name": "punctuation.decorator.stack"
+            }
+         },
+         "end": "(?=\\s)",
+         "patterns": [
+            {
+               "include": "#expression"
+            }
+         ]
+      },
+      "enum-declaration": {
+         "name": "meta.enum.declaration.stack",
+         "begin": "(?<!\\.|\\$)(?:(\\bexport)\\s+)?(?:\\b(const)\\s+)?\\b(enum)\\s+([_$[:alpha:]][_$[:alnum:]]*)",
+         "beginCaptures": {
+            "1": {
+               "name": "keyword.control.export.stack"
+            },
+            "2": {
+               "name": "storage.modifier.stack"
+            },
+            "3": {
+               "name": "storage.type.enum.stack"
+            },
+            "4": {
+               "name": "entity.name.type.enum.stack"
+            }
+         },
+         "end": "(?<=\\})",
+         "patterns": [
+            {
+               "include": "#comment"
+            },
+            {
+               "begin": "\\{",
+               "beginCaptures": {
+                  "0": {
+                     "name": "punctuation.definition.block.stack"
+                  }
+               },
+               "end": "\\}",
+               "endCaptures": {
+                  "0": {
+                     "name": "punctuation.definition.block.stack"
+                  }
+               },
+               "patterns": [
+                  {
+                     "include": "#comment"
+                  },
+                  {
+                     "begin": "([_$[:alpha:]][_$[:alnum:]]*)",
+                     "beginCaptures": {
+                        "0": {
+                           "name": "variable.other.enummember.stack"
+                        }
+                     },
+                     "end": "(?=,|\\}|$)",
+                     "patterns": [
+                        {
+                           "include": "#comment"
+                        },
+                        {
+                           "include": "#variable-initializer"
+                        }
+                     ]
+                  },
+                  {
+                     "begin": "(?=(?:(?:\\'[^']*\\')|(?:\\\"[^\"]*\\\")))",
+                     "end": "(?=,|\\}|$)",
+                     "patterns": [
+                        {
+                           "include": "#string"
+                        },
+                        {
+                           "include": "#comment"
+                        },
+                        {
+                           "include": "#variable-initializer"
+                        }
+                     ]
+                  },
+                  {
+                     "include": "#punctuation-comma"
+                  }
+               ]
+            }
+         ]
+      },
+      "docstring": {
+         "name": "meta.docstring.stack",
+         "patterns": [
+            {
+               "include": "#qstring-double"
+            },
+            {
+               "include": "#template"
+            }
+         ]
+      },
+      "function-declarationstack": {
+         "name": "meta.function.stack",
+         "begin": "(?i:(функция|func|get|получить|set\\s+|установить)\\s+(?:['])([a-zа-яё0-9_()\\s]+)?[']\\s*)",
+         "beginCaptures": {
+            "1": {
+               "name": "storage.type.function.stack"
+            },
+            "2": {
+               "name": "entity.name.function.stack"
+            }
+         },
+         "end": "(?=;|\\})|(?<=\\})",
+         "patterns": [
+            {
+               "include": "#comment"
+            },
+            {
+               "include": "#function-parameters"
+            },
+            {
+               "include": "#docstring"
+            },
+            {
+               "include": "#decl-block"
+            }
+         ]
+      },
+      "function-declaration": {
+         "name": "meta.function.stack",
+         "begin": "(?i:(?<!\\.|\\$)\\b(функция|func|get|получить|set\\s+|установить)\\b(?:\\s*(\\*))?(?:(?:\\s+|(?<=\\*))([_$[:alpha:]][_$[:alnum:]]*))?\\s*)",
+         "beginCaptures": {
+            "1": {
+               "name": "storage.type.function.stack"
+            },
+            "2": {
+               "name": "keyword.generator.asterisk.stack"
+            },
+            "3": {
+               "name": "entity.name.function.stack"
+            }
+         },
+         "end": "(?=;|\\})|(?<=\\})",
+         "patterns": [
+            {
+               "include": "#comment"
+            },
+            {
+               "include": "#function-parameters"
+            },
+            {
+               "include": "#docstring"
+            },
+            {
+               "include": "#decl-block"
+            }
+         ]
+      },
+      "anonymous-class-declaration": {
+         "name": "meta.anonymous-class.stack",
+         "begin": "(?i:(class|класс)\\s+(?:(extends|расширяет)\\s+(?:([a-zа-яё0-9_]+)|('[^']+')))?\\s*)",
+         "beginCaptures": {
+            "1": {
+               "name": "storage.type.class.stack"
+            },
+            "2": {
+               "name": "storage.type.class.stack"
+            },
+            "3": {
+               "name": "entity.name.class.stack"
+            }
+         },
+         "end": "(?=;|\\})|(?<=\\})",
+         "patterns": [
+            {
+               "include": "#comment"
+            },
+            {
+               "include": "#docstring"
+            },
+            {
+               "include": "#decl-block"
+            }
+         ]
+      },
+      "class-declaration": {
+         "name": "meta.class.stack",
+         "begin": "(?i:(class|класс)\\s+(?!extends|расширяет)(?:([a-zа-яё0-9_]+)|('[^']+'))(?:\\s+(extends|расширяет)\\s+(?:([a-zа-яё0-9_]+)|('[^']+')))?\\s*)",
+         "beginCaptures": {
+            "1": {
+               "name": "storage.type.class.stack"
+            },
+            "2": {
+               "name": "entity.name.class.stack"
+            },
+            "3": {
+               "name": "entity.name.class.stack"
+            },
+            "4": {
+               "name": "storage.type.class.stack"
+            },
+            "5": {
+               "name": "entity.name.class.stack"
+            },
+            "6": {
+               "name": "entity.name.class.stack"
+            }
+         },
+         "end": "(?=;|\\})|(?<=\\})",
+         "patterns": [
+            {
+               "include": "#comment"
+            },
+            {
+               "include": "#type-parameters"
+            },
+            {
+               "include": "#function-parameters"
+            },
+            {
+               "include": "#docstring"
+            },
+            {
+               "include": "#decl-block"
+            }
+         ]
+      },
+      "decl-block": {
+         "name": "meta.block.stack",
+         "begin": "\\{",
+         "beginCaptures": {
+            "0": {
+               "name": "punctuation.definition.block.stack"
+            }
+         },
+         "end": "\\}",
+         "endCaptures": {
+            "0": {
+               "name": "punctuation.definition.block.stack"
+            }
+         },
+         "patterns": [
+            {
+               "include": "#statements"
+            }
+         ]
+      },
+      "parameter-name": {
+         "match": "(?:\\s*\\b(readonly)\\s+)?(?:\\s*\\b(public|private|protected)\\s+)?(\\.\\.\\.)?\\s*(?<!=|:)([_$[:alpha:]][_$[:alnum:]]*)\\s*(\\??)",
+         "captures": {
+            "1": {
+               "name": "storage.modifier.stack"
+            },
+            "2": {
+               "name": "storage.modifier.stack"
+            },
+            "3": {
+               "name": "keyword.operator.rest.stack"
+            },
+            "4": {
+               "name": "variable.parameter.stack"
+            },
+            "5": {
+               "name": "keyword.operator.optional.stack"
+            }
+         }
+      },
+      "type": {
+         "name": "meta.type.stack",
+         "patterns": [
+            {
+               "include": "#comment"
+            },
+            {
+               "include": "#string"
+            },
+            {
+               "include": "#numeric-literal"
+            },
+            {
+               "include": "#type-parameters"
+            },
+            {
+               "include": "#type-operators"
+            },
+            {
+               "include": "#type-fn-type-parameters"
+            },
+            {
+               "include": "#type-paren-or-function-parameters"
+            },
+            {
+               "include": "#type-name"
+            }
+         ]
+      },
+      "function-parameters": {
+         "name": "meta.parameters.stack",
+         "begin": "\\(",
+         "beginCaptures": {
+            "0": {
+               "name": "punctuation.definition.parameters.begin.stack"
+            }
+         },
+         "end": "\\)",
+         "endCaptures": {
+            "0": {
+               "name": "punctuation.definition.parameters.end.stack"
+            }
+         },
+         "patterns": [
+            {
+               "include": "#comment"
+            },
+            {
+               "include": "#decorator"
+            },
+            {
+               "include": "#parameter-name"
+            },
+            {
+               "include": "#variable-initializer"
+            },
+            {
+               "name": "punctuation.separator.parameter.stack",
+               "match": ","
+            }
+         ]
+      },
+      "type-paren-or-function-parameters": {
+         "name": "meta.type.paren.cover.stack",
+         "begin": "\\s*(\\()",
+         "beginCaptures": {
+            "1": {
+               "name": "meta.brace.round.stack"
+            }
+         },
+         "end": "\\)",
+         "endCaptures": {
+            "0": {
+               "name": "meta.brace.round.stack"
+            }
+         },
+         "patterns": [
+            {
+               "include": "#type"
+            },
+            {
+               "include": "#function-parameters"
+            }
+         ]
+      },
+      "type-fn-type-parameters": {
+         "patterns": [
+            {
+               "name": "meta.type.constructor.stack",
+               "match": "(?<!\\.|\\$)\\b(new)\\b(?=\\s*\\<)",
+               "captures": {
+                  "1": {
+                     "name": "keyword.control.new.stack"
+                  }
+               }
+            },
+            {
+               "name": "meta.type.constructor.stack",
+               "begin": "(?<!\\.|\\$)\\b(new)\\b\\s*(?=\\()",
+               "beginCaptures": {
+                  "1": {
+                     "name": "keyword.control.new.stack"
+                  }
+               },
+               "end": "(?<=\\))",
+               "patterns": [
+                  {
+                     "include": "#function-parameters"
+                  }
+               ]
+            },
+            {
+               "name": "meta.type.function.stack",
+               "begin": "(?<=\\>)\\s*(?=\\()",
+               "end": "(?<=\\))",
+               "patterns": [
+                  {
+                     "include": "#function-parameters"
+                  }
+               ]
+            },
+            {
+               "name": "meta.type.function.stack",
+               "begin": "(?x)( \\s* (?= [(]\\s*( ([)]) |  (\\.\\.\\.) | ([_$[:alnum:]]+\\s*( ([:,?=])| ([)]\\s*=>) )) ) ) )",
+               "end": "(?<=\\))",
+               "patterns": [
+                  {
+                     "include": "#function-parameters"
+                  }
+               ]
+            }
+         ]
+      },
+      "type-operators": {
+         "patterns": [
+            {
+               "include": "#typeof-operator"
+            },
+            {
+               "name": "keyword.operator.type.stack",
+               "match": "[&|]"
+            }
+         ]
+      },
+      "type-name": {
+         "patterns": [
+            {
+               "match": "([_$[:alpha:]][_$[:alnum:]]*)\\s*(\\.)",
+               "captures": {
+                  "1": {
+                     "name": "entity.name.type.module.stack"
+                  },
+                  "2": {
+                     "name": "punctuation.accessor.stack"
+                  }
+               }
+            },
+            {
+               "name": "entity.name.type.stack",
+               "match": "[_$[:alpha:]][_$[:alnum:]]*"
+            }
+         ]
+      },
+      "type-parameters": {
+         "name": "meta.type.parameters.stack",
+         "begin": "(<)",
+         "beginCaptures": {
+            "1": {
+               "name": "punctuation.definition.typeparameters.begin.stack"
+            }
+         },
+         "end": "(?=$)|(>)",
+         "endCaptures": {
+            "1": {
+               "name": "punctuation.definition.typeparameters.end.stack"
+            }
+         },
+         "patterns": [
+            {
+               "include": "#comment"
+            },
+            {
+               "name": "storage.modifier.stack",
+               "match": "(?<!\\.|\\$)\\b(extends)\\b(?!\\$)"
+            },
+            {
+               "include": "#type"
+            },
+            {
+               "include": "#punctuation-comma"
+            }
+         ]
+      },
+      "variable-initializer": {
+         "begin": "(?<!=|!)(=)(?!=)",
+         "beginCaptures": {
+            "1": {
+               "name": "keyword.operator.assignment.stack"
+            }
+         },
+         "end": "(?=$|[,);}\\]])",
+         "patterns": [
+            {
+               "include": "#expression"
+            }
+         ]
+      },
+      "switch-expression": {
+         "name": "switch-expression.expr.stack",
+         "begin": "(?i:(?<!\\.|\\$)\\b(выборпо|switch)\\s*(\\())",
+         "beginCaptures": {
+            "1": {
+               "name": "keyword.control.switch.stack"
+            },
+            "2": {
+               "name": "meta.brace.round.stack"
+            }
+         },
+         "end": "\\)",
+         "endCaptures": {
+            "0": {
+               "name": "meta.brace.round.stack"
+            }
+         },
+         "patterns": [
+            {
+               "include": "#expression"
+            }
+         ]
+      },
+      "switch-block": {
+         "name": "switch-block.expr.stack",
+         "begin": "{",
+         "beginCaptures": {
+            "0": {
+               "name": "punctuation.definition.block.stack"
+            }
+         },
+         "end": "(?=\\})",
+         "patterns": [
+            {
+               "include": "#case-clause"
+            },
+            {
+               "include": "#statements"
+            }
+         ]
+      },
+      "case-clause": {
+         "name": "case-clause.expr.stack",
+         "begin": "(?:(?<!\\.|\\$)\\b(выбор(?=:))\\b(?!\\$))",
+         "beginCaptures": {
+            "1": {
+               "name": "keyword.control.switch.stack"
+            }
+         },
+         "end": ":",
+         "endCaptures": {
+            "0": {
+               "name": "punctuation.definition.section.case-statement.stack"
+            }
+         },
+         "patterns": [
+            {
+               "include": "#expression"
+            }
+         ]
+      },
+      "switch-statement": {
+         "name": "switch-statement.expr.stack",
+         "begin": "(?i:(?<!\\.|\\$)(?=\\b(выборпо|switch)\\s*\\())",
+         "end": "}",
+         "endCaptures": {
+            "0": {
+               "name": "punctuation.definition.block.stack"
+            }
+         },
+         "patterns": [
+            {
+               "include": "#switch-expression"
+            },
+            {
+               "include": "#switch-block"
+            }
+         ]
+      },
+      "support-objects": {
+         "patterns": [
+            {
+               "name": "support.class.builtin.stack",
+               "match": "(?i)(?<!\\.|\\$)\\b(Query|Command|BufferedReader)\\b(?!\\$)"
+            },
+            {
+               "name": "support.class.error.stack",
+               "match": "(?<!\\.|\\$)\\b((Ошибка)?Error)\\b(?!\\$)"
+            },
+            {
+               "name": "support.function.stack",
+               "match": "(?x)(?<!\\.|\\$)\\b(clear(Interval|Timeout)|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|escape|eval| isFinite|isNaN|parseFloat|parseInt|require|set(Interval|Timeout)|super|unescape|uneval)(?=\\s*\\()"
+            },
+            {
+               "match": "(?x)(?<!\\.|\\$)\\b(Math)(?:\\s*(\\.)\\s*(?:\n  (abs|acos|acosh|asin|asinh|atan|atan2|atanh|cbrt|ceil|clz32|cos|cosh|exp|\n  expm1|floor|fround|hypot|imul|log|log10|log1p|log2|max|min|pow|random|\n  round|sign|sin|sinh|sqrt|tan|tanh|trunc)\n  |\n  (E|LN10|LN2|LOG10E|LOG2E|PI|SQRT1_2|SQRT2)))?\\b(?!\\$)",
+               "captures": {
+                  "1": {
+                     "name": "support.constant.math.stack"
+                  },
+                  "2": {
+                     "name": "punctuation.accessor.stack"
+                  },
+                  "3": {
+                     "name": "support.function.math.stack"
+                  },
+                  "4": {
+                     "name": "support.constant.property.math.stack"
+                  }
+               }
+            }
+         ]
+      },
+      "function-call": {
+         "begin": "(?:(\\.)\\s*)?([_$[:alpha:]][_$[:alnum:]]*)\\s*(?=(<([^<>]|\\<[^<>]+\\>)+>\\s*)?\\()",
+         "beginCaptures": {
+            "1": {
+               "name": "punctuation.accessor.stack"
+            },
+            "2": {
+               "name": "entity.name.function.stack"
+            }
+         },
+         "end": "(?<=\\))",
+         "patterns": [
+            {
+               "include": "#comment"
+            },
+            {
+               "name": "meta.type.parameters.stack",
+               "begin": "\\<",
+               "beginCaptures": {
+                  "0": {
+                     "name": "punctuation.definition.typeparameters.begin.stack"
+                  }
+               },
+               "end": "\\>",
+               "endCaptures": {
+                  "0": {
+                     "name": "punctuation.definition.typeparameters.end.stack"
+                  }
+               },
+               "patterns": [
+                  {
+                     "include": "#type"
+                  },
+                  {
+                     "include": "#punctuation-comma"
+                  }
+               ]
+            },
+            {
+               "include": "#paren-expression"
+            }
+         ]
+      },
+      "identifiers": {
+         "patterns": [
+            {
+               "name": "support.class.stack",
+               "match": "([_$[:alpha:]][_$[:alnum:]]*)(?=\\s*\\.\\s*prototype\\b(?!\\$))"
+            },
+            {
+               "match": "(?x)(\\.)\\s*(?:\n  ([[:upper:]][_$[:digit:][:upper:]]*) |\n  ([_$[:alpha:]][_$[:alnum:]]*)\n)(?=\\s*\\.\\s*[_$[:alpha:]][_$[:alnum:]]*)",
+               "captures": {
+                  "1": {
+                     "name": "punctuation.accessor.stack"
+                  },
+                  "2": {
+                     "name": "constant.other.object.property.stack"
+                  },
+                  "3": {
+                     "name": "variable.other.object.property.stack"
+                  }
+               }
+            },
+            {
+               "match": "(?x)(?:(\\.)\\s*)?([_$[:alpha:]][_$[:alnum:]]*)(?=\\s*=\\s*( (async\\s+)|(function\\s*[(<])|(function\\s+)| ([_$[:alpha:]][_$[:alnum:]]*\\s*=>)| ((<([^<>]|\\<[^<>]+\\>)+>\\s*)?\\(([^()]|\\([^()]*\\))*\\)(\\s*:\\s*(.)*)?\\s*=>)))",
+               "captures": {
+                  "1": {
+                     "name": "punctuation.accessor.stack"
+                  },
+                  "2": {
+                     "name": "entity.name.function.stack"
+                  }
+               }
+            },
+            {
+               "match": "(\\.)\\s*([[:upper:]][_$[:digit:][:upper:]]*)(?![_$[:alnum:]])",
+               "captures": {
+                  "1": {
+                     "name": "punctuation.accessor.stack"
+                  },
+                  "2": {
+                     "name": "constant.other.property.stack"
+                  }
+               }
+            },
+            {
+               "match": "(\\.)\\s*([_$[:alpha:]][_$[:alnum:]]*)",
+               "captures": {
+                  "1": {
+                     "name": "punctuation.accessor.stack"
+                  },
+                  "2": {
+                     "name": "variable.other.property.stack"
+                  }
+               }
+            },
+            {
+               "match": "(?x)(?:\n  ([[:upper:]][_$[:digit:][:upper:]]*) |\n  ([_$[:alpha:]][_$[:alnum:]]*)\n)(?=\\s*\\.\\s*[_$[:alpha:]][_$[:alnum:]]*)",
+               "captures": {
+                  "1": {
+                     "name": "constant.other.object.stack"
+                  },
+                  "2": {
+                     "name": "variable.other.object.stack"
+                  }
+               }
+            },
+            {
+               "name": "constant.other.stack",
+               "match": "([[:upper:]][_$[:digit:][:upper:]]*)(?![_$[:alnum:]])"
+            },
+            {
+               "name": "variable.other.readwrite.stack",
+               "match": "[_$[:alpha:]][_$[:alnum:]]*"
+            }
+         ]
+      },
+      "cast": {
+         "name": "cast.expr.stack",
+         "begin": "(?:(?<=return|throw|yield|await|default|[=(,:>*]))\\s*(<)(?!<?\\=)",
+         "beginCaptures": {
+            "1": {
+               "name": "meta.brace.angle.stack"
+            }
+         },
+         "end": ">",
+         "endCaptures": {
+            "0": {
+               "name": "meta.brace.angle.stack"
+            }
+         },
+         "patterns": [
+            {
+               "include": "#type"
+            }
+         ]
+      },
+      "object-member": {
+         "patterns": [
+            {
+               "include": "#comment"
+            },
+            {
+               "name": "meta.object.member.stack",
+               "begin": "(?=(?:(?:\\'[^']*\\')|(?:\\\"[^\"]*\\\")|(?:\\[[^\\]]*\\]))\\s*:)",
+               "end": "(?=,|\\})",
+               "patterns": [
+                  {
+                     "name": "meta.object-literal.key.stack",
+                     "begin": "(?=(?:(?:\\'[^']*\\')|(?:\\\"[^\"]*\\\")|(?:\\[[^\\]]*\\]))\\s*:)",
+                     "end": ":",
+                     "endCaptures": {
+                        "0": {
+                           "name": "punctuation.separator.key-value.stack"
+                        }
+                     },
+                     "patterns": [
+                        {
+                           "include": "#string"
+                        },
+                        {
+                           "include": "#array-literal"
+                        }
+                     ]
+                  },
+                  {
+                     "include": "#expression"
+                  }
+               ]
+            },
+            {
+               "name": "meta.object.member.stack",
+               "begin": "(?x)(?:([_$[:alpha:]][_$[:alnum:]]*)\\s*(:)(?=\\s*( (async\\s+)|(function\\s*[(<])|(function\\s+)| ([_$[:alpha:]][_$[:alnum:]]*\\s*=>)| ((<([^<>]|\\<[^<>]+\\>)+>\\s*)?\\(([^()]|\\([^()]*\\))*\\)(\\s*:\\s*(.)*)?\\s*=>))))",
+               "beginCaptures": {
+                  "0": {
+                     "name": "meta.object-literal.key.stack"
+                  },
+                  "1": {
+                     "name": "entity.name.function.stack"
+                  },
+                  "2": {
+                     "name": "punctuation.separator.key-value.stack"
+                  }
+               },
+               "end": "(?=,|\\})",
+               "patterns": [
+                  {
+                     "include": "#expression"
+                  }
+               ]
+            },
+            {
+               "name": "meta.object.member.stack",
+               "begin": "(?:[_$[:alpha:]][_$[:alnum:]]*)\\s*(:)",
+               "beginCaptures": {
+                  "0": {
+                     "name": "meta.object-literal.key.stack"
+                  },
+                  "1": {
+                     "name": "punctuation.separator.key-value.stack"
+                  }
+               },
+               "end": "(?=,|\\})",
+               "patterns": [
+                  {
+                     "include": "#expression"
+                  }
+               ]
+            },
+            {
+               "name": "meta.object.member.stack",
+               "begin": "\\.\\.\\.",
+               "beginCaptures": {
+                  "0": {
+                     "name": "keyword.operator.spread.stack"
+                  }
+               },
+               "end": "(?=,|\\})",
+               "patterns": [
+                  {
+                     "include": "#expression"
+                  }
+               ]
+            },
+            {
+               "name": "meta.object.member.stack",
+               "match": "([_$[:alpha:]][_$[:alnum:]]*)\\s*(?=,|\\}|$)",
+               "captures": {
+                  "1": {
+                     "name": "variable.other.readwrite.stack"
+                  }
+               }
+            },
+            {
+               "include": "#punctuation-comma"
+            }
+         ]
+      },
+      "expression-operators": {
+         "patterns": [
+            {
+               "name": "keyword.control.flow.stack",
+               "match": "(?<!\\.|\\$)\\b(await)\\b(?!\\$)"
+            },
+            {
+               "name": "keyword.operator.expression.delete.stack",
+               "match": "(?i:(?<!\\.|\\$)\\b(delete|удалить)\\b(?!\\$))"
+            },
+            {
+               "name": "keyword.operator.expression.in.stack",
+               "match": "(?<!\\.|\\$)\\bin\\b(?!\\$)"
+            },
+            {
+               "name": "keyword.operator.expression.of.stack",
+               "match": "(?<!\\.|\\$)\\bof\\b(?!\\$)"
+            },
+            {
+               "name": "keyword.operator.expression.instanceof.stack",
+               "match": "(?i:(?<!\\.|\\$)\\b(instanceof|экземпляр)\\b(?!\\$))"
+            },
+            {
+               "name": "keyword.operator.new.stack",
+               "match": "(?i:(?<!\\.|\\$)\\b(new|новый)\\b(?!\\$))"
+            },
+            {
+               "name": "keyword.operator.expression.classof.stack",
+               "match": "(?i:(?<!\\.|\\$)\\b(classof|получитьКласс)\\b(?!\\$))"
+            },
+            {
+               "include": "#typeof-operator"
+            },
+            {
+               "name": "keyword.operator.expression.void.stack",
+               "match": "(?<!\\.|\\$)\\bvoid\\b(?!\\$)"
+            },
+            {
+               "begin": "(?<!\\.|\\$)\\bas\\b(?!\\$)",
+               "beginCaptures": {
+                  "0": {
+                     "name": "keyword.control.as.stack"
+                  }
+               },
+               "end": "(?=$|[;,:})\\]])",
+               "patterns": [
+                  {
+                     "include": "#type"
+                  }
+               ]
+            },
+            {
+               "name": "keyword.operator.spread.stack",
+               "match": "\\.\\.\\."
+            },
+            {
+               "name": "keyword.operator.assignment.compound.stack",
+               "match": "\\*=|(?<!\\()/=|%=|\\+=|\\-="
+            },
+            {
+               "name": "keyword.operator.assignment.compound.bitwise.stack",
+               "match": "\\&=|\\^=|<<=|>>=|>>>=|\\|="
+            },
+            {
+               "name": "keyword.operator.bitwise.shift.stack",
+               "match": "<<|>>>|>>"
+            },
+            {
+               "name": "keyword.operator.comparison.stack",
+               "match": "===|!==|==|!=|\\bили\\b|\\bи\\b"
+            },
+            {
+               "name": "keyword.operator.relational.stack",
+               "match": "<=|>=|<>|<|>"
+            },
+            {
+               "name": "keyword.operator.logical.stack",
+               "match": "\\!|&&|\\|\\|"
+            },
+            {
+               "name": "keyword.operator.bitwise.stack",
+               "match": "\\&|~|\\^|\\|"
+            },
+            {
+               "name": "keyword.operator.assignment.stack",
+               "match": "\\="
+            },
+            {
+               "name": "keyword.operator.decrement.stack",
+               "match": "--"
+            },
+            {
+               "name": "keyword.operator.increment.stack",
+               "match": "\\+\\+"
+            },
+            {
+               "name": "keyword.operator.arithmetic.stack",
+               "match": "%|\\*|/|-|\\+"
+            }
+         ]
+      },
+      "typeof-operator": {
+         "name": "keyword.operator.expression.typeof.stack",
+         "match": "(?<!\\.|\\$)\\btypeof\\b(?!\\$)"
+      },
+      "punctuation-comma": {
+         "name": "punctuation.separator.comma.stack",
+         "match": ","
+      },
+      "punctuation-semicolon": {
+         "name": "punctuation.terminator.statement.stack",
+         "match": ";"
+      },
+      "punctuation-accessor": {
+         "name": "punctuation.accessor.stack",
+         "match": "\\."
+      },
+      "paren-expression": {
+         "begin": "\\(",
+         "beginCaptures": {
+            "0": {
+               "name": "meta.brace.round.stack"
+            }
+         },
+         "end": "\\)",
+         "endCaptures": {
+            "0": {
+               "name": "meta.brace.round.stack"
+            }
+         },
+         "patterns": [
+            {
+               "include": "#expression"
+            },
+            {
+               "include": "#punctuation-comma"
+            }
+         ]
+      },
+      "qstring-double": {
+         "name": "string.quoted.double.stack",
+         "begin": "\"",
+         "beginCaptures": {
+            "0": {
+               "name": "punctuation.definition.string.begin.stack"
+            }
+         },
+         "end": "(\")|((?:[^\\\\\\n])$)",
+         "endCaptures": {
+            "1": {
+               "name": "punctuation.definition.string.end.stack"
+            },
+            "2": {
+               "name": "invalid.illegal.newline.stack"
+            }
+         },
+         "patterns": [
+            {
+               "include": "#string-character-escape"
+            },
+            {
+               "include": "#sql"
+            }
+         ]
+      },
+      "qstring-single": {
+         "name": "string.quoted.single.stack",
+         "begin": "'",
+         "beginCaptures": {
+            "0": {
+               "name": "punctuation.definition.string.begin.stack"
+            }
+         },
+         "end": "(\\')|((?:[^\\\\\\n])$)",
+         "endCaptures": {
+            "1": {
+               "name": "punctuation.definition.string.end.stack"
+            },
+            "2": {
+               "name": "invalid.illegal.newline.stack"
+            }
+         },
+         "patterns": [
+            {
+               "include": "#string-character-escape"
+            }
+         ]
+      },
+      "string": {
+         "name": "string.stack",
+         "patterns": [
+            {
+               "include": "#qstring-double"
+            }
+         ]
+      },
+      "sql": {
+         "patterns": [
+            {
+               "comment": "комментарии sql",
+               "name": "punctuation.definition.comment.stack",
+               "match": "--[^\\n*`\"]*"
+            },
+            {
+               "comment": "Названия БД Stack",
+               "name": "keyword.control.stack",
+               "match": "((~.+?~))"
+            },
+            {
+               "comment": "Названия БД stack.[...]",
+               "name": "keyword.control.stack",
+               "match": "(?i:stack.[\\[]\\w+\\s*\\w*[\\]])"
+            },
+            {
+               "comment": "Названия БД stack.Таблица",
+               "name": "keyword.control.stack",
+               "match": "(?i:stack.\\w+)"
+            },
+            {
+               "comment": "Ключевые слова sql",
+               "name": "keyword.other.stack",
+               "match": "(?i)\\b(IS NULL|as|on|constraint|database|index|trigger|view|TABLE|USE|GO|INTO|EXEC|EXECUTE|OPENQUERY|VALUES|WHERE|GROUP|HAVING|SET|INSERT|SELECT|DELETE|UPDATE|TRUNCATE|CREATE|FROM|WITH|DECLARE|FROM|UNION|UNION ALL|INNER|LEFT|RIGHT|JOIN|OUTER APPLY|CROSS APPLY|PIVOT|UNPIVOT|ORDER|OVER|BY)\\b"
+            },
+            {
+               "comment": "Условия sql",
+               "name": "keyword.other.stack",
+               "match": "(?i)\\b(IF|CASE|THEN|WHEN|ELSE|END|BEGIN|LIKE|OR|AND|BETWEEN|NOT|EXISTS)\\b"
+            },
+            {
+               "comment": "Модификаторы sql",
+               "name": "keyword.other.stack",
+               "match": "(?i)\\b(TOP|DISTINCT|limit|DESC|ASC)\\b"
+            },
+            {
+               "match": "(?i)\\b(CONCATENATE|CONVERT|LOWER|SUBSTRING|TRANSLATE|TRIM|UPPER)\\b",
+               "name": "keyword.other.stack"
+            },
+            {
+               "comment": "Типы переменных",
+               "match": "(?i)\\b(int|varchar|nvarchar|char|bigint|date|datetime|tinyint)\\b",
+               "name": "keyword.other.stack"
+            },
+            {
+               "comment": "Временные таблицы",
+               "name": "keyword.control.stack",
+               "match": "#(\\w+)"
+            },
+            {
+               "comment": "Переменные @",
+               "name": "variable.assignment.stack",
+               "match": "@(\\w+)"
+            },
+            {
+               "comment": "Переменные SQL :1,:2 и тд",
+               "name": "variable.assignment.stack",
+               "match": "((:\\d{1}))"
+            },
+            {
+               "comment": "числа",
+               "include": "#numeric-literal"
+            },
+            {
+               "comment": "Выражения ",
+               "include": "#expression-operators"
+            },
+
+            {
+               "comment": "НЕ ) Берем предустановленный синтаксис sql",
+               "include": "NOsourcestack.sql"
+            }
+         ]
+      },
+      "template": {
+         "name": "string.template.stack",
+         "begin": "([_$[:alpha:]][_$[:alnum:]]*)?(`)",
+         "beginCaptures": {
+            "1": {
+               "name": "entity.name.function.tagged-template.stack"
+            },
+            "2": {
+               "name": "punctuation.definition.string.template.begin.stack"
+            }
+         },
+         "end": "`",
+         "endCaptures": {
+            "0": {
+               "name": "punctuation.definition.string.template.end.stack"
+            }
+         },
+         "patterns": [
+            {
+               "include": "#template-substitution-element"
+            },
+            {
+               "include": "#string-character-escape"
+            },
+            {
+               "include": "#sql"
+            }
+         ]
+      },
+      "string-character-escape": {
+         "name": "constant.character.escape.stack",
+         "match": "\\\\(x\\h{2}|[0-2][0-7]{0,2}|3[0-6][0-7]?|37[0-7]?|[4-7][0-7]?|.|$)"
+      },
+      "template-substitution-element": {
+         "name": "meta.template.expression.stack",
+         "begin": "\\$\\{",
+         "beginCaptures": {
+            "0": {
+               "name": "punctuation.definition.template-expression.begin.stack"
+            }
+         },
+         "end": "\\}",
+         "endCaptures": {
+            "0": {
+               "name": "punctuation.definition.template-expression.end.stack"
+            }
+         },
+         "patterns": [
+            {
+               "include": "#expression"
+            }
+         ]
+      },
+      "literal": {
+         "name": "literal.stack",
+         "patterns": [
+            {
+               "include": "#numeric-literal"
+            },
+            {
+               "include": "#boolean-literal"
+            },
+            {
+               "include": "#this-literal"
+            },
+            {
+               "include": "#super-literal"
+            },
+            {
+               "include": "#null-literal"
+            },
+            {
+               "include": "#array-literal"
+            }
+         ]
+      },
+      "array-literal": {
+         "name": "meta.array.literal.stack",
+         "begin": "\\[",
+         "beginCaptures": {
+            "0": {
+               "name": "meta.brace.square.stack"
+            }
+         },
+         "end": "\\]",
+         "endCaptures": {
+            "0": {
+               "name": "meta.brace.square.stack"
+            }
+         },
+         "patterns": [
+            {
+               "include": "#expression"
+            },
+            {
+               "include": "#punctuation-comma"
+            }
+         ]
+      },
+      "numeric-literal": {
+         "patterns": [
+            {
+               "name": "constant.numeric.hex.stack",
+               "match": "\\b(?<!\\$)0(x|X)[0-9a-fA-F]+\\b(?!\\$)"
+            },
+            {
+               "name": "constant.numeric.binary.stack",
+               "match": "\\b(?<!\\$)0(b|B)[01]+\\b(?!\\$)"
+            },
+            {
+               "name": "constant.numeric.octal.stack",
+               "match": "\\b(?<!\\$)0(o|O)?[0-7]+\\b(?!\\$)"
+            },
+            {
+               "match": "(?x)\n(?<!\\$)(?:\n  (?:\\b[0-9]+(\\.)[0-9]+[eE][+-]?[0-9]+\\b)| # 1.1E+3\n  (?:\\b[0-9]+(\\.)[eE][+-]?[0-9]+\\b)|       # 1.E+3\n  (?:\\B(\\.)[0-9]+[eE][+-]?[0-9]+\\b)|       # .1E+3\n  (?:\\b[0-9]+[eE][+-]?[0-9]+\\b)|            # 1E+3\n  (?:\\b[0-9]+(\\.)[0-9]+\\b)|                # 1.1\n  (?:\\b[0-9]+(\\.)\\B)|                      # 1.\n  (?:\\B(\\.)[0-9]+\\b)|                      # .1\n  (?:\\b[0-9]+\\b(?!\\.))                     # 1\n)(?!\\$)",
+               "captures": {
+                  "0": {
+                     "name": "constant.numeric.decimal.stack"
+                  },
+                  "1": {
+                     "name": "meta.delimiter.decimal.period.stack"
+                  },
+                  "2": {
+                     "name": "meta.delimiter.decimal.period.stack"
+                  },
+                  "3": {
+                     "name": "meta.delimiter.decimal.period.stack"
+                  },
+                  "4": {
+                     "name": "meta.delimiter.decimal.period.stack"
+                  },
+                  "5": {
+                     "name": "meta.delimiter.decimal.period.stack"
+                  },
+                  "6": {
+                     "name": "meta.delimiter.decimal.period.stack"
+                  }
+               }
+            }
+         ]
+      },
+      "boolean-literal": {
+         "patterns": [
+            {
+               "name": "constant.language.boolean.true.stack",
+               "match": "(?i:(?<![_$[:alnum:]])(?:(?<=\\.\\.\\.)|(?<!\\.))(true|истина)(?![_$[:alnum:]])(?:(?=\\.\\.\\.)|(?!\\.)))"
+            },
+            {
+               "name": "constant.language.boolean.false.stack",
+               "match": "(?i:(?<![_$[:alnum:]])(?:(?<=\\.\\.\\.)|(?<!\\.))(false|ложь)(?![_$[:alnum:]])(?:(?=\\.\\.\\.)|(?!\\.)))"
+            }
+         ]
+      },
+      "null-literal": {
+         "name": "constant.language.null.stack",
+         "match": "(?i:(?<![_$[:alnum:]])(?:(?<=\\.\\.\\.)|(?<!\\.))(null|nil|нуль)(?![_$[:alnum:]])(?:(?=\\.\\.\\.)|(?!\\.)))"
+      },
+      "this-literal": {
+         "name": "variable.language.this.stack",
+         "match": "(?i:(?<![_$[:alnum:]])(?:(?<=\\.\\.\\.)|(?<!\\.))(this|этот)\\b(?!\\$))"
+      },
+      "super-literal": {
+         "name": "variable.language.super.stack",
+         "match": "(?i:(?<![_$[:alnum:]])(?:(?<=\\.\\.\\.)|(?<!\\.))(super|базовый)\\b(?!\\$))"
+      },
+      "comment": {
+         "patterns": [
+            {
+               "name": "comment.block.documentation.stack",
+               "begin": "/\\*\\*(?!/)",
+               "end": "\\*/",
+               "captures": {
+                  "0": {
+                     "name": "punctuation.definition.comment.stack"
+                  }
+               }
+            },
+            {
+               "name": "comment.block.stack",
+               "begin": "/\\*",
+               "end": "\\*/",
+               "captures": {
+                  "0": {
+                     "name": "punctuation.definition.comment.stack"
+                  }
+               }
+            },
+            {
+               "begin": "(^[ \\t]+)?(?=#)",
+               "beginCaptures": {
+                  "1": {
+                     "name": "punctuation.whitespace.comment.leading.stack"
+                  }
+               },
+               "end": "(?=$)",
+               "patterns": [
+                  {
+                     "name": "comment.line.double-slash.stack",
+                     "begin": "#",
+                     "beginCaptures": {
+                        "0": {
+                           "name": "punctuation.definition.comment.stack"
+                        }
+                     },
+                     "end": "(?=$)"
+                  }
+               ]
+            }
+         ]
+      }
+   }
+}

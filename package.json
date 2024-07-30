@@ -1,0 +1,103 @@
+{
+   "name": "stack-lang",
+   "description": "stack language server",
+   "version": "0.0.1",
+   "repository": "https://github.com/stonum/stack-lang",
+   "publisher": "stonum",
+   "categories": [],
+   "license": "MIT",
+   "keywords": [
+      "language-server",
+      "tower-lsp"
+   ],
+   "engines": {
+      "vscode": "^1.75.0"
+   },
+   "enabledApiProposals": [],
+   "activationEvents": [
+      "onLanguage:stack"
+   ],
+   "main": "./client/out/extension",
+   "contributes": {
+      "languages": [
+         {
+            "id": "stack",
+            "aliases": [
+               "stack",
+               "stack"
+            ],
+            "extensions": [
+               ".prg",
+               ".hdl",
+               ".rpt",
+               ".nrs"
+            ],
+            "firstLine": "^#![Ss][Tt][Aa][Cc][Kk]\\b",
+            "configuration": "./language-configuration.json"
+         }
+      ],
+      "grammars": [
+         {
+            "language": "stack",
+            "scopeName": "source.stack",
+            "path": "./syntaxes/stack.json",
+            "embeddedLanguages": {
+               "meta.embedded.inline.sql": "sql"
+            }
+         }
+      ],
+      "configuration": {
+         "type": "object",
+         "title": "stack-language-server",
+         "properties": {
+            "stack-language-server.trace.server": {
+               "type": "string",
+               "scope": "window",
+               "enum": [
+                  "off",
+                  "messages",
+                  "verbose"
+               ],
+               "enumDescriptions": [
+                  "No traces",
+                  "Error only",
+                  "Full log"
+               ],
+               "default": "off",
+               "description": "Traces the communication between VS Code and the language server."
+            }
+         }
+      }
+   },
+   "scripts": {
+      "postinstall": "cd client && npm i",
+      "vscode:prepublish": "concurrently  \"npm run client:compile\" \"npm run server:build\"",
+      "server:build": "cd server && cargo build --release --bins && cd ..",
+      "client:compile": "tsc -b",
+      "watch": "rm -rf client/out && tsc -b -w",
+      "package": "vsce package",
+      "publish": "vsce publish"
+   },
+   "devDependencies": {
+      "@types/glob": "^7.1.3",
+      "@types/mocha": "^8.0.0",
+      "@types/node": "^12.12.0",
+      "@typescript-eslint/eslint-plugin": "^3.8.0",
+      "@typescript-eslint/parser": "^3.8.0",
+      "cross-env": "^7.0.2",
+      "electron-rebuild": "^1.11.0",
+      "eslint": "^7.6.0",
+      "glob": "^7.1.7",
+      "mocha": "^8.0.1",
+      "ts-loader": "^9.5.1",
+      "typescript": "^5.4.5",
+      "vscode-test": "^1.4.0",
+      "vscode-uri": "^3.0.2",
+      "webpack": "^5.82.1",
+      "webpack-cli": "^5.1.4",
+      "concurrently": "^8.2.2"
+   },
+   "dependencies": {
+      "vscode-languageclient": "9.0.1"
+   }
+}

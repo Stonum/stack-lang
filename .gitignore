@@ -1,0 +1,6 @@
+/server/target
+/server/examples
+node_modules
+/client/out
+
+*.vsix
