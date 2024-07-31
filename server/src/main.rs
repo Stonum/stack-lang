@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use log::debug;
 use log::error;
 use log::info;
 
@@ -15,6 +14,7 @@ use stack_language_server::lexer::{Lexer, Token};
 use stack_language_server::parser::{Parser, Stmt};
 
 use tower_lsp::jsonrpc::Result;
+use tower_lsp::lsp_types::notification::Notification;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
@@ -32,7 +32,6 @@ impl LanguageServer for Backend {
             server_info: None,
             offset_encoding: None,
             capabilities: ServerCapabilities {
-                inlay_hint_provider: Some(OneOf::Left(true)),
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
                     TextDocumentSyncKind::FULL,
                 )),
@@ -57,6 +56,7 @@ impl LanguageServer for Backend {
                 }),
                 definition_provider: Some(OneOf::Left(true)),
                 document_symbol_provider: Some(OneOf::Left(true)),
+                hover_provider: Some(HoverProviderCapability::Simple(true)),
                 ..ServerCapabilities::default()
             },
         })
@@ -65,6 +65,12 @@ impl LanguageServer for Backend {
     async fn initialized(&self, _: InitializedParams) {
         self.client
             .log_message(MessageType::INFO, "stack lang server initialized!")
+            .await;
+
+        self.client
+            .send_notification::<StatusBarNotification>(StatusBarParams {
+                text: "parse definitions".to_string(),
+            })
             .await;
 
         let mut folders: Option<Vec<Url>> = None;
@@ -83,6 +89,13 @@ impl LanguageServer for Backend {
         .await;
 
         if let Some(path) = settings_path {
+            self.client
+                .log_message(
+                    MessageType::INFO,
+                    format!("parse definitions from ini file {}!", path),
+                )
+                .await;
+
             folders = async {
                 let ini = Ini::load_from_file_noescape(path + "\\stack.ini").ok()?;
                 let app_path = ini.section(Some("AppPath"))?;
@@ -105,10 +118,6 @@ impl LanguageServer for Backend {
             .await;
         }
 
-        self.client
-            .log_message(MessageType::INFO, "start parse definitions!")
-            .await;
-
         let mut files = vec![];
         if let Some(folders) = folders {
             for folder in folders {
@@ -118,7 +127,17 @@ impl LanguageServer for Backend {
             }
         }
 
-        for file in files {
+        self.client
+            .log_message(MessageType::INFO, format!("found {} files", files.len()))
+            .await;
+
+        for (i, file) in files.iter().enumerate() {
+            self.client
+                .send_notification::<StatusBarNotification>(StatusBarParams {
+                    text: format!("parse definitions from files: {}/{}", i, files.len()),
+                })
+                .await;
+
             if let Ok(text) = tokio::fs::read_to_string(&file).await {
                 self.set_definition(TextDocumentItem {
                     uri: Url::from_file_path(&file).unwrap(),
@@ -130,7 +149,9 @@ impl LanguageServer for Backend {
         }
 
         self.client
-            .log_message(MessageType::INFO, "end parse definitions!")
+            .send_notification::<StatusBarNotification>(StatusBarParams {
+                text: "".to_string(),
+            })
             .await;
     }
 
@@ -253,6 +274,18 @@ impl LanguageServer for Backend {
         Ok(None)
     }
 
+    async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
+        info!("hover: {:?}", params);
+        let hover = Hover {
+            contents: HoverContents::Markup(MarkupContent {
+                kind: MarkupKind::Markdown,
+                value: "**hello**".to_string(),
+            }),
+            range: None,
+        };
+        Ok(Some(hover))
+    }
+
     async fn semantic_tokens_full(
         &self,
         params: SemanticTokensParams,
@@ -333,6 +366,17 @@ struct TextDocumentItem {
     uri: Url,
     text: String,
     version: i32,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct StatusBarParams {
+    text: String,
+}
+
+struct StatusBarNotification;
+impl Notification for StatusBarNotification {
+    type Params = StatusBarParams;
+    const METHOD: &'static str = "custom/statusBar";
 }
 
 impl Backend {

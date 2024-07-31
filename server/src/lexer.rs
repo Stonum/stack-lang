@@ -15,10 +15,6 @@ impl<'source> Lexer<'source> {
         }
     }
 
-    // pub fn next(&mut self) -> Option<Result<Token<'source>, ()>> {
-    //     self.lexer.next()
-    // }
-
     pub fn position(&self) -> Option<Range> {
         let Span { start, end } = self.lexer.span();
         let start = self.get_position_from_offset(start)?;
