@@ -32,7 +32,7 @@
                ".nrs"
             ],
             "firstLine": "^#![Ss][Tt][Aa][Cc][Kk]\\b",
-            "configuration": "./language-configuration.json"
+            "configuration": "./syntaxes/configuration.json"
          }
       ],
       "grammars": [
