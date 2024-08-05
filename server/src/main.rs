@@ -11,18 +11,18 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use stack_language_server::lexer::{Lexer, Token};
-use stack_language_server::parser::{Parser, Stmt};
+use stack_language_server::parser::ParseError;
+use stack_language_server::parser::{Parser, SDefinition};
 
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::notification::Notification;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
-#[derive(Debug)]
 struct Backend {
     client: Client,
     document_map: DashMap<String, Rope>,
-    definitions_map: DashMap<PathBuf, Vec<(String, Range)>>,
+    definitions_map: DashMap<PathBuf, Vec<SDefinition>>,
 }
 
 #[tower_lsp::async_trait]
@@ -215,7 +215,7 @@ impl LanguageServer for Backend {
                 }
             }
 
-            let identifier = identifier.unwrap().to_lowercase();
+            let identifier = identifier?.to_lowercase();
 
             let mut loc: Vec<Location> = vec![];
             for m in self.definitions_map.iter() {
@@ -224,9 +224,9 @@ impl LanguageServer for Backend {
 
                 let mut locations = v
                     .iter()
-                    .filter_map(|(def, range)| {
-                        if def.to_lowercase() == identifier {
-                            return Some(Location::new(uri.clone(), *range));
+                    .filter_map(|def| {
+                        if def.get_identifier().to_lowercase() == identifier {
+                            return Some(Location::new(uri.clone(), def.get_position()));
                         }
                         None
                     })
@@ -252,15 +252,45 @@ impl LanguageServer for Backend {
                 .definitions_map
                 .get(&file_uri.to_file_path().unwrap_or_default())?;
 
-            for (def, range) in defs.iter() {
-                vec.push(SymbolInformation {
-                    name: def.to_string(),
-                    kind: SymbolKind::FUNCTION,
-                    tags: None,
-                    deprecated: None,
-                    location: Location::new(file_uri.clone(), *range),
-                    container_name: None,
-                });
+            for def in defs.iter() {
+                match def {
+                    SDefinition::Function(def) => {
+                        let symbol = SymbolInformation {
+                            name: def.identifier.clone(),
+                            kind: SymbolKind::FUNCTION,
+                            tags: None,
+                            deprecated: None,
+                            location: Location::new(file_uri.clone(), def.position),
+                            container_name: None,
+                        };
+
+                        vec.push(symbol);
+                    }
+                    SDefinition::Class(def) => {
+                        let symbol = SymbolInformation {
+                            name: def.identifier.clone(),
+                            kind: SymbolKind::CLASS,
+                            tags: None,
+                            deprecated: None,
+                            location: Location::new(file_uri.clone(), def.position),
+                            container_name: None,
+                        };
+
+                        vec.push(symbol);
+
+                        for method in def.methods.iter() {
+                            let symbol = SymbolInformation {
+                                name: method.identifier.clone(),
+                                kind: SymbolKind::METHOD,
+                                tags: None,
+                                deprecated: None,
+                                location: Location::new(file_uri.clone(), method.position),
+                                container_name: Some(def.identifier.clone()),
+                            };
+                            vec.push(symbol);
+                        }
+                    }
+                };
             }
 
             Some(DocumentSymbolResponse::Flat(vec))
@@ -275,15 +305,61 @@ impl LanguageServer for Backend {
     }
 
     async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
-        info!("hover: {:?}", params);
-        let hover = Hover {
-            contents: HoverContents::Markup(MarkupContent {
-                kind: MarkupKind::Markdown,
-                value: "**hello**".to_string(),
-            }),
-            range: None,
-        };
-        Ok(Some(hover))
+        let hover = async {
+            let uri = params.text_document_position_params.text_document.uri;
+
+            let Position { character, line } = params.text_document_position_params.position;
+
+            let rope = self.document_map.get(uri.as_str())?;
+            let source = rope.line(line as usize).to_string();
+
+            let mut lexer = Lexer::new(&source);
+
+            let mut identifier = None;
+            while let Some(token) = &lexer.next() {
+                if let Ok(token) = token {
+                    let range = lexer.position().unwrap_or_default();
+                    if character >= range.start.character && character <= range.end.character {
+                        if let Token::Identifier(id) = token {
+                            identifier = Some(id.to_string());
+                        };
+                    }
+                }
+            }
+
+            let identifier = identifier?.to_lowercase();
+
+            let mut loc: Vec<String> = vec![];
+            for m in self.definitions_map.iter() {
+                let (path, v) = m.pair();
+                let uri = Url::from_file_path(path).unwrap_or(Url::parse("file:///").unwrap());
+
+                let mut locations = v
+                    .iter()
+                    .filter_map(|def| {
+                        if def.get_identifier().to_lowercase() == identifier {
+                            return Some(format!(
+                                "**{}**  \n{}  \n{}",
+                                def.get_identifier(),
+                                def.get_description(),
+                                def.get_doc_string()
+                            ));
+                        }
+                        None
+                    })
+                    .collect::<Vec<_>>();
+                loc.append(&mut locations);
+            }
+            Some(Hover {
+                contents: HoverContents::Markup(MarkupContent {
+                    kind: MarkupKind::Markdown,
+                    value: loc.join("\n\n"),
+                }),
+                range: None,
+            })
+        }
+        .await;
+        Ok(hover)
     }
 
     async fn semantic_tokens_full(
@@ -382,10 +458,20 @@ impl Notification for StatusBarNotification {
 impl Backend {
     async fn set_definition(&self, params: TextDocumentItem) {
         let mut parser = Parser::new(&params.text);
-        let definitions = parser.parse_definitions();
 
-        self.definitions_map
-            .insert(params.uri.to_file_path().unwrap_or_default(), definitions);
+        match parser.parse_definitions() {
+            Ok(definitions) => {
+                self.definitions_map
+                    .insert(params.uri.to_file_path().unwrap_or_default(), definitions);
+            }
+            Err(ParseError::UnexpectedToken(token, range)) => {
+                let diagnostic =
+                    Diagnostic::new_simple(range, format!("Unexpected token: {token}"));
+                self.client
+                    .publish_diagnostics(params.uri, vec![diagnostic], Some(params.version))
+                    .await;
+            }
+        }
     }
 
     async fn on_change(&self, params: TextDocumentItem) {

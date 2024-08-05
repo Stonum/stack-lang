@@ -20,4 +20,4 @@ log = "0.4.14"
 im-rc = "15.0.0"
 logos =  "0.14.0"
 rust-ini = "0.21.0"
-
+thiserror = "1.0.43"

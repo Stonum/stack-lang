@@ -1,9 +1,14 @@
+use thiserror::Error;
 use tower_lsp::lsp_types::Range;
 
 use crate::fmt::Formatter;
 use crate::lexer::{Lexer, Token};
 
-use log::debug;
+#[derive(Debug, Error)]
+pub enum ParseError {
+    #[error("unexpected token")]
+    UnexpectedToken(String, Range),
+}
 
 pub struct Parser<'source> {
     lexer: Lexer<'source>,
@@ -29,21 +34,27 @@ impl<'source> Parser<'source> {
         stmt
     }
 
-    pub fn parse_definitions(&mut self) -> Vec<(String, Range)> {
+    pub fn parse_definitions(&mut self) -> Result<Vec<SDefinition>, ParseError> {
         let mut def = vec![];
+        let mut comments = vec![];
         while let Some(token) = self.next() {
             match token {
+                Token::CommentLine(_) => comments.push(token),
                 Token::Function(_) => {
-                    if let Some(&Token::Identifier(_)) = self.peek() {
-                        let id = self.next().unwrap().into();
-                        let pos = self.position();
-                        def.push((id, pos));
-                    }
+                    let func = SFunctionDef::parse(self, std::mem::take(&mut comments))?;
+                    def.push(SDefinition::Function(func));
                 }
-                _ => continue,
+                Token::Class(_) => {
+                    let class = SClassDef::parse(self)?;
+                    def.push(SDefinition::Class(class));
+                }
+                _ => {
+                    comments.clear();
+                    continue;
+                }
             }
         }
-        def
+        Ok(def)
     }
 
     fn peek(&mut self) -> Option<&Token<'source>> {
@@ -453,5 +464,218 @@ impl<'source> SExpression<'source> {
         result.push(';');
 
         result
+    }
+}
+
+#[derive(Debug)]
+pub enum SDefinition {
+    Function(SFunctionDef),
+    Class(SClassDef),
+}
+
+impl SDefinition {
+    pub fn get_identifier(&self) -> String {
+        match self {
+            SDefinition::Function(x) => x.identifier.clone(),
+            SDefinition::Class(x) => x.identifier.clone(),
+        }
+    }
+
+    pub fn get_position(&self) -> Range {
+        match self {
+            SDefinition::Function(x) => x.position,
+            SDefinition::Class(x) => x.position,
+        }
+    }
+
+    pub fn get_description(&self) -> String {
+        match self {
+            SDefinition::Function(x) => x.description.clone().unwrap_or_default(),
+            SDefinition::Class(x) => x.description.clone().unwrap_or_default(),
+        }
+    }
+
+    pub fn get_doc_string(&self) -> String {
+        match self {
+            SDefinition::Function(x) => x.doc_string.clone().unwrap_or_default(),
+            SDefinition::Class(x) => x.doc_string.clone().unwrap_or_default(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct SFunctionDef {
+    pub identifier: String,
+    pub position: Range,
+    pub description: Option<String>,
+    pub doc_string: Option<String>,
+}
+
+impl SFunctionDef {
+    fn parse(parser: &mut Parser, comments: Vec<Token<'_>>) -> Result<Self, ParseError> {
+        match parser.next() {
+            Some(Token::Identifier(id)) => {
+                let identifier = id.replace("'", "").into();
+                let position = parser.position();
+
+                let mut description = None;
+                if !comments.is_empty() {
+                    description = Some(
+                        comments
+                            .iter()
+                            .map(|x| String::from(x))
+                            .collect::<Vec<_>>()
+                            .join("\n"),
+                    );
+                }
+                let mut doc_string = None;
+
+                let mut paren_count = 0;
+                let mut has_paren = false;
+                let mut brace_count = 0;
+                while let Some(token) = parser.next() {
+                    match token {
+                        Token::Lparen => {
+                            paren_count += 1;
+                            has_paren = true;
+                        }
+                        Token::Rparen => {
+                            if paren_count == 0 {
+                                return Err(ParseError::UnexpectedToken(
+                                    String::from(token),
+                                    parser.position(),
+                                ));
+                            }
+                            paren_count -= 1;
+                        }
+                        Token::LongString(s) if has_paren && paren_count == 0 => {
+                            doc_string = Some(s.into())
+                        }
+                        Token::Lbrace | Token::ObjectLbracket => brace_count += 1,
+                        Token::Rbrace => {
+                            if brace_count == 0 {
+                                return Err(ParseError::UnexpectedToken(
+                                    String::from(token),
+                                    parser.position(),
+                                ));
+                            }
+                            brace_count -= 1;
+                            if brace_count == 0 {
+                                break;
+                            }
+                        }
+                        _ => continue,
+                    }
+                }
+
+                Ok(Self {
+                    identifier,
+                    position,
+                    description,
+                    doc_string,
+                })
+            }
+            Some(token) => Err(ParseError::UnexpectedToken(
+                String::from(token),
+                parser.position(),
+            )),
+            None => Err(ParseError::UnexpectedToken(
+                String::from("EOF"),
+                parser.position(),
+            )),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct SClassDef {
+    pub identifier: String,
+    pub position: Range,
+    pub methods: Vec<SFunctionDef>,
+    pub description: Option<String>,
+    pub doc_string: Option<String>,
+}
+
+impl SClassDef {
+    fn parse(parser: &mut Parser) -> Result<Self, ParseError> {
+        match parser.next() {
+            Some(Token::Identifier(id)) => {
+                let identifier = id.replace("'", "").into();
+                let position = parser.position();
+                let mut methods = vec![];
+
+                let mut brace_count = 0;
+
+                let mut comments = vec![];
+                while let Some(token) = parser.peek() {
+                    match token {
+                        Token::Extends(_) => {
+                            parser.next();
+                            if let Some(token) = parser.peek() {
+                                match token {
+                                    Token::Identifier(_) => {
+                                        parser.next();
+                                    }
+                                    _ => {
+                                        return Err(ParseError::UnexpectedToken(
+                                            String::from(token),
+                                            parser.position(),
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                        Token::CommentLine(_) => {
+                            comments.push(parser.next().unwrap());
+                        }
+                        Token::Lbrace | Token::ObjectLbracket => {
+                            brace_count += 1;
+                            parser.next();
+                        }
+                        Token::Rbrace => {
+                            if brace_count == 0 {
+                                return Err(ParseError::UnexpectedToken(
+                                    String::from(token),
+                                    parser.position(),
+                                ));
+                            }
+                            brace_count -= 1;
+                            parser.next();
+                            if brace_count == 0 {
+                                break;
+                            }
+                        }
+                        Token::Identifier(_) => {
+                            if brace_count > 0 {
+                                methods.push(SFunctionDef::parse(
+                                    parser,
+                                    std::mem::take(&mut comments),
+                                )?);
+                            }
+                        }
+                        _ => {
+                            parser.next();
+                            continue;
+                        }
+                    }
+                }
+
+                Ok(Self {
+                    identifier,
+                    position,
+                    methods,
+                    description: None,
+                    doc_string: None,
+                })
+            }
+            Some(token) => Err(ParseError::UnexpectedToken(
+                String::from(token),
+                parser.position(),
+            )),
+            None => Err(ParseError::UnexpectedToken(
+                String::from("EOF"),
+                parser.position(),
+            )),
+        }
     }
 }

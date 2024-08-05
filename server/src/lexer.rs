@@ -70,6 +70,12 @@ pub enum Token<'source> {
     #[regex("(?i)(func|функция)", to_keyword_language)]
     Function(KeywordLanguage),
 
+    #[regex("(?i)(class|класс)", to_keyword_language)]
+    Class(KeywordLanguage),
+
+    #[regex("(?i)(extends|расширяет)", to_keyword_language)]
+    Extends(KeywordLanguage),
+
     #[regex("(?i)(return|вернуть)", to_keyword_language)]
     Return(KeywordLanguage),
 
@@ -211,7 +217,7 @@ pub enum Token<'source> {
     #[token("<=")]
     LessEq,
 
-    #[regex(r"#.+[\r\n]+")]
+    #[regex(r"#.+[\r\n]+", |s| &s.slice()[1..])]
     CommentLine(&'source str),
 
     #[regex("(?i)(true|false|истина|ложь)")]
@@ -220,13 +226,14 @@ pub enum Token<'source> {
     #[regex(r"-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?", priority = 1)]
     Number(&'source str),
 
-    #[regex("\"[^\"]*\"")]
+    #[regex("\"[^\"]*\"", |s| &s.slice()[1..s.slice().len() - 1])]
     String(&'source str),
 
-    #[regex("`[^`]*`")]
+    #[regex("`[^`]*`", |s| &s.slice()[1..s.slice().len() - 1])]
     LongString(&'source str),
 
-    #[regex("[a-zA-ZА-Яа-я0-9_@]+", priority = 0)]
+    #[regex(r"'([a-zA-ZА-Яа-я0-9_@. ]+)'", priority = 1)]
+    #[regex(r"[a-zA-ZА-Яа-я0-9_@.]+", priority = 0)]
     Identifier(&'source str),
 
     #[regex(r"[\r\n]+")]
@@ -251,6 +258,14 @@ impl<'source> From<Token<'source>> for &'source str {
             Token::Function(value) => match value {
                 KeywordLanguage::Eng => "func",
                 KeywordLanguage::Ru => "Функция",
+            },
+            Token::Class(value) => match value {
+                KeywordLanguage::Eng => "class",
+                KeywordLanguage::Ru => "Класс",
+            },
+            Token::Extends(value) => match value {
+                KeywordLanguage::Eng => "extends",
+                KeywordLanguage::Ru => "расширяет",
             },
             Token::Return(value) => match value {
                 KeywordLanguage::Eng => "return",
