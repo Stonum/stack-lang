@@ -533,11 +533,15 @@ impl SFunctionDef {
                 let mut paren_count = 0;
                 let mut has_paren = false;
                 let mut brace_count = 0;
+                let mut has_brace = false;
                 while let Some(token) = parser.next() {
                     match token {
                         Token::Lparen => {
                             paren_count += 1;
                             has_paren = true;
+                        }
+                        Token::SetLbracket => {
+                            paren_count += 1;
                         }
                         Token::Rparen => {
                             if paren_count == 0 {
@@ -551,7 +555,13 @@ impl SFunctionDef {
                         Token::LongString(s) if has_paren && paren_count == 0 => {
                             doc_string = Some(s.into())
                         }
-                        Token::Lbrace | Token::ObjectLbracket => brace_count += 1,
+                        Token::Lbrace => {
+                            brace_count += 1;
+                            has_brace = true;
+                        }
+                        Token::ObjectLbracket => {
+                            brace_count += 1;
+                        }
                         Token::Rbrace => {
                             if brace_count == 0 {
                                 return Err(ParseError::UnexpectedToken(
@@ -560,7 +570,7 @@ impl SFunctionDef {
                                 ));
                             }
                             brace_count -= 1;
-                            if brace_count == 0 {
+                            if has_brace && brace_count == 0 {
                                 break;
                             }
                         }

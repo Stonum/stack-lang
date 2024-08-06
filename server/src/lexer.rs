@@ -232,7 +232,7 @@ pub enum Token<'source> {
     #[regex("`[^`]*`", |s| &s.slice()[1..s.slice().len() - 1])]
     LongString(&'source str),
 
-    #[regex(r"'([a-zA-ZА-Яа-я0-9_@. ]+)'", priority = 1)]
+    #[regex(r"'([a-zA-ZА-Яа-я0-9_@. ()@\-\\>\/]+)'", priority = 1)]
     #[regex(r"[a-zA-ZА-Яа-я0-9_@.]+", priority = 0)]
     Identifier(&'source str),
 
