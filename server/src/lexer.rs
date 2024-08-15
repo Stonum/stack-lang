@@ -109,7 +109,7 @@ pub enum Token<'source> {
     #[regex("(?i)(\\|\\||или)", to_keyword_language)]
     Or(KeywordLanguage),
 
-    #[regex("(?i)(и|&)", to_keyword_language)]
+    #[regex("(?i)(и|&&)", to_keyword_language)]
     And(KeywordLanguage),
 
     #[regex("(?i)throw")]
@@ -152,40 +152,26 @@ pub enum Token<'source> {
     Equals,
 
     #[token("==")]
-    EqualsEq,
-
     #[token("!=")]
-    NotEq,
-
     #[token("!")]
-    NotEq2,
+    #[token(">")]
+    #[token(">=")]
+    #[token("<")]
+    #[token("<=")]
+    CondOp(&'source str),
 
     #[token("+")]
-    Plus,
-
     #[token("+=")]
-    PlusEq,
-
     #[token("-")]
-    Minus,
-
     #[token("-=")]
-    MinusEq,
-
     #[token("*")]
-    Mul,
-
     #[token("*=")]
-    MulEq,
-
     #[token("/")]
-    Div,
-
     #[token("/=")]
-    DivEq,
-
     #[token("%")]
-    Mod,
+    #[token("&")]
+    #[token("|")]
+    Op(&'source str),
 
     #[token(",")]
     Comma,
@@ -205,17 +191,8 @@ pub enum Token<'source> {
     #[token("?")]
     QuestionMark,
 
-    #[token(">")]
-    Greater,
-
-    #[token(">=")]
-    GreaterEq,
-
-    #[token("<")]
-    Less,
-
-    #[token("<=")]
-    LessEq,
+    #[token("...")]
+    Spread,
 
     #[regex(r"#.+[\r\n]+", |s| &s.slice()[1..])]
     CommentLine(&'source str),
@@ -238,6 +215,8 @@ pub enum Token<'source> {
 
     #[regex(r"[\r\n]+")]
     NewLine,
+
+    Error,
 }
 
 impl<'source> From<Token<'source>> for &'source str {
@@ -336,44 +315,25 @@ impl<'source> From<Token<'source>> for &'source str {
             Token::ObjectLbracket => "@{",
             Token::SetLbracket => "@(",
             Token::Equals => "=",
-            Token::EqualsEq => "==",
-            Token::NotEq => "!=",
-            Token::NotEq2 => "!=",
-            Token::Plus => "+",
-            Token::PlusEq => "+=",
-            Token::Minus => "-",
-            Token::MinusEq => "-=",
-            Token::Mul => "*",
-            Token::MulEq => "*=",
-            Token::Div => "/",
-            Token::DivEq => "/=",
-            Token::Mod => "%",
+            Token::Op(value) => value,
+            Token::CondOp(value) => value,
             Token::Comma => ",",
             Token::Dot => ".",
             Token::Quote => "'",
             Token::SemiColon => ";",
             Token::Colon => ":",
             Token::QuestionMark => "?",
-            Token::Greater => ">",
-            Token::GreaterEq => ">=",
-            Token::Less => "<",
-            Token::LessEq => "<=",
+            Token::Spread => "...",
 
             Token::NewLine => "\n",
+
+            Token::Error => unimplemented!(),
         }
     }
 }
 
-impl<'source> From<Token<'source>> for String {
-    fn from(value: Token<'source>) -> Self {
-        let s: &str = value.into();
-        s.to_string()
-    }
-}
-
-impl<'source> From<&Token<'source>> for String {
-    fn from(value: &Token<'source>) -> Self {
-        let s: &str = (*value).into();
-        s.to_string()
+impl<'a> std::fmt::Display for Token<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.to_string())
     }
 }

@@ -331,8 +331,7 @@ impl LanguageServer for Backend {
 
             let mut loc: Vec<String> = vec![];
             for m in self.definitions_map.iter() {
-                let (path, v) = m.pair();
-                let uri = Url::from_file_path(path).unwrap_or(Url::parse("file:///").unwrap());
+                let (_path, v) = m.pair();
 
                 let mut locations = v
                     .iter()
@@ -382,7 +381,7 @@ impl LanguageServer for Backend {
 
     async fn inlay_hint(
         &self,
-        params: tower_lsp::lsp_types::InlayHintParams,
+        _params: tower_lsp::lsp_types::InlayHintParams,
     ) -> Result<Option<Vec<InlayHint>>> {
         Ok(None)
     }

@@ -129,7 +129,7 @@ impl<'source> Stmt<'source> {
             Self::Array(x) => x.fmt(f),
             Self::Object(x) => x.fmt(f),
             Self::Expression(x) => x.fmt(f),
-            Self::Token(x) => x.into(),
+            Self::Token(x) => format!("{x}"),
             _ => "".to_string(),
         }
     }
@@ -152,7 +152,7 @@ impl<'source> SFunction<'source> {
         let range = parser.position();
         let mut parameters = vec![];
         let mut body = vec![];
-        let mut stmt = vec![];
+        let stmt = vec![];
 
         while let Some(token) = parser.peek() {
             match token {
@@ -297,13 +297,13 @@ pub struct SFunctionParameter<'source> {
 impl SFunctionParameter<'_> {
     pub fn fmt(&self, _f: &mut Formatter) -> String {
         let mut result = String::new();
-        result.push_str(&String::from(self.identifier));
+        result.push_str(&(self.identifier.to_string()));
         if self.question_mark {
             result.push('?');
         }
         if let Some(initializer) = &self.initializer {
             result.push_str(" = ");
-            result.push_str(&String::from(initializer));
+            result.push_str(&(initializer.to_string()));
         }
         result
     }
@@ -453,7 +453,7 @@ impl<'source> SExpression<'source> {
         // result.push_str(&String::from(self.token));
         if let Some(identifier) = &self.identifier {
             result.push_str(" ");
-            result.push_str(&String::from(identifier));
+            result.push_str(&(identifier.to_string()));
             result.push_str(" = ");
         }
         if let Some(value) = &self.value {
@@ -523,7 +523,7 @@ impl SFunctionDef {
                     description = Some(
                         comments
                             .iter()
-                            .map(|x| String::from(x))
+                            .map(|x| x.to_string())
                             .collect::<Vec<_>>()
                             .join("\n"),
                     );
@@ -546,7 +546,7 @@ impl SFunctionDef {
                         Token::Rparen => {
                             if paren_count == 0 {
                                 return Err(ParseError::UnexpectedToken(
-                                    String::from(token),
+                                    token.to_string(),
                                     parser.position(),
                                 ));
                             }
@@ -565,7 +565,7 @@ impl SFunctionDef {
                         Token::Rbrace => {
                             if brace_count == 0 {
                                 return Err(ParseError::UnexpectedToken(
-                                    String::from(token),
+                                    token.to_string(),
                                     parser.position(),
                                 ));
                             }
@@ -586,7 +586,7 @@ impl SFunctionDef {
                 })
             }
             Some(token) => Err(ParseError::UnexpectedToken(
-                String::from(token),
+                token.to_string(),
                 parser.position(),
             )),
             None => Err(ParseError::UnexpectedToken(
@@ -628,7 +628,7 @@ impl SClassDef {
                                     }
                                     _ => {
                                         return Err(ParseError::UnexpectedToken(
-                                            String::from(token),
+                                            token.to_string(),
                                             parser.position(),
                                         ));
                                     }
@@ -645,7 +645,7 @@ impl SClassDef {
                         Token::Rbrace => {
                             if brace_count == 0 {
                                 return Err(ParseError::UnexpectedToken(
-                                    String::from(token),
+                                    token.to_string(),
                                     parser.position(),
                                 ));
                             }
@@ -679,7 +679,7 @@ impl SClassDef {
                 })
             }
             Some(token) => Err(ParseError::UnexpectedToken(
-                String::from(token),
+                token.to_string(),
                 parser.position(),
             )),
             None => Err(ParseError::UnexpectedToken(
