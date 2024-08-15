@@ -45,6 +45,21 @@
             }
          }
       ],
+      "commands": [
+         {
+            "command": "stack.togglePostgreSQL",
+            "title": "Заменяет тильды в запросе и наоборот",
+            "category": "stack"
+         }
+      ],
+      "keybindings": [
+         {
+            "command": "stack.togglePostgreSQL",
+            "key": "f12",
+            "mac": "f12",
+            "when": "editorTextFocus"
+         }
+      ],
       "configuration": {
          "type": "object",
          "title": "stack-language-server",

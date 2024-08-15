@@ -5,10 +5,11 @@
 
 import {
    workspace,
-   ExtensionContext,
    window,
+   commands,
+   ExtensionContext,
    StatusBarAlignment,
-   StatusBarItem
+   StatusBarItem,
 } from "vscode";
 
 import * as path from "path";
@@ -20,6 +21,8 @@ import {
    ServerOptions,
    TransportKind,
 } from "vscode-languageclient/node";
+
+import { togglePostgreSQL } from './postgreUtils';
 
 let client: LanguageClient;
 let statusBarItem: StatusBarItem;
@@ -93,6 +96,14 @@ export async function activate(context: ExtensionContext) {
          statusBarItem.hide();
       }
    });
+
+   let disposable = commands.registerCommand('stack.togglePostgreSQL', args => {
+      args = args || {}
+      const namespace = args.namespace || 'stack'
+      const dollar = args.dollar || false
+      togglePostgreSQL( namespace, dollar)
+   });
+   context.subscriptions.push(disposable);
 
    client.start();
 }
