@@ -1,4 +1,4 @@
-use logos::{Logos, Span};
+use logos::{Logos, Skip, Span};
 use ropey::Rope;
 use tower_lsp::lsp_types::{Position, Range};
 
@@ -40,12 +40,12 @@ impl<'source> Iterator for Lexer<'source> {
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
-pub enum KeywordLanguage {
-    Ru,
+pub enum KwLang {
     Eng,
+    Ru,
 }
 
-impl From<&str> for KeywordLanguage {
+impl From<&str> for KwLang {
     fn from(value: &str) -> Self {
         match value
             .chars()
@@ -57,87 +57,77 @@ impl From<&str> for KeywordLanguage {
     }
 }
 
-fn to_keyword_language<'s>(token: &logos::Lexer<'s, Token<'s>>) -> KeywordLanguage {
-    KeywordLanguage::from(token.slice())
+fn to_keyword_language<'s>(token: &logos::Lexer<'s, Token<'s>>) -> KwLang {
+    KwLang::from(token.slice())
 }
 
-#[derive(Logos, Debug, PartialEq, Copy, Clone)]
+#[derive(Logos, Debug, PartialEq, Eq, Copy, Clone)]
 #[logos(skip r"[ \t\f]+")] // Ignore this regex pattern between tokens
 pub enum Token<'source> {
     #[regex("(?i)(var|перем)", to_keyword_language)]
-    Var(KeywordLanguage),
+    Var(KwLang),
 
     #[regex("(?i)(func|функция)", to_keyword_language)]
-    Function(KeywordLanguage),
+    Function(KwLang),
 
     #[regex("(?i)(class|класс)", to_keyword_language)]
-    Class(KeywordLanguage),
+    Class(KwLang),
 
     #[regex("(?i)(extends|расширяет)", to_keyword_language)]
-    Extends(KeywordLanguage),
+    Extends(KwLang),
 
     #[regex("(?i)(return|вернуть)", to_keyword_language)]
-    Return(KeywordLanguage),
+    Return(KwLang),
 
     #[regex("(?i)(forall|длявсех)", to_keyword_language)]
-    ForAll(KeywordLanguage),
+    ForAll(KwLang),
 
     #[regex("(?i)(подобъектов)", to_keyword_language)]
-    ObjectsIter(KeywordLanguage),
+    ObjectsIter(KwLang),
 
     #[regex("(?i)(элементов)", to_keyword_language)]
-    ElementsIter(KeywordLanguage),
+    ElementsIter(KwLang),
 
     #[regex("(?i)(if|если)", to_keyword_language)]
-    If(KeywordLanguage),
+    If(KwLang),
 
     #[regex("(?i)(else|иначе)", to_keyword_language)]
-    Else(KeywordLanguage),
+    Else(KwLang),
 
     #[regex("(?i)(switch|выборпо)", to_keyword_language)]
-    Switch(KeywordLanguage),
+    Switch(KwLang),
 
     #[regex("(?i)(case|выбор)", to_keyword_language)]
-    Case(KeywordLanguage),
+    Case(KwLang),
 
     #[regex("(?i)(exists|есть)", to_keyword_language)]
-    Exists(KeywordLanguage),
+    Exists(KwLang),
 
     #[regex("(?i)(getordefault|извлечь)", to_keyword_language)]
-    GetOrDefault(KeywordLanguage),
+    GetOrDefault(KwLang),
 
     #[regex("(?i)(\\|\\||или)", to_keyword_language)]
-    Or(KeywordLanguage),
+    Or(KwLang),
 
     #[regex("(?i)(и|&&)", to_keyword_language)]
-    And(KeywordLanguage),
+    And(KwLang),
 
     #[regex("(?i)throw")]
     Throw,
 
     #[regex("(?i)(break|прервать)", to_keyword_language)]
-    Break(KeywordLanguage),
+    Break(KwLang),
 
     #[regex("(?i)(continue|продолжить)", to_keyword_language)]
-    Continue(KeywordLanguage),
+    Continue(KwLang),
 
     #[token("(")]
-    Lparen,
-
     #[token(")")]
-    Rparen,
-
     #[token("{")]
-    Lbrace,
-
     #[token("}")]
-    Rbrace,
-
     #[token("[")]
-    Lbracket,
-
     #[token("]")]
-    Rbracket,
+    Ctrl(&'source str),
 
     #[token("@[")]
     ArrayLbracket,
@@ -197,6 +187,9 @@ pub enum Token<'source> {
     #[regex(r"#.+[\r\n]+", |s| &s.slice()[1..])]
     CommentLine(&'source str),
 
+    #[regex("(?i)(null|nil|нуль)")]
+    Null(&'source str),
+
     #[regex("(?i)(true|false|истина|ложь)")]
     Bool(&'source str),
 
@@ -213,7 +206,7 @@ pub enum Token<'source> {
     #[regex(r"[a-zA-ZА-Яа-я0-9_@.]+", priority = 0)]
     Identifier(&'source str),
 
-    #[regex(r"[\r\n]+")]
+    #[regex(r"[\r\n]+", |_| Skip)]
     NewLine,
 
     Error,
@@ -227,90 +220,86 @@ impl<'source> From<Token<'source>> for &'source str {
             Token::String(value) => value,
             Token::LongString(value) => value,
             Token::Bool(value) => value,
+            Token::Null(value) => value,
             Token::CommentLine(value) => value,
 
             // Keywords
             Token::Var(value) => match value {
-                KeywordLanguage::Eng => "var",
-                KeywordLanguage::Ru => "перем",
+                KwLang::Eng => "var",
+                KwLang::Ru => "перем",
             },
             Token::Function(value) => match value {
-                KeywordLanguage::Eng => "func",
-                KeywordLanguage::Ru => "Функция",
+                KwLang::Eng => "func",
+                KwLang::Ru => "Функция",
             },
             Token::Class(value) => match value {
-                KeywordLanguage::Eng => "class",
-                KeywordLanguage::Ru => "Класс",
+                KwLang::Eng => "class",
+                KwLang::Ru => "Класс",
             },
             Token::Extends(value) => match value {
-                KeywordLanguage::Eng => "extends",
-                KeywordLanguage::Ru => "расширяет",
+                KwLang::Eng => "extends",
+                KwLang::Ru => "расширяет",
             },
             Token::Return(value) => match value {
-                KeywordLanguage::Eng => "return",
-                KeywordLanguage::Ru => "Вернуть",
+                KwLang::Eng => "return",
+                KwLang::Ru => "Вернуть",
             },
             Token::ForAll(value) => match value {
-                KeywordLanguage::Eng => "forall",
-                KeywordLanguage::Ru => "ДляВсех",
+                KwLang::Eng => "forall",
+                KwLang::Ru => "ДляВсех",
             },
             Token::ObjectsIter(value) => match value {
-                KeywordLanguage::Eng => unimplemented!(),
-                KeywordLanguage::Ru => "ПодОбъектов",
+                KwLang::Eng => unimplemented!(),
+                KwLang::Ru => "ПодОбъектов",
             },
             Token::ElementsIter(value) => match value {
-                KeywordLanguage::Eng => unimplemented!(),
-                KeywordLanguage::Ru => "Элементов",
+                KwLang::Eng => unimplemented!(),
+                KwLang::Ru => "Элементов",
             },
             Token::If(value) => match value {
-                KeywordLanguage::Eng => "if",
-                KeywordLanguage::Ru => "Если",
+                KwLang::Eng => "if",
+                KwLang::Ru => "Если",
             },
             Token::Else(value) => match value {
-                KeywordLanguage::Eng => "else",
-                KeywordLanguage::Ru => "Иначе",
+                KwLang::Eng => "else",
+                KwLang::Ru => "Иначе",
             },
             Token::Switch(value) => match value {
-                KeywordLanguage::Eng => "switch",
-                KeywordLanguage::Ru => "ВыборПо",
+                KwLang::Eng => "switch",
+                KwLang::Ru => "ВыборПо",
             },
             Token::Case(value) => match value {
-                KeywordLanguage::Eng => "case",
-                KeywordLanguage::Ru => "Выбор",
+                KwLang::Eng => "case",
+                KwLang::Ru => "Выбор",
             },
             Token::Exists(value) => match value {
-                KeywordLanguage::Eng => "exists",
-                KeywordLanguage::Ru => "Есть",
+                KwLang::Eng => "exists",
+                KwLang::Ru => "Есть",
             },
             Token::GetOrDefault(value) => match value {
-                KeywordLanguage::Eng => "getOrDefault",
-                KeywordLanguage::Ru => "Извлечь",
+                KwLang::Eng => "getOrDefault",
+                KwLang::Ru => "Извлечь",
             },
             Token::Or(value) => match value {
-                KeywordLanguage::Eng => "|",
-                KeywordLanguage::Ru => "или",
+                KwLang::Eng => "|",
+                KwLang::Ru => "или",
             },
             Token::And(value) => match value {
-                KeywordLanguage::Eng => "&",
-                KeywordLanguage::Ru => "и",
+                KwLang::Eng => "&",
+                KwLang::Ru => "и",
             },
             Token::Break(value) => match value {
-                KeywordLanguage::Eng => "break",
-                KeywordLanguage::Ru => "прервать",
+                KwLang::Eng => "break",
+                KwLang::Ru => "прервать",
             },
             Token::Continue(value) => match value {
-                KeywordLanguage::Eng => "continue",
-                KeywordLanguage::Ru => "продолжить",
+                KwLang::Eng => "continue",
+                KwLang::Ru => "продолжить",
             },
             Token::Throw => "throw",
 
             // Symbols
-            Token::Lparen => "(",
-            Token::Rparen => ")",
-            Token::Lbrace => "{",
-            Token::Rbrace => "}",
-            Token::Lbracket => "[",
-            Token::Rbracket => "]",
+            Token::Ctrl(value) => value,
             Token::ArrayLbracket => "@[",
             Token::ObjectLbracket => "@{",
             Token::SetLbracket => "@(",
@@ -334,6 +323,7 @@ impl<'source> From<Token<'source>> for &'source str {
 
 impl<'a> std::fmt::Display for Token<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.to_string())
+        let token: &str = (*self).into();
+        write!(f, "{token}")
     }
 }

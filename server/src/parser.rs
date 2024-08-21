@@ -156,10 +156,10 @@ impl<'source> SFunction<'source> {
 
         while let Some(token) = parser.peek() {
             match token {
-                Token::Lparen => {
+                Token::Ctrl("(") => {
                     parameters = SFunction::parse_parameters(parser);
                 }
-                Token::Lbrace => {
+                Token::Ctrl("{") => {
                     body = SFunction::parse_body(parser);
                     break;
                 }
@@ -185,7 +185,7 @@ impl<'source> SFunction<'source> {
         let mut paren_count = 0;
         while let Some(token) = parser.peek() {
             match token {
-                Token::Lparen => {
+                Token::Ctrl("(") => {
                     parser.next();
                     if has_paren {
                         paren_count += 1;
@@ -193,7 +193,7 @@ impl<'source> SFunction<'source> {
                     }
                     has_paren = true;
                 }
-                Token::Rparen => {
+                Token::Ctrl(")") => {
                     parser.next();
                     match paren_count {
                         0 | 1 => break,
@@ -239,7 +239,7 @@ impl<'source> SFunction<'source> {
         let mut brace_count = 0;
         while let Some(token) = parser.peek() {
             match token {
-                Token::Lbrace => {
+                Token::Ctrl("{") => {
                     parser.next();
                     if lbrace {
                         brace_count += 1;
@@ -247,7 +247,7 @@ impl<'source> SFunction<'source> {
                     }
                     lbrace = true;
                 }
-                Token::Rbrace => {
+                Token::Ctrl("}") => {
                     parser.next();
                     if brace_count == 0 {
                         break;
@@ -320,7 +320,7 @@ impl<'source> SArray<'source> {
         parser.next();
         while let Some(token) = parser.peek() {
             match token {
-                Token::Rbracket => {
+                Token::Ctrl("]") => {
                     parser.next();
                     break;
                 }
@@ -361,7 +361,7 @@ impl<'source> SObject<'source> {
         parser.next();
         while let Some(token) = parser.peek() {
             match token {
-                Token::Rbrace => {
+                Token::Ctrl("}") => {
                     parser.next();
                     break;
                 }
@@ -536,14 +536,14 @@ impl SFunctionDef {
                 let mut has_brace = false;
                 while let Some(token) = parser.next() {
                     match token {
-                        Token::Lparen => {
+                        Token::Ctrl("(") => {
                             paren_count += 1;
                             has_paren = true;
                         }
                         Token::SetLbracket => {
                             paren_count += 1;
                         }
-                        Token::Rparen => {
+                        Token::Ctrl(")") => {
                             if paren_count == 0 {
                                 return Err(ParseError::UnexpectedToken(
                                     token.to_string(),
@@ -555,14 +555,14 @@ impl SFunctionDef {
                         Token::LongString(s) if has_paren && paren_count == 0 => {
                             doc_string = Some(s.into())
                         }
-                        Token::Lbrace => {
+                        Token::Ctrl("{") => {
                             brace_count += 1;
                             has_brace = true;
                         }
                         Token::ObjectLbracket => {
                             brace_count += 1;
                         }
-                        Token::Rbrace => {
+                        Token::Ctrl("}") => {
                             if brace_count == 0 {
                                 return Err(ParseError::UnexpectedToken(
                                     token.to_string(),
@@ -638,11 +638,11 @@ impl SClassDef {
                         Token::CommentLine(_) => {
                             comments.push(parser.next().unwrap());
                         }
-                        Token::Lbrace | Token::ObjectLbracket => {
+                        Token::Ctrl("{") | Token::ObjectLbracket => {
                             brace_count += 1;
                             parser.next();
                         }
-                        Token::Rbrace => {
+                        Token::Ctrl("}") => {
                             if brace_count == 0 {
                                 return Err(ParseError::UnexpectedToken(
                                     token.to_string(),
