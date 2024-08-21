@@ -11,7 +11,7 @@
       "tower-lsp"
    ],
    "engines": {
-      "vscode": "^1.75.0"
+      "vscode": "^1.69.0"
    },
    "activationEvents": [
       "onLanguage:stack"
@@ -112,6 +112,6 @@
       "concurrently": "^8.2.2"
    },
    "dependencies": {
-      "vscode-languageclient": "9.0.1"
+      "vscode-languageclient": "8.0.1"
    }
 }
