@@ -11,8 +11,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use stack_language_server::lexer::{Lexer, Token};
-use stack_language_server::parser::ParseError;
-use stack_language_server::parser::{Parser, SDefinition};
+use stack_language_server::parser_old::ParseError;
+use stack_language_server::parser_old::{Parser, SDefinition};
 
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::notification::Notification;
