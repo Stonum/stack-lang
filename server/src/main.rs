@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use stack_language_server::lexer::{Lexer, Token};
+use stack_language_server::parser;
 use stack_language_server::parser_old::ParseError;
 use stack_language_server::parser_old::{Parser, SDefinition};
 

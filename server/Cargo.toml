@@ -17,7 +17,7 @@ tower-lsp = { version = "0.20.0", features = ["proposed"]}
 serde = { version = "1.0", features = ["derive"] }
 dashmap = "5.1.0"
 log = "0.4.14"
-logos =  "0.14.0"
+logos =  "0.14.1"
 rust-ini = "0.21.0"
 thiserror = "1.0.43"
 chumsky = { version = "1.0.0-alpha.7", features=["label"] }

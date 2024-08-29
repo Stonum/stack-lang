@@ -184,7 +184,7 @@ pub enum Token<'source> {
     #[token("...")]
     Spread,
 
-    #[regex(r"#.+[\r\n]+", |s| &s.slice()[1..])]
+    #[regex(r"#.+\r\n+", |s| &s.slice()[1..])]
     CommentLine(&'source str),
 
     #[regex("(?i)(null|nil|нуль)")]
@@ -206,8 +206,9 @@ pub enum Token<'source> {
     #[regex(r"[a-zA-ZА-Яа-я0-9_@.]+", priority = 0)]
     Identifier(&'source str),
 
-    #[regex(r"[\r\n]+", |_| Skip)]
-    NewLine,
+    // #[regex(r"([ \t]*\r\n[ \t]*(\r\n)+)*", |t|  t.slice().chars().filter(|&c| c == '\n').count() - 1 )]
+    // #[regex(r"[\r\n]+", |_| Skip)]
+    EmptyLines(usize),
 
     Error,
 }
@@ -314,7 +315,7 @@ impl<'source> From<Token<'source>> for &'source str {
             Token::QuestionMark => "?",
             Token::Spread => "...",
 
-            Token::NewLine => "\n",
+            Token::EmptyLines(_) => "\n",
 
             Token::Error => unimplemented!(),
         }
