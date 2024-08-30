@@ -1,3 +1,4 @@
+mod decl;
 mod expr;
 mod stmt;
 
@@ -5,7 +6,7 @@ use std::iter::Map;
 use std::ops::Range;
 
 use chumsky::{
-    input::{SpannedInput, Stream, ValueInput},
+    input::{SpannedInput, Stream},
     prelude::*,
 };
 
@@ -13,8 +14,7 @@ use crate::lexer::KwLang;
 use crate::lexer::Token;
 use logos::{Logos, SpannedIter};
 
-use self::expr::parser_expr;
-use self::stmt::{parser_stmt, Stmt};
+use self::decl::{parser_decl, Decl};
 
 pub type Span = SimpleSpan<usize>;
 pub type Spanned<T> = (T, Span);
@@ -41,9 +41,8 @@ fn token_stream_from_str<'source>(
 
 pub fn parse<'source>(
     source: &'source str,
-) -> ParseResult<Vec<Stmt>, chumsky::error::Rich<'_, Token<'_>>> {
+) -> ParseResult<Vec<Decl>, chumsky::error::Rich<'_, Token<'_>>> {
     let token_stream = token_stream_from_str(source);
 
-    // parser_expr().parse(token_stream)
-    parser_stmt().parse(token_stream)
+    parser_decl().parse(token_stream)
 }

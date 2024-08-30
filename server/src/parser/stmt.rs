@@ -1,6 +1,6 @@
 use chumsky::{input::ValueInput, prelude::*};
 
-use super::{expr::Expr, parser_expr};
+use super::expr::{parser_expr, Expr};
 use super::{KwLang, Token};
 use super::{Span, Spanned};
 

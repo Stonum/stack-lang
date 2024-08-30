@@ -114,7 +114,7 @@ impl<'source> Stmt<'source> {
             Some(Token::ObjectLbracket) => Self::Object(SObject::parse(parser)),
             Some(Token::Var(_)) => Self::Expression(SExpression::parse(parser)),
             Some(Token::Identifier(_)) => Self::Expression(SExpression::parse(parser)),
-            Some(Token::EmptyLines(_)) => Self::EmptyLine,
+            Some(Token::NewLine) => Self::EmptyLine,
             Some(_) => Self::Token(parser.next().expect("get peeked token")),
             None => Self::Eof,
         }
@@ -321,7 +321,7 @@ impl<'source> SArray<'source> {
                     parser.next();
                     break;
                 }
-                Token::Comma | Token::EmptyLines(_) => {
+                Token::Comma | Token::NewLine => {
                     parser.next();
                     continue;
                 }
@@ -362,7 +362,7 @@ impl<'source> SObject<'source> {
                     parser.next();
                     break;
                 }
-                Token::Comma | Token::EmptyLines(_) => {
+                Token::Comma | Token::NewLine => {
                     parser.next();
                     continue;
                 }
@@ -416,7 +416,7 @@ impl<'source> SExpression<'source> {
             let mut value = vec![];
             while let Some(token) = parser.peek() {
                 match token {
-                    Token::CommentLine(_) | Token::EmptyLines(_) => {
+                    Token::CommentLine(_) | Token::NewLine => {
                         break;
                     }
                     Token::SemiColon => {
