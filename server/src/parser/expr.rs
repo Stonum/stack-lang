@@ -43,7 +43,8 @@ where
     I: ValueInput<'source, Token = Token<'source>, Span = SimpleSpan>,
 {
     recursive(|expr| {
-        let ident = select! { Token::Identifier(ident) => ident.to_string() };
+        let ident =
+            select! { Token::Identifier(ident) => ident.to_string() }.labelled("identifier");
 
         let inline_expr = recursive(|inline_expr| {
             let val = select! {
@@ -52,7 +53,8 @@ where
                 Token::Number(n) => Expr::Value(Value::Num(n.parse().unwrap())),
                 Token::String(s) => Expr::Value(Value::Str(s.to_string())),
                 Token::LongString(s) => Expr::Value(Value::LongStr(s.to_string())),
-            };
+            }
+            .labelled("value");
 
             // An object literal
             let obj = ident
@@ -63,7 +65,17 @@ where
                 .allow_trailing()
                 .collect::<Vec<_>>()
                 .map(Expr::Obj)
-                .delimited_by(just(Token::ObjectLbracket), just(Token::Ctrl("}")));
+                .delimited_by(just(Token::ObjectLbracket), just(Token::Ctrl("}")))
+                .recover_with(via_parser(nested_delimiters(
+                    Token::ObjectLbracket,
+                    Token::Ctrl("}"),
+                    [
+                        (Token::ArrayLbracket, Token::Ctrl("]")),
+                        (Token::Ctrl("["), Token::Ctrl("]")),
+                        (Token::Ctrl("("), Token::Ctrl(")")),
+                    ],
+                    |_| Expr::Error,
+                )));
 
             // A list of expressions
             let items = expr
@@ -76,7 +88,17 @@ where
             let arr = items
                 .clone()
                 .map(Expr::Arr)
-                .delimited_by(just(Token::ArrayLbracket), just(Token::Ctrl("]")));
+                .delimited_by(just(Token::ArrayLbracket), just(Token::Ctrl("]")))
+                .recover_with(via_parser(nested_delimiters(
+                    Token::ArrayLbracket,
+                    Token::Ctrl("}"),
+                    [
+                        (Token::ObjectLbracket, Token::Ctrl("}")),
+                        (Token::Ctrl("["), Token::Ctrl("]")),
+                        (Token::Ctrl("("), Token::Ctrl(")")),
+                    ],
+                    |_| Expr::Error,
+                )));
 
             // 'Atoms' are expressions that contain no ambiguity
             let atom = val
@@ -93,17 +115,21 @@ where
                     Token::Ctrl("("),
                     Token::Ctrl(")"),
                     [
+                        (Token::ArrayLbracket, Token::Ctrl("]")),
                         (Token::Ctrl("["), Token::Ctrl("]")),
+                        (Token::ObjectLbracket, Token::Ctrl("}")),
                         (Token::Ctrl("{"), Token::Ctrl("}")),
                     ],
                     |span| (Expr::Error, span),
                 )))
                 // Attempt to recover anything that looks like a list but contains errors
                 .recover_with(via_parser(nested_delimiters(
-                    Token::Ctrl("["),
+                    Token::ArrayLbracket,
                     Token::Ctrl("]"),
                     [
+                        (Token::Ctrl("["), Token::Ctrl("]")),
                         (Token::Ctrl("("), Token::Ctrl(")")),
+                        (Token::ObjectLbracket, Token::Ctrl("}")),
                         (Token::Ctrl("{"), Token::Ctrl("}")),
                     ],
                     |span| (Expr::Error, span),
@@ -153,7 +179,7 @@ where
                     (Expr::Binary(Box::new(a), op, Box::new(b)), e.span())
                 });
 
-            compare
+            compare.labelled("expression")
         });
 
         inline_expr

@@ -6,6 +6,7 @@ use super::{Span, Spanned};
 
 #[derive(Debug, PartialEq)]
 pub enum Stmt {
+    Error,
     Expr(Spanned<Expr>),
     Var(Option<KwLang>, String, Option<Box<Self>>),
     Ret(KwLang, Option<Box<Self>>),
@@ -23,11 +24,12 @@ where
         Token::Var(KwLang::Ru) => KwLang::Ru,
     };
 
-    let ident = select! { Token::Identifier(ident) => ident.to_string() };
+    let ident = select! { Token::Identifier(ident) => ident.to_string() }.labelled("identifier");
 
     let expr = parser_expr()
         .then_ignore(just(Token::SemiColon).or_not())
-        .map(|e| Stmt::Expr(e));
+        .map(|e| Stmt::Expr(e))
+        .labelled("expression");
 
     let var = kw
         .or_not()
@@ -42,7 +44,7 @@ where
         .then(expr.clone())
         .map(|((kw, ident), expr)| Stmt::Var(kw, ident, Some(Box::new(expr))));
 
-    let var = var_eq.or(var);
+    let var = var_eq.or(var).labelled("variable");
 
     let ret_kw = select! {
         Token::Return(KwLang::Eng) => KwLang::Eng,
@@ -50,7 +52,8 @@ where
     };
     let ret = ret_kw
         .then(expr.clone().or_not())
-        .map(|(kw, expr)| Stmt::Ret(kw, expr.map(Box::new)));
+        .map(|(kw, expr)| Stmt::Ret(kw, expr.map(Box::new)))
+        .labelled("return");
 
     let block = recursive(|block| {
         var.clone()
@@ -61,7 +64,8 @@ where
             .collect::<Vec<_>>()
             .delimited_by(just(Token::Ctrl("{")), just(Token::Ctrl("}")))
             .map(Stmt::Block)
-    });
+    })
+    .labelled("block");
 
     let if_kw = select! {
         Token::If(KwLang::Eng) => KwLang::Eng,

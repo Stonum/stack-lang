@@ -76,17 +76,17 @@ pub enum Token<'source> {
     #[regex("(?i)(extends|расширяет)", to_keyword_language)]
     Extends(KwLang),
 
+    #[regex("(?i)(get)", to_keyword_language)]
+    Get(KwLang),
+
+    #[regex("(?i)(set)", to_keyword_language)]
+    Set(KwLang),
+
     #[regex("(?i)(return|вернуть)", to_keyword_language)]
     Return(KwLang),
 
     #[regex("(?i)(forall|длявсех)", to_keyword_language)]
     ForAll(KwLang),
-
-    #[regex("(?i)(подобъектов)", to_keyword_language)]
-    ObjectsIter(KwLang),
-
-    #[regex("(?i)(элементов)", to_keyword_language)]
-    ElementsIter(KwLang),
 
     #[regex("(?i)(if|если)", to_keyword_language)]
     If(KwLang),
@@ -240,6 +240,14 @@ impl<'source> From<Token<'source>> for &'source str {
                 KwLang::Eng => "extends",
                 KwLang::Ru => "расширяет",
             },
+            Token::Get(value) => match value {
+                KwLang::Eng => "get",
+                KwLang::Ru => unimplemented!(),
+            },
+            Token::Set(value) => match value {
+                KwLang::Eng => "set",
+                KwLang::Ru => unimplemented!(),
+            },
             Token::Return(value) => match value {
                 KwLang::Eng => "return",
                 KwLang::Ru => "Вернуть",
@@ -247,14 +255,6 @@ impl<'source> From<Token<'source>> for &'source str {
             Token::ForAll(value) => match value {
                 KwLang::Eng => "forall",
                 KwLang::Ru => "ДляВсех",
-            },
-            Token::ObjectsIter(value) => match value {
-                KwLang::Eng => unimplemented!(),
-                KwLang::Ru => "ПодОбъектов",
-            },
-            Token::ElementsIter(value) => match value {
-                KwLang::Eng => unimplemented!(),
-                KwLang::Ru => "Элементов",
             },
             Token::If(value) => match value {
                 KwLang::Eng => "if",
