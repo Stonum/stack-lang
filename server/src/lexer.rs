@@ -4,30 +4,17 @@ use tower_lsp::lsp_types::{Position, Range};
 
 pub struct Lexer<'source> {
     lexer: logos::Lexer<'source, Token<'source>>,
-    rope: Rope,
 }
 
 impl<'source> Lexer<'source> {
     pub fn new(source: &'source str) -> Self {
         Self {
             lexer: Token::lexer(source),
-            rope: Rope::from(source),
         }
     }
 
-    pub fn position(&self) -> Option<Range> {
-        let Span { start, end } = self.lexer.span();
-        let start = self.get_position_from_offset(start)?;
-        let end = self.get_position_from_offset(end)?;
-        Some(Range { start, end })
-    }
-
-    fn get_position_from_offset(&self, offset: usize) -> Option<Position> {
-        let line = self.rope.try_byte_to_line(offset).ok()?;
-        let first_char_of_line = self.rope.try_line_to_char(line).ok()?;
-        let offset_char = self.rope.try_byte_to_char(offset).ok()?;
-        let column = offset_char - first_char_of_line;
-        Some(Position::new(line as u32, column as u32))
+    pub fn span(&self) -> Span {
+        self.lexer.span()
     }
 }
 
@@ -76,10 +63,10 @@ pub enum Token<'source> {
     #[regex("(?i)(extends|расширяет)", to_keyword_language)]
     Extends(KwLang),
 
-    #[regex("(?i)(get)", to_keyword_language)]
+    #[regex("(?i)(get|получить)", to_keyword_language)]
     Get(KwLang),
 
-    #[regex("(?i)(set)", to_keyword_language)]
+    #[regex("(?i)(set|установить)", to_keyword_language)]
     Set(KwLang),
 
     #[regex("(?i)(return|вернуть)", to_keyword_language)]
@@ -129,14 +116,8 @@ pub enum Token<'source> {
     #[token("]")]
     Ctrl(&'source str),
 
-    #[token("@[")]
-    ArrayLbracket,
-
-    #[token("@{")]
-    ObjectLbracket,
-
-    #[token("@(")]
-    SetLbracket,
+    #[token("@")]
+    At,
 
     #[token("=")]
     Equals,
@@ -242,11 +223,11 @@ impl<'source> From<Token<'source>> for &'source str {
             },
             Token::Get(value) => match value {
                 KwLang::Eng => "get",
-                KwLang::Ru => unimplemented!(),
+                KwLang::Ru => "получить",
             },
             Token::Set(value) => match value {
                 KwLang::Eng => "set",
-                KwLang::Ru => unimplemented!(),
+                KwLang::Ru => "установить",
             },
             Token::Return(value) => match value {
                 KwLang::Eng => "return",
@@ -300,9 +281,7 @@ impl<'source> From<Token<'source>> for &'source str {
 
             // Symbols
             Token::Ctrl(value) => value,
-            Token::ArrayLbracket => "@[",
-            Token::ObjectLbracket => "@{",
-            Token::SetLbracket => "@(",
+            Token::At => "@",
             Token::Equals => "=",
             Token::Op(value) => value,
             Token::CondOp(value) => value,
@@ -316,7 +295,7 @@ impl<'source> From<Token<'source>> for &'source str {
 
             Token::NewLine => "\n",
 
-            Token::Error => unimplemented!(),
+            Token::Error => "Error parsing",
         }
     }
 }

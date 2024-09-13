@@ -34,6 +34,7 @@ pub enum Expr {
     Call(Box<Spanned<Self>>, Spanned<Vec<Spanned<Self>>>),
     Binary(Box<Spanned<Self>>, BinaryOp, Box<Spanned<Self>>),
     Arr(Vec<Spanned<Self>>),
+    Set(Vec<Spanned<Self>>),
     Obj(Vec<(String, Spanned<Self>)>),
 }
 
@@ -56,26 +57,32 @@ where
             }
             .labelled("value");
 
-            // An object literal
-            let obj = ident
+            // A list key values
+            let items = ident
                 .clone()
                 .then_ignore(just(Token::Colon))
                 .then(inline_expr.clone())
                 .separated_by(just(Token::Comma))
                 .allow_trailing()
-                .collect::<Vec<_>>()
+                .collect::<Vec<_>>();
+
+            // An object literal
+            let obj = items
                 .map(Expr::Obj)
-                .delimited_by(just(Token::ObjectLbracket), just(Token::Ctrl("}")))
+                .delimited_by(just(Token::Ctrl("{")), just(Token::Ctrl("}")))
                 .recover_with(via_parser(nested_delimiters(
-                    Token::ObjectLbracket,
+                    Token::Ctrl("{"),
                     Token::Ctrl("}"),
                     [
-                        (Token::ArrayLbracket, Token::Ctrl("]")),
+                        (Token::Ctrl("{"), Token::Ctrl("}")),
                         (Token::Ctrl("["), Token::Ctrl("]")),
                         (Token::Ctrl("("), Token::Ctrl(")")),
                     ],
                     |_| Expr::Error,
                 )));
+
+            //stack object
+            let obj = just(Token::At).ignore_then(obj);
 
             // A list of expressions
             let items = expr
@@ -88,23 +95,46 @@ where
             let arr = items
                 .clone()
                 .map(Expr::Arr)
-                .delimited_by(just(Token::ArrayLbracket), just(Token::Ctrl("]")))
+                .delimited_by(just(Token::Ctrl("[")), just(Token::Ctrl("]")))
                 .recover_with(via_parser(nested_delimiters(
-                    Token::ArrayLbracket,
-                    Token::Ctrl("}"),
+                    Token::Ctrl("["),
+                    Token::Ctrl("]"),
                     [
-                        (Token::ObjectLbracket, Token::Ctrl("}")),
+                        (Token::Ctrl("{"), Token::Ctrl("}")),
                         (Token::Ctrl("["), Token::Ctrl("]")),
                         (Token::Ctrl("("), Token::Ctrl(")")),
                     ],
                     |_| Expr::Error,
                 )));
 
+            // stack array
+            let arr = just(Token::At).ignore_then(arr);
+
+            // set
+            let set = items
+                .clone()
+                .map(Expr::Set)
+                .delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")")))
+                .recover_with(via_parser(nested_delimiters(
+                    Token::Ctrl("("),
+                    Token::Ctrl(")"),
+                    [
+                        (Token::Ctrl("{"), Token::Ctrl("}")),
+                        (Token::Ctrl("["), Token::Ctrl("]")),
+                        (Token::Ctrl("("), Token::Ctrl(")")),
+                    ],
+                    |_| Expr::Error,
+                )));
+
+            // stack set
+            let set = just(Token::At).ignore_then(set);
+
             // 'Atoms' are expressions that contain no ambiguity
             let atom = val
                 .or(ident.map(Expr::Ident))
                 .or(arr)
                 .or(obj)
+                .or(set)
                 .map_with(|expr, e| (expr, e.span()))
                 // Atoms can also just be normal expressions, but surrounded with parentheses
                 .or(expr
@@ -115,21 +145,19 @@ where
                     Token::Ctrl("("),
                     Token::Ctrl(")"),
                     [
-                        (Token::ArrayLbracket, Token::Ctrl("]")),
                         (Token::Ctrl("["), Token::Ctrl("]")),
-                        (Token::ObjectLbracket, Token::Ctrl("}")),
                         (Token::Ctrl("{"), Token::Ctrl("}")),
+                        (Token::Ctrl("("), Token::Ctrl(")")),
                     ],
                     |span| (Expr::Error, span),
                 )))
                 // Attempt to recover anything that looks like a list but contains errors
                 .recover_with(via_parser(nested_delimiters(
-                    Token::ArrayLbracket,
+                    Token::Ctrl("["),
                     Token::Ctrl("]"),
                     [
                         (Token::Ctrl("["), Token::Ctrl("]")),
                         (Token::Ctrl("("), Token::Ctrl(")")),
-                        (Token::ObjectLbracket, Token::Ctrl("}")),
                         (Token::Ctrl("{"), Token::Ctrl("}")),
                     ],
                     |span| (Expr::Error, span),
@@ -222,6 +250,26 @@ mod tests {
         let parsed = parser_expr().parse(token_stream).into_result();
         let expected = Ok((
             Expr::Arr(vec![
+                (Value(Num(1.0)), SimpleSpan::from(2..3)),
+                (Value(Null("null".to_string())), SimpleSpan::from(5..9)),
+                (Value(Str("hello".to_string())), SimpleSpan::from(11..18)),
+                (Value(Num(5.55)), SimpleSpan::from(20..24)),
+                (Value(Bool("true".to_string())), SimpleSpan::from(26..30)),
+                (Ident("x".to_string()), SimpleSpan::from(32..33)),
+            ]),
+            SimpleSpan::from(0..34),
+        ));
+
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn test_parse_set() {
+        let source = r#"@(1, null, "hello", 5.55, true, x)"#;
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_expr().parse(token_stream).into_result();
+        let expected = Ok((
+            Expr::Set(vec![
                 (Value(Num(1.0)), SimpleSpan::from(2..3)),
                 (Value(Null("null".to_string())), SimpleSpan::from(5..9)),
                 (Value(Str("hello".to_string())), SimpleSpan::from(11..18)),

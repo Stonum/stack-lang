@@ -7,6 +7,7 @@ use super::{Span, Spanned};
 #[derive(Debug, PartialEq)]
 pub enum Stmt {
     Error,
+    Comment(Spanned<String>),
     Expr(Spanned<Expr>),
     Var(Option<KwLang>, String, Option<Box<Self>>),
     Ret(KwLang, Option<Box<Self>>),
@@ -19,6 +20,10 @@ pub(crate) fn parser_stmt<'source, I>(
 where
     I: ValueInput<'source, Token = Token<'source>, Span = SimpleSpan>,
 {
+    let comment = select! { Token::CommentLine(comment) => comment.to_string() }
+        .map_with(|comment, e| Stmt::Comment((comment, e.span())))
+        .labelled("comment");
+
     let kw = select! {
         Token::Var(KwLang::Eng) => KwLang::Eng,
         Token::Var(KwLang::Ru) => KwLang::Ru,
@@ -92,7 +97,8 @@ where
             })
     });
 
-    expr.or(var)
+    expr.or(comment)
+        .or(var)
         .or(ret)
         .or(block)
         .or(_if)

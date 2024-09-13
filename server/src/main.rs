@@ -10,10 +10,10 @@ use ropey::Rope;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use stack_language_server::def::Definition;
 use stack_language_server::lexer::{Lexer, Token};
 use stack_language_server::parser;
-use stack_language_server::parser_old::ParseError;
-use stack_language_server::parser_old::{Parser, SDefinition};
+use stack_language_server::position;
 
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::notification::Notification;
@@ -23,7 +23,7 @@ use tower_lsp::{Client, LanguageServer, LspService, Server};
 struct Backend {
     client: Client,
     document_map: DashMap<String, Rope>,
-    definitions_map: DashMap<PathBuf, Vec<SDefinition>>,
+    definitions_map: DashMap<PathBuf, Vec<Definition>>,
 }
 
 #[tower_lsp::async_trait]
@@ -203,14 +203,16 @@ impl LanguageServer for Backend {
             let source = rope.line(line as usize).to_string();
 
             let mut lexer = Lexer::new(&source);
+            let rope = Rope::from(source.as_str());
 
             let mut identifier = None;
-            while let Some(token) = &lexer.next() {
+            while let Some(token) = lexer.next() {
                 if let Ok(token) = token {
-                    let range = lexer.position().unwrap_or_default();
+                    let range = position(&rope, lexer.span()).unwrap_or_default();
                     if character >= range.start.character && character <= range.end.character {
                         if let Token::Identifier(id) = token {
                             identifier = Some(id.to_string());
+                            break;
                         };
                     }
                 }
@@ -226,8 +228,8 @@ impl LanguageServer for Backend {
                 let mut locations = v
                     .iter()
                     .filter_map(|def| {
-                        if def.get_identifier().to_lowercase() == identifier {
-                            return Some(Location::new(uri.clone(), def.get_position()));
+                        if def.identifier().to_lowercase() == identifier {
+                            return Some(Location::new(uri.clone(), def.position()));
                         }
                         None
                     })
@@ -255,40 +257,57 @@ impl LanguageServer for Backend {
 
             for def in defs.iter() {
                 match def {
-                    SDefinition::Function(def) => {
+                    Definition::Func {
+                        identifier, pos, ..
+                    } => {
                         let symbol = SymbolInformation {
-                            name: def.identifier.clone(),
+                            name: identifier.clone(),
                             kind: SymbolKind::FUNCTION,
                             tags: None,
                             deprecated: None,
-                            location: Location::new(file_uri.clone(), def.position),
+                            location: Location::new(file_uri.clone(), *pos),
                             container_name: None,
                         };
 
                         vec.push(symbol);
                     }
-                    SDefinition::Class(def) => {
+                    Definition::Class {
+                        identifier,
+                        pos,
+                        methods,
+                        ..
+                    } => {
                         let symbol = SymbolInformation {
-                            name: def.identifier.clone(),
+                            name: identifier.clone(),
                             kind: SymbolKind::CLASS,
                             tags: None,
                             deprecated: None,
-                            location: Location::new(file_uri.clone(), def.position),
+                            location: Location::new(file_uri.clone(), *pos),
                             container_name: None,
                         };
 
                         vec.push(symbol);
 
-                        for method in def.methods.iter() {
-                            let symbol = SymbolInformation {
-                                name: method.identifier.clone(),
-                                kind: SymbolKind::METHOD,
-                                tags: None,
-                                deprecated: None,
-                                location: Location::new(file_uri.clone(), method.position),
-                                container_name: Some(def.identifier.clone()),
-                            };
-                            vec.push(symbol);
+                        for method in methods.iter() {
+                            match method {
+                                Definition::Func {
+                                    identifier: method_identifier,
+                                    pos,
+                                    ..
+                                } => {
+                                    let symbol = SymbolInformation {
+                                        name: method_identifier.clone(),
+                                        kind: SymbolKind::FUNCTION,
+                                        tags: None,
+                                        deprecated: None,
+                                        location: Location::new(file_uri.clone(), *pos),
+                                        container_name: Some(identifier.clone()),
+                                    };
+
+                                    vec.push(symbol);
+                                }
+                                _ => unreachable!(),
+                            }
                         }
                     }
                 };
@@ -315,11 +334,12 @@ impl LanguageServer for Backend {
             let source = rope.line(line as usize).to_string();
 
             let mut lexer = Lexer::new(&source);
+            let rope = Rope::from(source.as_str());
 
             let mut identifier = None;
-            while let Some(token) = &lexer.next() {
+            while let Some(token) = lexer.next() {
                 if let Ok(token) = token {
-                    let range = lexer.position().unwrap_or_default();
+                    let range = position(&rope, lexer.span()).unwrap_or_default();
                     if character >= range.start.character && character <= range.end.character {
                         if let Token::Identifier(id) = token {
                             identifier = Some(id.to_string());
@@ -337,12 +357,12 @@ impl LanguageServer for Backend {
                 let mut locations = v
                     .iter()
                     .filter_map(|def| {
-                        if def.get_identifier().to_lowercase() == identifier {
+                        if def.identifier().to_lowercase() == identifier {
                             return Some(format!(
                                 "**{}**  \n{}  \n{}",
-                                def.get_identifier(),
-                                def.get_description(),
-                                def.get_doc_string()
+                                def.identifier(),
+                                def.description(),
+                                def.doc_string()
                             ));
                         }
                         None
@@ -457,20 +477,35 @@ impl Notification for StatusBarNotification {
 
 impl Backend {
     async fn set_definition(&self, params: TextDocumentItem) {
-        let mut parser = Parser::new(&params.text);
+        let TextDocumentItem { uri, text, .. } = params;
 
-        match parser.parse_definitions() {
-            Ok(definitions) => {
-                self.definitions_map
-                    .insert(params.uri.to_file_path().unwrap_or_default(), definitions);
+        let rope = Rope::from(text.as_str());
+        let (decl, errs) = parser::parse(&text).into_output_errors();
+
+        if decl.is_none() {
+            let mut diagnostic = Diagnostic::new_simple(Range::default(), format!("Parse error"));
+            if let Some(error) = errs.last() {
+                let pos = position(&rope, (*error.span()).into());
+                diagnostic = Diagnostic::new_simple(
+                    pos.unwrap_or_default(),
+                    format!("Parse error: {error}"),
+                );
             }
-            Err(ParseError::UnexpectedToken(token, range)) => {
-                let diagnostic =
-                    Diagnostic::new_simple(range, format!("Unexpected token: {token}"));
-                self.client
-                    .publish_diagnostics(params.uri, vec![diagnostic], Some(params.version))
-                    .await;
-            }
+            self.client
+                .publish_diagnostics(uri.clone(), vec![diagnostic], Some(params.version))
+                .await;
+        }
+
+        if let Some(decl) = decl {
+            let definitions = decl
+                .into_iter()
+                .map(|d| Definition::try_from_declaration(d, &rope))
+                .filter(|x| x.is_ok())
+                .map(|x| x.unwrap())
+                .collect();
+
+            self.definitions_map
+                .insert(uri.to_file_path().unwrap_or_default(), definitions);
         }
     }
 
@@ -478,8 +513,6 @@ impl Backend {
         let rope = ropey::Rope::from_str(&params.text);
         self.document_map
             .insert(params.uri.to_string(), rope.clone());
-
-        info!("{}", params.uri.to_string());
     }
 }
 
