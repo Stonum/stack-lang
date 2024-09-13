@@ -1,6 +1,4 @@
 use logos::{Logos, Skip, Span};
-use ropey::Rope;
-use tower_lsp::lsp_types::{Position, Range};
 
 pub struct Lexer<'source> {
     lexer: logos::Lexer<'source, Token<'source>>,

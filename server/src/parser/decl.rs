@@ -33,6 +33,7 @@ pub struct Method {
 #[derive(Debug, PartialEq)]
 pub enum Decl {
     Error,
+    Stmt(Spanned<Stmt>), // any stmt between declarations
     Func {
         lang: KwLang,
         identifier: Spanned<String>,
@@ -133,14 +134,14 @@ where
         .labelled("args");
 
     let body = parser_stmt()
+        .repeated()
+        .collect::<Vec<_>>()
         .delimited_by(just(Token::Ctrl("{")), just(Token::Ctrl("}")))
         .recover_with(via_parser(nested_delimiters(
             Token::Ctrl("{"),
             Token::Ctrl("}"),
             [
-                // (Token::ObjectLbracket, Token::Ctrl("}")),
-                // (Token::ArrayLbracket, Token::Ctrl("]")),
-                // (Token::SetLbracket, Token::Ctrl(")")),
+                (Token::Ctrl("{"), Token::Ctrl("}")),
                 (Token::Ctrl("["), Token::Ctrl("]")),
                 (Token::Ctrl("("), Token::Ctrl(")")),
             ],
@@ -168,8 +169,8 @@ where
         .labelled("function");
 
     let kw = select! {
-        Token::Get(KwLang::Eng) => MethodType::Getter,
-        Token::Set(KwLang::Eng) => MethodType::Setter,
+        Token::Get(KwLang::Eng) | Token::Get(KwLang::Ru) => MethodType::Getter,
+        Token::Set(KwLang::Eng) | Token::Set(KwLang::Ru) => MethodType::Setter,
     };
 
     let method = comment
@@ -226,7 +227,15 @@ where
         )
         .labelled("class");
 
-    fn_.or(class).repeated().collect::<Vec<_>>()
+    let stmt = parser_stmt()
+        .map_with(|stmt, e| Decl::Stmt((stmt, e.span())))
+        .labelled("statement");
+
+    fn_.or(class)
+        .or(stmt)
+        // .padded_by(parser_stmt()) // !todo - we need to parse it as a single statement
+        .repeated()
+        .collect::<Vec<_>>()
 }
 
 #[cfg(test)]
@@ -243,7 +252,7 @@ mod tests {
         let parsed = parser_decl().parse(token_stream).into_result();
         let expected = Ok(vec![Decl::Func {
             lang: KwLang::Eng,
-            identifier: ("test".to_string(), SimpleSpan::from(4..7)),
+            identifier: ("test".to_string(), SimpleSpan::from(5..9)),
             params: (
                 vec![Parameter {
                     identifier: "z".to_string(),
@@ -295,7 +304,7 @@ mod tests {
         let parsed = parser_decl().parse(token_stream).into_result();
         let expected = Ok(vec![Decl::Func {
             lang: KwLang::Eng,
-            identifier: ("test".to_string(), SimpleSpan::from(4..7)),
+            identifier: ("test".to_string(), SimpleSpan::from(70..74)),
             params: (
                 vec![
                     Parameter {
@@ -346,28 +355,28 @@ mod tests {
         let expected = Some(vec![
             Decl::Func {
                 lang: KwLang::Eng,
-                identifier: ("test".to_string(), SimpleSpan::from(4..7)),
+                identifier: ("test".to_string(), SimpleSpan::from(18..22)),
                 params: (vec![], SimpleSpan::from(22..24)),
                 body: (
                     vec![Stmt::Expr((
                         super::super::expr::Expr::Error,
                         SimpleSpan::from(27..42),
                     ))],
-                    SimpleSpan::from(25..44),
+                    SimpleSpan::from(25..45),
                 ),
                 descr: None,
                 doc_string: None,
             },
             Decl::Func {
                 lang: KwLang::Eng,
-                identifier: ("test2".to_string(), SimpleSpan::from(49..53)),
-                params: (vec![], SimpleSpan::from(67..69)),
+                identifier: ("test2".to_string(), SimpleSpan::from(63..68)),
+                params: (vec![], SimpleSpan::from(68..70)),
                 body: (
                     vec![Stmt::Expr((
                         super::super::expr::Expr::Error,
-                        SimpleSpan::from(72..87),
+                        SimpleSpan::from(73..88),
                     ))],
-                    SimpleSpan::from(70..89),
+                    SimpleSpan::from(71..90),
                 ),
                 descr: None,
                 doc_string: None,
@@ -394,13 +403,13 @@ mod tests {
         let parsed = parser_decl().parse(token_stream).into_result();
         let expected = Ok(vec![Decl::Class {
             lang: KwLang::Eng,
-            identifier: ("Test".to_string(), SimpleSpan::from(4..7)),
+            identifier: ("Test".to_string(), SimpleSpan::from(19..23)),
             extends: Some("Base".to_string()),
             methods: (
                 vec![
                     Method {
                         m_type: MethodType::Func,
-                        identifier: ("constructor".to_string(), SimpleSpan::from(23..32)),
+                        identifier: ("constructor".to_string(), SimpleSpan::from(67..78)),
                         params: (vec![], SimpleSpan::from(78..80)),
                         body: (vec![], SimpleSpan::from(81..83)),
                         descr: None,
@@ -408,7 +417,7 @@ mod tests {
                     },
                     Method {
                         m_type: MethodType::Getter,
-                        identifier: ("x".to_string(), SimpleSpan::from(95..97)),
+                        identifier: ("x".to_string(), SimpleSpan::from(105..106)),
                         params: (vec![], SimpleSpan::from(106..108)),
                         body: (vec![], SimpleSpan::from(109..111)),
                         descr: None,
@@ -416,7 +425,7 @@ mod tests {
                     },
                     Method {
                         m_type: MethodType::Setter,
-                        identifier: ("x".to_string(), SimpleSpan::from(122..124)),
+                        identifier: ("x".to_string(), SimpleSpan::from(133..134)),
                         params: (vec![], SimpleSpan::from(134..136)),
                         body: (vec![], SimpleSpan::from(137..139)),
                         descr: None,
@@ -424,7 +433,7 @@ mod tests {
                     },
                     Method {
                         m_type: MethodType::Func,
-                        identifier: ("sum".to_string(), SimpleSpan::from(150..154)),
+                        identifier: ("sum".to_string(), SimpleSpan::from(157..160)),
                         params: (
                             vec![
                                 Parameter {
@@ -471,13 +480,13 @@ mod tests {
         let (parsed, _errs) = parser_decl().parse(token_stream).into_output_errors();
         let expected = Some(vec![Decl::Class {
             lang: KwLang::Eng,
-            identifier: ("Test".to_string(), SimpleSpan::from(4..7)),
+            identifier: ("Test".to_string(), SimpleSpan::from(19..23)),
             extends: Some("Base".to_string()),
             methods: (
                 vec![
                     Method {
                         m_type: MethodType::Func,
-                        identifier: ("constructor".to_string(), SimpleSpan::from(23..32)),
+                        identifier: ("constructor".to_string(), SimpleSpan::from(67..78)),
                         params: (vec![], SimpleSpan::from(78..80)),
                         body: (vec![], SimpleSpan::from(81..83)),
                         descr: None,
@@ -485,7 +494,7 @@ mod tests {
                     },
                     Method {
                         m_type: MethodType::Getter,
-                        identifier: ("x".to_string(), SimpleSpan::from(95..97)),
+                        identifier: ("x".to_string(), SimpleSpan::from(105..106)),
                         params: (vec![], SimpleSpan::from(106..108)),
                         body: (vec![], SimpleSpan::from(109..111)),
                         descr: None,
@@ -493,7 +502,7 @@ mod tests {
                     },
                     Method {
                         m_type: MethodType::Setter,
-                        identifier: ("x".to_string(), SimpleSpan::from(122..124)),
+                        identifier: ("x".to_string(), SimpleSpan::from(133..134)),
                         params: (vec![], SimpleSpan::from(134..136)),
                         body: (vec![], SimpleSpan::from(137..139)),
                         descr: None,
@@ -501,7 +510,7 @@ mod tests {
                     },
                     Method {
                         m_type: MethodType::Func,
-                        identifier: ("sum".to_string(), SimpleSpan::from(150..154)),
+                        identifier: ("sum".to_string(), SimpleSpan::from(157..160)),
                         params: (
                             vec![
                                 Parameter {
@@ -517,12 +526,18 @@ mod tests {
                             ],
                             SimpleSpan::from(160..166),
                         ),
-                        body: (vec![], SimpleSpan::from(167..169)),
+                        body: (
+                            vec![Stmt::Expr((
+                                super::super::expr::Expr::Error,
+                                SimpleSpan::from(169..184),
+                            ))],
+                            SimpleSpan::from(167..186),
+                        ),
                         descr: None,
                         doc_string: None,
                     },
                 ],
-                SimpleSpan::from(49..183),
+                SimpleSpan::from(49..200),
             ),
             descr: None,
             doc_string: None,

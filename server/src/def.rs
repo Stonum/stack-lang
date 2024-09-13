@@ -25,6 +25,7 @@ impl Definition {
     pub fn try_from_declaration(decl: Decl, rope: &Rope) -> Result<Self, ()> {
         match decl {
             Decl::Error => Err(()),
+            Decl::Stmt(_) => Err(()),
             Decl::Func {
                 identifier: (identifier, span),
                 params,

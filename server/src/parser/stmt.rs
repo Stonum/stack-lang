@@ -16,7 +16,7 @@ pub enum Stmt {
 }
 
 pub(crate) fn parser_stmt<'source, I>(
-) -> impl Parser<'source, I, Vec<Stmt>, extra::Err<Rich<'source, Token<'source>, Span>>> + Clone
+) -> impl Parser<'source, I, Stmt, extra::Err<Rich<'source, Token<'source>, Span>>> + Clone
 where
     I: ValueInput<'source, Token = Token<'source>, Span = SimpleSpan>,
 {
@@ -97,13 +97,7 @@ where
             })
     });
 
-    expr.or(comment)
-        .or(var)
-        .or(ret)
-        .or(block)
-        .or(_if)
-        .repeated()
-        .collect::<Vec<_>>()
+    expr.or(comment).or(var).or(ret).or(block).or(_if)
 }
 
 #[cfg(test)]
@@ -114,27 +108,17 @@ mod tests {
 
     #[test]
     fn test_parse_simple() {
-        let source = r#"перем y = 10.5; var z = "hello";"#;
+        let source = r#"перем y = 10.5;"#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
-        let expected = Ok(vec![
-            Stmt::Var(
-                Some(KwLang::Ru),
-                "y".to_string(),
-                Some(Box::new(Stmt::Expr((
-                    Value(Num(10.5)),
-                    SimpleSpan::from(15..19),
-                )))),
-            ),
-            Stmt::Var(
-                Some(KwLang::Eng),
-                "z".to_string(),
-                Some(Box::new(Stmt::Expr((
-                    Value(Str("hello".to_string())),
-                    SimpleSpan::from(29..36),
-                )))),
-            ),
-        ]);
+        let expected = Ok(Stmt::Var(
+            Some(KwLang::Ru),
+            "y".to_string(),
+            Some(Box::new(Stmt::Expr((
+                Value(Num(10.5)),
+                SimpleSpan::from(15..19),
+            )))),
+        ));
         assert_eq!(parsed, expected);
     }
 
@@ -143,13 +127,13 @@ mod tests {
         let source = r#"return y;"#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
-        let expected = Ok(vec![Stmt::Ret(
+        let expected = Ok(Stmt::Ret(
             KwLang::Eng,
             Some(Box::new(Stmt::Expr((
                 Ident("y".to_string()),
                 SimpleSpan::from(7..8),
             )))),
-        )]);
+        ));
         assert_eq!(parsed, expected);
     }
 
@@ -159,7 +143,7 @@ mod tests {
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
 
-        let expected = Ok(vec![Stmt::Block(vec![
+        let expected = Ok(Stmt::Block(vec![
             Stmt::Var(
                 Some(KwLang::Ru),
                 "y".to_string(),
@@ -187,7 +171,7 @@ mod tests {
                     SimpleSpan::from(43..52),
                 )))),
             ),
-        ])]);
+        ]));
         assert_eq!(parsed, expected);
     }
 
@@ -196,7 +180,7 @@ mod tests {
         let source = r#"{ var x; {var y = 1;} }"#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
-        let expected = Ok(vec![Stmt::Block(vec![
+        let expected = Ok(Stmt::Block(vec![
             Stmt::Var(Some(KwLang::Eng), "x".to_string(), None),
             Stmt::Block(vec![Stmt::Var(
                 Some(KwLang::Eng),
@@ -206,7 +190,7 @@ mod tests {
                     SimpleSpan::from(18..19),
                 )))),
             )]),
-        ])]);
+        ]));
         assert_eq!(parsed, expected);
     }
 
@@ -215,7 +199,7 @@ mod tests {
         let source = r#"if ( x == 1 ) { y = x; }"#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
-        let expected = Ok(vec![Stmt::If(
+        let expected = Ok(Stmt::If(
             KwLang::Eng,
             Box::new(Stmt::Expr((
                 Binary(
@@ -234,7 +218,7 @@ mod tests {
                 )))),
             )])),
             None,
-        )]);
+        ));
         assert_eq!(parsed, expected);
     }
 
@@ -243,7 +227,7 @@ mod tests {
         let source = r#"if ( x == 1 ) { y = x; } else { y = 10; } "#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
-        let expected = Ok(vec![Stmt::If(
+        let expected = Ok(Stmt::If(
             KwLang::Eng,
             Box::new(Stmt::Expr((
                 Binary(
@@ -269,7 +253,7 @@ mod tests {
                     SimpleSpan::from(36..38),
                 )))),
             )]))),
-        )]);
+        ));
         assert_eq!(parsed, expected);
     }
 
