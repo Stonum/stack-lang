@@ -4,15 +4,63 @@ use super::expr::{parser_expr, Expr};
 use super::{KwLang, Token};
 use super::{Span, Spanned};
 
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq)]
 pub enum Stmt {
     Error,
     Comment(Spanned<String>),
     Expr(Spanned<Expr>),
-    Var(Option<KwLang>, String, Option<Box<Self>>),
-    Ret(KwLang, Option<Box<Self>>),
+    Var(Option<KwLang>, String, Option<Spanned<Expr>>),
+    Ret(KwLang, Option<Spanned<Expr>>),
     Block(Vec<Self>),
-    If(KwLang, Box<Self>, Box<Self>, Option<Box<Self>>),
+    If(KwLang, Spanned<Expr>, Box<Self>, Option<Box<Self>>),
+    While(KwLang, Spanned<Expr>, Box<Self>),
+    ForAll(KwLang, String, Spanned<Expr>, Box<Self>),
+    For(KwLang, Box<Self>, Spanned<Expr>, Box<Self>, Box<Self>),
+}
+
+impl std::fmt::Debug for Stmt {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Stmt::Error => f.write_str("Error"),
+            Stmt::Expr(f0) => write!(f, "Expr({f0:?})"),
+            Stmt::Comment(f0) => write!(f, "Comment({f0:?})"),
+            Stmt::Var(f0, f1, f2) => write!(f, "Var({f0:?}, {f1}, {f2:?})"),
+            Stmt::Ret(f0, f1) => write!(f, "Ret({f0:?}, {f1:?})"),
+            Stmt::Block(f0) => {
+                f.write_str("Block(")?;
+                f.debug_list().entries(f0).finish()?;
+                f.write_str(")")
+            }
+            Stmt::If(f0, f1, f2, f3) => f
+                .debug_tuple("If")
+                .field(&f0)
+                .field(&f1)
+                .field(&f2)
+                .field(&f3)
+                .finish(),
+            Stmt::While(f0, f1, f2) => f
+                .debug_tuple("While")
+                .field(&f0)
+                .field(&f1)
+                .field(&f2)
+                .finish(),
+            Stmt::ForAll(f0, f1, f2, f3) => f
+                .debug_tuple("ForAll")
+                .field(&f0)
+                .field(&f1)
+                .field(&f2)
+                .field(&f3)
+                .finish(),
+            Stmt::For(f0, f1, f2, f3, f4) => f
+                .debug_tuple("For")
+                .field(&f0)
+                .field(&f1)
+                .field(&f2)
+                .field(&f3)
+                .field(&f4)
+                .finish(),
+        }
+    }
 }
 
 pub(crate) fn parser_stmt<'source, I>(
@@ -24,11 +72,6 @@ where
         .map_with(|comment, e| Stmt::Comment((comment, e.span())))
         .labelled("comment");
 
-    let kw = select! {
-        Token::Var(KwLang::Eng) => KwLang::Eng,
-        Token::Var(KwLang::Ru) => KwLang::Ru,
-    };
-
     let ident = select! { Token::Identifier(ident) => ident.to_string() }.labelled("identifier");
 
     let expr = parser_expr()
@@ -36,68 +79,186 @@ where
         .map(|e| Stmt::Expr(e))
         .labelled("expression");
 
-    let var = kw
-        .or_not()
-        .then(ident)
-        .then_ignore(just(Token::SemiColon).or_not())
-        .map(|(kw, ident)| Stmt::Var(kw, ident, None));
+    let var = {
+        let kw = select! {
+            Token::Var(KwLang::Eng) => KwLang::Eng,
+            Token::Var(KwLang::Ru) => KwLang::Ru,
+        };
 
-    let var_eq = kw
-        .or_not()
-        .then(ident)
-        .then_ignore(just(Token::Equals))
-        .then(expr.clone())
-        .map(|((kw, ident), expr)| Stmt::Var(kw, ident, Some(Box::new(expr))));
+        let expr = parser_expr().then_ignore(just(Token::SemiColon).or_not());
 
-    let var = var_eq.or(var).labelled("variable");
+        let var = kw
+            .then(ident)
+            .then_ignore(just(Token::SemiColon).or_not())
+            .map(|(kw, ident)| Stmt::Var(Some(kw), ident, None))
+            .boxed();
 
-    let ret_kw = select! {
-        Token::Return(KwLang::Eng) => KwLang::Eng,
-        Token::Return(KwLang::Ru) => KwLang::Ru,
+        let var_eq = kw
+            .then(ident)
+            .then_ignore(just(Token::Equals))
+            .then(expr.clone())
+            .map(|((kw, ident), expr)| Stmt::Var(Some(kw), ident, Some(expr)))
+            .boxed();
+
+        let var_eq2 = ident
+            .then_ignore(just(Token::Equals))
+            .then(expr.clone())
+            .map(|(ident, expr)| Stmt::Var(None, ident, Some(expr)))
+            .boxed();
+
+        var_eq.or(var).or(var_eq2).labelled("variable").boxed()
     };
-    let ret = ret_kw
-        .then(expr.clone().or_not())
-        .map(|(kw, expr)| Stmt::Ret(kw, expr.map(Box::new)))
-        .labelled("return");
 
-    let block = recursive(|block| {
-        var.clone()
-            .or(ret.clone())
-            .or(expr.clone())
-            .or(block)
+    let ret = {
+        let ret_kw = select! {
+            Token::Return(KwLang::Eng) => KwLang::Eng,
+            Token::Return(KwLang::Ru) => KwLang::Ru,
+        };
+
+        let expr = parser_expr().then_ignore(just(Token::SemiColon).or_not());
+
+        ret_kw
+            .then(expr.clone().or_not())
+            .map(|(kw, expr)| Stmt::Ret(kw, expr))
+            .boxed()
+            .labelled("return")
+    };
+
+    let inline_expr = comment.or(var).or(ret).or(expr.clone()).boxed();
+
+    let expr = parser_expr();
+
+    recursive(|block_expr| {
+        let block = block_expr
+            .clone()
             .repeated()
             .collect::<Vec<_>>()
             .delimited_by(just(Token::Ctrl("{")), just(Token::Ctrl("}")))
             .map(Stmt::Block)
-    })
-    .labelled("block");
+            .recover_with(via_parser(nested_delimiters(
+                Token::Ctrl("{"),
+                Token::Ctrl("}"),
+                [
+                    (Token::Ctrl("{"), Token::Ctrl("}")),
+                    (Token::Ctrl("["), Token::Ctrl("]")),
+                    (Token::Ctrl("("), Token::Ctrl(")")),
+                ],
+                |_| Stmt::Error,
+            )))
+            .boxed();
 
-    let if_kw = select! {
-        Token::If(KwLang::Eng) => KwLang::Eng,
-        Token::If(KwLang::Ru) => KwLang::Ru,
-    };
+        let _if = recursive(|_if| {
+            let if_kw = select! {
+                Token::If(KwLang::Eng) => KwLang::Eng,
+                Token::If(KwLang::Ru) => KwLang::Ru,
+            };
 
-    let else_kw = select! {
-        Token::Else(KwLang::Eng) => KwLang::Eng,
-        Token::Else(KwLang::Ru) => KwLang::Ru,
-    };
+            let else_kw = select! {
+                Token::Else(KwLang::Eng) => KwLang::Eng,
+                Token::Else(KwLang::Ru) => KwLang::Ru,
+            };
 
-    let _if = recursive(|_if| {
-        if_kw
-            .then(expr.clone())
-            .then(block.clone())
-            .then(else_kw.ignore_then(block.clone().or(_if)).or_not())
-            .map(|(((if_kw, expr), block), else_block)| {
-                Stmt::If(
-                    if_kw,
-                    Box::new(expr),
-                    Box::new(block),
-                    else_block.map(Box::new),
+            if_kw
+                .then(
+                    expr.clone()
+                        .delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")"))),
                 )
-            })
-    });
+                .then(block.clone())
+                .then(else_kw.ignore_then(block.clone().or(_if)).or_not())
+                .map(|(((if_kw, expr), block), else_block)| {
+                    Stmt::If(if_kw, expr, Box::new(block), else_block.map(Box::new))
+                })
+                .boxed()
+        });
 
-    expr.or(comment).or(var).or(ret).or(block).or(_if)
+        let _while = {
+            let while_kw = select! {
+                Token::While(KwLang::Eng) => KwLang::Eng,
+                Token::While(KwLang::Ru) => KwLang::Ru,
+            };
+
+            while_kw
+                .then(
+                    expr.clone()
+                        .delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")"))),
+                )
+                .then(block.clone())
+                .map(|((while_kw, expr), block)| Stmt::While(while_kw, expr, Box::new(block)))
+                .boxed()
+        };
+
+        let _forall = {
+            let forall_kw = select! {
+                Token::ForAll(KwLang::Eng) => KwLang::Eng,
+                Token::ForAll(KwLang::Ru) => KwLang::Ru,
+            };
+
+            let in_kw = select! { Token::In(KwLang::Eng) | Token::In(KwLang::Ru) => () };
+
+            let loop_cond = ident
+                .clone()
+                .then_ignore(in_kw)
+                .then(expr.clone())
+                .delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")")))
+                .boxed();
+
+            forall_kw
+                .then(loop_cond)
+                .then(block.clone())
+                .map(|((forall_kw, (ident, expr)), block)| {
+                    Stmt::ForAll(forall_kw, ident, expr, Box::new(block))
+                })
+                .boxed()
+        };
+
+        let _for = {
+            let for_kw = select! {
+                Token::For(KwLang::Eng) => KwLang::Eng,
+                Token::For(KwLang::Ru) => KwLang::Ru,
+            };
+
+            let expr = ident
+                .then_ignore(just(Token::Equals))
+                .then(expr.clone())
+                .map(|(ident, expr)| Stmt::Var(None, ident, Some(expr)))
+                .boxed();
+
+            let cond = parser_expr().labelled("expression");
+
+            let loop_cond = expr
+                .clone()
+                .then_ignore(just(Token::SemiColon))
+                .then(cond.clone())
+                .then_ignore(just(Token::SemiColon))
+                .then(expr.clone())
+                .delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")")))
+                .boxed();
+
+            for_kw
+                .then(loop_cond)
+                .then(block.clone())
+                .map(|((for_kw, ((init, cond), step)), block)| {
+                    Stmt::For(
+                        for_kw,
+                        Box::new(init),
+                        cond,
+                        Box::new(step),
+                        Box::new(block),
+                    )
+                })
+                .boxed()
+        };
+
+        let block_expr = block
+            .or(_if)
+            .or(_while)
+            .or(_forall)
+            .or(_for)
+            .boxed()
+            .labelled("block");
+
+        block_expr.or(inline_expr)
+    })
 }
 
 #[cfg(test)]
@@ -105,6 +266,11 @@ mod tests {
     use super::super::expr::{BinaryOp::*, Expr::*, Value::*};
     use super::super::token_stream_from_str;
     use super::*;
+
+    #[inline]
+    fn span(range: std::ops::Range<usize>) -> SimpleSpan {
+        SimpleSpan::from(range)
+    }
 
     #[test]
     fn test_parse_simple() {
@@ -114,10 +280,7 @@ mod tests {
         let expected = Ok(Stmt::Var(
             Some(KwLang::Ru),
             "y".to_string(),
-            Some(Box::new(Stmt::Expr((
-                Value(Num(10.5)),
-                SimpleSpan::from(15..19),
-            )))),
+            Some((Value(Num(10.5)), span(15..19))),
         ));
         assert_eq!(parsed, expected);
     }
@@ -129,10 +292,7 @@ mod tests {
         let parsed = parser_stmt().parse(token_stream).into_result();
         let expected = Ok(Stmt::Ret(
             KwLang::Eng,
-            Some(Box::new(Stmt::Expr((
-                Ident("y".to_string()),
-                SimpleSpan::from(7..8),
-            )))),
+            Some((Ident("y".to_string()), span(7..8))),
         ));
         assert_eq!(parsed, expected);
     }
@@ -147,29 +307,20 @@ mod tests {
             Stmt::Var(
                 Some(KwLang::Ru),
                 "y".to_string(),
-                Some(Box::new(Stmt::Expr((
-                    Value(Num(10.5)),
-                    SimpleSpan::from(17..21),
-                )))),
+                Some((Value(Num(10.5)), span(17..21))),
             ),
             Stmt::Var(
                 Some(KwLang::Eng),
                 "z".to_string(),
-                Some(Box::new(Stmt::Expr((
-                    Value(Str("hello".to_string())),
-                    SimpleSpan::from(30..37),
-                )))),
+                Some((Value(Str("hello".to_string())), span(30..37))),
             ),
             Stmt::Var(
                 None,
                 "x".to_string(),
-                Some(Box::new(Stmt::Expr((
-                    Obj(vec![(
-                        "a".to_string(),
-                        (Value(Num(1.0)), SimpleSpan::from(49..50)),
-                    )]),
-                    SimpleSpan::from(43..52),
-                )))),
+                Some((
+                    Obj(vec![("a".to_string(), (Value(Num(1.0)), span(49..50)))]),
+                    span(43..52),
+                )),
             ),
         ]));
         assert_eq!(parsed, expected);
@@ -185,10 +336,7 @@ mod tests {
             Stmt::Block(vec![Stmt::Var(
                 Some(KwLang::Eng),
                 "y".to_string(),
-                Some(Box::new(Stmt::Expr((
-                    Value(Num(1.0)),
-                    SimpleSpan::from(18..19),
-                )))),
+                Some((Value(Num(1.0)), span(18..19))),
             )]),
         ]));
         assert_eq!(parsed, expected);
@@ -201,21 +349,18 @@ mod tests {
         let parsed = parser_stmt().parse(token_stream).into_result();
         let expected = Ok(Stmt::If(
             KwLang::Eng,
-            Box::new(Stmt::Expr((
+            (
                 Binary(
-                    Box::new((Ident("x".to_string()), SimpleSpan::from(5..6))),
+                    Box::new((Ident("x".to_string()), span(5..6))),
                     Eq,
-                    Box::new((Value(Num(1.0)), SimpleSpan::from(10..11))),
+                    Box::new((Value(Num(1.0)), span(10..11))),
                 ),
-                SimpleSpan::from(5..11),
-            ))),
+                span(5..11),
+            ),
             Box::new(Stmt::Block(vec![Stmt::Var(
                 None,
                 "y".to_string(),
-                Some(Box::new(Stmt::Expr((
-                    Ident("x".to_string()),
-                    SimpleSpan::from(20..21),
-                )))),
+                Some((Ident("x".to_string()), span(20..21))),
             )])),
             None,
         ));
@@ -229,29 +374,23 @@ mod tests {
         let parsed = parser_stmt().parse(token_stream).into_result();
         let expected = Ok(Stmt::If(
             KwLang::Eng,
-            Box::new(Stmt::Expr((
+            (
                 Binary(
-                    Box::new((Ident("x".to_string()), SimpleSpan::from(5..6))),
+                    Box::new((Ident("x".to_string()), span(5..6))),
                     Eq,
-                    Box::new((Value(Num(1.0)), SimpleSpan::from(10..11))),
+                    Box::new((Value(Num(1.0)), span(10..11))),
                 ),
-                SimpleSpan::from(5..11),
-            ))),
+                span(5..11),
+            ),
             Box::new(Stmt::Block(vec![Stmt::Var(
                 None,
                 "y".to_string(),
-                Some(Box::new(Stmt::Expr((
-                    Ident("x".to_string()),
-                    SimpleSpan::from(20..21),
-                )))),
+                Some((Ident("x".to_string()), span(20..21))),
             )])),
             Some(Box::new(Stmt::Block(vec![Stmt::Var(
                 None,
                 "y".to_string(),
-                Some(Box::new(Stmt::Expr((
-                    Value(Num(10.0)),
-                    SimpleSpan::from(36..38),
-                )))),
+                Some((Value(Num(10.0)), span(36..38))),
             )]))),
         ));
         assert_eq!(parsed, expected);
@@ -263,5 +402,93 @@ mod tests {
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
         assert!(parsed.is_ok());
+    }
+
+    #[test]
+    fn test_parse_while() {
+        let source = r#"while ( x < 1 ) { x = 1; }"#;
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_stmt().parse(token_stream).into_result();
+        let expected = Ok(Stmt::While(
+            KwLang::Eng,
+            (
+                Binary(
+                    Box::new((Ident("x".to_string()), span(8..9))),
+                    Lt,
+                    Box::new((Value(Num(1.0)), span(12..13))),
+                ),
+                span(8..13),
+            ),
+            Box::new(Stmt::Block(vec![Stmt::Var(
+                None,
+                "x".to_string(),
+                Some((Value(Num(1.0)), span(22..23))),
+            )])),
+        ));
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn test_parse_forall() {
+        let source = r#"forall ( i in @[1,2,3]  ) { x = x + i }"#;
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_stmt().parse(token_stream).into_result();
+        let expected = Ok(Stmt::ForAll(
+            KwLang::Eng,
+            "i".to_string(),
+            (
+                Arr(vec![
+                    (Value(Num(1.0)), span(16..17)),
+                    (Value(Num(2.0)), span(18..19)),
+                    (Value(Num(3.0)), span(20..21)),
+                ]),
+                span(14..22),
+            ),
+            Box::new(Stmt::Block(vec![Stmt::Var(
+                None,
+                "x".to_string(),
+                Some((
+                    Binary(
+                        Box::new((Ident("x".to_string()), span(32..33))),
+                        Add,
+                        Box::new((Ident("i".to_string()), span(36..37))),
+                    ),
+                    span(32..37),
+                )),
+            )])),
+        ));
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn test_parse_for() {
+        let source = r#"for ( i = 0; i < 10; i = i + 1 ) { x = x + i }"#;
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_stmt().parse(token_stream).into_result();
+        let expected = Ok(Stmt::ForAll(
+            KwLang::Eng,
+            "i".to_string(),
+            (
+                Arr(vec![
+                    (Value(Num(1.0)), span(16..17)),
+                    (Value(Num(2.0)), span(18..19)),
+                    (Value(Num(3.0)), span(20..21)),
+                ]),
+                span(14..22),
+            ),
+            Box::new(Stmt::Block(vec![Stmt::Var(
+                None,
+                "x".to_string(),
+                Some((
+                    Binary(
+                        Box::new((Ident("x".to_string()), span(32..33))),
+                        Add,
+                        Box::new((Ident("i".to_string()), span(36..37))),
+                    ),
+                    span(32..37),
+                )),
+            )])),
+        ));
+        assert_eq!(parsed, expected);
     }
 }

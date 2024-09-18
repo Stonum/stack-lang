@@ -70,8 +70,17 @@ pub enum Token<'source> {
     #[regex("(?i)(return|вернуть)", to_keyword_language)]
     Return(KwLang),
 
+    #[regex("(?i)(for|для)", to_keyword_language)]
+    For(KwLang),
+
     #[regex("(?i)(forall|длявсех)", to_keyword_language)]
     ForAll(KwLang),
+
+    #[regex("(?i)(in|в)", to_keyword_language)]
+    In(KwLang),
+
+    #[regex("(?i)(while|пока)", to_keyword_language)]
+    While(KwLang),
 
     #[regex("(?i)(if|если)", to_keyword_language)]
     If(KwLang),
@@ -234,6 +243,18 @@ impl<'source> From<Token<'source>> for &'source str {
             Token::ForAll(value) => match value {
                 KwLang::Eng => "forall",
                 KwLang::Ru => "ДляВсех",
+            },
+            Token::For(value) => match value {
+                KwLang::Eng => "for",
+                KwLang::Ru => "Для",
+            },
+            Token::In(value) => match value {
+                KwLang::Eng => "in",
+                KwLang::Ru => "в",
+            },
+            Token::While(value) => match value {
+                KwLang::Eng => "while",
+                KwLang::Ru => "Пока",
             },
             Token::If(value) => match value {
                 KwLang::Eng => "if",

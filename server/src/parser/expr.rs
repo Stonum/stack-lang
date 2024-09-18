@@ -26,7 +26,7 @@ pub enum BinaryOp {
     LtEq,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq)]
 pub enum Expr {
     Error,
     Value(Value),
@@ -36,6 +36,21 @@ pub enum Expr {
     Arr(Vec<Spanned<Self>>),
     Set(Vec<Spanned<Self>>),
     Obj(Vec<(String, Spanned<Self>)>),
+}
+
+impl std::fmt::Debug for Expr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Expr::Error => f.write_str("Error"),
+            Expr::Value(f0) => write!(f, "Value({f0:?})"),
+            Expr::Ident(f0) => write!(f, "Ident({f0})"),
+            Expr::Call(f0, f1) => write!(f, "Call({f0:?}, {f1:?})"),
+            Expr::Binary(f0, f1, f2) => write!(f, "Binary({f0:?}, {f1:?}, {f2:?})"),
+            Expr::Arr(f0) => write!(f, "Arr({f0:?})"),
+            Expr::Set(f0) => write!(f, "Set({f0:?})"),
+            Expr::Obj(f0) => write!(f, "Obj({f0:?})"),
+        }
+    }
 }
 
 pub(crate) fn parser_expr<'source, I>(
@@ -165,33 +180,39 @@ where
                 .boxed();
 
             // Function calls have very high precedence so we prioritise them
-            let call = atom.foldl_with(
-                items
-                    .delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")")))
-                    .map_with(|args, e| (args, e.span()))
-                    .repeated(),
-                |f, args, e| (Expr::Call(Box::new(f), args), e.span()),
-            );
+            let call = atom
+                .foldl_with(
+                    items
+                        .delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")")))
+                        .map_with(|args, e| (args, e.span()))
+                        .repeated(),
+                    |f, args, e| (Expr::Call(Box::new(f), args), e.span()),
+                )
+                .boxed();
 
             // Product ops (multiply and divide) have equal precedence
             let op = just(Token::Op("*"))
                 .to(BinaryOp::Mul)
-                .or(just(Token::Op("/")).to(BinaryOp::Div));
+                .or(just(Token::Op("/")).to(BinaryOp::Div))
+                .boxed();
             let product = call
                 .clone()
                 .foldl_with(op.then(call).repeated(), |a, (op, b), e| {
                     (Expr::Binary(Box::new(a), op, Box::new(b)), e.span())
-                });
+                })
+                .boxed();
 
             // Sum ops (add and subtract) have equal precedence
             let op = just(Token::Op("+"))
                 .to(BinaryOp::Add)
-                .or(just(Token::Op("-")).to(BinaryOp::Sub));
+                .or(just(Token::Op("-")).to(BinaryOp::Sub))
+                .boxed();
             let sum = product
                 .clone()
                 .foldl_with(op.then(product).repeated(), |a, (op, b), e| {
                     (Expr::Binary(Box::new(a), op, Box::new(b)), e.span())
-                });
+                })
+                .boxed();
 
             // Comparison ops (equal, not-equal) have equal precedence
             let op = just(Token::CondOp("=="))
@@ -200,12 +221,14 @@ where
                 .or(just(Token::CondOp("<")).to(BinaryOp::Lt))
                 .or(just(Token::CondOp("<=")).to(BinaryOp::LtEq))
                 .or(just(Token::CondOp(">")).to(BinaryOp::Gt))
-                .or(just(Token::CondOp(">=")).to(BinaryOp::GtEq));
+                .or(just(Token::CondOp(">=")).to(BinaryOp::GtEq))
+                .boxed();
             let compare = sum
                 .clone()
                 .foldl_with(op.then(sum).repeated(), |a, (op, b), e| {
                     (Expr::Binary(Box::new(a), op, Box::new(b)), e.span())
-                });
+                })
+                .boxed();
 
             compare.labelled("expression")
         });
@@ -220,6 +243,11 @@ mod tests {
     use super::*;
     use super::{BinaryOp::*, Expr::*, Value::*};
 
+    #[inline]
+    fn span(range: std::ops::Range<usize>) -> SimpleSpan {
+        SimpleSpan::from(range)
+    }
+
     #[test]
     fn test_parse_simple_expr() {
         let source = r#"x + y - 5"#;
@@ -229,16 +257,16 @@ mod tests {
             Binary(
                 Box::new((
                     Binary(
-                        Box::new((Ident("x".to_string()), SimpleSpan::from(0..1))),
+                        Box::new((Ident("x".to_string()), span(0..1))),
                         Add,
-                        Box::new((Ident("y".to_string()), SimpleSpan::from(4..5))),
+                        Box::new((Ident("y".to_string()), span(4..5))),
                     ),
-                    SimpleSpan::from(0..5),
+                    span(0..5),
                 )),
                 Sub,
-                Box::new((Value(Num(5.0)), SimpleSpan::from(8..9))),
+                Box::new((Value(Num(5.0)), span(8..9))),
             ),
-            SimpleSpan::from(0..9),
+            span(0..9),
         ));
         assert_eq!(parsed, expected);
     }
@@ -250,14 +278,14 @@ mod tests {
         let parsed = parser_expr().parse(token_stream).into_result();
         let expected = Ok((
             Expr::Arr(vec![
-                (Value(Num(1.0)), SimpleSpan::from(2..3)),
-                (Value(Null("null".to_string())), SimpleSpan::from(5..9)),
-                (Value(Str("hello".to_string())), SimpleSpan::from(11..18)),
-                (Value(Num(5.55)), SimpleSpan::from(20..24)),
-                (Value(Bool("true".to_string())), SimpleSpan::from(26..30)),
-                (Ident("x".to_string()), SimpleSpan::from(32..33)),
+                (Value(Num(1.0)), span(2..3)),
+                (Value(Null("null".to_string())), span(5..9)),
+                (Value(Str("hello".to_string())), span(11..18)),
+                (Value(Num(5.55)), span(20..24)),
+                (Value(Bool("true".to_string())), span(26..30)),
+                (Ident("x".to_string()), span(32..33)),
             ]),
-            SimpleSpan::from(0..34),
+            span(0..34),
         ));
 
         assert_eq!(parsed, expected);
@@ -270,14 +298,14 @@ mod tests {
         let parsed = parser_expr().parse(token_stream).into_result();
         let expected = Ok((
             Expr::Set(vec![
-                (Value(Num(1.0)), SimpleSpan::from(2..3)),
-                (Value(Null("null".to_string())), SimpleSpan::from(5..9)),
-                (Value(Str("hello".to_string())), SimpleSpan::from(11..18)),
-                (Value(Num(5.55)), SimpleSpan::from(20..24)),
-                (Value(Bool("true".to_string())), SimpleSpan::from(26..30)),
-                (Ident("x".to_string()), SimpleSpan::from(32..33)),
+                (Value(Num(1.0)), span(2..3)),
+                (Value(Null("null".to_string())), span(5..9)),
+                (Value(Str("hello".to_string())), span(11..18)),
+                (Value(Num(5.55)), span(20..24)),
+                (Value(Bool("true".to_string())), span(26..30)),
+                (Ident("x".to_string()), span(32..33)),
             ]),
-            SimpleSpan::from(0..34),
+            span(0..34),
         ));
 
         assert_eq!(parsed, expected);
@@ -290,25 +318,22 @@ mod tests {
         let parsed = parser_expr().parse(token_stream).into_result();
         let expected = Ok((
             Expr::Obj(vec![
-                ("a".to_string(), (Value(Num(1.0)), SimpleSpan::from(5..6))),
+                ("a".to_string(), (Value(Num(1.0)), span(5..6))),
                 (
                     "b".to_string(),
-                    (Value(Null("null".to_string())), SimpleSpan::from(11..15)),
+                    (Value(Null("null".to_string())), span(11..15)),
                 ),
                 (
                     "c".to_string(),
-                    (Value(Str("hello".to_string())), SimpleSpan::from(20..27)),
+                    (Value(Str("hello".to_string())), span(20..27)),
                 ),
-                (
-                    "d".to_string(),
-                    (Value(Num(5.55)), SimpleSpan::from(32..36)),
-                ),
+                ("d".to_string(), (Value(Num(5.55)), span(32..36))),
                 (
                     "e".to_string(),
-                    (Value(Bool("true".to_string())), SimpleSpan::from(41..45)),
+                    (Value(Bool("true".to_string())), span(41..45)),
                 ),
             ]),
-            SimpleSpan::from(0..46),
+            span(0..46),
         ));
 
         assert_eq!(parsed, expected);
@@ -321,16 +346,16 @@ mod tests {
         let parsed = parser_expr().parse(token_stream).into_result();
         let expected = Ok((
             Call(
-                Box::new((Ident("sum".to_string()), SimpleSpan::from(0..3))),
+                Box::new((Ident("sum".to_string()), span(0..3))),
                 (
                     vec![
-                        (Ident("x".to_string()), SimpleSpan::from(4..5)),
-                        (Value(Num(5.0)), SimpleSpan::from(7..8)),
+                        (Ident("x".to_string()), span(4..5)),
+                        (Value(Num(5.0)), span(7..8)),
                     ],
-                    SimpleSpan::from(3..9),
+                    span(3..9),
                 ),
             ),
-            SimpleSpan::from(0..9),
+            span(0..9),
         ));
         assert_eq!(parsed, expected);
     }
