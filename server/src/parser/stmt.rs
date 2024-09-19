@@ -11,11 +11,23 @@ pub enum Stmt {
     Expr(Spanned<Expr>),
     Var(Option<KwLang>, String, Option<Spanned<Expr>>),
     Ret(KwLang, Option<Spanned<Expr>>),
+    Throw(KwLang, Option<Spanned<Expr>>),
     Block(Vec<Self>),
     If(KwLang, Spanned<Expr>, Box<Self>, Option<Box<Self>>),
     While(KwLang, Spanned<Expr>, Box<Self>),
     ForAll(KwLang, String, Spanned<Expr>, Box<Self>),
     For(KwLang, Box<Self>, Spanned<Expr>, Box<Self>, Box<Self>),
+    Switch(
+        KwLang,
+        Spanned<Expr>,
+        Vec<(Option<Spanned<Expr>>, Box<Self>)>,
+    ),
+    TryCatch(
+        KwLang,
+        Box<Self>,
+        Option<(Option<Spanned<Expr>>, Box<Self>)>,
+        Option<Box<Self>>,
+    ),
 }
 
 impl std::fmt::Debug for Stmt {
@@ -26,6 +38,7 @@ impl std::fmt::Debug for Stmt {
             Stmt::Comment(f0) => write!(f, "Comment({f0:?})"),
             Stmt::Var(f0, f1, f2) => write!(f, "Var({f0:?}, {f1}, {f2:?})"),
             Stmt::Ret(f0, f1) => write!(f, "Ret({f0:?}, {f1:?})"),
+            Stmt::Throw(f0, f1) => write!(f, "Throw({f0:?}, {f1:?})"),
             Stmt::Block(f0) => {
                 f.write_str("Block(")?;
                 f.debug_list().entries(f0).finish()?;
@@ -58,6 +71,19 @@ impl std::fmt::Debug for Stmt {
                 .field(&f2)
                 .field(&f3)
                 .field(&f4)
+                .finish(),
+            Stmt::Switch(f0, f1, f2) => f
+                .debug_tuple("Switch")
+                .field(&f0)
+                .field(&f1)
+                .field(&f2)
+                .finish(),
+            Stmt::TryCatch(f0, f1, f2, f3) => f
+                .debug_tuple("TryCatch")
+                .field(&f0)
+                .field(&f1)
+                .field(&f2)
+                .field(&f3)
                 .finish(),
         }
     }
@@ -124,7 +150,21 @@ where
             .labelled("return")
     };
 
-    let inline_expr = comment.or(var).or(ret).or(expr.clone()).boxed();
+    let throw = {
+        let kw = select! {
+            Token::Throw(KwLang::Eng) => KwLang::Eng,
+            Token::Throw(KwLang::Ru) => KwLang::Ru,
+        };
+
+        let expr = parser_expr().then_ignore(just(Token::SemiColon).or_not());
+
+        kw.then(expr.clone().or_not())
+            .map(|(kw, expr)| Stmt::Throw(kw, expr))
+            .boxed()
+            .labelled("throw")
+    };
+
+    let inline_expr = comment.or(var).or(ret).or(throw).or(expr.clone()).boxed();
 
     let expr = parser_expr();
 
@@ -249,11 +289,99 @@ where
                 .boxed()
         };
 
+        let _switch = {
+            let case_kw = select! {
+                Token::Case(KwLang::Eng) => KwLang::Eng,
+                Token::Case(KwLang::Ru) => KwLang::Ru,
+            };
+
+            let case = case_kw
+                .ignore_then(expr.clone())
+                .then_ignore(just(Token::Colon))
+                .then(block.clone())
+                .map(|(expr, block)| (Some(expr), Box::new(block)))
+                .boxed();
+
+            let default_kw = select! {
+                Token::Else(KwLang::Eng) => KwLang::Eng,
+                Token::Else(KwLang::Ru) => KwLang::Ru,
+            };
+
+            let default = default_kw
+                .ignore_then(block.clone())
+                .map(|block| (None, Box::new(block)))
+                .boxed();
+
+            let switch_kw = select! {
+                Token::Switch(KwLang::Eng) => KwLang::Eng,
+                Token::Switch(KwLang::Ru) => KwLang::Ru,
+            };
+
+            switch_kw
+                .then(
+                    expr.clone()
+                        .delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")"))),
+                )
+                .then(
+                    case.repeated()
+                        .collect::<Vec<_>>()
+                        .then(default.or_not())
+                        .delimited_by(just(Token::Ctrl("{")), just(Token::Ctrl("}")))
+                        .map(|(mut cases, default)| {
+                            if let Some(default) = default {
+                                cases.push(default);
+                            };
+                            cases
+                        }),
+                )
+                .map(|((switch_kw, expr), cases)| Stmt::Switch(switch_kw, expr, cases))
+                .boxed()
+        };
+
+        let _try = {
+            let try_kw = select! {
+                Token::Try(KwLang::Eng) => KwLang::Eng,
+                Token::Try(KwLang::Ru) => KwLang::Ru,
+            };
+
+            let catch_kw = select! {
+                Token::Catch(KwLang::Eng) => KwLang::Eng,
+                Token::Catch(KwLang::Ru) => KwLang::Ru,
+            };
+
+            let catch = catch_kw
+                .ignore_then(
+                    expr.clone()
+                        .delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")"))),
+                )
+                .or_not()
+                .then(block.clone())
+                .map(|(expr, block)| (expr, Box::new(block)));
+
+            let finally_kw = select! {
+                Token::Finally(KwLang::Eng) => KwLang::Eng,
+                Token::Finally(KwLang::Ru) => KwLang::Ru,
+            };
+
+            let finally = finally_kw.ignore_then(block.clone()).map(Box::new);
+
+            try_kw
+                .then(block.clone())
+                .then(catch.or_not())
+                .then(finally.or_not())
+                .map(|(((try_kw, block), catch), finally)| {
+                    Stmt::TryCatch(try_kw, Box::new(block), catch, finally)
+                })
+                .boxed()
+        };
+
         let block_expr = block
             .or(_if)
             .or(_while)
             .or(_forall)
             .or(_for)
+            .or(_switch)
+            .or(_try)
             .boxed()
             .labelled("block");
 
@@ -465,30 +593,116 @@ mod tests {
         let source = r#"for ( i = 0; i < 10; i = i + 1 ) { x = x + i }"#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
-        let expected = Ok(Stmt::ForAll(
+        let expected = Ok(Stmt::For(
             KwLang::Eng,
-            "i".to_string(),
+            Box::new(Stmt::Var(
+                None,
+                "i".to_string(),
+                Some((Value(Num(0.0)), span(10..11))),
+            )),
             (
-                Arr(vec![
-                    (Value(Num(1.0)), span(16..17)),
-                    (Value(Num(2.0)), span(18..19)),
-                    (Value(Num(3.0)), span(20..21)),
-                ]),
-                span(14..22),
+                Binary(
+                    Box::new((Ident("i".to_string()), span(13..14))),
+                    Lt,
+                    Box::new((Value(Num(10.0)), span(17..19))),
+                ),
+                span(13..19),
             ),
+            Box::new(Stmt::Var(
+                None,
+                "i".to_string(),
+                Some((
+                    Binary(
+                        Box::new((Ident("i".to_string()), span(25..26))),
+                        Add,
+                        Box::new((Value(Num(1.0)), span(29..30))),
+                    ),
+                    span(25..30),
+                )),
+            )),
             Box::new(Stmt::Block(vec![Stmt::Var(
                 None,
                 "x".to_string(),
                 Some((
                     Binary(
-                        Box::new((Ident("x".to_string()), span(32..33))),
+                        Box::new((Ident("x".to_string()), span(39..40))),
                         Add,
-                        Box::new((Ident("i".to_string()), span(36..37))),
+                        Box::new((Ident("i".to_string()), span(43..44))),
                     ),
-                    span(32..37),
+                    span(39..44),
                 )),
             )])),
         ));
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn test_parse_switch() {
+        let source = r#"
+            switch(x) { 
+                case 1: { y = 1; }
+                else { y = 10; }
+            }"#;
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_stmt().parse(token_stream).into_result();
+        let expected = Ok(Stmt::Switch(
+            KwLang::Eng,
+            (Ident("x".to_string()), span(20..21)),
+            vec![
+                (
+                    Some((Value(Num(1.0)), span(47..48))),
+                    Box::new(Stmt::Block(vec![Stmt::Var(
+                        None,
+                        "y".to_string(),
+                        Some((Value(Num(1.0)), span(56..57))),
+                    )])),
+                ),
+                (
+                    None,
+                    Box::new(Stmt::Block(vec![Stmt::Var(
+                        None,
+                        "y".to_string(),
+                        Some((Value(Num(10.0)), span(88..90))),
+                    )])),
+                ),
+            ],
+        ));
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn test_parse_try() {
+        let source = r#"try{ x = x / 0; } catch(e){ throw 1; } finally{ x = 0; }"#;
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_stmt().parse(token_stream).into_result();
+        let expected = Ok(Stmt::TryCatch(
+            KwLang::Eng,
+            Box::new(Stmt::Block(vec![Stmt::Var(
+                None,
+                "x".to_string(),
+                Some((
+                    Binary(
+                        Box::new((Ident("x".to_string()), span(9..10))),
+                        Div,
+                        Box::new((Value(Num(0.0)), span(13..14))),
+                    ),
+                    span(9..14),
+                )),
+            )])),
+            Some((
+                Some((Ident("e".to_string()), span(24..25))),
+                Box::new(Stmt::Block(vec![Stmt::Throw(
+                    KwLang::Eng,
+                    Some((Value(Num(1.0)), span(34..35))),
+                )])),
+            )),
+            Some(Box::new(Stmt::Block(vec![Stmt::Var(
+                None,
+                "x".to_string(),
+                Some((Value(Num(0.0)), span(52..53))),
+            )]))),
+        ));
+
         assert_eq!(parsed, expected);
     }
 }

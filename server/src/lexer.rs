@@ -94,11 +94,14 @@ pub enum Token<'source> {
     #[regex("(?i)(case|выбор)", to_keyword_language)]
     Case(KwLang),
 
-    #[regex("(?i)(exists|есть)", to_keyword_language)]
-    Exists(KwLang),
+    #[regex("(?i)(try|попытка)", to_keyword_language)]
+    Try(KwLang),
 
-    #[regex("(?i)(getordefault|извлечь)", to_keyword_language)]
-    GetOrDefault(KwLang),
+    #[regex("(?i)(catch|исключение|перехват)", to_keyword_language)]
+    Catch(KwLang),
+
+    #[regex("(?i)(finally|заключение)", to_keyword_language)]
+    Finally(KwLang),
 
     #[regex("(?i)(\\|\\||или)", to_keyword_language)]
     Or(KwLang),
@@ -106,8 +109,8 @@ pub enum Token<'source> {
     #[regex("(?i)(и|&&)", to_keyword_language)]
     And(KwLang),
 
-    #[regex("(?i)throw")]
-    Throw,
+    #[regex("(?i)(throw|вызватьисключение)", to_keyword_language)]
+    Throw(KwLang),
 
     #[regex("(?i)(break|прервать)", to_keyword_language)]
     Break(KwLang),
@@ -272,13 +275,17 @@ impl<'source> From<Token<'source>> for &'source str {
                 KwLang::Eng => "case",
                 KwLang::Ru => "Выбор",
             },
-            Token::Exists(value) => match value {
-                KwLang::Eng => "exists",
-                KwLang::Ru => "Есть",
+            Token::Try(value) => match value {
+                KwLang::Eng => "try",
+                KwLang::Ru => "Попытка",
             },
-            Token::GetOrDefault(value) => match value {
-                KwLang::Eng => "getOrDefault",
-                KwLang::Ru => "Извлечь",
+            Token::Catch(value) => match value {
+                KwLang::Eng => "catch",
+                KwLang::Ru => "Исключение",
+            },
+            Token::Finally(value) => match value {
+                KwLang::Eng => "finally",
+                KwLang::Ru => "Заключение",
             },
             Token::Or(value) => match value {
                 KwLang::Eng => "|",
@@ -296,7 +303,10 @@ impl<'source> From<Token<'source>> for &'source str {
                 KwLang::Eng => "continue",
                 KwLang::Ru => "продолжить",
             },
-            Token::Throw => "throw",
+            Token::Throw(value) => match value {
+                KwLang::Eng => "throw",
+                KwLang::Ru => "вызватьисключение",
+            },
 
             // Symbols
             Token::Ctrl(value) => value,
