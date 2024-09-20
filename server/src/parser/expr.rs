@@ -33,6 +33,7 @@ pub enum Expr {
     Ident(String),
     Call(Box<Spanned<Self>>, Spanned<Vec<Spanned<Self>>>),
     Binary(Box<Spanned<Self>>, BinaryOp, Box<Spanned<Self>>),
+    Parentheses(Box<Spanned<Self>>),
     Arr(Vec<Spanned<Self>>),
     Set(Vec<Spanned<Self>>),
     Obj(Vec<(String, Spanned<Self>)>),
@@ -46,6 +47,7 @@ impl std::fmt::Debug for Expr {
             Expr::Ident(f0) => write!(f, "Ident({f0})"),
             Expr::Call(f0, f1) => write!(f, "Call({f0:?}, {f1:?})"),
             Expr::Binary(f0, f1, f2) => write!(f, "Binary({f0:?}, {f1:?}, {f2:?})"),
+            Expr::Parentheses(f0) => write!(f, "Parentheses({f0:?})"),
             Expr::Arr(f0) => write!(f, "Arr({f0:?})"),
             Expr::Set(f0) => write!(f, "Set({f0:?})"),
             Expr::Obj(f0) => write!(f, "Obj({f0:?})"),
@@ -154,7 +156,8 @@ where
                 // Atoms can also just be normal expressions, but surrounded with parentheses
                 .or(expr
                     .clone()
-                    .delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")"))))
+                    .delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")")))
+                    .map_with(|expr, e| (Expr::Parentheses(Box::new(expr)), e.span())))
                 // Attempt to recover anything that looks like a parenthesised expression but contains errors
                 .recover_with(via_parser(nested_delimiters(
                     Token::Ctrl("("),
@@ -250,23 +253,33 @@ mod tests {
 
     #[test]
     fn test_parse_simple_expr() {
-        let source = r#"x + y - 5"#;
+        let source = r#"x + (y - 5) * 6"#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_expr().parse(token_stream).into_result();
         let expected = Ok((
             Binary(
+                Box::new((Ident("x".to_string()), span(0..1))),
+                Add,
                 Box::new((
                     Binary(
-                        Box::new((Ident("x".to_string()), span(0..1))),
-                        Add,
-                        Box::new((Ident("y".to_string()), span(4..5))),
+                        Box::new((
+                            Parentheses(Box::new((
+                                Binary(
+                                    Box::new((Ident("y".to_string()), span(5..6))),
+                                    Sub,
+                                    Box::new((Value(Num(5.0)), span(9..10))),
+                                ),
+                                span(5..10),
+                            ))),
+                            span(4..11),
+                        )),
+                        Mul,
+                        Box::new((Value(Num(6.0)), span(14..15))),
                     ),
-                    span(0..5),
+                    span(4..15),
                 )),
-                Sub,
-                Box::new((Value(Num(5.0)), span(8..9))),
             ),
-            span(0..9),
+            span(0..15),
         ));
         assert_eq!(parsed, expected);
     }
