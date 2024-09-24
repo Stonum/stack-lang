@@ -152,6 +152,8 @@ pub enum Token<'source> {
     #[token("%")]
     #[token("&")]
     #[token("|")]
+    #[token("++")]
+    #[token("--")]
     Op(&'source str),
 
     #[token(",")]

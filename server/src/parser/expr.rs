@@ -18,12 +18,24 @@ pub enum BinaryOp {
     Sub,
     Mul,
     Div,
+    AddEq,
+    SubEq,
+    MulEq,
+    DivEq,
     Eq,
     NotEq,
     Gt,
     Lt,
     GtEq,
     LtEq,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum UnaryOp {
+    Add,
+    Sub,
+    Mul,
+    Div,
 }
 
 #[derive(PartialEq)]
@@ -33,6 +45,8 @@ pub enum Expr {
     Ident(String),
     Call(Box<Spanned<Self>>, Spanned<Vec<Spanned<Self>>>),
     Binary(Box<Spanned<Self>>, BinaryOp, Box<Spanned<Self>>),
+    UnaryRight(Box<Spanned<Self>>, UnaryOp),
+    UnaryLeft(UnaryOp, Box<Spanned<Self>>),
     Parentheses(Box<Spanned<Self>>),
     Arr(Vec<Spanned<Self>>),
     Set(Vec<Spanned<Self>>),
@@ -47,6 +61,8 @@ impl std::fmt::Debug for Expr {
             Expr::Ident(f0) => write!(f, "Ident({f0})"),
             Expr::Call(f0, f1) => write!(f, "Call({f0:?}, {f1:?})"),
             Expr::Binary(f0, f1, f2) => write!(f, "Binary({f0:?}, {f1:?}, {f2:?})"),
+            Expr::UnaryRight(f0, f1) => write!(f, "UnaryRight({f0:?}, {f1:?})"),
+            Expr::UnaryLeft(f0, f1) => write!(f, "UnaryLeft({f0:?}, {f1:?})"),
             Expr::Parentheses(f0) => write!(f, "Parentheses({f0:?})"),
             Expr::Arr(f0) => write!(f, "Arr({f0:?})"),
             Expr::Set(f0) => write!(f, "Set({f0:?})"),
@@ -74,6 +90,23 @@ where
             }
             .labelled("value");
 
+            let unary = {
+                let unary_op = select! {
+                    Token::Op("++") => UnaryOp::Add,
+                    Token::Op("--") => UnaryOp::Sub,
+                };
+
+                let unary_expr = ident.clone().map(Expr::Ident).or(val.clone());
+                let unary_left = unary_op
+                    .then(unary_expr.clone())
+                    .map_with(|(op, expr), e| Expr::UnaryLeft(op, Box::new((expr, e.span()))));
+                let unary_right = unary_expr
+                    .then(unary_op)
+                    .map_with(|(expr, op), e| Expr::UnaryRight(Box::new((expr, e.span())), op));
+
+                unary_right.or(unary_left)
+            };
+
             // A list key values
             let items = ident
                 .clone()
@@ -81,7 +114,8 @@ where
                 .then(inline_expr.clone())
                 .separated_by(just(Token::Comma))
                 .allow_trailing()
-                .collect::<Vec<_>>();
+                .collect::<Vec<_>>()
+                .boxed();
 
             // An object literal
             let obj = items
@@ -147,7 +181,8 @@ where
             let set = just(Token::At).ignore_then(set);
 
             // 'Atoms' are expressions that contain no ambiguity
-            let atom = val
+            let atom = unary
+                .or(val)
                 .or(ident.map(Expr::Ident))
                 .or(arr)
                 .or(obj)
@@ -217,6 +252,20 @@ where
                 })
                 .boxed();
 
+            // Add equal and other op
+            let op = just(Token::Op("+="))
+                .to(BinaryOp::AddEq)
+                .or(just(Token::Op("-=")).to(BinaryOp::SubEq))
+                .or(just(Token::Op("*=")).to(BinaryOp::MulEq))
+                .or(just(Token::Op("/=")).to(BinaryOp::DivEq))
+                .boxed();
+            let res = sum
+                .clone()
+                .foldl_with(op.then(sum).repeated(), |a, (op, b), e| {
+                    (Expr::Binary(Box::new(a), op, Box::new(b)), e.span())
+                })
+                .boxed();
+
             // Comparison ops (equal, not-equal) have equal precedence
             let op = just(Token::CondOp("=="))
                 .to(BinaryOp::Eq)
@@ -226,9 +275,9 @@ where
                 .or(just(Token::CondOp(">")).to(BinaryOp::Gt))
                 .or(just(Token::CondOp(">=")).to(BinaryOp::GtEq))
                 .boxed();
-            let compare = sum
+            let compare = res
                 .clone()
-                .foldl_with(op.then(sum).repeated(), |a, (op, b), e| {
+                .foldl_with(op.then(res).repeated(), |a, (op, b), e| {
                     (Expr::Binary(Box::new(a), op, Box::new(b)), e.span())
                 })
                 .boxed();
@@ -280,6 +329,51 @@ mod tests {
                 )),
             ),
             span(0..15),
+        ));
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn test_parse_unary_expr() {
+        let source = r#"x++ - 5++"#;
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_expr().parse(token_stream).into_result();
+        let expected = Ok((
+            Binary(
+                Box::new((
+                    UnaryRight(Box::new((Ident("x".to_string()), span(0..3))), UnaryOp::Add),
+                    span(0..3),
+                )),
+                Sub,
+                Box::new((
+                    UnaryRight(Box::new((Value(Num(5.0)), span(6..9))), UnaryOp::Add),
+                    span(6..9),
+                )),
+            ),
+            span(0..9),
+        ));
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn test_parse_add_eq_expr() {
+        let source = r#"x += 5 - 10"#;
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_expr().parse(token_stream).into_result();
+        let expected = Ok((
+            Binary(
+                Box::new((Ident("x".to_string()), span(0..1))),
+                AddEq,
+                Box::new((
+                    Binary(
+                        Box::new((Value(Num(5.0)), span(5..6))),
+                        Sub,
+                        Box::new((Value(Num(10.0)), span(9..11))),
+                    ),
+                    span(5..11),
+                )),
+            ),
+            span(0..11),
         ));
         assert_eq!(parsed, expected);
     }
