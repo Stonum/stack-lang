@@ -29,9 +29,6 @@ let statusBarItem: StatusBarItem;
 
 export async function activate(context: ExtensionContext) {
 
-   const traceOutputChannel = window.createOutputChannel(
-      "Stack Language Server trace1"
-   );
    const command =
       process.env.SERVER_PATH ||
       path.join(
@@ -62,16 +59,15 @@ export async function activate(context: ExtensionContext) {
    // Otherwise the run options are used
    // Options to control the language client
    let clientOptions: LanguageClientOptions = {
-      // Register the server for plain text documents
+      // Register the server for stack text documents
       documentSelector: [{ scheme: "file", language: "stack" }],
       synchronize: {
-         // Notify the server about file changes to '.clientrc files contained in the workspace
+         // Notify the server about file changes for files contained in the workspace
          fileEvents: [
-            workspace.createFileSystemWatcher("**/.prg"),
-            workspace.createFileSystemWatcher("**/.hdl"),
+            workspace.createFileSystemWatcher("**/*.prg"),
+            workspace.createFileSystemWatcher("**/*.hdl"),
          ],
       },
-      traceOutputChannel,
    };
 
    // Create the language client and start the client.

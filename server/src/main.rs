@@ -15,6 +15,7 @@ use stack_language_server::lexer::{Lexer, Token};
 use stack_language_server::parser;
 use stack_language_server::position;
 
+use tokio::fs::File;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::notification::Notification;
 use tower_lsp::lsp_types::*;
@@ -154,8 +155,6 @@ impl LanguageServer for Backend {
     }
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
-        info!("did open {}", params.text_document.uri);
-
         let text_document = TextDocumentItem {
             uri: params.text_document.uri,
             text: params.text_document.text,
@@ -164,8 +163,6 @@ impl LanguageServer for Backend {
 
         self.set_definition(text_document.clone()).await;
         self.on_change(text_document).await;
-
-        info!("did open done ");
     }
 
     async fn did_change(&self, mut params: DidChangeTextDocumentParams) {
@@ -176,6 +173,51 @@ impl LanguageServer for Backend {
         };
         self.set_definition(text_document.clone()).await;
         self.on_change(text_document).await;
+    }
+
+    async fn did_change_watched_files(&self, params: DidChangeWatchedFilesParams) {
+        for change in params.changes {
+            match change.typ {
+                FileChangeType::CREATED | FileChangeType::CHANGED => {
+                    let text_document: Option<TextDocumentItem> = async {
+                        let file = change.uri.to_file_path().ok()?;
+                        let text = tokio::fs::read_to_string(&file).await.ok()?;
+                        Some(TextDocumentItem {
+                            uri: change.uri,
+                            text,
+                            version: 0,
+                        })
+                    }
+                    .await;
+
+                    if let Some(text_document) = text_document {
+                        self.set_definition(text_document.clone()).await;
+                        self.on_change(text_document).await;
+                    }
+                }
+                FileChangeType::DELETED => {
+                    let text_document = TextDocumentItem {
+                        uri: change.uri,
+                        text: String::new(),
+                        version: 0,
+                    };
+                    self.on_delete(text_document).await;
+                }
+                _ => {}
+            }
+        }
+    }
+
+    async fn did_change_configuration(&self, _: DidChangeConfigurationParams) {
+        self.client
+            .log_message(MessageType::INFO, "configuration changed!")
+            .await;
+    }
+
+    async fn did_change_workspace_folders(&self, _: DidChangeWorkspaceFoldersParams) {
+        self.client
+            .log_message(MessageType::INFO, "workspace folders changed!")
+            .await;
     }
 
     async fn goto_definition(
@@ -365,25 +407,6 @@ impl LanguageServer for Backend {
         Ok(hover)
     }
 
-    async fn did_change_configuration(&self, _: DidChangeConfigurationParams) {
-        self.client
-            .log_message(MessageType::INFO, "configuration changed!")
-            .await;
-    }
-
-    async fn did_change_workspace_folders(&self, _: DidChangeWorkspaceFoldersParams) {
-        self.client
-            .log_message(MessageType::INFO, "workspace folders changed!")
-            .await;
-    }
-
-    async fn did_change_watched_files(&self, _: DidChangeWatchedFilesParams) {
-        self.client
-            .log_message(MessageType::INFO, "watched files have changed!")
-            .await;
-        info!("did_change_watched_files");
-    }
-
     async fn execute_command(&self, _: ExecuteCommandParams) -> Result<Option<Value>> {
         self.client
             .log_message(MessageType::INFO, "command executed!")
@@ -475,6 +498,10 @@ impl Backend {
         let rope = ropey::Rope::from_str(&params.text);
         self.document_map
             .insert(params.uri.to_string(), rope.clone());
+    }
+
+    async fn on_delete(&self, params: TextDocumentItem) {
+        self.document_map.remove(params.uri.as_str());
     }
 }
 
