@@ -36,18 +36,10 @@ impl LanguageServer for Backend {
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
                     TextDocumentSyncKind::FULL,
                 )),
-                completion_provider: Some(CompletionOptions {
-                    resolve_provider: Some(false),
-                    trigger_characters: Some(vec![".".to_string()]),
-                    work_done_progress_options: Default::default(),
-                    all_commit_characters: None,
-                    completion_item: None,
-                }),
                 execute_command_provider: Some(ExecuteCommandOptions {
                     commands: vec!["dummy.do_something".to_string()],
                     work_done_progress_options: Default::default(),
                 }),
-
                 workspace: Some(WorkspaceServerCapabilities {
                     workspace_folders: Some(WorkspaceFoldersServerCapabilities {
                         supported: Some(true),
@@ -58,6 +50,7 @@ impl LanguageServer for Backend {
                 definition_provider: Some(OneOf::Left(true)),
                 document_symbol_provider: Some(OneOf::Left(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
+                // document_range_formatting_provider: Some(OneOf::Left(true)),
                 ..ServerCapabilities::default()
             },
         })
@@ -181,14 +174,9 @@ impl LanguageServer for Backend {
             text: std::mem::take(&mut params.content_changes[0].text),
             version: params.text_document.version,
         };
-
         self.set_definition(text_document.clone()).await;
         self.on_change(text_document).await;
     }
-
-    // async fn did_save(&self, _: DidSaveTextDocumentParams) {}
-
-    // async fn did_close(&self, _: DidCloseTextDocumentParams) {}
 
     async fn goto_definition(
         &self,
@@ -319,11 +307,6 @@ impl LanguageServer for Backend {
         Ok(document_symbol)
     }
 
-    async fn references(&self, params: ReferenceParams) -> Result<Option<Vec<Location>>> {
-        info!("references: {:?}", params);
-        Ok(None)
-    }
-
     async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
         let hover = async {
             let uri = params.text_document_position_params.text_document.uri;
@@ -382,43 +365,6 @@ impl LanguageServer for Backend {
         Ok(hover)
     }
 
-    async fn semantic_tokens_full(
-        &self,
-        params: SemanticTokensParams,
-    ) -> Result<Option<SemanticTokensResult>> {
-        let uri = params.text_document.uri.to_string();
-        info!("semantic_tokens_full: {:?}", uri);
-        Ok(None)
-    }
-
-    async fn semantic_tokens_range(
-        &self,
-        params: SemanticTokensRangeParams,
-    ) -> Result<Option<SemanticTokensRangeResult>> {
-        let uri = params.text_document.uri.to_string();
-        info!("semantic_tokens_range: {}", uri);
-        Ok(None)
-    }
-
-    async fn inlay_hint(
-        &self,
-        _params: tower_lsp::lsp_types::InlayHintParams,
-    ) -> Result<Option<Vec<InlayHint>>> {
-        Ok(None)
-    }
-
-    async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
-        info!("completion: {:?}", params);
-
-        Ok(None)
-    }
-
-    async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
-        info!("rename: {:?}", params);
-
-        Ok(None)
-    }
-
     async fn did_change_configuration(&self, _: DidChangeConfigurationParams) {
         self.client
             .log_message(MessageType::INFO, "configuration changed!")
@@ -449,6 +395,18 @@ impl LanguageServer for Backend {
             Err(err) => self.client.log_message(MessageType::ERROR, err).await,
         }
 
+        Ok(None)
+    }
+
+    async fn range_formatting(
+        &self,
+        params: DocumentRangeFormattingParams,
+    ) -> Result<Option<Vec<TextEdit>>> {
+        self.client
+            .log_message(MessageType::INFO, "formatting triggered!")
+            .await;
+
+        info!("range_formatting {:?}", params);
         Ok(None)
     }
 }
@@ -482,6 +440,8 @@ impl Backend {
         let rope = Rope::from(text.as_str());
         let (decl, errs) = parser::parse(&text).into_output_errors();
 
+        let mut diagnostics = vec![];
+
         if decl.is_none() {
             let mut diagnostic = Diagnostic::new_simple(Range::default(), format!("Parse error"));
             if let Some(error) = errs.last() {
@@ -491,10 +451,12 @@ impl Backend {
                     format!("Parse error: {error}"),
                 );
             }
-            self.client
-                .publish_diagnostics(uri.clone(), vec![diagnostic], Some(params.version))
-                .await;
+            diagnostics.push(diagnostic);
         }
+
+        self.client
+            .publish_diagnostics(uri.clone(), diagnostics, Some(params.version))
+            .await;
 
         if let Some(decl) = decl {
             let definitions = decl
