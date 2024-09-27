@@ -189,10 +189,10 @@ pub enum Token<'source> {
     #[regex(r"-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?", priority = 1)]
     Number(&'source str),
 
-    #[regex("\"[^\"]*\"", |s| &s.slice()[1..s.slice().len() - 1])]
+    #[regex(r#""([^"\\]*(\\.[^"\\]*)*)""#, |s| &s.slice()[1..s.slice().len() - 1])]
     String(&'source str),
 
-    #[regex("`[^`]*`", |s| &s.slice()[1..s.slice().len() - 1])]
+    #[regex(r#"`([^`\\]*(\\.[^`\\]*)*)`"#, |s| &s.slice()[1..s.slice().len() - 1])]
     LongString(&'source str),
 
     #[regex(r"'([a-zA-ZА-Яа-я0-9_@. ()@\-\\>\/]+)'", priority = 1)]
