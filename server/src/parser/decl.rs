@@ -57,6 +57,8 @@ pub(crate) fn parser_decl<'source, I>(
 where
     I: ValueInput<'source, Token = Token<'source>, Span = SimpleSpan>,
 {
+    let error = just(Token::Error).map(|_| Decl::Error);
+
     let kw = select! {
         Token::Function(KwLang::Eng) => KwLang::Eng,
         Token::Function(KwLang::Ru) => KwLang::Ru,
@@ -70,8 +72,8 @@ where
     let doc_string = select! {
         Token::LongString(comment) => comment.to_string(),
         Token::String(comment) => comment.to_string(),
-        Token::CommentLine(comment) => comment.to_string(),
     };
+    let doc_string = doc_string.or(comment.map(|comment| comment.join("\n")));
 
     let identifier =
         select! { Token::Identifier(ident) => ident.to_string() }.labelled("identifier");
@@ -236,7 +238,7 @@ where
 
     fn_.or(class)
         .or(stmt)
-        // .padded_by(parser_stmt()) // !todo - we need to parse it as a single statement
+        .or(error)
         .repeated()
         .collect::<Vec<_>>()
 }
