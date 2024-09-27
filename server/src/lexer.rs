@@ -196,7 +196,7 @@ pub enum Token<'source> {
     LongString(&'source str),
 
     #[regex(r"'([a-zA-ZА-Яа-яёЁ0-9_@. ()@\-\\>\/]+)'", priority = 1)]
-    #[regex(r"[a-zA-ZА-Яа-яёЁ0-9_@.]+", priority = 0)]
+    #[regex(r"[a-zA-ZА-Яа-яёЁ0-9_@]+", priority = 0)]
     Identifier(&'source str),
 
     #[regex(r"[\r\n]+", |_| Skip)]

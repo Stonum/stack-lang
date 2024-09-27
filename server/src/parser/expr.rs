@@ -51,6 +51,8 @@ pub enum Expr {
     Arr(Vec<Spanned<Self>>),
     Set(Vec<Spanned<Self>>),
     Obj(Vec<(String, Spanned<Self>)>),
+    Then(Box<Spanned<Self>>, Box<Spanned<Self>>),
+    ThenEquals(Box<Spanned<Self>>, Box<Spanned<Self>>),
 }
 
 impl std::fmt::Debug for Expr {
@@ -67,6 +69,8 @@ impl std::fmt::Debug for Expr {
             Expr::Arr(f0) => write!(f, "Arr({f0:?})"),
             Expr::Set(f0) => write!(f, "Set({f0:?})"),
             Expr::Obj(f0) => write!(f, "Obj({f0:?})"),
+            Expr::Then(f0, f1) => write!(f, "Then({f0:?}, {f1:?})"),
+            Expr::ThenEquals(f0, f1) => write!(f, "ThenEq({f0:?}, {f1:?})"),
         }
     }
 }
@@ -285,7 +289,25 @@ where
             compare.labelled("expression")
         });
 
-        inline_expr
+        let expr_chain = inline_expr
+            .clone()
+            .foldl_with(
+                just(Token::Dot).ignore_then(inline_expr.clone()).repeated(),
+                |a, b, e| (Expr::Then(Box::new(a), Box::new(b)), e.span()),
+            )
+            .boxed();
+
+        let expr_chain = expr_chain
+            .clone()
+            .foldl_with(
+                just(Token::Equals)
+                    .ignore_then(expr_chain.clone())
+                    .repeated(),
+                |a, b, e| (Expr::ThenEquals(Box::new(a), Box::new(b)), e.span()),
+            )
+            .boxed();
+
+        expr_chain.or(inline_expr)
     })
 }
 
@@ -473,17 +495,23 @@ mod tests {
         let token_stream = token_stream_from_str(source);
         let parsed = parser_expr().parse(token_stream).into_result();
         let expected = Ok((
-            Call(
-                Box::new((Ident("sum".to_string()), span(0..3))),
-                (
-                    vec![
-                        (Ident("x".to_string()), span(4..5)),
-                        (Value(Num(5.0)), span(7..8)),
-                    ],
-                    span(3..9),
-                ),
+            Then(
+                Box::new((Ident("x".to_string()), span(0..1))),
+                Box::new((
+                    Call(
+                        Box::new((Ident("sum".to_string()), span(2..5))),
+                        (
+                            vec![
+                                (Ident("x".to_string()), span(6..7)),
+                                (Value(Num(5.0)), span(9..10)),
+                            ],
+                            span(5..11),
+                        ),
+                    ),
+                    span(2..11),
+                )),
             ),
-            span(0..9),
+            span(0..11),
         ));
         assert_eq!(parsed, expected);
     }
