@@ -466,4 +466,25 @@ mod tests {
         ));
         assert_eq!(parsed, expected);
     }
+
+    #[test]
+    fn test_parse_call_method() {
+        let source = r#"x.sum(x, 5)"#;
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_expr().parse(token_stream).into_result();
+        let expected = Ok((
+            Call(
+                Box::new((Ident("sum".to_string()), span(0..3))),
+                (
+                    vec![
+                        (Ident("x".to_string()), span(4..5)),
+                        (Value(Num(5.0)), span(7..8)),
+                    ],
+                    span(3..9),
+                ),
+            ),
+            span(0..9),
+        ));
+        assert_eq!(parsed, expected);
+    }
 }

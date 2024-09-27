@@ -6,7 +6,7 @@ use super::{Span, Spanned};
 
 #[derive(PartialEq)]
 pub enum Stmt {
-    Error,
+    Error(Spanned<String>),
     Comment(Spanned<String>),
     Expr(Spanned<Expr>),
     Var(Option<KwLang>, String, Option<Spanned<Expr>>),
@@ -33,7 +33,7 @@ pub enum Stmt {
 impl std::fmt::Debug for Stmt {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Stmt::Error => f.write_str("Error"),
+            Stmt::Error(f0) => write!(f, "Error({f0:?})"),
             Stmt::Expr(f0) => write!(f, "Expr({f0:?})"),
             Stmt::Comment(f0) => write!(f, "Comment({f0:?})"),
             Stmt::Var(f0, f1, f2) => write!(f, "Var({f0:?}, {f1}, {f2:?})"),
@@ -183,7 +183,7 @@ where
                     (Token::Ctrl("["), Token::Ctrl("]")),
                     (Token::Ctrl("("), Token::Ctrl(")")),
                 ],
-                |_| Stmt::Error,
+                |span| Stmt::Error((String::from("Error parsing block"), span)),
             )))
             .boxed();
 

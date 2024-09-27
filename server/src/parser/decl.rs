@@ -5,7 +5,7 @@ use super::stmt::{parser_stmt, Stmt};
 use super::{KwLang, Token};
 use super::{Span, Spanned};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Default, PartialEq)]
 pub struct Parameter {
     pub identifier: String,
     pub question_mark: bool,
@@ -24,7 +24,7 @@ pub enum MethodType {
 pub struct Method {
     pub m_type: MethodType,
     pub identifier: Spanned<String>,
-    pub params: Spanned<Vec<Parameter>>,
+    pub params: (Vec<Parameter>, Span, Option<String>),
     pub body: Spanned<Vec<Stmt>>,
     pub descr: Option<Vec<String>>,
     pub doc_string: Option<String>,
@@ -37,7 +37,7 @@ pub enum Decl {
     Func {
         lang: KwLang,
         identifier: Spanned<String>,
-        params: Spanned<Vec<Parameter>>,
+        params: (Vec<Parameter>, Span, Option<String>),
         body: Spanned<Vec<Stmt>>,
         descr: Option<Vec<String>>,
         doc_string: Option<String>,
@@ -87,7 +87,7 @@ where
             |(identifier, question_mark)| Parameter {
                 identifier,
                 question_mark: question_mark.is_some(),
-                initializer: None,
+                ..Default::default()
             },
         );
 
@@ -96,14 +96,13 @@ where
             .then(parser_expr())
             .map(|(identifier, (expr, _))| Parameter {
                 identifier,
-                question_mark: false,
                 initializer: Some(expr),
+                ..Default::default()
             });
 
         let spread = select! { Token::Spread => String::from("...") }.map(|identifier| Parameter {
             identifier,
-            question_mark: false,
-            initializer: None,
+            ..Default::default()
         });
 
         param_init.or(param).or(spread)
@@ -119,7 +118,6 @@ where
                 .iter()
                 .filter(|param| param.identifier == "...")
                 .count();
-
             if count > 1 {
                 emitter.emit(Rich::custom(
                     e.span(),
@@ -131,9 +129,19 @@ where
                     format!("The function must have the last parameter `...`"),
                 ));
             }
-            params
+            (params, None)
         })
-        .map_with(|params, e| (params, e.span()))
+        .recover_with(via_parser(nested_delimiters(
+            Token::Ctrl("("),
+            Token::Ctrl(")"),
+            [
+                (Token::Ctrl("{"), Token::Ctrl("}")),
+                (Token::Ctrl("["), Token::Ctrl("]")),
+                (Token::Ctrl("("), Token::Ctrl(")")),
+            ],
+            |_| (vec![], Some(String::from("Error parsing arguments"))),
+        )))
+        .map_with(|(params, error), e| (params, e.span(), error))
         .labelled("args");
 
     let body = parser_stmt()
@@ -148,7 +156,12 @@ where
                 (Token::Ctrl("["), Token::Ctrl("]")),
                 (Token::Ctrl("("), Token::Ctrl(")")),
             ],
-            |_| vec![Stmt::Error],
+            |span| {
+                vec![Stmt::Error((
+                    String::from("Error parsing function body"),
+                    span,
+                ))]
+            },
         )))
         .map_with(|body, e| (body, e.span()));
 
@@ -266,10 +279,10 @@ mod tests {
             params: (
                 vec![Parameter {
                     identifier: "z".to_string(),
-                    question_mark: false,
-                    initializer: None,
+                    ..Default::default()
                 }],
                 span(9..12),
+                None,
             ),
             body: (
                 vec![
@@ -310,21 +323,21 @@ mod tests {
                 vec![
                     Parameter {
                         identifier: "x".to_string(),
-                        question_mark: false,
-                        initializer: None,
+                        ..Default::default()
                     },
                     Parameter {
                         identifier: "y".to_string(),
-                        question_mark: false,
                         initializer: Some(Value(Num(1.0))),
+                        ..Default::default()
                     },
                     Parameter {
                         identifier: "z".to_string(),
                         question_mark: true,
-                        initializer: None,
+                        ..Default::default()
                     },
                 ],
                 span(74..88),
+                None,
             ),
             body: (
                 vec![Ret(KwLang::Eng, Some((Value(Num(10.0)), span(180..182))))],
@@ -351,7 +364,7 @@ mod tests {
             Decl::Func {
                 lang: KwLang::Eng,
                 identifier: ("test".to_string(), span(18..22)),
-                params: (vec![], span(22..24)),
+                params: (vec![], span(22..24), None),
                 body: (
                     vec![Stmt::Expr((super::super::expr::Expr::Error, span(27..42)))],
                     span(25..45),
@@ -362,7 +375,7 @@ mod tests {
             Decl::Func {
                 lang: KwLang::Eng,
                 identifier: ("test2".to_string(), span(63..68)),
-                params: (vec![], span(68..70)),
+                params: (vec![], span(68..70), None),
                 body: (
                     vec![Stmt::Expr((super::super::expr::Expr::Error, span(73..88)))],
                     span(71..90),
@@ -371,6 +384,31 @@ mod tests {
                 doc_string: None,
             },
         ]);
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn test_parse_fn_with_arg_errors() {
+        let source = r#"
+            func test( 
+                x, # comment
+                y # comment 2
+            ) {}
+        "#;
+        let token_stream = token_stream_from_str(source);
+        let (parsed, _errs) = parser_decl().parse(token_stream).into_output_errors();
+        let expected = Some(vec![Decl::Func {
+            lang: KwLang::Eng,
+            identifier: ("test".to_string(), span(18..22)),
+            params: (
+                vec![],
+                span(22..97),
+                Some("Error parsing arguments".to_string()),
+            ),
+            body: (vec![], span(98..100)),
+            descr: None,
+            doc_string: None,
+        }]);
         assert_eq!(parsed, expected);
     }
 
@@ -399,7 +437,7 @@ mod tests {
                     Method {
                         m_type: MethodType::Func,
                         identifier: ("constructor".to_string(), span(67..78)),
-                        params: (vec![], span(78..80)),
+                        params: (vec![], span(78..80), None),
                         body: (vec![], span(81..83)),
                         descr: None,
                         doc_string: None,
@@ -407,7 +445,7 @@ mod tests {
                     Method {
                         m_type: MethodType::Getter,
                         identifier: ("x".to_string(), span(105..106)),
-                        params: (vec![], span(106..108)),
+                        params: (vec![], span(106..108), None),
                         body: (vec![], span(109..111)),
                         descr: None,
                         doc_string: None,
@@ -415,7 +453,7 @@ mod tests {
                     Method {
                         m_type: MethodType::Setter,
                         identifier: ("x".to_string(), span(133..134)),
-                        params: (vec![], span(134..136)),
+                        params: (vec![], span(134..136), None),
                         body: (vec![], span(137..139)),
                         descr: None,
                         doc_string: None,
@@ -427,16 +465,15 @@ mod tests {
                             vec![
                                 Parameter {
                                     identifier: "a".to_string(),
-                                    question_mark: false,
-                                    initializer: None,
+                                    ..Default::default()
                                 },
                                 Parameter {
                                     identifier: "b".to_string(),
-                                    question_mark: false,
-                                    initializer: None,
+                                    ..Default::default()
                                 },
                             ],
                             span(160..166),
+                            None,
                         ),
                         body: (vec![], span(167..169)),
                         descr: None,
@@ -476,7 +513,7 @@ mod tests {
                     Method {
                         m_type: MethodType::Func,
                         identifier: ("constructor".to_string(), span(67..78)),
-                        params: (vec![], span(78..80)),
+                        params: (vec![], span(78..80), None),
                         body: (vec![], span(81..83)),
                         descr: None,
                         doc_string: None,
@@ -484,7 +521,7 @@ mod tests {
                     Method {
                         m_type: MethodType::Getter,
                         identifier: ("x".to_string(), span(105..106)),
-                        params: (vec![], span(106..108)),
+                        params: (vec![], span(106..108), None),
                         body: (vec![], span(109..111)),
                         descr: None,
                         doc_string: None,
@@ -492,7 +529,7 @@ mod tests {
                     Method {
                         m_type: MethodType::Setter,
                         identifier: ("x".to_string(), span(133..134)),
-                        params: (vec![], span(134..136)),
+                        params: (vec![], span(134..136), None),
                         body: (vec![], span(137..139)),
                         descr: None,
                         doc_string: None,
@@ -504,16 +541,15 @@ mod tests {
                             vec![
                                 Parameter {
                                     identifier: "a".to_string(),
-                                    question_mark: false,
-                                    initializer: None,
+                                    ..Default::default()
                                 },
                                 Parameter {
                                     identifier: "b".to_string(),
-                                    question_mark: false,
-                                    initializer: None,
+                                    ..Default::default()
                                 },
                             ],
                             span(160..166),
+                            None,
                         ),
                         body: (
                             vec![Stmt::Expr((
