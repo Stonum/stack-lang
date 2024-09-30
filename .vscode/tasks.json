@@ -1,35 +1,67 @@
 // See https://go.microsoft.com/fwlink/?LinkId=733558
 // for the documentation about the tasks.json format
 {
-	"version": "2.0.0",
-	"tasks": [
-		{
-			"type": "npm",
-			"script": "compile",
-			"group": "build",
-			"presentation": {
-				"panel": "dedicated",
-				"reveal": "never"
-			},
-			"problemMatcher": [
-				"$tsc"
-			]
-		},
-		{
-			"type": "npm",
-			"script": "watch",
-			"isBackground": true,
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"presentation": {
-				"panel": "dedicated",
-				"reveal": "never"
-			},
-			"problemMatcher": [
-				"$tsc-watch"
-			]
-		}
-	]
+   "version": "2.0.0",
+   "tasks": [
+      {
+         "label": "Client compile",
+         "type": "npm",
+         "script": "compile",
+         "group": "build",
+         "presentation": {
+            "panel": "dedicated",
+            "reveal": "never"
+         },
+         "problemMatcher": [
+            "$tsc"
+         ]
+      },
+      {
+         "label": "Client watch",
+         "type": "npm",
+         "script": "watch",
+         "isBackground": true,
+         "group": {
+            "kind": "build",
+            "isDefault": true
+         },
+         "presentation": {
+            "panel": "dedicated",
+            "reveal": "never",
+            "group": "build"
+         },
+         "problemMatcher": [
+            "$tsc-watch"
+         ]
+      },
+      {
+         "label": "Server build",
+         "type": "shell",
+         "isBackground": true,
+         "command": "cargo",
+         "args": [
+            "build"
+         ],
+         "options": {
+            "cwd": "${workspaceFolder}/server"
+         },
+         "group": {
+            "kind": "build",
+            "isDefault": true
+         },
+         "presentation": {
+            "panel": "dedicated",
+            "reveal": "never",
+            "clear": true,
+            "group": "build"
+         }
+      },
+      {
+         "label": "Build",
+         "dependsOn": [
+            "Server build",
+            "Client watch"
+         ]
+      }
+   ]
 }

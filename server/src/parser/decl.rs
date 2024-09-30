@@ -79,7 +79,10 @@ where
         select! { Token::Identifier(ident) => ident.to_string() }.labelled("identifier");
 
     let decl_identifier = select! { Token::Identifier(ident) => ident.to_string() }
-        .map_with(|ident, e| (ident, e.span()))
+        .separated_by(just(Token::Dot))
+        .at_least(1)
+        .collect::<Vec<_>>()
+        .map_with(|ident, e| (ident.join("."), e.span()))
         .labelled("identifier");
 
     let param = {

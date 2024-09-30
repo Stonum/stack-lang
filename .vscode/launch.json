@@ -13,10 +13,7 @@
          "outFiles": [
             "${workspaceRoot}/client/out/**/*.js"
          ],
-         "preLaunchTask": {
-            "type": "npm",
-            "script": "watch"
-         },
+         "preLaunchTask": "Build",
          "env": {
             "SERVER_PATH": "${workspaceRoot}/server/target/debug/stack-language-server",
             "_SERVER_PATH": "${workspaceRoot}/server/target/release/stack-language-server"
