@@ -69,6 +69,8 @@ where
         .at_least(1)
         .collect::<Vec<_>>();
 
+    let annotation = select! { Token::Annotation(comment) => comment.to_string() };
+
     let doc_string = select! {
         Token::LongString(comment) => comment.to_string(),
         Token::String(comment) => comment.to_string(),
@@ -193,7 +195,9 @@ where
         Token::Set(KwLang::Eng) | Token::Set(KwLang::Ru) => MethodType::Setter,
     };
 
-    let method = comment
+    let method = annotation
+        .or_not()
+        .ignore_then(comment)
         .or_not()
         .then(kw.or_not())
         .then(decl_identifier.labelled("method name"))
