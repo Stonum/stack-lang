@@ -36,7 +36,7 @@ export async function activate(context: ExtensionContext) {
          "server",
          "target",
          "release",
-         "stack-language-server.exe"
+         "stack-lang-server.exe"
       );
 
    const run: Executable = {
@@ -72,8 +72,8 @@ export async function activate(context: ExtensionContext) {
 
    // Create the language client and start the client.
    client = new LanguageClient(
-      "stack-language-server",
-      "stack language server",
+      "stack-lang-server",
+      "stack lang server",
       serverOptions,
       clientOptions
    );

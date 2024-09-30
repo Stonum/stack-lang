@@ -1,5 +1,5 @@
 {
-	"name": "stack-language-client",
+	"name": "stack-lang-client",
 	"description": "VSCode part of a language server",
 	"version": "0.0.1",
 	"engines": {

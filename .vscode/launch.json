@@ -15,8 +15,8 @@
          ],
          "preLaunchTask": "Build",
          "env": {
-            "SERVER_PATH": "${workspaceRoot}/server/target/debug/stack-language-server",
-            "_SERVER_PATH": "${workspaceRoot}/server/target/release/stack-language-server"
+            "SERVER_PATH": "${workspaceRoot}/server/target/debug/stack-lang-server",
+            "_SERVER_PATH": "${workspaceRoot}/server/target/release/stack-lang-server"
          }
       }
    ]

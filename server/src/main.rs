@@ -10,12 +10,11 @@ use ropey::Rope;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use stack_language_server::def::Definition;
-use stack_language_server::lexer::{Lexer, Token};
-use stack_language_server::parser;
-use stack_language_server::position;
+use stack_lang_server::def::Definition;
+use stack_lang_server::lexer::{Lexer, Token};
+use stack_lang_server::parser;
+use stack_lang_server::position;
 
-use tokio::fs::File;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::notification::Notification;
 use tower_lsp::lsp_types::*;

@@ -739,7 +739,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "stack-language-server"
+name = "stack-lang-server"
 version = "0.1.0"
 dependencies = [
  "chumsky",
