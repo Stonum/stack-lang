@@ -1,5 +1,6 @@
 /server/target
 /server/examples
+/server/*.exe
 node_modules
 /client/out
 

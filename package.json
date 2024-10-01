@@ -70,7 +70,7 @@
    "scripts": {
       "postinstall": "cd client && npm i",
       "vscode:prepublish": "concurrently  \"npm run client:compile\" \"npm run server:build\"",
-      "server:build": "cd server && cargo build --release --bins && cd ..",
+      "server:build": "cd server && cargo build --release --bins && cp ./target/release/*.exe ./ && cd ..",
       "client:compile": "tsc -b",
       "watch": "rm -rf client/out && tsc -b -w",
       "package": "vsce package",

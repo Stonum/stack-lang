@@ -34,8 +34,6 @@ export async function activate(context: ExtensionContext) {
       path.join(
          context.extensionPath,
          "server",
-         "target",
-         "release",
          "stack-lang-server.exe"
       );
 
