@@ -1,7 +1,7 @@
 {
    "name": "stack-lang",
    "description": "stack language server",
-   "version": "0.0.1",
+   "version": "0.0.2",
    "repository": "https://github.com/stonum/stack-lang",
    "publisher": "stonum",
    "categories": [],
