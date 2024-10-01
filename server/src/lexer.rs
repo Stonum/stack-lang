@@ -199,7 +199,7 @@ pub enum Token<'source> {
     #[regex(r"[a-zA-ZА-Яа-яёЁ0-9_@$]+", priority = 0)]
     Identifier(&'source str),
 
-    #[regex(r#":\[(\s|\S)*\]"#)]
+    #[regex(r":\[([^\[\]]*)\]")]
     Annotation(&'source str),
 
     #[regex(r"[\r\n]+", |_| Skip)]

@@ -195,9 +195,7 @@ where
         Token::Set(KwLang::Eng) | Token::Set(KwLang::Ru) => MethodType::Setter,
     };
 
-    let method = annotation
-        .or_not()
-        .ignore_then(comment)
+    let method = comment
         .or_not()
         .then(kw.or_not())
         .then(decl_identifier.labelled("method name"))
@@ -226,8 +224,9 @@ where
         Token::Extends(KwLang::Ru) => (),
     };
 
-    let class = comment
+    let class = annotation
         .or_not()
+        .ignore_then(comment.or_not())
         .then(kw_class)
         .then(decl_identifier.labelled("class name"))
         .then(kw_ext.ignore_then(identifier).or_not())
