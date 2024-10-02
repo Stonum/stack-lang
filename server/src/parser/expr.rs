@@ -53,6 +53,7 @@ pub enum Expr {
     Obj(Vec<(String, Spanned<Self>)>),
     Then(Box<Spanned<Self>>, Box<Spanned<Self>>),
     ThenEquals(Box<Spanned<Self>>, Box<Spanned<Self>>),
+    Ternary(Box<Spanned<Expr>>, Box<Spanned<Self>>, Box<Spanned<Self>>),
 }
 
 impl std::fmt::Debug for Expr {
@@ -71,6 +72,7 @@ impl std::fmt::Debug for Expr {
             Expr::Obj(f0) => write!(f, "Obj({f0:?})"),
             Expr::Then(f0, f1) => write!(f, "Then({f0:?}, {f1:?})"),
             Expr::ThenEquals(f0, f1) => write!(f, "ThenEq({f0:?}, {f1:?})"),
+            Expr::Ternary(f0, f1, f2) => write!(f, "Ternary({f0:?}, {f1:?}, {f2:?})"),
         }
     }
 }
@@ -297,7 +299,23 @@ where
             )
             .boxed();
 
-        let expr_chain = expr_chain
+        let tern = expr_chain
+            .clone()
+            .then_ignore(just(Token::QuestionMark))
+            .then(expr_chain.clone())
+            .then_ignore(just(Token::Colon))
+            .then(expr_chain.clone())
+            .map_with(|((a, b), c), e| {
+                (
+                    Expr::Ternary(Box::new(a), Box::new(b), Box::new(c)),
+                    e.span(),
+                )
+            })
+            .boxed();
+
+        let expr_chain = tern.or(expr_chain);
+
+        let expr_eq = expr_chain
             .clone()
             .foldl_with(
                 just(Token::Equals)
@@ -307,7 +325,7 @@ where
             )
             .boxed();
 
-        expr_chain.or(inline_expr)
+        expr_eq
     })
 }
 
@@ -512,6 +530,35 @@ mod tests {
                 )),
             ),
             span(0..11),
+        ));
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn test_parse_tern() {
+        let source = r#"x = y < 3 ? 5 : 10"#;
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_expr().parse(token_stream).into_result();
+        let expected = Ok((
+            ThenEquals(
+                Box::new((Ident("x".to_string()), span(0..1))),
+                Box::new((
+                    Ternary(
+                        Box::new((
+                            Binary(
+                                Box::new((Ident("y".to_string()), span(4..5))),
+                                Lt,
+                                Box::new((Value(Num(3.0)), span(8..9))),
+                            ),
+                            span(4..9),
+                        )),
+                        Box::new((Value(Num(5.0)), span(12..13))),
+                        Box::new((Value(Num(10.0)), span(16..18))),
+                    ),
+                    span(4..18),
+                )),
+            ),
+            span(0..18),
         ));
         assert_eq!(parsed, expected);
     }
