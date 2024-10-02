@@ -17,7 +17,7 @@ use logos::{Logos, SpannedIter};
 use self::decl::parser_decl;
 
 pub use chumsky::span::SimpleSpan;
-pub use decl::{Decl, Method};
+pub use decl::{Decl, Method, Parameter};
 
 pub type Span = SimpleSpan<usize>;
 pub type Spanned<T> = (T, Span);

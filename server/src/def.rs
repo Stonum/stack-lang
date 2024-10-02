@@ -34,7 +34,7 @@ impl Definition {
                 ..
             } => Ok(Definition::Func {
                 identifier,
-                params: params.0.into_iter().map(|x| x.identifier).collect(),
+                params: params.0.into_iter().map(|x| format!("{x}")).collect(),
                 descr,
                 doc_string,
                 pos: position(rope, span.into()).unwrap_or_default(),
@@ -93,6 +93,13 @@ impl Definition {
         match self {
             Definition::Func { pos, .. } => *pos,
             Definition::Class { pos, .. } => *pos,
+        }
+    }
+
+    pub fn parameters(&self) -> String {
+        match self {
+            Definition::Func { params, .. } => format!("( {} )", params.join(", ")),
+            Definition::Class { .. } => String::new(),
         }
     }
 }

@@ -383,8 +383,9 @@ impl LanguageServer for Backend {
                     .filter_map(|def| {
                         if def.identifier().to_lowercase() == identifier {
                             return Some(format!(
-                                "**{}**  \n{}  \n{}",
+                                "**{}{}**  \n{}  \n{}",
                                 def.identifier(),
+                                def.parameters(),
                                 def.description(),
                                 def.doc_string()
                             ));

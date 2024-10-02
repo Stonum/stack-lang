@@ -12,6 +12,16 @@ pub struct Parameter {
     pub initializer: Option<Expr>,
 }
 
+impl std::fmt::Display for Parameter {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.identifier)?;
+        if self.question_mark || self.initializer.is_some() {
+            write!(f, "?")?;
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, PartialEq, Default)]
 pub enum MethodType {
     #[default]
