@@ -8,7 +8,7 @@ env:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     environment: dev
     steps:
     - name: 'Checkout GitHub Action'
@@ -20,28 +20,27 @@ jobs:
         node-version: ${{ env.NODE_VERSION }}
 
     - name: 'Build client'
-      shell: bash
+      shell: pwsh 
       run: |
+        pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
         npm ci
         npm run client:compile --if-present
+        popd
 
     - name: "Setup cargo"
       uses: actions-rs/toolchain@v1
       with:
-        toolchain: stable 
-        target: x86_64-pc-windows-gnu
+        toolchain: stable
 
     - name: 'Build server'
-      shell: bash
+      shell: pwsh
       run: |
-        cd ./server
-        cargo build --release --bins --target x86_64-pc-windows-gnu
-        cp "./target/release/*.exe" -Destination "./"
-        cd ..
+        pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/server'
+        cargo build --release --bins
+        Copy-Item "./target/release/*.exe" -Destination "./"
+        popd
 
     - name: 'Publish'
-      uses: lannonbr/vsce-action@4.0.0
-      with:
-        args: "publish -p $VSCE_TOKEN"
+      run: npm run publish
       env:
-        VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
+        VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
