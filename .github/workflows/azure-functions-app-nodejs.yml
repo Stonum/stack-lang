@@ -8,7 +8,7 @@ env:
 
 jobs:
   build-and-deploy:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     environment: dev
     steps:
     - name: 'Checkout GitHub Action'
@@ -18,27 +18,12 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
-
-    - name: 'Build client'
-      shell: pwsh 
-      run: |
-        pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
-        npm ci
-        npm run client:compile --if-present
-        popd
+    - run: npm ci
 
     - name: "Setup cargo"
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
-
-    - name: 'Build server'
-      shell: pwsh
-      run: |
-        pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/server'
-        cargo build --release --bins
-        Copy-Item "./target/release/*.exe" -Destination "./"
-        popd
 
     - name: 'Publish'
       run: npm run publish
