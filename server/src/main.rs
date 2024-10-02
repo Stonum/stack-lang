@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 use std::path::PathBuf;
 
 use log::error;
