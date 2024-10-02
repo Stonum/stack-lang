@@ -140,11 +140,9 @@ where
             Token::Return(KwLang::Eng) => KwLang::Eng,
             Token::Return(KwLang::Ru) => KwLang::Ru,
         };
-
-        let expr = parser_expr().then_ignore(just(Token::SemiColon).or_not());
-
         ret_kw
-            .then(expr.clone().or_not())
+            .then(parser_expr().or_not())
+            .then_ignore(just(Token::SemiColon).or_not())
             .map(|(kw, expr)| Stmt::Ret(kw, expr))
             .boxed()
             .labelled("return")
@@ -422,6 +420,12 @@ mod tests {
             KwLang::Eng,
             Some((Ident("y".to_string()), span(7..8))),
         ));
+        assert_eq!(parsed, expected);
+
+        let source = r#"return;"#;
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_stmt().parse(token_stream).into_result();
+        let expected = Ok(Stmt::Ret(KwLang::Eng, None));
         assert_eq!(parsed, expected);
     }
 
