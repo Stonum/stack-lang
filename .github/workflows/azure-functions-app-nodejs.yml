@@ -19,6 +19,7 @@ jobs:
       with:
         node-version: ${{ env.NODE_VERSION }}
     - run: npm ci
+    - run: npm install -g @vscode/vsce
 
     - name: "Setup cargo"
       uses: actions-rs/toolchain@v1
