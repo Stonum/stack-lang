@@ -76,10 +76,23 @@ impl Definition {
     }
 
     pub fn description(&self) -> String {
-        match self {
-            Definition::Func { descr, .. } => descr.clone().unwrap_or_default().join("\n"),
-            Definition::Class { descr, .. } => descr.clone().unwrap_or_default().join("\n"),
-        }
+        let map = |d: String| {
+            if d.starts_with("#") {
+                return format!("\\{}", d);
+            }
+            d
+        };
+        let descr = match self {
+            Definition::Func { descr, .. } => descr,
+            Definition::Class { descr, .. } => descr,
+        };
+
+        descr
+            .clone()
+            .unwrap_or_default()
+            .into_iter()
+            .map(map)
+            .fold(String::new(), |a, b| a + "\n" + &b)
     }
 
     pub fn doc_string(&self) -> &str {
