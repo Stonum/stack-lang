@@ -113,33 +113,43 @@ where
                 unary_right.or(unary_left)
             };
 
-            // A list key values
-            let items = ident
-                .clone()
-                .then_ignore(just(Token::Colon))
-                .then(inline_expr.clone())
-                .separated_by(just(Token::Comma))
-                .allow_trailing()
-                .collect::<Vec<_>>()
-                .boxed();
+            let obj = {
+                let ident = select! {
+                    Token::Identifier(ident) => ident.to_string(),
+                    Token::String(s) => s.to_string(),
+                    Token::LongString(s) => s.to_string(),
+                    Token::Number(n) => n.to_string(),
+                }
+                .labelled("identifier");
 
-            // An object literal
-            let obj = items
-                .map(Expr::Obj)
-                .delimited_by(just(Token::Ctrl("{")), just(Token::Ctrl("}")))
-                .recover_with(via_parser(nested_delimiters(
-                    Token::Ctrl("{"),
-                    Token::Ctrl("}"),
-                    [
-                        (Token::Ctrl("{"), Token::Ctrl("}")),
-                        (Token::Ctrl("["), Token::Ctrl("]")),
-                        (Token::Ctrl("("), Token::Ctrl(")")),
-                    ],
-                    |_| Expr::Error,
-                )));
+                // A list key values
+                let items = ident
+                    .clone()
+                    .then_ignore(just(Token::Colon))
+                    .then(expr.clone())
+                    .separated_by(just(Token::Comma))
+                    .allow_trailing()
+                    .collect::<Vec<_>>()
+                    .boxed();
 
-            //stack object
-            let obj = just(Token::At).ignore_then(obj);
+                // An object literal
+                let obj = items
+                    .map(Expr::Obj)
+                    .delimited_by(just(Token::Ctrl("{")), just(Token::Ctrl("}")))
+                    .recover_with(via_parser(nested_delimiters(
+                        Token::Ctrl("{"),
+                        Token::Ctrl("}"),
+                        [
+                            (Token::Ctrl("{"), Token::Ctrl("}")),
+                            (Token::Ctrl("["), Token::Ctrl("]")),
+                            (Token::Ctrl("("), Token::Ctrl(")")),
+                        ],
+                        |_| Expr::Error,
+                    )));
+
+                //stack object
+                just(Token::At).ignore_then(obj)
+            };
 
             // A list of expressions
             let items = expr
@@ -148,24 +158,26 @@ where
                 .allow_trailing()
                 .collect::<Vec<_>>();
 
-            // An array
-            let arr = items
-                .clone()
-                .map(Expr::Arr)
-                .delimited_by(just(Token::Ctrl("[")), just(Token::Ctrl("]")))
-                .recover_with(via_parser(nested_delimiters(
-                    Token::Ctrl("["),
-                    Token::Ctrl("]"),
-                    [
-                        (Token::Ctrl("{"), Token::Ctrl("}")),
-                        (Token::Ctrl("["), Token::Ctrl("]")),
-                        (Token::Ctrl("("), Token::Ctrl(")")),
-                    ],
-                    |_| Expr::Error,
-                )));
+            let arr = {
+                // An array
+                let arr = items
+                    .clone()
+                    .map(Expr::Arr)
+                    .delimited_by(just(Token::Ctrl("[")), just(Token::Ctrl("]")))
+                    .recover_with(via_parser(nested_delimiters(
+                        Token::Ctrl("["),
+                        Token::Ctrl("]"),
+                        [
+                            (Token::Ctrl("{"), Token::Ctrl("}")),
+                            (Token::Ctrl("["), Token::Ctrl("]")),
+                            (Token::Ctrl("("), Token::Ctrl(")")),
+                        ],
+                        |_| Expr::Error,
+                    )));
 
-            // stack array
-            let arr = just(Token::At).ignore_then(arr);
+                // stack array
+                just(Token::At).ignore_then(arr)
+            };
 
             // set
             let set = items
@@ -460,7 +472,7 @@ mod tests {
 
     #[test]
     fn test_parse_simple_object() {
-        let source = r#"@{a: 1, b: null, c: "hello", d: 5.55, e: true}"#;
+        let source = r#"@{a: 1, b: null, c: "hello", d: 5.55, "e": true}"#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_expr().parse(token_stream).into_result();
         let expected = Ok((
@@ -477,10 +489,10 @@ mod tests {
                 ("d".to_string(), (Value(Num(5.55)), span(32..36))),
                 (
                     "e".to_string(),
-                    (Value(Bool("true".to_string())), span(41..45)),
+                    (Value(Bool("true".to_string())), span(43..47)),
                 ),
             ]),
-            span(0..46),
+            span(0..48),
         ));
 
         assert_eq!(parsed, expected);
