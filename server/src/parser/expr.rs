@@ -54,6 +54,7 @@ pub enum Expr {
     Then(Box<Spanned<Self>>, Box<Spanned<Self>>),
     ThenEquals(Box<Spanned<Self>>, Box<Spanned<Self>>),
     Ternary(Box<Spanned<Expr>>, Box<Spanned<Self>>, Box<Spanned<Self>>),
+    IndexKey(Box<Spanned<Self>>, Vec<Spanned<Self>>),
 }
 
 impl std::fmt::Debug for Expr {
@@ -71,8 +72,9 @@ impl std::fmt::Debug for Expr {
             Expr::Set(f0) => write!(f, "Set({f0:?})"),
             Expr::Obj(f0) => write!(f, "Obj({f0:?})"),
             Expr::Then(f0, f1) => write!(f, "Then({f0:?}, {f1:?})"),
-            Expr::ThenEquals(f0, f1) => write!(f, "ThenEq({f0:?}, {f1:?})"),
-            Expr::Ternary(f0, f1, f2) => write!(f, "Ternary({f0:?}, {f1:?}, {f2:?})"),
+            Expr::ThenEquals(f0, f1) => write!(f, "ThenEq({f0:?} = {f1:?})"),
+            Expr::Ternary(f0, f1, f2) => write!(f, "Ternary({f0:?} ? {f1:?} : {f2:?})"),
+            Expr::IndexKey(f0, f1) => write!(f, "KeyValue({f0:?} {f1:?})"),
         }
     }
 }
@@ -86,7 +88,7 @@ where
         let ident =
             select! { Token::Identifier(ident) => ident.to_string() }.labelled("identifier");
 
-        let inline_expr = recursive(|inline_expr| {
+        let inline_expr = recursive(|_inline_expr| {
             let val = select! {
                 Token::Null(s) => Expr::Value(Value::Null(s.to_string())),
                 Token::Bool(s) => Expr::Value(Value::Bool(s.to_string())),
@@ -198,9 +200,19 @@ where
             // stack set
             let set = just(Token::At).ignore_then(set);
 
+            let bracket = ident
+                .clone()
+                .then(
+                    items
+                        .clone()
+                        .delimited_by(just(Token::Ctrl("[")), just(Token::Ctrl("]"))),
+                )
+                .map_with(|(a, b), e| Expr::IndexKey(Box::new((Expr::Ident(a), e.span())), b));
+
             // 'Atoms' are expressions that contain no ambiguity
             let atom = unary
                 .or(val)
+                .or(bracket)
                 .or(ident.map(Expr::Ident))
                 .or(arr)
                 .or(obj)
@@ -571,6 +583,24 @@ mod tests {
                 )),
             ),
             span(0..18),
+        ));
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn test_parse_bracket_notation() {
+        let source = r#"params[10, 10]"#;
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_expr().parse(token_stream).into_result();
+        let expected = Ok((
+            IndexKey(
+                Box::new((Ident("params".to_string()), span(0..14))),
+                vec![
+                    (Value(Num(10.0)), span(7..9)),
+                    (Value(Num(10.0)), span(11..13)),
+                ],
+            ),
+            span(0..14),
         ));
         assert_eq!(parsed, expected);
     }
