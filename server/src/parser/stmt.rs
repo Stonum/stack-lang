@@ -21,7 +21,7 @@ pub enum Stmt {
     Switch(
         KwLang,
         Spanned<Expr>,
-        Vec<(Option<Spanned<Expr>>, Box<Self>)>,
+        Vec<(Option<Vec<Spanned<Expr>>>, Box<Self>)>,
     ),
     TryCatch(
         KwLang,
@@ -317,7 +317,11 @@ where
             };
 
             let case = case_kw
-                .ignore_then(expr.clone())
+                .ignore_then(
+                    expr.clone()
+                        .separated_by(just(Token::Comma))
+                        .collect::<Vec<_>>(),
+                )
                 .then_ignore(just(Token::Colon))
                 .then(block.clone())
                 .map(|(expr, block)| (Some(expr), Box::new(block)))
@@ -682,7 +686,7 @@ mod tests {
     fn test_parse_switch() {
         let source = r#"
             switch(x) { 
-                case 1: { y = 1; }
+                case 1, 2: { y = 1; }
                 else { y = 10; }
             }"#;
         let token_stream = token_stream_from_str(source);
@@ -692,11 +696,14 @@ mod tests {
             (Ident("x".to_string()), span(20..21)),
             vec![
                 (
-                    Some((Value(Num(1.0)), span(47..48))),
+                    Some(vec![
+                        (Value(Num(1.0)), span(47..48)),
+                        (Value(Num(2.0)), span(50..51)),
+                    ]),
                     Box::new(Stmt::Block(vec![Stmt::Var(
                         None,
                         "y".to_string(),
-                        Some((Value(Num(1.0)), span(56..57))),
+                        Some((Value(Num(1.0)), span(59..60))),
                     )])),
                 ),
                 (
@@ -704,7 +711,7 @@ mod tests {
                     Box::new(Stmt::Block(vec![Stmt::Var(
                         None,
                         "y".to_string(),
-                        Some((Value(Num(10.0)), span(88..90))),
+                        Some((Value(Num(10.0)), span(91..93))),
                     )])),
                 ),
             ],
