@@ -316,6 +316,15 @@ where
                 Token::Case(KwLang::Ru) => KwLang::Ru,
             };
 
+            let block_without_braces = inline_expr
+                .clone()
+                .repeated()
+                .collect::<Vec<_>>()
+                .map(Stmt::Block)
+                .boxed();
+
+            let block = block.clone().or(block_without_braces);
+
             let case = case_kw
                 .ignore_then(
                     expr.clone()
@@ -712,6 +721,48 @@ mod tests {
                         None,
                         "y".to_string(),
                         Some((Value(Num(10.0)), span(91..93))),
+                    )])),
+                ),
+            ],
+        ));
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn test_parse_switch_without_braces() {
+        let source = r#"
+            switch(x) { 
+                case 1, 2: 
+                    y = 1;
+                    y = 2;
+                else y = 10;
+            }"#;
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_stmt().parse(token_stream).into_result();
+        let expected = Ok(Stmt::Switch(
+            KwLang::Eng,
+            (Ident("x".to_string()), span(20..21)),
+            vec![
+                (
+                    Some(vec![
+                        (Value(Num(1.0)), span(47..48)),
+                        (Value(Num(2.0)), span(50..51)),
+                    ]),
+                    Box::new(Stmt::Block(vec![
+                        Stmt::Var(None, "y".to_string(), Some((Value(Num(1.0)), span(78..79)))),
+                        Stmt::Var(
+                            None,
+                            "y".to_string(),
+                            Some((Value(Num(2.0)), span(105..106))),
+                        ),
+                    ])),
+                ),
+                (
+                    None,
+                    Box::new(Stmt::Block(vec![Stmt::Var(
+                        None,
+                        "y".to_string(),
+                        Some((Value(Num(10.0)), span(133..135))),
                     )])),
                 ),
             ],
