@@ -210,8 +210,21 @@ where
                     expr.clone()
                         .delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")"))),
                 )
-                .then(block.clone())
-                .then(else_kw.ignore_then(block.clone().or(_if)).or_not())
+                .then(
+                    block
+                        .clone()
+                        .or(inline_expr.clone().map(|e| Stmt::Block(vec![e]))),
+                )
+                .then(
+                    else_kw
+                        .ignore_then(
+                            block
+                                .clone()
+                                .or(inline_expr.clone().map(|e| Stmt::Block(vec![e])))
+                                .or(_if),
+                        )
+                        .or_not(),
+                )
                 .map(|(((if_kw, expr), block), else_block)| {
                     Stmt::If(if_kw, expr, Box::new(block), else_block.map(Box::new))
                 })
@@ -512,9 +525,6 @@ mod tests {
 
     #[test]
     fn test_parse_if() {
-        let source = r#"if ( x == 1 ) { y = x; }"#;
-        let token_stream = token_stream_from_str(source);
-        let parsed = parser_stmt().parse(token_stream).into_result();
         let expected = Ok(Stmt::If(
             KwLang::Eng,
             (
@@ -532,14 +542,20 @@ mod tests {
             )])),
             None,
         ));
+
+        let source = r#"if ( x == 1 ) { y = x; }"#;
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_stmt().parse(token_stream).into_result();
+        assert_eq!(parsed, expected);
+
+        let source = r#"if ( x == 1 )   y = x;  "#;
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_stmt().parse(token_stream).into_result();
         assert_eq!(parsed, expected);
     }
 
     #[test]
     fn test_parse_if_else() {
-        let source = r#"if ( x == 1 ) { y = x; } else { y = 10; } "#;
-        let token_stream = token_stream_from_str(source);
-        let parsed = parser_stmt().parse(token_stream).into_result();
         let expected = Ok(Stmt::If(
             KwLang::Eng,
             (
@@ -561,12 +577,26 @@ mod tests {
                 Some((Value(Num(10.0)), span(36..38))),
             )]))),
         ));
+
+        let source = r#"if ( x == 1 ) { y = x; } else { y = 10; } "#;
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_stmt().parse(token_stream).into_result();
+        assert_eq!(parsed, expected);
+
+        let source = r#"if ( x == 1 )   y = x;   else   y = 10;   "#;
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_stmt().parse(token_stream).into_result();
         assert_eq!(parsed, expected);
     }
 
     #[test]
     fn test_parse_if_else_if() {
         let source = r#"if ( x == 1 ) { y = x; } else if (x == 2) { y = x; } else { y = 10; } "#;
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_stmt().parse(token_stream).into_result();
+        assert!(parsed.is_ok());
+
+        let source = r#"if ( x == 1 ) y = x; else if (x == 2) y = x; else y = 10; "#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
         assert!(parsed.is_ok());
