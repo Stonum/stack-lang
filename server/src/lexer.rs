@@ -103,11 +103,11 @@ pub enum Token<'source> {
     #[regex("(?i)(finally|заключение)", to_keyword_language)]
     Finally(KwLang),
 
-    #[regex("(?i)(\\|\\||или)", to_keyword_language)]
-    Or(KwLang),
+    #[regex("(?i)(\\|\\||или|or)")]
+    Or(&'source str),
 
-    #[regex("(?i)(и|&&)", to_keyword_language)]
-    And(KwLang),
+    #[regex("(?i)(и|&&|and)")]
+    And(&'source str),
 
     #[regex("(?i)(throw|вызватьисключение)", to_keyword_language)]
     Throw(KwLang),
@@ -292,14 +292,8 @@ impl<'source> From<Token<'source>> for &'source str {
                 KwLang::Eng => "finally",
                 KwLang::Ru => "Заключение",
             },
-            Token::Or(value) => match value {
-                KwLang::Eng => "|",
-                KwLang::Ru => "или",
-            },
-            Token::And(value) => match value {
-                KwLang::Eng => "&",
-                KwLang::Ru => "и",
-            },
+            Token::Or(value) => value,
+            Token::And(value) => value,
             Token::Break(value) => match value {
                 KwLang::Eng => "break",
                 KwLang::Ru => "прервать",

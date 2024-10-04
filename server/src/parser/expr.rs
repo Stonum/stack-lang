@@ -28,14 +28,19 @@ pub enum BinaryOp {
     Lt,
     GtEq,
     LtEq,
+    And(String),
+    Or(String),
+    BitAnd,
+    BitOr,
+    Mod,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum UnaryOp {
     Add,
     Sub,
-    Mul,
-    Div,
+    Not,
+    Minus,
 }
 
 #[derive(PartialEq)]
@@ -102,6 +107,7 @@ where
                 let unary_op = select! {
                     Token::Op("++") => UnaryOp::Add,
                     Token::Op("--") => UnaryOp::Sub,
+                    Token::CondOp("!") => UnaryOp::Not,
                 };
 
                 let unary_expr = ident.clone().map(Expr::Ident).or(val.clone());
@@ -112,7 +118,20 @@ where
                     .then(unary_op)
                     .map_with(|(expr, op), e| Expr::UnaryRight(Box::new((expr, e.span())), op));
 
-                unary_right.or(unary_left)
+                let unary_minus = {
+                    let unary_op = select! {
+                        Token::Op("-") => UnaryOp::Minus,
+                    };
+
+                    let unary_expr = ident.clone().map(Expr::Ident).or(val.clone());
+                    let unary_left = unary_op
+                        .then(unary_expr.clone())
+                        .map_with(|(op, expr), e| Expr::UnaryLeft(op, Box::new((expr, e.span()))));
+
+                    unary_left
+                };
+
+                unary_right.or(unary_left).or(unary_minus)
             };
 
             let obj = {
@@ -259,10 +278,13 @@ where
                 .boxed();
 
             // Product ops (multiply and divide) have equal precedence
-            let op = just(Token::Op("*"))
-                .to(BinaryOp::Mul)
-                .or(just(Token::Op("/")).to(BinaryOp::Div))
-                .boxed();
+            let op = select! {
+                Token::Op("*") => BinaryOp::Mul,
+                Token::Op("/") => BinaryOp::Div,
+                Token::Op("%") => BinaryOp::Mod,
+                Token::Op("&") => BinaryOp::BitAnd,
+                Token::Op("|") => BinaryOp::BitOr,
+            };
             let product = call
                 .clone()
                 .foldl_with(op.then(call).repeated(), |a, (op, b), e| {
@@ -271,10 +293,10 @@ where
                 .boxed();
 
             // Sum ops (add and subtract) have equal precedence
-            let op = just(Token::Op("+"))
-                .to(BinaryOp::Add)
-                .or(just(Token::Op("-")).to(BinaryOp::Sub))
-                .boxed();
+            let op = select! {
+                Token::Op("+") => BinaryOp::Add,
+                Token::Op("-") => BinaryOp::Sub,
+            };
             let sum = product
                 .clone()
                 .foldl_with(op.then(product).repeated(), |a, (op, b), e| {
@@ -283,12 +305,12 @@ where
                 .boxed();
 
             // Add equal and other op
-            let op = just(Token::Op("+="))
-                .to(BinaryOp::AddEq)
-                .or(just(Token::Op("-=")).to(BinaryOp::SubEq))
-                .or(just(Token::Op("*=")).to(BinaryOp::MulEq))
-                .or(just(Token::Op("/=")).to(BinaryOp::DivEq))
-                .boxed();
+            let op = select! {
+                Token::Op("+=") => BinaryOp::AddEq,
+                Token::Op("-=") => BinaryOp::SubEq,
+                Token::Op("*=") => BinaryOp::MulEq,
+                Token::Op("/=") => BinaryOp::DivEq,
+            };
             let res = sum
                 .clone()
                 .foldl_with(op.then(sum).repeated(), |a, (op, b), e| {
@@ -297,14 +319,14 @@ where
                 .boxed();
 
             // Comparison ops (equal, not-equal) have equal precedence
-            let op = just(Token::CondOp("=="))
-                .to(BinaryOp::Eq)
-                .or(just(Token::CondOp("!=")).to(BinaryOp::NotEq))
-                .or(just(Token::CondOp("<")).to(BinaryOp::Lt))
-                .or(just(Token::CondOp("<=")).to(BinaryOp::LtEq))
-                .or(just(Token::CondOp(">")).to(BinaryOp::Gt))
-                .or(just(Token::CondOp(">=")).to(BinaryOp::GtEq))
-                .boxed();
+            let op = select! {
+                Token::CondOp("==") => BinaryOp::Eq,
+                Token::CondOp("!=") => BinaryOp::NotEq,
+                Token::CondOp("<") => BinaryOp::Lt,
+                Token::CondOp("<=") => BinaryOp::LtEq,
+                Token::CondOp(">") => BinaryOp::Gt,
+                Token::CondOp(">=") => BinaryOp::GtEq,
+            };
             let compare = res
                 .clone()
                 .foldl_with(op.then(res).repeated(), |a, (op, b), e| {
@@ -312,7 +334,18 @@ where
                 })
                 .boxed();
 
-            compare.labelled("expression")
+            let op = select! {
+                Token::And(s) => BinaryOp::And(s.to_string()),
+                Token::Or(s) => BinaryOp::Or(s.to_string()),
+            };
+            let logical = compare
+                .clone()
+                .foldl_with(op.then(compare).repeated(), |a, (op, b), e| {
+                    (Expr::Binary(Box::new(a), op, Box::new(b)), e.span())
+                })
+                .boxed();
+
+            logical.labelled("expression")
         });
 
         let expr_chain = inline_expr
@@ -366,33 +399,39 @@ mod tests {
 
     #[test]
     fn test_parse_simple_expr() {
-        let source = r#"x + (y - 5) * 6"#;
+        let source = r#"-x + (y - 5) * 6"#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_expr().parse(token_stream).into_result();
         let expected = Ok((
             Binary(
-                Box::new((Ident("x".to_string()), span(0..1))),
+                Box::new((
+                    UnaryLeft(
+                        UnaryOp::Minus,
+                        Box::new((Ident("x".to_string()), span(0..2))),
+                    ),
+                    span(0..2),
+                )),
                 Add,
                 Box::new((
                     Binary(
                         Box::new((
                             Parentheses(Box::new((
                                 Binary(
-                                    Box::new((Ident("y".to_string()), span(5..6))),
+                                    Box::new((Ident("y".to_string()), span(6..7))),
                                     Sub,
-                                    Box::new((Value(Num(5.0)), span(9..10))),
+                                    Box::new((Value(Num(5.0)), span(10..11))),
                                 ),
-                                span(5..10),
+                                span(6..11),
                             ))),
-                            span(4..11),
+                            span(5..12),
                         )),
                         Mul,
-                        Box::new((Value(Num(6.0)), span(14..15))),
+                        Box::new((Value(Num(6.0)), span(15..16))),
                     ),
-                    span(4..15),
+                    span(5..16),
                 )),
             ),
-            span(0..15),
+            span(0..16),
         ));
         assert_eq!(parsed, expected);
     }
@@ -601,6 +640,36 @@ mod tests {
                 ],
             ),
             span(0..14),
+        ));
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn test_parse_logical_expression() {
+        let source = r#"x == 5 && y == 10"#;
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_expr().parse(token_stream).into_result();
+        let expected = Ok((
+            Binary(
+                Box::new((
+                    Binary(
+                        Box::new((Ident("x".to_string()), span(0..1))),
+                        Eq,
+                        Box::new((Value(Num(5.0)), span(5..6))),
+                    ),
+                    span(0..6),
+                )),
+                And("&&".to_string()),
+                Box::new((
+                    Binary(
+                        Box::new((Ident("y".to_string()), span(10..11))),
+                        Eq,
+                        Box::new((Value(Num(10.0)), span(15..17))),
+                    ),
+                    span(10..17),
+                )),
+            ),
+            span(0..17),
         ));
         assert_eq!(parsed, expected);
     }
