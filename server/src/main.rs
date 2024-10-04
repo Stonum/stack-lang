@@ -478,6 +478,17 @@ impl Backend {
             diagnostics.push(diagnostic);
         }
 
+        #[cfg(debug_assertions)]
+        {
+            diagnostics = errs
+                .into_iter()
+                .map(|error| {
+                    let pos = position(&rope, (*error.span()).into());
+                    Diagnostic::new_simple(pos.unwrap_or_default(), format!("Parse error: {error}"))
+                })
+                .collect();
+        }
+
         self.client
             .publish_diagnostics(uri.clone(), diagnostics, Some(params.version))
             .await;
