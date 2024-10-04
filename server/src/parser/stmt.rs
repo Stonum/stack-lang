@@ -16,6 +16,7 @@ pub enum Stmt {
     If(KwLang, Spanned<Expr>, Box<Self>, Option<Box<Self>>),
     While(KwLang, Spanned<Expr>, Box<Self>),
     ForAll(KwLang, String, Spanned<Expr>, Box<Self>),
+    ForAll2(KwLang, String, Spanned<Expr>, String, Box<Self>),
     For(KwLang, Box<Self>, Spanned<Expr>, Box<Self>, Box<Self>),
     Switch(
         KwLang,
@@ -63,6 +64,14 @@ impl std::fmt::Debug for Stmt {
                 .field(&f1)
                 .field(&f2)
                 .field(&f3)
+                .finish(),
+            Stmt::ForAll2(f0, f1, f2, f3, f4) => f
+                .debug_tuple("ForAll2")
+                .field(&f0)
+                .field(&f1)
+                .field(&f2)
+                .field(&f3)
+                .field(&f4)
                 .finish(),
             Stmt::For(f0, f1, f2, f3, f4) => f
                 .debug_tuple("For")
@@ -233,20 +242,34 @@ where
 
             let in_kw = select! { Token::In(KwLang::Eng) | Token::In(KwLang::Ru) => () };
 
-            let loop_cond = ident
-                .clone()
-                .then_ignore(in_kw)
-                .then(expr.clone())
-                .delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")")))
-                .boxed();
+            let loop_cond_in = ident.clone().then_ignore(in_kw).then(expr.clone());
 
-            forall_kw
-                .then(loop_cond)
+            let forall = forall_kw
+                .then(loop_cond_in.delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")"))))
                 .then(block.clone())
                 .map(|((forall_kw, (ident, expr)), block)| {
                     Stmt::ForAll(forall_kw, ident, expr, Box::new(block))
                 })
-                .boxed()
+                .boxed();
+
+            let loop_cond_iter = ident
+                .clone()
+                .then_ignore(just(Token::Ctrl("(")))
+                .then(expr.clone())
+                .then_ignore(just(Token::Comma))
+                .then(ident.clone())
+                .then_ignore(just(Token::Ctrl(")")))
+                .boxed();
+
+            let forall2 = forall_kw
+                .then(loop_cond_iter.delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")"))))
+                .then(block.clone())
+                .map(|((forall_kw, ((fabric, expr), ident)), block)| {
+                    Stmt::ForAll2(forall_kw, fabric, expr, ident, Box::new(block))
+                })
+                .boxed();
+
+            forall.or(forall2)
         };
 
         let _for = {
@@ -588,6 +611,21 @@ mod tests {
                     span(32..37),
                 )),
             )])),
+        ));
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn test_parse_forall_fabric() {
+        let source = r#"ДляВсех( Элементов(м, инд) ) {}"#;
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_stmt().parse(token_stream).into_result();
+        let expected = Ok(Stmt::ForAll2(
+            KwLang::Ru,
+            "Элементов".to_string(),
+            (Ident("м".to_string()), span(35..37)),
+            "инд".to_string(),
+            Box::new(Stmt::Block(vec![])),
         ));
         assert_eq!(parsed, expected);
     }
