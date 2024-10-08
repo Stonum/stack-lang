@@ -399,9 +399,9 @@ where
             let catch = catch_kw
                 .ignore_then(
                     expr.clone()
-                        .delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")"))),
+                        .delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")")))
+                        .or_not(),
                 )
-                .or_not()
                 .then(block.clone())
                 .map(|(expr, block)| (expr, Box::new(block)));
 

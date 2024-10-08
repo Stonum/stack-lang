@@ -90,8 +90,11 @@ where
     I: ValueInput<'source, Token = Token<'source>, Span = SimpleSpan>,
 {
     recursive(|expr| {
-        let ident =
-            select! { Token::Identifier(ident) => ident.to_string() }.labelled("identifier");
+        let ident = select! {
+            Token::Identifier(ident) => ident.to_string(),
+            Token::Dot => ".".to_string(),
+        }
+        .labelled("identifier");
 
         let inline_expr = recursive(|_inline_expr| {
             let val = select! {
@@ -348,10 +351,18 @@ where
             logical.labelled("expression")
         });
 
+        // if keyword is used as an identifier
+        let keyword_as_ident = select! {
+            Token::Function(s) => Token::Function(s).to_string(),
+        }
+        .map_with(|s, e| (Expr::Ident(s), e.span()));
+
         let expr_chain = inline_expr
             .clone()
             .foldl_with(
-                just(Token::Dot).ignore_then(inline_expr.clone()).repeated(),
+                just(Token::Dot)
+                    .ignore_then(inline_expr.clone().or(keyword_as_ident))
+                    .repeated(),
                 |a, b, e| (Expr::Then(Box::new(a), Box::new(b)), e.span()),
             )
             .boxed();
