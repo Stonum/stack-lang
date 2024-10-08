@@ -4,7 +4,7 @@
    "version": "0.0.3",
    "repository": "https://github.com/stonum/stack-lang",
    "publisher": "stonum",
-   "categories": [],
+   "categories": ["Programming Languages", "Formatters", "Linters"],
    "license": "MIT",
    "keywords": [
       "language-server",
