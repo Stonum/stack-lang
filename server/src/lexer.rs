@@ -1,4 +1,4 @@
-use logos::{Logos, Skip, Span};
+use logos::{Logos, Span};
 
 pub struct Lexer<'source> {
     lexer: logos::Lexer<'source, Token<'source>>,
@@ -47,7 +47,7 @@ fn to_keyword_language<'s>(token: &logos::Lexer<'s, Token<'s>>) -> KwLang {
 }
 
 #[derive(Logos, Debug, PartialEq, Eq, Copy, Clone)]
-#[logos(skip r"[ \t\f]+")] // Ignore this regex pattern between tokens
+#[logos(skip r"[ \r\t\f]+")] // Ignore this regex pattern between tokens
 pub enum Token<'source> {
     #[regex("(?i)(var|перем)", to_keyword_language)]
     Var(KwLang),
@@ -202,7 +202,7 @@ pub enum Token<'source> {
     #[regex(r":\[([^\[\]]*)\]")]
     Annotation(&'source str),
 
-    #[regex(r"[\r\n]+", |_| Skip)]
+    #[regex(r"\n+")]
     NewLine,
 
     Error,

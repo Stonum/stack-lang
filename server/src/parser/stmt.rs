@@ -7,10 +7,12 @@ use super::{Span, Spanned};
 #[derive(PartialEq)]
 pub enum Stmt {
     Error(Spanned<String>),
+    EmptyLine,
     Comment(Spanned<String>),
     Expr(Spanned<Expr>),
     Var(Option<KwLang>, String, Option<Spanned<Expr>>),
     Ret(KwLang, Option<Spanned<Expr>>),
+    InlineComment(Box<Self>, Spanned<String>),
     Throw(KwLang, Option<Spanned<Expr>>),
     Block(Vec<Self>),
     If(KwLang, Spanned<Expr>, Box<Self>, Option<Box<Self>>),
@@ -35,10 +37,12 @@ impl std::fmt::Debug for Stmt {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Stmt::Error(f0) => write!(f, "Error({f0:?})"),
+            Stmt::EmptyLine => write!(f, "EmptyLine"),
             Stmt::Expr(f0) => write!(f, "Expr({f0:?})"),
             Stmt::Comment(f0) => write!(f, "Comment({f0:?})"),
             Stmt::Var(f0, f1, f2) => write!(f, "Var({f0:?}, {f1}, {f2:?})"),
             Stmt::Ret(f0, f1) => write!(f, "Ret({f0:?}, {f1:?})"),
+            Stmt::InlineComment(f0, f1) => write!(f, "InlineComment({f0:?}, {f1:?})"),
             Stmt::Throw(f0, f1) => write!(f, "Throw({f0:?}, {f1:?})"),
             Stmt::Block(f0) => {
                 f.write_str("Block(")?;
@@ -103,6 +107,12 @@ pub(crate) fn parser_stmt<'source, I>(
 where
     I: ValueInput<'source, Token = Token<'source>, Span = SimpleSpan>,
 {
+    let newline = just(Token::NewLine).repeated().or_not();
+
+    let empty_line = just(Token::NewLine)
+        .then(just(Token::NewLine))
+        .map(|_| Stmt::EmptyLine);
+
     let comment = select! { Token::CommentLine(comment) => comment.to_string() }
         .map_with(|comment, e| Stmt::Comment((comment, e.span())))
         .labelled("comment");
@@ -171,7 +181,22 @@ where
             .labelled("throw")
     };
 
-    let inline_expr = comment.or(var).or(ret).or(throw).or(expr.clone()).boxed();
+    let inline_expr = comment.or(var).or(ret).or(throw).or(expr).boxed();
+
+    let expr_commented = inline_expr
+        .clone()
+        .then(
+            select! { Token::CommentLine(comment) => comment.to_string() }
+                .map_with(|comment, e| (comment, e.span())),
+        )
+        .map(|(e, comment)| Stmt::InlineComment(Box::new(e), comment))
+        .labelled("expression");
+
+    let inline_expr = expr_commented
+        .or(inline_expr)
+        .padded_by(newline.clone())
+        .or(empty_line)
+        .boxed();
 
     let expr = parser_expr();
 
@@ -180,6 +205,7 @@ where
             .clone()
             .repeated()
             .collect::<Vec<_>>()
+            .padded_by(newline.clone())
             .delimited_by(just(Token::Ctrl("{")), just(Token::Ctrl("}")))
             .map(Stmt::Block)
             .recover_with(via_parser(nested_delimiters(
@@ -210,6 +236,7 @@ where
                     expr.clone()
                         .delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")"))),
                 )
+                .padded_by(newline.clone())
                 .then(
                     block
                         .clone()
@@ -217,6 +244,7 @@ where
                 )
                 .then(
                     else_kw
+                        .padded_by(newline.clone())
                         .ignore_then(
                             block
                                 .clone()
@@ -242,6 +270,7 @@ where
                     expr.clone()
                         .delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")"))),
                 )
+                .padded_by(newline.clone())
                 .then(block.clone())
                 .map(|((while_kw, expr), block)| Stmt::While(while_kw, expr, Box::new(block)))
                 .boxed()
@@ -259,6 +288,7 @@ where
 
             let forall = forall_kw
                 .then(loop_cond_in.delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")"))))
+                .padded_by(newline.clone())
                 .then(block.clone())
                 .map(|((forall_kw, (ident, expr)), block)| {
                     Stmt::ForAll(forall_kw, ident, expr, Box::new(block))
@@ -276,6 +306,7 @@ where
 
             let forall2 = forall_kw
                 .then(loop_cond_iter.delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")"))))
+                .padded_by(newline.clone())
                 .then(block.clone())
                 .map(|((forall_kw, ((fabric, expr), ident)), block)| {
                     Stmt::ForAll2(forall_kw, fabric, expr, ident, Box::new(block))
@@ -310,6 +341,7 @@ where
 
             for_kw
                 .then(loop_cond)
+                .padded_by(newline.clone())
                 .then(block.clone())
                 .map(|((for_kw, ((init, cond), step)), block)| {
                     Stmt::For(
@@ -345,6 +377,7 @@ where
                         .collect::<Vec<_>>(),
                 )
                 .then_ignore(just(Token::Colon))
+                .padded_by(newline.clone())
                 .then(block.clone())
                 .map(|(expr, block)| (Some(expr), Box::new(block)))
                 .boxed();
@@ -355,6 +388,7 @@ where
             };
 
             let default = default_kw
+                .padded_by(newline.clone())
                 .ignore_then(block.clone())
                 .map(|block| (None, Box::new(block)))
                 .boxed();
@@ -369,10 +403,12 @@ where
                     expr.clone()
                         .delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")"))),
                 )
+                .padded_by(newline.clone())
                 .then(
-                    case.repeated()
+                    case.padded_by(newline.clone())
+                        .repeated()
                         .collect::<Vec<_>>()
-                        .then(default.or_not())
+                        .then(default.padded_by(newline.clone()).or_not())
                         .delimited_by(just(Token::Ctrl("{")), just(Token::Ctrl("}")))
                         .map(|(mut cases, default)| {
                             if let Some(default) = default {
@@ -402,6 +438,7 @@ where
                         .delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")")))
                         .or_not(),
                 )
+                .padded_by(newline.clone())
                 .then(block.clone())
                 .map(|(expr, block)| (expr, Box::new(block)));
 
@@ -410,9 +447,13 @@ where
                 Token::Finally(KwLang::Ru) => KwLang::Ru,
             };
 
-            let finally = finally_kw.ignore_then(block.clone()).map(Box::new);
+            let finally = finally_kw
+                .padded_by(newline.clone())
+                .ignore_then(block.clone())
+                .map(Box::new);
 
             try_kw
+                .padded_by(newline.clone())
                 .then(block.clone())
                 .then(catch.or_not())
                 .then(finally.or_not())
@@ -429,6 +470,7 @@ where
             .or(_for)
             .or(_switch)
             .or(_try)
+            .padded_by(newline.clone())
             .boxed()
             .labelled("block");
 
@@ -461,6 +503,22 @@ mod tests {
     }
 
     #[test]
+    fn test_commented_expr() {
+        let source = r#"перем y = 10.5; # комментарий"#;
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_stmt().parse(token_stream).into_result();
+        let expected = Ok(Stmt::InlineComment(
+            Box::new(Stmt::Var(
+                Some(KwLang::Ru),
+                "y".to_string(),
+                Some((Value(Num(10.5)), span(15..19))),
+            )),
+            (" комментарий".to_string(), span(21..45)),
+        ));
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
     fn test_parse_return() {
         let source = r#"return y;"#;
         let token_stream = token_stream_from_str(source);
@@ -480,7 +538,13 @@ mod tests {
 
     #[test]
     fn test_parse_block() {
-        let source = r#"{ перем y = 10.5 var z = "hello"; x = @{ a: 1 }; }"#;
+        let source = r#"
+            {
+                перем y = 10.5 
+                var z = "hello";
+                x = @{ a: 1 };
+            }
+        "#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
 
@@ -488,28 +552,46 @@ mod tests {
             Stmt::Var(
                 Some(KwLang::Ru),
                 "y".to_string(),
-                Some((Value(Num(10.5)), span(17..21))),
+                Some((Value(Num(10.5)), span(46..52))),
             ),
             Stmt::Var(
                 Some(KwLang::Eng),
                 "z".to_string(),
-                Some((Value(Str("hello".to_string())), span(30..37))),
+                Some((Value(Str("hello".to_string())), span(76..83))),
             ),
             Stmt::Var(
                 None,
                 "x".to_string(),
                 Some((
-                    Obj(vec![("a".to_string(), (Value(Num(1.0)), span(49..50)))]),
-                    span(43..52),
+                    Obj(vec![("a".to_string(), (Value(Num(1.0)), span(111..112)))]),
+                    span(105..114),
                 )),
             ),
         ]));
+        assert_eq!(parsed, expected);
+
+        // empty block
+        let source = r#"
+            {
+            }
+        "#;
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_stmt().parse(token_stream).into_result();
+
+        let expected = Ok(Stmt::Block(vec![]));
         assert_eq!(parsed, expected);
     }
 
     #[test]
     fn test_parse_block_in_block() {
-        let source = r#"{ var x; {var y = 1;} }"#;
+        let source = r#"
+            { 
+                var x; 
+                {
+                    var y = 1;
+                } 
+            }
+        "#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
         let expected = Ok(Stmt::Block(vec![
@@ -517,7 +599,7 @@ mod tests {
             Stmt::Block(vec![Stmt::Var(
                 Some(KwLang::Eng),
                 "y".to_string(),
-                Some((Value(Num(1.0)), span(18..19))),
+                Some((Value(Num(1.0)), span(86..87))),
             )]),
         ]));
         assert_eq!(parsed, expected);
@@ -529,26 +611,33 @@ mod tests {
             KwLang::Eng,
             (
                 Binary(
-                    Box::new((Ident("x".to_string()), span(5..6))),
+                    Box::new((Ident("x".to_string()), span(17..18))),
                     Eq,
-                    Box::new((Value(Num(1.0)), span(10..11))),
+                    Box::new((Value(Num(1.0)), span(22..23))),
                 ),
-                span(5..11),
+                span(17..23),
             ),
             Box::new(Stmt::Block(vec![Stmt::Var(
                 None,
                 "y".to_string(),
-                Some((Ident("x".to_string()), span(20..21))),
+                Some((Ident("x".to_string()), span(48..49))),
             )])),
             None,
         ));
 
-        let source = r#"if ( x == 1 ) { y = x; }"#;
+        let source = r#"
+            if( x == 1 ) {
+                y = x;
+            }
+        "#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
         assert_eq!(parsed, expected);
 
-        let source = r#"if ( x == 1 )   y = x;  "#;
+        let source = r#"
+            if( x == 1 )   
+               y = x;
+        "#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
         assert_eq!(parsed, expected);
@@ -560,30 +649,41 @@ mod tests {
             KwLang::Eng,
             (
                 Binary(
-                    Box::new((Ident("x".to_string()), span(5..6))),
+                    Box::new((Ident("x".to_string()), span(17..18))),
                     Eq,
-                    Box::new((Value(Num(1.0)), span(10..11))),
+                    Box::new((Value(Num(1.0)), span(22..23))),
                 ),
-                span(5..11),
+                span(17..23),
             ),
             Box::new(Stmt::Block(vec![Stmt::Var(
                 None,
                 "y".to_string(),
-                Some((Ident("x".to_string()), span(20..21))),
+                Some((Ident("x".to_string()), span(47..48))),
             )])),
             Some(Box::new(Stmt::Block(vec![Stmt::Var(
                 None,
                 "y".to_string(),
-                Some((Value(Num(10.0)), span(36..38))),
+                Some((Value(Num(10.0)), span(90..92))),
             )]))),
         ));
 
-        let source = r#"if ( x == 1 ) { y = x; } else { y = 10; } "#;
+        let source = r#"
+            if( x == 1 ) {
+               y = x;
+            } else {
+               y = 10;
+            }
+        "#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
         assert_eq!(parsed, expected);
 
-        let source = r#"if ( x == 1 )   y = x;   else   y = 10;   "#;
+        let source = r#"
+            if( x == 1 )  
+               y = x;
+            else    
+               y = 10;
+        "#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
         assert_eq!(parsed, expected);
@@ -591,12 +691,26 @@ mod tests {
 
     #[test]
     fn test_parse_if_else_if() {
-        let source = r#"if ( x == 1 ) { y = x; } else if (x == 2) { y = x; } else { y = 10; } "#;
+        let source = r#"
+            if( x == 1 ) {
+               y = x;
+            } else if(x == 2) {
+               y = x;
+            } else {
+               y = 10;
+            }
+        "#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
         assert!(parsed.is_ok());
 
-        let source = r#"if ( x == 1 ) y = x; else if (x == 2) y = x; else y = 10; "#;
+        let source = r#"
+            if( x == 1 )  
+               y = x; 
+            else if(x == 2)  
+               y = x;  
+            else y = 10;
+        "#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
         assert!(parsed.is_ok());
@@ -604,23 +718,27 @@ mod tests {
 
     #[test]
     fn test_parse_while() {
-        let source = r#"while ( x < 1 ) { x = 1; }"#;
+        let source = r#"
+            while( x < 1 ) {
+               x = 1;
+            }
+        "#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
         let expected = Ok(Stmt::While(
             KwLang::Eng,
             (
                 Binary(
-                    Box::new((Ident("x".to_string()), span(8..9))),
+                    Box::new((Ident("x".to_string()), span(20..21))),
                     Lt,
-                    Box::new((Value(Num(1.0)), span(12..13))),
+                    Box::new((Value(Num(1.0)), span(24..25))),
                 ),
-                span(8..13),
+                span(20..25),
             ),
             Box::new(Stmt::Block(vec![Stmt::Var(
                 None,
                 "x".to_string(),
-                Some((Value(Num(1.0)), span(22..23))),
+                Some((Value(Num(1.0)), span(49..50))),
             )])),
         ));
         assert_eq!(parsed, expected);
@@ -628,7 +746,11 @@ mod tests {
 
     #[test]
     fn test_parse_forall() {
-        let source = r#"forall ( i in @[1,2,3]  ) { x = x + i }"#;
+        let source = r#"
+            forall( i in @[1,2,3] ) {
+               x = x + i
+            }
+        "#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
         let expected = Ok(Stmt::ForAll(
@@ -636,22 +758,22 @@ mod tests {
             "i".to_string(),
             (
                 Arr(vec![
-                    (Value(Num(1.0)), span(16..17)),
-                    (Value(Num(2.0)), span(18..19)),
-                    (Value(Num(3.0)), span(20..21)),
+                    (Value(Num(1.0)), span(28..29)),
+                    (Value(Num(2.0)), span(30..31)),
+                    (Value(Num(3.0)), span(32..33)),
                 ]),
-                span(14..22),
+                span(26..34),
             ),
             Box::new(Stmt::Block(vec![Stmt::Var(
                 None,
                 "x".to_string(),
                 Some((
                     Binary(
-                        Box::new((Ident("x".to_string()), span(32..33))),
+                        Box::new((Ident("x".to_string()), span(58..59))),
                         Add,
-                        Box::new((Ident("i".to_string()), span(36..37))),
+                        Box::new((Ident("i".to_string()), span(62..64))),
                     ),
-                    span(32..37),
+                    span(58..64),
                 )),
             )])),
         ));
@@ -660,13 +782,17 @@ mod tests {
 
     #[test]
     fn test_parse_forall_fabric() {
-        let source = r#"ДляВсех( Элементов(м, инд) ) {}"#;
+        let source = r#"
+            ДляВсех( Элементов(м, инд) ) 
+            {
+            }
+        "#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
         let expected = Ok(Stmt::ForAll2(
             KwLang::Ru,
             "Элементов".to_string(),
-            (Ident("м".to_string()), span(35..37)),
+            (Ident("м".to_string()), span(48..50)),
             "инд".to_string(),
             Box::new(Stmt::Block(vec![])),
         ));
@@ -675,7 +801,12 @@ mod tests {
 
     #[test]
     fn test_parse_for() {
-        let source = r#"for ( i = 0; i < 10; i = i + 1 ) { x = x + i }"#;
+        let source = r#"
+            for( i = 0; i < 10; i = i + 1 ) 
+            { 
+                x = x + i
+            }
+        "#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
         let expected = Ok(Stmt::For(
@@ -683,26 +814,26 @@ mod tests {
             Box::new(Stmt::Var(
                 None,
                 "i".to_string(),
-                Some((Value(Num(0.0)), span(10..11))),
+                Some((Value(Num(0.0)), span(22..23))),
             )),
             (
                 Binary(
-                    Box::new((Ident("i".to_string()), span(13..14))),
+                    Box::new((Ident("i".to_string()), span(25..26))),
                     Lt,
-                    Box::new((Value(Num(10.0)), span(17..19))),
+                    Box::new((Value(Num(10.0)), span(29..31))),
                 ),
-                span(13..19),
+                span(25..31),
             ),
             Box::new(Stmt::Var(
                 None,
                 "i".to_string(),
                 Some((
                     Binary(
-                        Box::new((Ident("i".to_string()), span(25..26))),
+                        Box::new((Ident("i".to_string()), span(37..38))),
                         Add,
-                        Box::new((Value(Num(1.0)), span(29..30))),
+                        Box::new((Value(Num(1.0)), span(41..42))),
                     ),
-                    span(25..30),
+                    span(37..42),
                 )),
             )),
             Box::new(Stmt::Block(vec![Stmt::Var(
@@ -710,11 +841,11 @@ mod tests {
                 "x".to_string(),
                 Some((
                     Binary(
-                        Box::new((Ident("x".to_string()), span(39..40))),
+                        Box::new((Ident("x".to_string()), span(81..82))),
                         Add,
-                        Box::new((Ident("i".to_string()), span(43..44))),
+                        Box::new((Ident("i".to_string()), span(85..87))),
                     ),
-                    span(39..44),
+                    span(81..87),
                 )),
             )])),
         ));
@@ -724,10 +855,15 @@ mod tests {
     #[test]
     fn test_parse_switch() {
         let source = r#"
-            switch(x) { 
-                case 1, 2: { y = 1; }
-                else { y = 10; }
-            }"#;
+            switch(x) {
+                case 1, 2: {
+                    y = 1;
+                }
+                else {
+                     y = 10; 
+                }
+            }
+        "#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
         let expected = Ok(Stmt::Switch(
@@ -736,13 +872,13 @@ mod tests {
             vec![
                 (
                     Some(vec![
-                        (Value(Num(1.0)), span(47..48)),
-                        (Value(Num(2.0)), span(50..51)),
+                        (Value(Num(1.0)), span(46..47)),
+                        (Value(Num(2.0)), span(49..50)),
                     ]),
                     Box::new(Stmt::Block(vec![Stmt::Var(
                         None,
                         "y".to_string(),
-                        Some((Value(Num(1.0)), span(59..60))),
+                        Some((Value(Num(1.0)), span(78..79))),
                     )])),
                 ),
                 (
@@ -750,7 +886,7 @@ mod tests {
                     Box::new(Stmt::Block(vec![Stmt::Var(
                         None,
                         "y".to_string(),
-                        Some((Value(Num(10.0)), span(91..93))),
+                        Some((Value(Num(10.0)), span(147..149))),
                     )])),
                 ),
             ],
@@ -761,12 +897,13 @@ mod tests {
     #[test]
     fn test_parse_switch_without_braces() {
         let source = r#"
-            switch(x) { 
-                case 1, 2: 
+            switch(x) {
+                case 1, 2:
                     y = 1;
                     y = 2;
                 else y = 10;
-            }"#;
+            }
+        "#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
         let expected = Ok(Stmt::Switch(
@@ -775,15 +912,15 @@ mod tests {
             vec![
                 (
                     Some(vec![
-                        (Value(Num(1.0)), span(47..48)),
-                        (Value(Num(2.0)), span(50..51)),
+                        (Value(Num(1.0)), span(46..47)),
+                        (Value(Num(2.0)), span(49..50)),
                     ]),
                     Box::new(Stmt::Block(vec![
-                        Stmt::Var(None, "y".to_string(), Some((Value(Num(1.0)), span(78..79)))),
+                        Stmt::Var(None, "y".to_string(), Some((Value(Num(1.0)), span(76..77)))),
                         Stmt::Var(
                             None,
                             "y".to_string(),
-                            Some((Value(Num(2.0)), span(105..106))),
+                            Some((Value(Num(2.0)), span(103..104))),
                         ),
                     ])),
                 ),
@@ -792,7 +929,7 @@ mod tests {
                     Box::new(Stmt::Block(vec![Stmt::Var(
                         None,
                         "y".to_string(),
-                        Some((Value(Num(10.0)), span(133..135))),
+                        Some((Value(Num(10.0)), span(131..133))),
                     )])),
                 ),
             ],
@@ -802,7 +939,15 @@ mod tests {
 
     #[test]
     fn test_parse_try() {
-        let source = r#"try{ x = x / 0; } catch(e){ throw 1; } finally{ x = 0; }"#;
+        let source = r#"
+            try{
+                x = x / 0;
+            } catch(e){
+                throw 1;
+            } finally{
+                x = 0;
+            }
+        "#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
         let expected = Ok(Stmt::TryCatch(
@@ -812,24 +957,24 @@ mod tests {
                 "x".to_string(),
                 Some((
                     Binary(
-                        Box::new((Ident("x".to_string()), span(9..10))),
+                        Box::new((Ident("x".to_string()), span(38..39))),
                         Div,
-                        Box::new((Value(Num(0.0)), span(13..14))),
+                        Box::new((Value(Num(0.0)), span(42..43))),
                     ),
-                    span(9..14),
+                    span(38..43),
                 )),
             )])),
             Some((
-                Some((Ident("e".to_string()), span(24..25))),
+                Some((Ident("e".to_string()), span(65..66))),
                 Box::new(Stmt::Block(vec![Stmt::Throw(
                     KwLang::Eng,
-                    Some((Value(Num(1.0)), span(34..35))),
+                    Some((Value(Num(1.0)), span(91..92))),
                 )])),
             )),
             Some(Box::new(Stmt::Block(vec![Stmt::Var(
                 None,
                 "x".to_string(),
-                Some((Value(Num(0.0)), span(52..53))),
+                Some((Value(Num(0.0)), span(137..138))),
             )]))),
         ));
 

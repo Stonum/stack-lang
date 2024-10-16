@@ -69,6 +69,8 @@ where
 {
     let error = just(Token::Error).map(|_| Decl::Error);
 
+    let newline = just(Token::NewLine).repeated().or_not();
+
     let kw = select! {
         Token::Function(KwLang::Eng) => KwLang::Eng,
         Token::Function(KwLang::Ru) => KwLang::Ru,
@@ -77,15 +79,19 @@ where
     let comment = select! { Token::CommentLine(comment) => comment.to_string() }
         .repeated()
         .at_least(1)
-        .collect::<Vec<_>>();
+        .collect::<Vec<_>>()
+        .padded_by(newline.clone());
 
-    let annotation = select! { Token::Annotation(comment) => comment.to_string() };
+    let annotation =
+        select! { Token::Annotation(comment) => comment.to_string() }.padded_by(newline.clone());
 
     let doc_string = select! {
         Token::LongString(comment) => comment.to_string(),
         Token::String(comment) => comment.to_string(),
     };
-    let doc_string = doc_string.or(comment.map(|comment| comment.join("\n")));
+    let doc_string = doc_string
+        .or(comment.map(|comment| comment.join("\n")))
+        .padded_by(newline.clone());
 
     let identifier =
         select! { Token::Identifier(ident) => ident.to_string() }.labelled("identifier");
@@ -124,6 +130,7 @@ where
     };
 
     let params = param
+        .padded_by(newline.clone())
         .separated_by(just(Token::Comma))
         .allow_trailing()
         .collect::<Vec<_>>()
@@ -157,11 +164,13 @@ where
             |_| (vec![], Some(String::from("Error parsing arguments"))),
         )))
         .map_with(|(params, error), e| (params, e.span(), error))
+        .padded_by(newline.clone())
         .labelled("args");
 
     let body = parser_stmt()
         .repeated()
         .collect::<Vec<_>>()
+        .padded_by(newline.clone())
         .delimited_by(just(Token::Ctrl("{")), just(Token::Ctrl("}")))
         .recover_with(via_parser(nested_delimiters(
             Token::Ctrl("{"),
@@ -178,7 +187,8 @@ where
                 ))]
             },
         )))
-        .map_with(|body, e| (body, e.span()));
+        .map_with(|body, e| (body, e.span()))
+        .padded_by(newline.clone());
 
     let fn_ = comment
         .or_not()
@@ -198,6 +208,7 @@ where
                 doc_string,
             },
         )
+        .padded_by(newline.clone())
         .labelled("function");
 
     let kw = select! {
@@ -222,6 +233,7 @@ where
                 doc_string,
             },
         )
+        .padded_by(newline.clone())
         .labelled("method");
 
     let kw_class = select! {
@@ -240,6 +252,7 @@ where
         .then(kw_class)
         .then(decl_identifier.labelled("class name"))
         .then(kw_ext.ignore_then(identifier).or_not())
+        .padded_by(newline.clone())
         .then(doc_string.or_not())
         .then(
             method
@@ -259,6 +272,7 @@ where
                 doc_string,
             },
         )
+        .padded_by(newline.clone())
         .labelled("class");
 
     let stmt = parser_stmt()
@@ -286,18 +300,23 @@ mod tests {
 
     #[test]
     fn test_parse_simple_fn() {
-        let source = r#"func test(z){ var x = z; return x; }"#;
+        let source = r#"
+            func test(z) { 
+                var x = z; 
+                return x; 
+            }
+        "#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_decl().parse(token_stream).into_result();
         let expected = Ok(vec![Decl::Func {
             lang: KwLang::Eng,
-            identifier: ("test".to_string(), span(5..9)),
+            identifier: ("test".to_string(), span(18..22)),
             params: (
                 vec![Parameter {
                     identifier: "z".to_string(),
                     ..Default::default()
                 }],
-                span(9..12),
+                span(22..25),
                 None,
             ),
             body: (
@@ -305,11 +324,11 @@ mod tests {
                     Var(
                         Some(KwLang::Eng),
                         "x".to_string(),
-                        Some((Ident("z".to_string()), span(22..23))),
+                        Some((Ident("z".to_string()), span(53..54))),
                     ),
-                    Ret(KwLang::Eng, Some((Ident("x".to_string()), span(32..33)))),
+                    Ret(KwLang::Eng, Some((Ident("x".to_string()), span(80..81)))),
                 ],
-                span(12..36),
+                span(26..97),
             ),
             descr: None,
             doc_string: None,
@@ -371,8 +390,12 @@ mod tests {
     #[test]
     fn test_parse_fn_with_errors() {
         let source = r#"
-            func test() { @[ let x = 10;]  }
-            func test2() { @{ let x = 10;} }
+            func test() { 
+                @[ let x = 10;]
+            }
+            func test2() { 
+                @{ let x = 10;} 
+            }
         "#;
         let token_stream = token_stream_from_str(source);
         let (parsed, _errs) = parser_decl().parse(token_stream).into_output_errors();
@@ -382,19 +405,22 @@ mod tests {
                 identifier: ("test".to_string(), span(18..22)),
                 params: (vec![], span(22..24), None),
                 body: (
-                    vec![Stmt::Expr((super::super::expr::Expr::Error, span(27..42)))],
-                    span(25..45),
+                    vec![Stmt::Expr((super::super::expr::Expr::Error, span(44..60)))],
+                    span(25..73),
                 ),
                 descr: None,
                 doc_string: None,
             },
             Decl::Func {
                 lang: KwLang::Eng,
-                identifier: ("test2".to_string(), span(63..68)),
-                params: (vec![], span(68..70), None),
+                identifier: ("test2".to_string(), span(91..96)),
+                params: (vec![], span(96..98), None),
                 body: (
-                    vec![Stmt::Expr((super::super::expr::Expr::Error, span(73..88)))],
-                    span(71..90),
+                    vec![Stmt::Expr((
+                        super::super::expr::Expr::Error,
+                        span(118..135),
+                    ))],
+                    span(99..148),
                 ),
                 descr: None,
                 doc_string: None,
@@ -515,7 +541,9 @@ mod tests {
 
                 set x() {}
 
-                sum(a, b) { @{ let x = 10;} }
+                sum(a, b) { 
+                    @{ let x = 10;} 
+                }
             }
         "#;
         let token_stream = token_stream_from_str(source);
@@ -570,15 +598,15 @@ mod tests {
                         body: (
                             vec![Stmt::Expr((
                                 super::super::expr::Expr::Error,
-                                span(169..184),
+                                span(190..207),
                             ))],
-                            span(167..186),
+                            span(167..224),
                         ),
                         descr: None,
                         doc_string: None,
                     },
                 ],
-                span(49..200),
+                span(49..238),
             ),
             descr: None,
             doc_string: None,

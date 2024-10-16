@@ -1,7 +1,6 @@
-use chumsky::{input::ValueInput, prelude::*};
-
 use super::Token;
 use super::{Span, Spanned};
+use chumsky::{input::ValueInput, prelude::*};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
@@ -89,6 +88,8 @@ pub(crate) fn parser_expr<'source, I>(
 where
     I: ValueInput<'source, Token = Token<'source>, Span = SimpleSpan>,
 {
+    let newline = just(Token::NewLine).repeated().or_not();
+
     recursive(|expr| {
         let ident = select! {
             Token::Identifier(ident) => ident.to_string(),
@@ -149,9 +150,10 @@ where
                 // A list key values
                 let items = ident
                     .clone()
+                    .padded_by(newline.clone())
                     .then_ignore(just(Token::Colon))
-                    .then(expr.clone())
-                    .separated_by(just(Token::Comma))
+                    .then(expr.clone().padded_by(newline.clone()))
+                    .separated_by(just(Token::Comma).padded_by(newline.clone()))
                     .allow_trailing()
                     .collect::<Vec<_>>()
                     .boxed();
@@ -178,7 +180,8 @@ where
             // A list of expressions
             let items = expr
                 .clone()
-                .separated_by(just(Token::Comma))
+                .padded_by(newline.clone())
+                .separated_by(just(Token::Comma).padded_by(newline.clone()))
                 .allow_trailing()
                 .collect::<Vec<_>>();
 
@@ -224,6 +227,7 @@ where
 
             let bracket = ident
                 .clone()
+                .padded_by(newline.clone())
                 .then(
                     items
                         .clone()
@@ -239,10 +243,12 @@ where
                 .or(arr)
                 .or(obj)
                 .or(set)
+                .padded_by(newline.clone())
                 .map_with(|expr, e| (expr, e.span()))
                 // Atoms can also just be normal expressions, but surrounded with parentheses
                 .or(expr
                     .clone()
+                    .padded_by(newline.clone())
                     .delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")")))
                     .map_with(|expr, e| (Expr::Parentheses(Box::new(expr)), e.span())))
                 // Attempt to recover anything that looks like a parenthesised expression but contains errors
