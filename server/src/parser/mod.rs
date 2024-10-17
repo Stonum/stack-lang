@@ -44,8 +44,9 @@ fn token_stream_from_str<'source>(
 
 pub fn parse<'source>(
     source: &'source str,
+    skip_parse_body: bool,
 ) -> ParseResult<Vec<Decl>, chumsky::error::Rich<'_, Token<'_>>> {
     let token_stream = token_stream_from_str(source);
 
-    parser_decl().parse(token_stream)
+    parser_decl(skip_parse_body).parse(token_stream)
 }

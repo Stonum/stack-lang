@@ -47,7 +47,7 @@
          {
             "command": "stack.togglePostgreSQL",
             "title": "Заменяет тильды в запросе и наоборот",
-            "category": "stack",
+            "category": "stack"
          }
       ],
       "keybindings": [

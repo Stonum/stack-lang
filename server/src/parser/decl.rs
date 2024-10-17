@@ -63,6 +63,7 @@ pub enum Decl {
 }
 
 pub(crate) fn parser_decl<'source, I>(
+    skip_parse_body: bool,
 ) -> impl Parser<'source, I, Vec<Decl>, extra::Err<Rich<'source, Token<'source>, Span>>> + Clone
 where
     I: ValueInput<'source, Token = Token<'source>, Span = SimpleSpan>,
@@ -167,28 +168,30 @@ where
         .padded_by(newline.clone())
         .labelled("args");
 
-    let body = parser_stmt()
-        .repeated()
-        .collect::<Vec<_>>()
-        .padded_by(newline.clone())
-        .delimited_by(just(Token::Ctrl("{")), just(Token::Ctrl("}")))
-        .recover_with(via_parser(nested_delimiters(
-            Token::Ctrl("{"),
-            Token::Ctrl("}"),
-            [
-                (Token::Ctrl("{"), Token::Ctrl("}")),
-                (Token::Ctrl("["), Token::Ctrl("]")),
-                (Token::Ctrl("("), Token::Ctrl(")")),
-            ],
-            |span| {
-                vec![Stmt::Error((
-                    String::from("Error parsing function body"),
-                    span,
-                ))]
-            },
-        )))
-        .map_with(|body, e| (body, e.span()))
-        .padded_by(newline.clone());
+    let body = if skip_parse_body {
+        parser_stmt().ignored().repeated().map(|_| vec![]).boxed()
+    } else {
+        parser_stmt().repeated().collect::<Vec<_>>().boxed()
+    }
+    .padded_by(newline.clone())
+    .delimited_by(just(Token::Ctrl("{")), just(Token::Ctrl("}")))
+    .recover_with(via_parser(nested_delimiters(
+        Token::Ctrl("{"),
+        Token::Ctrl("}"),
+        [
+            (Token::Ctrl("{"), Token::Ctrl("}")),
+            (Token::Ctrl("["), Token::Ctrl("]")),
+            (Token::Ctrl("("), Token::Ctrl(")")),
+        ],
+        |span| {
+            vec![Stmt::Error((
+                String::from("Error parsing function body"),
+                span,
+            ))]
+        },
+    )))
+    .map_with(|body, e| (body, e.span()))
+    .padded_by(newline.clone());
 
     let fn_ = comment
         .or_not()
@@ -307,7 +310,7 @@ mod tests {
             }
         "#;
         let token_stream = token_stream_from_str(source);
-        let parsed = parser_decl().parse(token_stream).into_result();
+        let parsed = parser_decl(false).parse(token_stream).into_result();
         let expected = Ok(vec![Decl::Func {
             lang: KwLang::Eng,
             identifier: ("test".to_string(), span(18..22)),
@@ -350,7 +353,7 @@ mod tests {
             }
         "#;
         let token_stream = token_stream_from_str(source);
-        let parsed = parser_decl().parse(token_stream).into_result();
+        let parsed = parser_decl(false).parse(token_stream).into_result();
         let expected = Ok(vec![Decl::Func {
             lang: KwLang::Eng,
             identifier: ("test".to_string(), span(70..74)),
@@ -398,7 +401,7 @@ mod tests {
             }
         "#;
         let token_stream = token_stream_from_str(source);
-        let (parsed, _errs) = parser_decl().parse(token_stream).into_output_errors();
+        let (parsed, _errs) = parser_decl(false).parse(token_stream).into_output_errors();
         let expected = Some(vec![
             Decl::Func {
                 lang: KwLang::Eng,
@@ -438,7 +441,7 @@ mod tests {
             ) {}
         "#;
         let token_stream = token_stream_from_str(source);
-        let (parsed, _errs) = parser_decl().parse(token_stream).into_output_errors();
+        let (parsed, _errs) = parser_decl(false).parse(token_stream).into_output_errors();
         let expected = Some(vec![Decl::Func {
             lang: KwLang::Eng,
             identifier: ("test".to_string(), span(18..22)),
@@ -469,7 +472,7 @@ mod tests {
             }
         "#;
         let token_stream = token_stream_from_str(source);
-        let parsed = parser_decl().parse(token_stream).into_result();
+        let parsed = parser_decl(false).parse(token_stream).into_result();
         let expected = Ok(vec![Decl::Class {
             lang: KwLang::Eng,
             identifier: ("Test".to_string(), span(19..23)),
@@ -547,7 +550,7 @@ mod tests {
             }
         "#;
         let token_stream = token_stream_from_str(source);
-        let (parsed, _errs) = parser_decl().parse(token_stream).into_output_errors();
+        let (parsed, _errs) = parser_decl(false).parse(token_stream).into_output_errors();
         let expected = Some(vec![Decl::Class {
             lang: KwLang::Eng,
             identifier: ("Test".to_string(), span(19..23)),

@@ -462,7 +462,28 @@ impl Backend {
         let TextDocumentItem { uri, text, .. } = params;
 
         let rope = Rope::from(text.as_str());
-        let (decl, errs) = parser::parse(&text).into_output_errors();
+        let decl = parser::parse(&text, true).into_output();
+
+        if let Some(decl) = decl {
+            let definitions = decl
+                .into_iter()
+                .map(|d| Definition::try_from_declaration(d, &rope))
+                .filter(|x| x.is_ok())
+                .map(|x| x.unwrap())
+                .collect();
+
+            self.definitions_map
+                .insert(uri.to_file_path().unwrap_or_default(), definitions);
+        }
+    }
+
+    async fn on_change(&self, params: TextDocumentItem) {
+        let TextDocumentItem { uri, text, .. } = params;
+
+        let rope = ropey::Rope::from_str(&text);
+        self.document_map.insert(uri.to_string(), rope.clone());
+
+        let (decl, errs) = parser::parse(&text, false).into_output_errors();
 
         let mut diagnostics = vec![];
 
@@ -506,14 +527,12 @@ impl Backend {
         }
     }
 
-    async fn on_change(&self, params: TextDocumentItem) {
-        let rope = ropey::Rope::from_str(&params.text);
-        self.document_map
-            .insert(params.uri.to_string(), rope.clone());
-    }
-
     async fn on_delete(&self, params: TextDocumentItem) {
         self.document_map.remove(params.uri.as_str());
+
+        self.client
+            .publish_diagnostics(params.uri, vec![], Some(params.version))
+            .await;
     }
 }
 
