@@ -22,14 +22,12 @@
          {
             "id": "stack",
             "aliases": [
-               "stack",
                "stack"
             ],
             "extensions": [
                ".prg",
                ".hdl",
-               ".rpt",
-               ".nrs"
+               ".rpt"
             ],
             "firstLine": "^#![Ss][Tt][Aa][Cc][Kk]\\b",
             "configuration": "./syntaxes/configuration.json"
@@ -49,7 +47,7 @@
          {
             "command": "stack.togglePostgreSQL",
             "title": "Заменяет тильды в запросе и наоборот",
-            "category": "stack"
+            "category": "stack",
          }
       ],
       "keybindings": [
