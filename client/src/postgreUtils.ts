@@ -1,6 +1,8 @@
 import * as vscode from 'vscode'
 
-const toPostgreRegExp = /~\${0,1}([^~]*)~/g
+
+const toPostgresTable = /~\$?([А-яёЁ0-9A-Za-z_\-\(\) ]+)~/g
+const toPostgresArray = /~(\[.*\])~/g;
 
 export function togglePostgreSQL(
    namespace: string = 'stack',
@@ -13,7 +15,7 @@ export function togglePostgreSQL(
 
    let hasTilda = false
    forAllSelections(editor, (r, t) => {
-      hasTilda = hasTilda || t.replace(toPostgreRegExp, '') !== t
+      hasTilda = hasTilda || !!t.match(toPostgresTable) || !!t.match(toPostgresArray)
    })
 
    if (hasTilda) {
@@ -38,7 +40,7 @@ function convertFromPostgreSQL(
       const repl = addDollar ? '~$$$1~' : '~$1~'
 
       forAllSelections(editor, (range, text) => {
-         b.replace(range, text.replace(re1, repl).replace(re2, repl))
+         b.replace(range, text.replace(re1, repl).replace(re2, repl).replace(/(\[.*\])/g, "~$1~"))
       })
    })
 }
@@ -50,25 +52,10 @@ function convertToPostgreSQL(namespace: string = 'stack'): void {
    }
 
    editor.edit(b => {
-      const repl = namespace + '."$1"'
+      const repl = namespace + '."$1"';
 
       forAllSelections(editor, (range, text) => {
-         b.replace(range, text.replace(toPostgreRegExp, repl))
-      })
-   })
-}
-
-
-
-function fieldsToPostgreSQL(): void {
-   const editor = vscode.window.activeTextEditor
-   if (!editor) {
-      return
-   }
-
-   editor.edit(b => {
-      forAllSelections(editor, (range, text) => {
-         b.replace(range, text.replace(/[\[\]]/g, '"'))
+         b.replace(range, text.replace(toPostgresTable, repl).replace(toPostgresArray, "$1"))
       })
    })
 }
