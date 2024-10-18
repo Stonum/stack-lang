@@ -148,6 +148,10 @@ impl LanguageServer for Backend {
                 text: "".to_string(),
             })
             .await;
+
+        self.client
+            .log_message(MessageType::INFO, format!("parse definitions completed"))
+            .await;
     }
 
     async fn shutdown(&self) -> Result<()> {

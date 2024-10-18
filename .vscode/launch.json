@@ -5,7 +5,7 @@
       {
          "type": "extensionHost",
          "request": "launch",
-         "name": "Launch Client",
+         "name": "Launch debug server",
          "runtimeExecutable": "${execPath}",
          "args": [
             "--extensionDevelopmentPath=${workspaceRoot}"
@@ -16,7 +16,22 @@
          "preLaunchTask": "Build",
          "env": {
             "SERVER_PATH": "${workspaceRoot}/server/target/debug/stack-lang-server",
-            "_SERVER_PATH": "${workspaceRoot}/server/target/release/stack-lang-server"
+         }
+      },
+      {
+         "type": "extensionHost",
+         "request": "launch",
+         "name": "Launch release server",
+         "runtimeExecutable": "${execPath}",
+         "args": [
+            "--extensionDevelopmentPath=${workspaceRoot}"
+         ],
+         "outFiles": [
+            "${workspaceRoot}/client/out/**/*.js"
+         ],
+         "preLaunchTask": "Client watch",
+         "env": {
+            "SERVER_PATH": "${workspaceRoot}/server/target/release/stack-lang-server"
          }
       }
    ]
