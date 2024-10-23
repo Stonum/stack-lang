@@ -1,4 +1,4 @@
-use super::parser::{Decl, Method};
+use super::cst::{Decl, Method};
 use super::position;
 use ropey::Rope;
 use tower_lsp::lsp_types::Range;

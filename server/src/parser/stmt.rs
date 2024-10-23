@@ -1,106 +1,9 @@
 use chumsky::{input::ValueInput, prelude::*};
 
-use super::expr::{parser_expr, Expr};
+use super::cst::Span;
+use super::cst::Stmt;
+use super::expr::parser_expr;
 use super::{KwLang, Token};
-use super::{Span, Spanned};
-
-#[derive(PartialEq)]
-pub enum Stmt {
-    Error(Spanned<String>),
-    EmptyLine,
-    Comment(Spanned<String>),
-    Expr(Spanned<Expr>),
-    Var(Option<KwLang>, String, Option<Spanned<Expr>>),
-    Ret(KwLang, Option<Spanned<Expr>>),
-    InlineComment(Box<Self>, Spanned<String>),
-    Throw(KwLang, Option<Spanned<Expr>>),
-    Block(Vec<Self>),
-    If(KwLang, Spanned<Expr>, Box<Self>, Option<Box<Self>>),
-    While(KwLang, Spanned<Expr>, Box<Self>),
-    ForAll(KwLang, String, Spanned<Expr>, Box<Self>),
-    ForAll2(KwLang, String, Spanned<Expr>, String, Box<Self>),
-    For(KwLang, Box<Self>, Spanned<Expr>, Box<Self>, Box<Self>),
-    Switch(
-        KwLang,
-        Spanned<Expr>,
-        Vec<(Option<Vec<Spanned<Expr>>>, Box<Self>)>,
-    ),
-    TryCatch(
-        KwLang,
-        Box<Self>,
-        Option<(Option<Spanned<Expr>>, Box<Self>)>,
-        Option<Box<Self>>,
-    ),
-}
-
-impl std::fmt::Debug for Stmt {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Stmt::Error(f0) => write!(f, "Error({f0:?})"),
-            Stmt::EmptyLine => write!(f, "EmptyLine"),
-            Stmt::Expr(f0) => write!(f, "Expr({f0:?})"),
-            Stmt::Comment(f0) => write!(f, "Comment({f0:?})"),
-            Stmt::Var(f0, f1, f2) => write!(f, "Var({f0:?}, {f1}, {f2:?})"),
-            Stmt::Ret(f0, f1) => write!(f, "Ret({f0:?}, {f1:?})"),
-            Stmt::InlineComment(f0, f1) => write!(f, "InlineComment({f0:?}, {f1:?})"),
-            Stmt::Throw(f0, f1) => write!(f, "Throw({f0:?}, {f1:?})"),
-            Stmt::Block(f0) => {
-                f.write_str("Block(")?;
-                f.debug_list().entries(f0).finish()?;
-                f.write_str(")")
-            }
-            Stmt::If(f0, f1, f2, f3) => f
-                .debug_tuple("If")
-                .field(&f0)
-                .field(&f1)
-                .field(&f2)
-                .field(&f3)
-                .finish(),
-            Stmt::While(f0, f1, f2) => f
-                .debug_tuple("While")
-                .field(&f0)
-                .field(&f1)
-                .field(&f2)
-                .finish(),
-            Stmt::ForAll(f0, f1, f2, f3) => f
-                .debug_tuple("ForAll")
-                .field(&f0)
-                .field(&f1)
-                .field(&f2)
-                .field(&f3)
-                .finish(),
-            Stmt::ForAll2(f0, f1, f2, f3, f4) => f
-                .debug_tuple("ForAll2")
-                .field(&f0)
-                .field(&f1)
-                .field(&f2)
-                .field(&f3)
-                .field(&f4)
-                .finish(),
-            Stmt::For(f0, f1, f2, f3, f4) => f
-                .debug_tuple("For")
-                .field(&f0)
-                .field(&f1)
-                .field(&f2)
-                .field(&f3)
-                .field(&f4)
-                .finish(),
-            Stmt::Switch(f0, f1, f2) => f
-                .debug_tuple("Switch")
-                .field(&f0)
-                .field(&f1)
-                .field(&f2)
-                .finish(),
-            Stmt::TryCatch(f0, f1, f2, f3) => f
-                .debug_tuple("TryCatch")
-                .field(&f0)
-                .field(&f1)
-                .field(&f2)
-                .field(&f3)
-                .finish(),
-        }
-    }
-}
 
 pub(crate) fn parser_stmt<'source, I>(
 ) -> impl Parser<'source, I, Stmt, extra::Err<Rich<'source, Token<'source>, Span>>> + Clone
@@ -477,9 +380,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::expr::UnaryOp;
-
-    use super::super::expr::{BinaryOp::*, Expr::*, Value::*};
+    use super::super::cst::{BinaryOp::*, Expr::*, UnaryOp, Value::*};
     use super::super::token_stream_from_str;
     use super::*;
 

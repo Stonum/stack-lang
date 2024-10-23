@@ -1,6 +1,7 @@
 use ropey::Rope;
 use tower_lsp::lsp_types::{Position, Range};
 
+pub mod cst;
 pub mod def;
 pub mod fmt;
 pub mod lexer;

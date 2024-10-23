@@ -16,11 +16,8 @@ use logos::{Logos, SpannedIter};
 
 use self::decl::parser_decl;
 
-pub use chumsky::span::SimpleSpan;
-pub use decl::{Decl, Method, Parameter};
-
-pub type Span = SimpleSpan<usize>;
-pub type Spanned<T> = (T, Span);
+use crate::cst;
+use chumsky::span::SimpleSpan;
 
 fn token_stream_from_str<'source>(
     source: &'source str,
@@ -45,7 +42,7 @@ fn token_stream_from_str<'source>(
 pub fn parse<'source>(
     source: &'source str,
     skip_parse_body: bool,
-) -> ParseResult<Vec<Decl>, chumsky::error::Rich<'_, Token<'_>>> {
+) -> ParseResult<Vec<cst::Decl>, chumsky::error::Rich<'_, Token<'_>>> {
     let token_stream = token_stream_from_str(source);
 
     parser_decl(skip_parse_body).parse(token_stream)

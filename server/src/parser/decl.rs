@@ -1,66 +1,10 @@
 use chumsky::{input::ValueInput, prelude::*};
 
-use super::expr::{parser_expr, Expr};
-use super::stmt::{parser_stmt, Stmt};
+use super::cst::Span;
+use super::cst::{Decl, Method, MethodType, Parameter};
+use super::expr::parser_expr;
+use super::stmt::parser_stmt;
 use super::{KwLang, Token};
-use super::{Span, Spanned};
-
-#[derive(Debug, Default, PartialEq)]
-pub struct Parameter {
-    pub identifier: String,
-    pub question_mark: bool,
-    pub initializer: Option<Expr>,
-}
-
-impl std::fmt::Display for Parameter {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.identifier)?;
-        if self.question_mark || self.initializer.is_some() {
-            write!(f, "?")?;
-        }
-        Ok(())
-    }
-}
-
-#[derive(Debug, PartialEq, Default)]
-pub enum MethodType {
-    #[default]
-    Func,
-    Getter,
-    Setter,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct Method {
-    pub m_type: MethodType,
-    pub identifier: Spanned<String>,
-    pub params: (Vec<Parameter>, Span, Option<String>),
-    pub body: Spanned<Vec<Stmt>>,
-    pub descr: Option<Vec<String>>,
-    pub doc_string: Option<String>,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum Decl {
-    Error,
-    Stmt(Spanned<Stmt>), // any stmt between declarations
-    Func {
-        lang: KwLang,
-        identifier: Spanned<String>,
-        params: (Vec<Parameter>, Span, Option<String>),
-        body: Spanned<Vec<Stmt>>,
-        descr: Option<Vec<String>>,
-        doc_string: Option<String>,
-    },
-    Class {
-        lang: KwLang,
-        identifier: Spanned<String>,
-        extends: Option<String>,
-        methods: Spanned<Vec<Method>>,
-        descr: Option<Vec<String>>,
-        doc_string: Option<String>,
-    },
-}
 
 pub(crate) fn parser_decl<'source, I>(
     skip_parse_body: bool,
@@ -184,7 +128,7 @@ where
             (Token::Ctrl("("), Token::Ctrl(")")),
         ],
         |span| {
-            vec![Stmt::Error((
+            vec![super::cst::Stmt::Error((
                 String::from("Error parsing function body"),
                 span,
             ))]
@@ -291,8 +235,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::super::expr::{Expr::*, Value::*};
-    use super::super::stmt::Stmt::*;
+    use super::super::cst::{self, Decl, Expr::*, SimpleSpan, Stmt::*, Value::*};
     use super::super::token_stream_from_str;
     use super::*;
 
@@ -408,7 +351,7 @@ mod tests {
                 identifier: ("test".to_string(), span(18..22)),
                 params: (vec![], span(22..24), None),
                 body: (
-                    vec![Stmt::Expr((super::super::expr::Expr::Error, span(44..60)))],
+                    vec![cst::Stmt::Expr((cst::Expr::Error, span(44..60)))],
                     span(25..73),
                 ),
                 descr: None,
@@ -419,10 +362,7 @@ mod tests {
                 identifier: ("test2".to_string(), span(91..96)),
                 params: (vec![], span(96..98), None),
                 body: (
-                    vec![Stmt::Expr((
-                        super::super::expr::Expr::Error,
-                        span(118..135),
-                    ))],
+                    vec![cst::Stmt::Expr((cst::Expr::Error, span(118..135)))],
                     span(99..148),
                 ),
                 descr: None,
@@ -599,10 +539,7 @@ mod tests {
                             None,
                         ),
                         body: (
-                            vec![Stmt::Expr((
-                                super::super::expr::Expr::Error,
-                                span(190..207),
-                            ))],
+                            vec![cst::Stmt::Expr((cst::Expr::Error, span(190..207)))],
                             span(167..224),
                         ),
                         descr: None,
