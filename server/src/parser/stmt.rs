@@ -201,12 +201,13 @@ where
     let expr = parser_expr();
 
     recursive(|block_expr| {
-        let block = block_expr
+        let block_with_braces = block_expr
             .clone()
             .repeated()
             .collect::<Vec<_>>()
             .padded_by(newline.clone())
             .delimited_by(just(Token::Ctrl("{")), just(Token::Ctrl("}")))
+            .then_ignore(just(Token::SemiColon).or_not()) // semicolon may be written after block
             .map(Stmt::Block)
             .recover_with(via_parser(nested_delimiters(
                 Token::Ctrl("{"),
@@ -218,6 +219,11 @@ where
                 ],
                 |span| Stmt::Error((String::from("Error parsing block"), span)),
             )))
+            .boxed();
+
+        let block = block_with_braces
+            .clone()
+            .or(block_expr.clone().map(|e| Stmt::Block(vec![e]))) // simple block or inline expression without braces
             .boxed();
 
         let _if = recursive(|_if| {
@@ -237,20 +243,11 @@ where
                         .delimited_by(just(Token::Ctrl("(")), just(Token::Ctrl(")"))),
                 )
                 .padded_by(newline.clone())
-                .then(
-                    block
-                        .clone()
-                        .or(inline_expr.clone().map(|e| Stmt::Block(vec![e]))),
-                )
+                .then(block.clone())
                 .then(
                     else_kw
                         .padded_by(newline.clone())
-                        .ignore_then(
-                            block
-                                .clone()
-                                .or(inline_expr.clone().map(|e| Stmt::Block(vec![e])))
-                                .or(_if),
-                        )
+                        .ignore_then(block.clone().or(_if))
                         .or_not(),
                 )
                 .map(|(((if_kw, expr), block), else_block)| {
@@ -463,7 +460,7 @@ where
                 .boxed()
         };
 
-        let block_expr = block
+        let block_expr = block_with_braces
             .or(_if)
             .or(_while)
             .or(_forall)
@@ -480,6 +477,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::parser::expr::UnaryOp;
+
     use super::super::expr::{BinaryOp::*, Expr::*, Value::*};
     use super::super::token_stream_from_str;
     use super::*;
@@ -976,6 +975,63 @@ mod tests {
                 "x".to_string(),
                 Some((Value(Num(0.0)), span(137..138))),
             )]))),
+        ));
+
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn test_parse_chain_statements() {
+        let source = r#"
+            if( x == 1 ) 
+               while( x < 10)
+                  forall( i in @[1,2,3] )
+                     x++;
+        "#;
+
+        let token_stream = token_stream_from_str(source);
+        let parsed = parser_stmt().parse(token_stream).into_result();
+        let expected = Ok(Stmt::If(
+            KwLang::Eng,
+            (
+                Binary(
+                    Box::new((Ident("x".to_string()), span(17..18))),
+                    Eq,
+                    Box::new((Value(Num(1.0)), span(22..23))),
+                ),
+                span(17..23),
+            ),
+            Box::new(Stmt::Block(vec![Stmt::While(
+                KwLang::Eng,
+                (
+                    Binary(
+                        Box::new((Ident("x".to_string()), span(49..50))),
+                        Lt,
+                        Box::new((Value(Num(10.0)), span(53..55))),
+                    ),
+                    span(49..55),
+                ),
+                Box::new(Stmt::Block(vec![Stmt::ForAll(
+                    KwLang::Eng,
+                    "i".to_string(),
+                    (
+                        Arr(vec![
+                            (Value(Num(1.0)), span(90..91)),
+                            (Value(Num(2.0)), span(92..93)),
+                            (Value(Num(3.0)), span(94..95)),
+                        ]),
+                        span(88..96),
+                    ),
+                    Box::new(Stmt::Block(vec![Stmt::Expr((
+                        UnaryRight(
+                            Box::new((Ident("x".to_string()), span(120..123))),
+                            UnaryOp::Add,
+                        ),
+                        span(120..123),
+                    ))])),
+                )])),
+            )])),
+            None,
         ));
 
         assert_eq!(parsed, expected);
