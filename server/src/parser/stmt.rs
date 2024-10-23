@@ -268,7 +268,7 @@ where
                 .map(Stmt::Block)
                 .boxed();
 
-            let block = block.clone().or(block_without_braces);
+            let block = block_with_braces.clone().or(block_without_braces);
 
             let case = case_kw
                 .ignore_then(
