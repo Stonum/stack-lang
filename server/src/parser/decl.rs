@@ -308,7 +308,7 @@ mod tests {
                     },
                     Parameter {
                         identifier: "y".to_string(),
-                        initializer: Some(Value(Num(1.0))),
+                        initializer: Some(Value(Num("1".to_string()))),
                         ..Default::default()
                     },
                     Parameter {
@@ -321,7 +321,10 @@ mod tests {
                 None,
             ),
             body: (
-                vec![Ret(KwLang::Eng, Some((Value(Num(10.0)), span(180..182))))],
+                vec![Ret(
+                    KwLang::Eng,
+                    Some((Value(Num("10".to_string())), span(180..182))),
+                )],
                 span(155..197),
             ),
             descr: Some(vec![

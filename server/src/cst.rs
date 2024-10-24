@@ -9,7 +9,7 @@ pub type Spanned<T> = (T, Span);
 pub enum Value {
     Null(String),
     Bool(String),
-    Num(f64),
+    Num(String),
     Str(String),
     LongStr(String),
 }

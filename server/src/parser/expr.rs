@@ -21,7 +21,7 @@ where
             let val = select! {
                 Token::Null(s) => Expr::Value(Value::Null(s.to_string())),
                 Token::Bool(s) => Expr::Value(Value::Bool(s.to_string())),
-                Token::Number(n) => Expr::Value(Value::Num(n.parse().unwrap())),
+                Token::Number(n) => Expr::Value(Value::Num(n.to_string())),
                 Token::String(s) => Expr::Value(Value::Str(s.to_string())),
                 Token::LongString(s) => Expr::Value(Value::LongStr(s.to_string())),
             }
@@ -356,14 +356,14 @@ mod tests {
                                 Binary(
                                     Box::new((Ident("y".to_string()), span(6..7))),
                                     Sub,
-                                    Box::new((Value(Num(5.0)), span(10..11))),
+                                    Box::new((Value(Num("5".to_string())), span(10..11))),
                                 ),
                                 span(6..11),
                             ))),
                             span(5..12),
                         )),
                         Mul,
-                        Box::new((Value(Num(6.0)), span(15..16))),
+                        Box::new((Value(Num("6".to_string())), span(15..16))),
                     ),
                     span(5..16),
                 )),
@@ -386,7 +386,10 @@ mod tests {
                 )),
                 Sub,
                 Box::new((
-                    UnaryRight(Box::new((Value(Num(5.0)), span(6..9))), UnaryOp::Add),
+                    UnaryRight(
+                        Box::new((Value(Num("5".to_string())), span(6..9))),
+                        UnaryOp::Add,
+                    ),
                     span(6..9),
                 )),
             ),
@@ -406,9 +409,9 @@ mod tests {
                 AddEq,
                 Box::new((
                     Binary(
-                        Box::new((Value(Num(5.0)), span(5..6))),
+                        Box::new((Value(Num("5".to_string())), span(5..6))),
                         Sub,
-                        Box::new((Value(Num(10.0)), span(9..11))),
+                        Box::new((Value(Num("10".to_string())), span(9..11))),
                     ),
                     span(5..11),
                 )),
@@ -425,10 +428,10 @@ mod tests {
         let parsed = parser_expr().parse(token_stream).into_result();
         let expected = Ok((
             Expr::Arr(vec![
-                (Value(Num(1.0)), span(2..3)),
+                (Value(Num("1".to_string())), span(2..3)),
                 (Value(Null("null".to_string())), span(5..9)),
                 (Value(Str("hello".to_string())), span(11..18)),
-                (Value(Num(5.55)), span(20..24)),
+                (Value(Num("5.55".to_string())), span(20..24)),
                 (Value(Bool("true".to_string())), span(26..30)),
                 (Ident("x".to_string()), span(32..33)),
             ]),
@@ -445,10 +448,10 @@ mod tests {
         let parsed = parser_expr().parse(token_stream).into_result();
         let expected = Ok((
             Expr::Set(vec![
-                (Value(Num(1.0)), span(2..3)),
+                (Value(Num("1".to_string())), span(2..3)),
                 (Value(Null("null".to_string())), span(5..9)),
                 (Value(Str("hello".to_string())), span(11..18)),
-                (Value(Num(5.55)), span(20..24)),
+                (Value(Num("5".to_string())), span(20..24)),
                 (Value(Bool("true".to_string())), span(26..30)),
                 (Ident("x".to_string()), span(32..33)),
             ]),
@@ -465,7 +468,7 @@ mod tests {
         let parsed = parser_expr().parse(token_stream).into_result();
         let expected = Ok((
             Expr::Obj(vec![
-                ("a".to_string(), (Value(Num(1.0)), span(5..6))),
+                ("a".to_string(), (Value(Num("1".to_string())), span(5..6))),
                 (
                     "b".to_string(),
                     (Value(Null("null".to_string())), span(11..15)),
@@ -474,7 +477,10 @@ mod tests {
                     "c".to_string(),
                     (Value(Str("hello".to_string())), span(20..27)),
                 ),
-                ("d".to_string(), (Value(Num(5.55)), span(32..36))),
+                (
+                    "d".to_string(),
+                    (Value(Num("5.55".to_string())), span(32..36)),
+                ),
                 (
                     "e".to_string(),
                     (Value(Bool("true".to_string())), span(43..47)),
@@ -497,7 +503,7 @@ mod tests {
                 (
                     vec![
                         (Ident("x".to_string()), span(4..5)),
-                        (Value(Num(5.0)), span(7..8)),
+                        (Value(Num("5".to_string())), span(7..8)),
                     ],
                     span(3..9),
                 ),
@@ -521,7 +527,7 @@ mod tests {
                         (
                             vec![
                                 (Ident("x".to_string()), span(6..7)),
-                                (Value(Num(5.0)), span(9..10)),
+                                (Value(Num("5".to_string())), span(9..10)),
                             ],
                             span(5..11),
                         ),
@@ -548,12 +554,12 @@ mod tests {
                             Binary(
                                 Box::new((Ident("y".to_string()), span(4..5))),
                                 Lt,
-                                Box::new((Value(Num(3.0)), span(8..9))),
+                                Box::new((Value(Num("3".to_string())), span(8..9))),
                             ),
                             span(4..9),
                         )),
-                        Box::new((Value(Num(5.0)), span(12..13))),
-                        Box::new((Value(Num(10.0)), span(16..18))),
+                        Box::new((Value(Num("5".to_string())), span(12..13))),
+                        Box::new((Value(Num("10".to_string())), span(16..18))),
                     ),
                     span(4..18),
                 )),
@@ -572,8 +578,8 @@ mod tests {
             IndexKey(
                 Box::new((Ident("params".to_string()), span(0..14))),
                 vec![
-                    (Value(Num(10.0)), span(7..9)),
-                    (Value(Num(10.0)), span(11..13)),
+                    (Value(Num("10".to_string())), span(7..9)),
+                    (Value(Num("10".to_string())), span(11..13)),
                 ],
             ),
             span(0..14),
@@ -592,7 +598,7 @@ mod tests {
                     Binary(
                         Box::new((Ident("x".to_string()), span(0..1))),
                         Eq,
-                        Box::new((Value(Num(5.0)), span(5..6))),
+                        Box::new((Value(Num("5".to_string())), span(5..6))),
                     ),
                     span(0..6),
                 )),
@@ -601,7 +607,7 @@ mod tests {
                     Binary(
                         Box::new((Ident("y".to_string()), span(10..11))),
                         Eq,
-                        Box::new((Value(Num(10.0)), span(15..17))),
+                        Box::new((Value(Num("10".to_string())), span(15..17))),
                     ),
                     span(10..17),
                 )),
