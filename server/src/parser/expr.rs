@@ -457,7 +457,7 @@ mod tests {
                 (Value(Num("1")), span(2..3)),
                 (Value(Null("null")), span(5..9)),
                 (Value(Str("hello")), span(11..18)),
-                (Value(Num("5")), span(20..24)),
+                (Value(Num("5.55")), span(20..24)),
                 (Value(Bool("true")), span(26..30)),
                 (Ident("x"), span(32..33)),
             ]),

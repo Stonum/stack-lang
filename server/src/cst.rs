@@ -230,7 +230,7 @@ pub enum MethodType {
 #[derive(Debug, PartialEq)]
 pub struct Method<'source> {
     pub m_type: MethodType,
-    pub identifier: Spanned<String>,
+    pub identifier: Spanned<Vec<&'source str>>,
     pub params: (Vec<Parameter<'source>>, Span, Option<&'source str>),
     pub body: Spanned<Vec<Stmt<'source>>>,
     pub descr: Option<Vec<&'source str>>,
@@ -243,7 +243,7 @@ pub enum Decl<'source> {
     Stmt(Spanned<Stmt<'source>>), // any stmt between declarations
     Func {
         lang: KwLang,
-        identifier: Spanned<String>,
+        identifier: Spanned<Vec<&'source str>>,
         params: (Vec<Parameter<'source>>, Span, Option<&'source str>),
         body: Spanned<Vec<Stmt<'source>>>,
         descr: Option<Vec<&'source str>>,
@@ -251,7 +251,7 @@ pub enum Decl<'source> {
     },
     Class {
         lang: KwLang,
-        identifier: Spanned<String>,
+        identifier: Spanned<Vec<&'source str>>,
         extends: Option<&'source str>,
         methods: Spanned<Vec<Method<'source>>>,
         descr: Option<Vec<&'source str>>,

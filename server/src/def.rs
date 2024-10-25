@@ -33,7 +33,7 @@ impl Definition {
                 doc_string,
                 ..
             } => Ok(Definition::Func {
-                identifier,
+                identifier: identifier.join("."),
                 params: params.0.into_iter().map(|x| format!("{x}")).collect(),
                 descr: descr.map(|d| d.join("\n").to_string()),
                 doc_string: doc_string.map(|d| d.join("\n").to_string()),
@@ -46,7 +46,7 @@ impl Definition {
                 doc_string,
                 ..
             } => Ok(Definition::Class {
-                identifier,
+                identifier: identifier.join("."),
                 methods: methods
                     .into_iter()
                     .map(|m| Definition::from_method(m, rope))
@@ -60,7 +60,7 @@ impl Definition {
 
     pub fn from_method(method: Method, rope: &Rope) -> Self {
         Definition::Func {
-            identifier: method.identifier.0,
+            identifier: method.identifier.0.join("."),
             params: method
                 .params
                 .0
