@@ -6,16 +6,16 @@ pub type Spanned<T> = (T, Span);
 
 // Expressions
 #[derive(Clone, Debug, PartialEq)]
-pub enum Value {
-    Null(String),
-    Bool(String),
-    Num(String),
-    Str(String),
-    LongStr(String),
+pub enum Value<'source> {
+    Null(&'source str),
+    Bool(&'source str),
+    Num(&'source str),
+    Str(&'source str),
+    LongStr(&'source str),
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum BinaryOp {
+pub enum BinaryOp<'source> {
     Add,
     Sub,
     Mul,
@@ -30,8 +30,8 @@ pub enum BinaryOp {
     Lt,
     GtEq,
     LtEq,
-    And(String),
-    Or(String),
+    And(&'source str),
+    Or(&'source str),
     BitAnd,
     BitOr,
     Mod,
@@ -46,25 +46,29 @@ pub enum UnaryOp {
 }
 
 #[derive(PartialEq)]
-pub enum Expr {
+pub enum Expr<'source> {
     Error,
-    Value(Value),
-    Ident(String),
+    Value(Value<'source>),
+    Ident(&'source str),
     Call(Box<Spanned<Self>>, Spanned<Vec<Spanned<Self>>>),
-    Binary(Box<Spanned<Self>>, BinaryOp, Box<Spanned<Self>>),
+    Binary(Box<Spanned<Self>>, BinaryOp<'source>, Box<Spanned<Self>>),
     UnaryRight(Box<Spanned<Self>>, UnaryOp),
     UnaryLeft(UnaryOp, Box<Spanned<Self>>),
     Parentheses(Box<Spanned<Self>>),
     Arr(Vec<Spanned<Self>>),
     Set(Vec<Spanned<Self>>),
-    Obj(Vec<(String, Spanned<Self>)>),
+    Obj(Vec<(&'source str, Spanned<Self>)>),
     Then(Box<Spanned<Self>>, Box<Spanned<Self>>),
     ThenEquals(Box<Spanned<Self>>, Box<Spanned<Self>>),
-    Ternary(Box<Spanned<Expr>>, Box<Spanned<Self>>, Box<Spanned<Self>>),
+    Ternary(
+        Box<Spanned<Expr<'source>>>,
+        Box<Spanned<Self>>,
+        Box<Spanned<Self>>,
+    ),
     IndexKey(Box<Spanned<Self>>, Vec<Spanned<Self>>),
 }
 
-impl std::fmt::Debug for Expr {
+impl<'source> std::fmt::Debug for Expr<'source> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Expr::Error => f.write_str("Error"),
@@ -88,35 +92,47 @@ impl std::fmt::Debug for Expr {
 
 // Statements
 #[derive(PartialEq)]
-pub enum Stmt {
-    Error(Spanned<String>),
+pub enum Stmt<'source> {
+    Error(Spanned<&'source str>),
     EmptyLine,
-    Comment(Spanned<String>),
-    Expr(Spanned<Expr>),
-    Var(Option<KwLang>, String, Option<Spanned<Expr>>),
-    Ret(KwLang, Option<Spanned<Expr>>),
-    InlineComment(Box<Self>, Spanned<String>),
-    Throw(KwLang, Option<Spanned<Expr>>),
+    Comment(Spanned<&'source str>),
+    Expr(Spanned<Expr<'source>>),
+    Var(Option<KwLang>, &'source str, Option<Spanned<Expr<'source>>>),
+    Ret(KwLang, Option<Spanned<Expr<'source>>>),
+    InlineComment(Box<Self>, Spanned<&'source str>),
+    Throw(KwLang, Option<Spanned<Expr<'source>>>),
     Block(Vec<Self>),
-    If(KwLang, Spanned<Expr>, Box<Self>, Option<Box<Self>>),
-    While(KwLang, Spanned<Expr>, Box<Self>),
-    ForAll(KwLang, String, Spanned<Expr>, Box<Self>),
-    ForAll2(KwLang, String, Spanned<Expr>, String, Box<Self>),
-    For(KwLang, Box<Self>, Spanned<Expr>, Box<Self>, Box<Self>),
+    If(KwLang, Spanned<Expr<'source>>, Box<Self>, Option<Box<Self>>),
+    While(KwLang, Spanned<Expr<'source>>, Box<Self>),
+    ForAll(KwLang, &'source str, Spanned<Expr<'source>>, Box<Self>),
+    ForAll2(
+        KwLang,
+        &'source str,
+        Spanned<Expr<'source>>,
+        &'source str,
+        Box<Self>,
+    ),
+    For(
+        KwLang,
+        Box<Self>,
+        Spanned<Expr<'source>>,
+        Box<Self>,
+        Box<Self>,
+    ),
     Switch(
         KwLang,
-        Spanned<Expr>,
-        Vec<(Option<Vec<Spanned<Expr>>>, Box<Self>)>,
+        Spanned<Expr<'source>>,
+        Vec<(Option<Vec<Spanned<Expr<'source>>>>, Box<Self>)>,
     ),
     TryCatch(
         KwLang,
         Box<Self>,
-        Option<(Option<Spanned<Expr>>, Box<Self>)>,
+        Option<(Option<Spanned<Expr<'source>>>, Box<Self>)>,
         Option<Box<Self>>,
     ),
 }
 
-impl std::fmt::Debug for Stmt {
+impl<'source> std::fmt::Debug for Stmt<'source> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Stmt::Error(f0) => write!(f, "Error({f0:?})"),
@@ -187,13 +203,13 @@ impl std::fmt::Debug for Stmt {
 
 // Declarations
 #[derive(Debug, Default, PartialEq)]
-pub struct Parameter {
-    pub identifier: String,
+pub struct Parameter<'source> {
+    pub identifier: &'source str,
     pub question_mark: bool,
-    pub initializer: Option<Expr>,
+    pub initializer: Option<Expr<'source>>,
 }
 
-impl std::fmt::Display for Parameter {
+impl<'source> std::fmt::Display for Parameter<'source> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.identifier)?;
         if self.question_mark || self.initializer.is_some() {
@@ -212,33 +228,33 @@ pub enum MethodType {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Method {
+pub struct Method<'source> {
     pub m_type: MethodType,
     pub identifier: Spanned<String>,
-    pub params: (Vec<Parameter>, Span, Option<String>),
-    pub body: Spanned<Vec<Stmt>>,
-    pub descr: Option<Vec<String>>,
-    pub doc_string: Option<String>,
+    pub params: (Vec<Parameter<'source>>, Span, Option<&'source str>),
+    pub body: Spanned<Vec<Stmt<'source>>>,
+    pub descr: Option<Vec<&'source str>>,
+    pub doc_string: Option<Vec<&'source str>>,
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Decl {
+pub enum Decl<'source> {
     Error,
-    Stmt(Spanned<Stmt>), // any stmt between declarations
+    Stmt(Spanned<Stmt<'source>>), // any stmt between declarations
     Func {
         lang: KwLang,
         identifier: Spanned<String>,
-        params: (Vec<Parameter>, Span, Option<String>),
-        body: Spanned<Vec<Stmt>>,
-        descr: Option<Vec<String>>,
-        doc_string: Option<String>,
+        params: (Vec<Parameter<'source>>, Span, Option<&'source str>),
+        body: Spanned<Vec<Stmt<'source>>>,
+        descr: Option<Vec<&'source str>>,
+        doc_string: Option<Vec<&'source str>>,
     },
     Class {
         lang: KwLang,
         identifier: Spanned<String>,
-        extends: Option<String>,
-        methods: Spanned<Vec<Method>>,
-        descr: Option<Vec<String>>,
-        doc_string: Option<String>,
+        extends: Option<&'source str>,
+        methods: Spanned<Vec<Method<'source>>>,
+        descr: Option<Vec<&'source str>>,
+        doc_string: Option<Vec<&'source str>>,
     },
 }

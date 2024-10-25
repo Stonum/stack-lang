@@ -1,10 +1,13 @@
+use crate::lexer::KwLang;
+
 use super::cst::{BinaryOp, Expr, UnaryOp, Value};
 use super::cst::{Span, Spanned};
 use super::Token;
 use chumsky::{input::ValueInput, prelude::*};
 
 pub(crate) fn parser_expr<'source, I>(
-) -> impl Parser<'source, I, Spanned<Expr>, extra::Err<Rich<'source, Token<'source>, Span>>> + Clone
+) -> impl Parser<'source, I, Spanned<Expr<'source>>, extra::Err<Rich<'source, Token<'source>, Span>>>
+       + Clone
 where
     I: ValueInput<'source, Token = Token<'source>, Span = SimpleSpan>,
 {
@@ -12,18 +15,18 @@ where
 
     recursive(|expr| {
         let ident = select! {
-            Token::Identifier(ident) => ident.to_string(),
-            Token::Dot => ".".to_string(),
+            Token::Identifier(ident) => ident,
+            Token::Dot => ".",
         }
         .labelled("identifier");
 
         let inline_expr = recursive(|_inline_expr| {
             let val = select! {
-                Token::Null(s) => Expr::Value(Value::Null(s.to_string())),
-                Token::Bool(s) => Expr::Value(Value::Bool(s.to_string())),
-                Token::Number(n) => Expr::Value(Value::Num(n.to_string())),
-                Token::String(s) => Expr::Value(Value::Str(s.to_string())),
-                Token::LongString(s) => Expr::Value(Value::LongStr(s.to_string())),
+                Token::Null(s) => Expr::Value(Value::Null(s)),
+                Token::Bool(s) => Expr::Value(Value::Bool(s)),
+                Token::Number(n) => Expr::Value(Value::Num(n)),
+                Token::String(s) => Expr::Value(Value::Str(s)),
+                Token::LongString(s) => Expr::Value(Value::LongStr(s)),
             }
             .labelled("value");
 
@@ -60,10 +63,10 @@ where
 
             let obj = {
                 let ident = select! {
-                    Token::Identifier(ident) => ident.to_string(),
-                    Token::String(s) => s.to_string(),
-                    Token::LongString(s) => s.to_string(),
-                    Token::Number(n) => n.to_string(),
+                    Token::Identifier(ident) => ident,
+                    Token::String(s) => s,
+                    Token::LongString(s) => s,
+                    Token::Number(n) => n,
                 }
                 .labelled("identifier");
 
@@ -264,8 +267,8 @@ where
                 .boxed();
 
             let op = select! {
-                Token::And(s) => BinaryOp::And(s.to_string()),
-                Token::Or(s) => BinaryOp::Or(s.to_string()),
+                Token::And(s) => BinaryOp::And(s),
+                Token::Or(s) => BinaryOp::Or(s),
             };
             let logical = compare
                 .clone()
@@ -279,9 +282,18 @@ where
 
         // if keyword is used as an identifier
         let keyword_as_ident = select! {
-            Token::Function(s) => Token::Function(s).to_string(),
+            Token::Function(s) => s,
         }
-        .map_with(|s, e| (Expr::Ident(s), e.span()));
+        .map_with(|s, e| {
+            (
+                Expr::Ident(if s == KwLang::Ru {
+                    "функция"
+                } else {
+                    "function"
+                }),
+                e.span(),
+            )
+        });
 
         let expr_chain = inline_expr
             .clone()

@@ -21,6 +21,8 @@ use tower_lsp::lsp_types::notification::Notification;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
+use std::time::Instant;
+
 struct Backend {
     client: Client,
     document_map: DashMap<String, Rope>,
@@ -62,6 +64,7 @@ impl LanguageServer for Backend {
             .log_message(MessageType::INFO, "stack lang server initialized!")
             .await;
 
+        let start = Instant::now();
         self.client
             .send_notification::<StatusBarNotification>(StatusBarParams {
                 text: "parse definitions".to_string(),
@@ -134,7 +137,7 @@ impl LanguageServer for Backend {
                 .await;
 
             if let Ok(text) = tokio::fs::read_to_string(&file).await {
-                self.set_definition(TextDocumentItem {
+                self.set_definition(&TextDocumentItem {
                     uri: Url::from_file_path(&file).unwrap(),
                     text,
                     version: 0,
@@ -150,7 +153,10 @@ impl LanguageServer for Backend {
             .await;
 
         self.client
-            .log_message(MessageType::INFO, format!("parse definitions completed"))
+            .log_message(
+                MessageType::INFO,
+                format!("parse definitions completed for {:?}", start.elapsed()),
+            )
             .await;
     }
 
@@ -165,8 +171,8 @@ impl LanguageServer for Backend {
             version: params.text_document.version,
         };
 
-        self.set_definition(text_document.clone()).await;
-        self.on_change(text_document).await;
+        self.set_definition(&text_document).await;
+        self.on_change(&text_document).await;
     }
 
     async fn did_change(&self, mut params: DidChangeTextDocumentParams) {
@@ -175,8 +181,8 @@ impl LanguageServer for Backend {
             text: std::mem::take(&mut params.content_changes[0].text),
             version: params.text_document.version,
         };
-        self.set_definition(text_document.clone()).await;
-        self.on_change(text_document).await;
+        self.set_definition(&text_document).await;
+        self.on_change(&text_document).await;
     }
 
     async fn did_change_watched_files(&self, params: DidChangeWatchedFilesParams) {
@@ -195,8 +201,8 @@ impl LanguageServer for Backend {
                     .await;
 
                     if let Some(text_document) = text_document {
-                        self.set_definition(text_document.clone()).await;
-                        self.on_change(text_document).await;
+                        self.set_definition(&text_document).await;
+                        self.on_change(&text_document).await;
                     }
                 }
                 FileChangeType::DELETED => {
@@ -462,11 +468,11 @@ impl Notification for StatusBarNotification {
 }
 
 impl Backend {
-    async fn set_definition(&self, params: TextDocumentItem) {
+    async fn set_definition(&self, params: &TextDocumentItem) {
         let TextDocumentItem { uri, text, .. } = params;
 
-        let rope = Rope::from(text.as_str());
-        let decl = parser::parse(&text, true).into_output();
+        let rope = Rope::from_str(text);
+        let decl = parser::parse(text, false).into_output();
 
         if let Some(decl) = decl {
             let definitions = decl
@@ -481,13 +487,13 @@ impl Backend {
         }
     }
 
-    async fn on_change(&self, params: TextDocumentItem) {
+    async fn on_change(&self, params: &TextDocumentItem) {
         let TextDocumentItem { uri, text, .. } = params;
 
-        let rope = ropey::Rope::from_str(&text);
+        let rope = ropey::Rope::from_str(text);
         self.document_map.insert(uri.to_string(), rope.clone());
 
-        let (decl, errs) = parser::parse(&text, false).into_output_errors();
+        let (decl, errs) = parser::parse(text, false).into_output_errors();
 
         let mut diagnostics = vec![];
 

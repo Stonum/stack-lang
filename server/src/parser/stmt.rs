@@ -6,7 +6,7 @@ use super::expr::parser_expr;
 use super::{KwLang, Token};
 
 pub(crate) fn parser_stmt<'source, I>(
-) -> impl Parser<'source, I, Stmt, extra::Err<Rich<'source, Token<'source>, Span>>> + Clone
+) -> impl Parser<'source, I, Stmt<'source>, extra::Err<Rich<'source, Token<'source>, Span>>> + Clone
 where
     I: ValueInput<'source, Token = Token<'source>, Span = SimpleSpan>,
 {
@@ -16,11 +16,11 @@ where
         .then(just(Token::NewLine))
         .map(|_| Stmt::EmptyLine);
 
-    let comment = select! { Token::CommentLine(comment) => comment.to_string() }
+    let comment = select! { Token::CommentLine(comment) => comment }
         .map_with(|comment, e| Stmt::Comment((comment, e.span())))
         .labelled("comment");
 
-    let ident = select! { Token::Identifier(ident) => ident.to_string() }.labelled("identifier");
+    let ident = select! { Token::Identifier(ident) => ident }.labelled("identifier");
 
     let expr = parser_expr()
         .then_ignore(just(Token::SemiColon).or_not())
@@ -89,7 +89,7 @@ where
     let expr_commented = inline_expr
         .clone()
         .then(
-            select! { Token::CommentLine(comment) => comment.to_string() }
+            select! { Token::CommentLine(comment) => comment }
                 .map_with(|comment, e| (comment, e.span())),
         )
         .map(|(e, comment)| Stmt::InlineComment(Box::new(e), comment))
@@ -120,7 +120,7 @@ where
                     (Token::Ctrl("["), Token::Ctrl("]")),
                     (Token::Ctrl("("), Token::Ctrl(")")),
                 ],
-                |span| Stmt::Error((String::from("Error parsing block"), span)),
+                |span| Stmt::Error(("Error parsing block", span)),
             )))
             .boxed();
 

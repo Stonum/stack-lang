@@ -8,7 +8,7 @@ use super::{KwLang, Token};
 
 pub(crate) fn parser_decl<'source, I>(
     skip_parse_body: bool,
-) -> impl Parser<'source, I, Vec<Decl>, extra::Err<Rich<'source, Token<'source>, Span>>> + Clone
+) -> impl Parser<'source, I, Vec<Decl<'source>>, extra::Err<Rich<'source, Token<'source>, Span>>> + Clone
 where
     I: ValueInput<'source, Token = Token<'source>, Span = SimpleSpan>,
 {
@@ -21,27 +21,26 @@ where
         Token::Function(KwLang::Ru) => KwLang::Ru,
     };
 
-    let comment = select! { Token::CommentLine(comment) => comment.to_string() }
+    let comment = select! { Token::CommentLine(comment) => comment }
         .repeated()
         .at_least(1)
         .collect::<Vec<_>>()
         .padded_by(newline.clone());
 
-    let annotation =
-        select! { Token::Annotation(comment) => comment.to_string() }.padded_by(newline.clone());
+    let annotation = select! { Token::Annotation(comment) => comment }.padded_by(newline.clone());
 
     let doc_string = select! {
-        Token::LongString(comment) => comment.to_string(),
-        Token::String(comment) => comment.to_string(),
+        Token::LongString(comment) => comment,
+        Token::String(comment) => comment,
     };
     let doc_string = doc_string
-        .or(comment.map(|comment| comment.join("\n")))
+        .map(|s| vec![s])
+        .or(comment)
         .padded_by(newline.clone());
 
-    let identifier =
-        select! { Token::Identifier(ident) => ident.to_string() }.labelled("identifier");
+    let identifier = select! { Token::Identifier(ident) => ident }.labelled("identifier");
 
-    let decl_identifier = select! { Token::Identifier(ident) => ident.to_string() }
+    let decl_identifier = select! { Token::Identifier(ident) => ident }
         .separated_by(just(Token::Dot))
         .at_least(1)
         .collect::<Vec<_>>()
@@ -66,7 +65,7 @@ where
                 ..Default::default()
             });
 
-        let spread = select! { Token::Spread => String::from("...") }.map(|identifier| Parameter {
+        let spread = select! { Token::Spread => "..." }.map(|identifier| Parameter {
             identifier,
             ..Default::default()
         });
@@ -106,7 +105,7 @@ where
                 (Token::Ctrl("["), Token::Ctrl("]")),
                 (Token::Ctrl("("), Token::Ctrl(")")),
             ],
-            |_| (vec![], Some(String::from("Error parsing arguments"))),
+            |_| (vec![], Some("Error parsing arguments")),
         )))
         .map_with(|(params, error), e| (params, e.span(), error))
         .padded_by(newline.clone())
@@ -129,7 +128,7 @@ where
         ],
         |span| {
             vec![super::cst::Stmt::Error((
-                String::from("Error parsing function body"),
+                "Error parsing function body",
                 span,
             ))]
         },

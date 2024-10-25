@@ -8,14 +8,14 @@ pub enum Definition {
     Func {
         identifier: String,
         params: Vec<String>,
-        descr: Option<Vec<String>>,
+        descr: Option<String>,
         doc_string: Option<String>,
         pos: Range,
     },
     Class {
         identifier: String,
         methods: Vec<Definition>,
-        descr: Option<Vec<String>>,
+        descr: Option<String>,
         doc_string: Option<String>,
         pos: Range,
     },
@@ -35,8 +35,8 @@ impl Definition {
             } => Ok(Definition::Func {
                 identifier,
                 params: params.0.into_iter().map(|x| format!("{x}")).collect(),
-                descr,
-                doc_string,
+                descr: descr.map(|d| d.join("\n").to_string()),
+                doc_string: doc_string.map(|d| d.join("\n").to_string()),
                 pos: position(rope, span.into()).unwrap_or_default(),
             }),
             Decl::Class {
@@ -51,8 +51,8 @@ impl Definition {
                     .into_iter()
                     .map(|m| Definition::from_method(m, rope))
                     .collect(),
-                descr,
-                doc_string,
+                descr: descr.map(|d| d.join("\n").to_string()),
+                doc_string: doc_string.map(|d| d.join("\n").to_string()),
                 pos: position(rope, span.into()).unwrap_or_default(),
             }),
         }
@@ -61,9 +61,14 @@ impl Definition {
     pub fn from_method(method: Method, rope: &Rope) -> Self {
         Definition::Func {
             identifier: method.identifier.0,
-            params: method.params.0.into_iter().map(|x| x.identifier).collect(),
-            descr: method.descr,
-            doc_string: method.doc_string,
+            params: method
+                .params
+                .0
+                .into_iter()
+                .map(|x| x.identifier.to_string())
+                .collect(),
+            descr: method.descr.map(|d| d.join("\n").to_string()),
+            doc_string: method.doc_string.map(|d| d.join("\n").to_string()),
             pos: position(rope, method.identifier.1.into()).unwrap_or_default(),
         }
     }
@@ -76,23 +81,16 @@ impl Definition {
     }
 
     pub fn description(&self) -> String {
-        let map = |d: String| {
-            if d.starts_with("#") {
-                return format!("\\{}", d);
-            }
-            d
-        };
         let descr = match self {
             Definition::Func { descr, .. } => descr,
             Definition::Class { descr, .. } => descr,
         };
 
+        let descr = descr.clone().unwrap_or_default();
+        if descr.starts_with("#") {
+            return format!("\\{}", descr);
+        }
         descr
-            .clone()
-            .unwrap_or_default()
-            .into_iter()
-            .map(map)
-            .fold(String::new(), |a, b| a + "\n" + &b)
     }
 
     pub fn doc_string(&self) -> &str {
