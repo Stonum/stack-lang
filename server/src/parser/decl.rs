@@ -8,7 +8,7 @@ use super::{KwLang, Token};
 
 pub(crate) fn parser_decl<'source, I>(
     skip_parse_body: bool,
-) -> impl Parser<'source, I, Vec<Decl>, extra::Err<Rich<'source, Token<'source>, Span>>> + Clone
+) -> impl Parser<'source, I, Vec<Decl<'source>>, extra::Err<Rich<'source, Token<'source>, Span>>> + Clone
 where
     I: ValueInput<'source, Token = Token<'source>, Span = SimpleSpan>,
 {
@@ -21,31 +21,30 @@ where
         Token::Function(KwLang::Ru) => KwLang::Ru,
     };
 
-    let comment = select! { Token::CommentLine(comment) => comment.to_string() }
+    let comment = select! { Token::CommentLine(comment) => comment }
         .repeated()
         .at_least(1)
         .collect::<Vec<_>>()
         .padded_by(newline.clone());
 
-    let annotation =
-        select! { Token::Annotation(comment) => comment.to_string() }.padded_by(newline.clone());
+    let annotation = select! { Token::Annotation(comment) => comment }.padded_by(newline.clone());
 
     let doc_string = select! {
-        Token::LongString(comment) => comment.to_string(),
-        Token::String(comment) => comment.to_string(),
+        Token::LongString(comment) => comment,
+        Token::String(comment) => comment,
     };
     let doc_string = doc_string
-        .or(comment.map(|comment| comment.join("\n")))
+        .map(|s| vec![s])
+        .or(comment)
         .padded_by(newline.clone());
 
-    let identifier =
-        select! { Token::Identifier(ident) => ident.to_string() }.labelled("identifier");
+    let identifier = select! { Token::Identifier(ident) => ident }.labelled("identifier");
 
-    let decl_identifier = select! { Token::Identifier(ident) => ident.to_string() }
+    let decl_identifier = select! { Token::Identifier(ident) => ident }
         .separated_by(just(Token::Dot))
         .at_least(1)
         .collect::<Vec<_>>()
-        .map_with(|ident, e| (ident.join("."), e.span()))
+        .map_with(|ident, e| (ident, e.span()))
         .labelled("identifier");
 
     let param = {
@@ -66,7 +65,7 @@ where
                 ..Default::default()
             });
 
-        let spread = select! { Token::Spread => String::from("...") }.map(|identifier| Parameter {
+        let spread = select! { Token::Spread => "..." }.map(|identifier| Parameter {
             identifier,
             ..Default::default()
         });
@@ -106,7 +105,7 @@ where
                 (Token::Ctrl("["), Token::Ctrl("]")),
                 (Token::Ctrl("("), Token::Ctrl(")")),
             ],
-            |_| (vec![], Some(String::from("Error parsing arguments"))),
+            |_| (vec![], Some("Error parsing arguments")),
         )))
         .map_with(|(params, error), e| (params, e.span(), error))
         .padded_by(newline.clone())
@@ -129,7 +128,7 @@ where
         ],
         |span| {
             vec![super::cst::Stmt::Error((
-                String::from("Error parsing function body"),
+                "Error parsing function body",
                 span,
             ))]
         },
@@ -256,10 +255,10 @@ mod tests {
         let parsed = parser_decl(false).parse(token_stream).into_result();
         let expected = Ok(vec![Decl::Func {
             lang: KwLang::Eng,
-            identifier: ("test".to_string(), span(18..22)),
+            identifier: (vec!["test"], span(18..22)),
             params: (
                 vec![Parameter {
-                    identifier: "z".to_string(),
+                    identifier: "z",
                     ..Default::default()
                 }],
                 span(22..25),
@@ -267,12 +266,8 @@ mod tests {
             ),
             body: (
                 vec![
-                    Var(
-                        Some(KwLang::Eng),
-                        "x".to_string(),
-                        Some((Ident("z".to_string()), span(53..54))),
-                    ),
-                    Ret(KwLang::Eng, Some((Ident("x".to_string()), span(80..81)))),
+                    Var(Some(KwLang::Eng), "x", Some((Ident("z"), span(53..54)))),
+                    Ret(KwLang::Eng, Some((Ident("x"), span(80..81)))),
                 ],
                 span(26..97),
             ),
@@ -299,20 +294,20 @@ mod tests {
         let parsed = parser_decl(false).parse(token_stream).into_result();
         let expected = Ok(vec![Decl::Func {
             lang: KwLang::Eng,
-            identifier: ("test".to_string(), span(70..74)),
+            identifier: (vec!["test"], span(70..74)),
             params: (
                 vec![
                     Parameter {
-                        identifier: "x".to_string(),
+                        identifier: "x",
                         ..Default::default()
                     },
                     Parameter {
-                        identifier: "y".to_string(),
-                        initializer: Some(Value(Num(1.0))),
+                        identifier: "y",
+                        initializer: Some(Value(Num("1"))),
                         ..Default::default()
                     },
                     Parameter {
-                        identifier: "z".to_string(),
+                        identifier: "z",
                         question_mark: true,
                         ..Default::default()
                     },
@@ -321,14 +316,11 @@ mod tests {
                 None,
             ),
             body: (
-                vec![Ret(KwLang::Eng, Some((Value(Num(10.0)), span(180..182))))],
+                vec![Ret(KwLang::Eng, Some((Value(Num("10")), span(180..182))))],
                 span(155..197),
             ),
-            descr: Some(vec![
-                " description\n".to_string(),
-                " another one\n".to_string(),
-            ]),
-            doc_string: Some(" \n                ret: 10 \n            ".to_string()),
+            descr: Some(vec![" description\n", " another one\n"]),
+            doc_string: Some(vec![" \n                ret: 10 \n            "]),
         }]);
         assert_eq!(parsed, expected);
     }
@@ -348,7 +340,7 @@ mod tests {
         let expected = Some(vec![
             Decl::Func {
                 lang: KwLang::Eng,
-                identifier: ("test".to_string(), span(18..22)),
+                identifier: (vec!["test"], span(18..22)),
                 params: (vec![], span(22..24), None),
                 body: (
                     vec![cst::Stmt::Expr((cst::Expr::Error, span(44..60)))],
@@ -359,7 +351,7 @@ mod tests {
             },
             Decl::Func {
                 lang: KwLang::Eng,
-                identifier: ("test2".to_string(), span(91..96)),
+                identifier: (vec!["test2"], span(91..96)),
                 params: (vec![], span(96..98), None),
                 body: (
                     vec![cst::Stmt::Expr((cst::Expr::Error, span(118..135)))],
@@ -384,12 +376,8 @@ mod tests {
         let (parsed, _errs) = parser_decl(false).parse(token_stream).into_output_errors();
         let expected = Some(vec![Decl::Func {
             lang: KwLang::Eng,
-            identifier: ("test".to_string(), span(18..22)),
-            params: (
-                vec![],
-                span(22..97),
-                Some("Error parsing arguments".to_string()),
-            ),
+            identifier: (vec!["test"], span(18..22)),
+            params: (vec![], span(22..97), Some("Error parsing arguments")),
             body: (vec![], span(98..100)),
             descr: None,
             doc_string: None,
@@ -415,13 +403,13 @@ mod tests {
         let parsed = parser_decl(false).parse(token_stream).into_result();
         let expected = Ok(vec![Decl::Class {
             lang: KwLang::Eng,
-            identifier: ("Test".to_string(), span(19..23)),
-            extends: Some("Base".to_string()),
+            identifier: (vec!["Test"], span(19..23)),
+            extends: Some("Base"),
             methods: (
                 vec![
                     Method {
                         m_type: MethodType::Func,
-                        identifier: ("constructor".to_string(), span(67..78)),
+                        identifier: (vec!["constructor"], span(67..78)),
                         params: (vec![], span(78..80), None),
                         body: (vec![], span(81..83)),
                         descr: None,
@@ -429,7 +417,7 @@ mod tests {
                     },
                     Method {
                         m_type: MethodType::Getter,
-                        identifier: ("x".to_string(), span(105..106)),
+                        identifier: (vec!["x"], span(105..106)),
                         params: (vec![], span(106..108), None),
                         body: (vec![], span(109..111)),
                         descr: None,
@@ -437,7 +425,7 @@ mod tests {
                     },
                     Method {
                         m_type: MethodType::Setter,
-                        identifier: ("x".to_string(), span(133..134)),
+                        identifier: (vec!["x"], span(133..134)),
                         params: (vec![], span(134..136), None),
                         body: (vec![], span(137..139)),
                         descr: None,
@@ -445,15 +433,15 @@ mod tests {
                     },
                     Method {
                         m_type: MethodType::Func,
-                        identifier: ("sum".to_string(), span(157..160)),
+                        identifier: (vec!["sum"], span(157..160)),
                         params: (
                             vec![
                                 Parameter {
-                                    identifier: "a".to_string(),
+                                    identifier: "a",
                                     ..Default::default()
                                 },
                                 Parameter {
-                                    identifier: "b".to_string(),
+                                    identifier: "b",
                                     ..Default::default()
                                 },
                             ],
@@ -493,13 +481,13 @@ mod tests {
         let (parsed, _errs) = parser_decl(false).parse(token_stream).into_output_errors();
         let expected = Some(vec![Decl::Class {
             lang: KwLang::Eng,
-            identifier: ("Test".to_string(), span(19..23)),
-            extends: Some("Base".to_string()),
+            identifier: (vec!["Test"], span(19..23)),
+            extends: Some("Base"),
             methods: (
                 vec![
                     Method {
                         m_type: MethodType::Func,
-                        identifier: ("constructor".to_string(), span(67..78)),
+                        identifier: (vec!["constructor"], span(67..78)),
                         params: (vec![], span(78..80), None),
                         body: (vec![], span(81..83)),
                         descr: None,
@@ -507,7 +495,7 @@ mod tests {
                     },
                     Method {
                         m_type: MethodType::Getter,
-                        identifier: ("x".to_string(), span(105..106)),
+                        identifier: (vec!["x"], span(105..106)),
                         params: (vec![], span(106..108), None),
                         body: (vec![], span(109..111)),
                         descr: None,
@@ -515,7 +503,7 @@ mod tests {
                     },
                     Method {
                         m_type: MethodType::Setter,
-                        identifier: ("x".to_string(), span(133..134)),
+                        identifier: (vec!["x"], span(133..134)),
                         params: (vec![], span(134..136), None),
                         body: (vec![], span(137..139)),
                         descr: None,
@@ -523,15 +511,15 @@ mod tests {
                     },
                     Method {
                         m_type: MethodType::Func,
-                        identifier: ("sum".to_string(), span(157..160)),
+                        identifier: (vec!["sum"], span(157..160)),
                         params: (
                             vec![
                                 Parameter {
-                                    identifier: "a".to_string(),
+                                    identifier: "a",
                                     ..Default::default()
                                 },
                                 Parameter {
-                                    identifier: "b".to_string(),
+                                    identifier: "b",
                                     ..Default::default()
                                 },
                             ],
