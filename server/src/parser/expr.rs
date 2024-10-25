@@ -354,10 +354,7 @@ mod tests {
         let expected = Ok((
             Binary(
                 Box::new((
-                    UnaryLeft(
-                        UnaryOp::Minus,
-                        Box::new((Ident("x".to_string()), span(0..2))),
-                    ),
+                    UnaryLeft(UnaryOp::Minus, Box::new((Ident("x"), span(0..2)))),
                     span(0..2),
                 )),
                 Add,
@@ -366,16 +363,16 @@ mod tests {
                         Box::new((
                             Parentheses(Box::new((
                                 Binary(
-                                    Box::new((Ident("y".to_string()), span(6..7))),
+                                    Box::new((Ident("y"), span(6..7))),
                                     Sub,
-                                    Box::new((Value(Num("5".to_string())), span(10..11))),
+                                    Box::new((Value(Num("5")), span(10..11))),
                                 ),
                                 span(6..11),
                             ))),
                             span(5..12),
                         )),
                         Mul,
-                        Box::new((Value(Num("6".to_string())), span(15..16))),
+                        Box::new((Value(Num("6")), span(15..16))),
                     ),
                     span(5..16),
                 )),
@@ -393,15 +390,12 @@ mod tests {
         let expected = Ok((
             Binary(
                 Box::new((
-                    UnaryRight(Box::new((Ident("x".to_string()), span(0..3))), UnaryOp::Add),
+                    UnaryRight(Box::new((Ident("x"), span(0..3))), UnaryOp::Add),
                     span(0..3),
                 )),
                 Sub,
                 Box::new((
-                    UnaryRight(
-                        Box::new((Value(Num("5".to_string())), span(6..9))),
-                        UnaryOp::Add,
-                    ),
+                    UnaryRight(Box::new((Value(Num("5")), span(6..9))), UnaryOp::Add),
                     span(6..9),
                 )),
             ),
@@ -417,13 +411,13 @@ mod tests {
         let parsed = parser_expr().parse(token_stream).into_result();
         let expected = Ok((
             Binary(
-                Box::new((Ident("x".to_string()), span(0..1))),
+                Box::new((Ident("x"), span(0..1))),
                 AddEq,
                 Box::new((
                     Binary(
-                        Box::new((Value(Num("5".to_string())), span(5..6))),
+                        Box::new((Value(Num("5")), span(5..6))),
                         Sub,
-                        Box::new((Value(Num("10".to_string())), span(9..11))),
+                        Box::new((Value(Num("10")), span(9..11))),
                     ),
                     span(5..11),
                 )),
@@ -440,12 +434,12 @@ mod tests {
         let parsed = parser_expr().parse(token_stream).into_result();
         let expected = Ok((
             Expr::Arr(vec![
-                (Value(Num("1".to_string())), span(2..3)),
-                (Value(Null("null".to_string())), span(5..9)),
-                (Value(Str("hello".to_string())), span(11..18)),
-                (Value(Num("5.55".to_string())), span(20..24)),
-                (Value(Bool("true".to_string())), span(26..30)),
-                (Ident("x".to_string()), span(32..33)),
+                (Value(Num("1")), span(2..3)),
+                (Value(Null("null")), span(5..9)),
+                (Value(Str("hello")), span(11..18)),
+                (Value(Num("5.55")), span(20..24)),
+                (Value(Bool("true")), span(26..30)),
+                (Ident("x"), span(32..33)),
             ]),
             span(0..34),
         ));
@@ -460,12 +454,12 @@ mod tests {
         let parsed = parser_expr().parse(token_stream).into_result();
         let expected = Ok((
             Expr::Set(vec![
-                (Value(Num("1".to_string())), span(2..3)),
-                (Value(Null("null".to_string())), span(5..9)),
-                (Value(Str("hello".to_string())), span(11..18)),
-                (Value(Num("5".to_string())), span(20..24)),
-                (Value(Bool("true".to_string())), span(26..30)),
-                (Ident("x".to_string()), span(32..33)),
+                (Value(Num("1")), span(2..3)),
+                (Value(Null("null")), span(5..9)),
+                (Value(Str("hello")), span(11..18)),
+                (Value(Num("5")), span(20..24)),
+                (Value(Bool("true")), span(26..30)),
+                (Ident("x"), span(32..33)),
             ]),
             span(0..34),
         ));
@@ -480,23 +474,11 @@ mod tests {
         let parsed = parser_expr().parse(token_stream).into_result();
         let expected = Ok((
             Expr::Obj(vec![
-                ("a".to_string(), (Value(Num("1".to_string())), span(5..6))),
-                (
-                    "b".to_string(),
-                    (Value(Null("null".to_string())), span(11..15)),
-                ),
-                (
-                    "c".to_string(),
-                    (Value(Str("hello".to_string())), span(20..27)),
-                ),
-                (
-                    "d".to_string(),
-                    (Value(Num("5.55".to_string())), span(32..36)),
-                ),
-                (
-                    "e".to_string(),
-                    (Value(Bool("true".to_string())), span(43..47)),
-                ),
+                ("a", (Value(Num("1")), span(5..6))),
+                ("b", (Value(Null("null")), span(11..15))),
+                ("c", (Value(Str("hello")), span(20..27))),
+                ("d", (Value(Num("5.55")), span(32..36))),
+                ("e", (Value(Bool("true")), span(43..47))),
             ]),
             span(0..48),
         ));
@@ -511,12 +493,9 @@ mod tests {
         let parsed = parser_expr().parse(token_stream).into_result();
         let expected = Ok((
             Call(
-                Box::new((Ident("sum".to_string()), span(0..3))),
+                Box::new((Ident("sum"), span(0..3))),
                 (
-                    vec![
-                        (Ident("x".to_string()), span(4..5)),
-                        (Value(Num("5".to_string())), span(7..8)),
-                    ],
+                    vec![(Ident("x"), span(4..5)), (Value(Num("5")), span(7..8))],
                     span(3..9),
                 ),
             ),
@@ -532,15 +511,12 @@ mod tests {
         let parsed = parser_expr().parse(token_stream).into_result();
         let expected = Ok((
             Then(
-                Box::new((Ident("x".to_string()), span(0..1))),
+                Box::new((Ident("x"), span(0..1))),
                 Box::new((
                     Call(
-                        Box::new((Ident("sum".to_string()), span(2..5))),
+                        Box::new((Ident("sum"), span(2..5))),
                         (
-                            vec![
-                                (Ident("x".to_string()), span(6..7)),
-                                (Value(Num("5".to_string())), span(9..10)),
-                            ],
+                            vec![(Ident("x"), span(6..7)), (Value(Num("5")), span(9..10))],
                             span(5..11),
                         ),
                     ),
@@ -559,19 +535,19 @@ mod tests {
         let parsed = parser_expr().parse(token_stream).into_result();
         let expected = Ok((
             ThenEquals(
-                Box::new((Ident("x".to_string()), span(0..1))),
+                Box::new((Ident("x"), span(0..1))),
                 Box::new((
                     Ternary(
                         Box::new((
                             Binary(
-                                Box::new((Ident("y".to_string()), span(4..5))),
+                                Box::new((Ident("y"), span(4..5))),
                                 Lt,
-                                Box::new((Value(Num("3".to_string())), span(8..9))),
+                                Box::new((Value(Num("3")), span(8..9))),
                             ),
                             span(4..9),
                         )),
-                        Box::new((Value(Num("5".to_string())), span(12..13))),
-                        Box::new((Value(Num("10".to_string())), span(16..18))),
+                        Box::new((Value(Num("5")), span(12..13))),
+                        Box::new((Value(Num("10")), span(16..18))),
                     ),
                     span(4..18),
                 )),
@@ -588,10 +564,10 @@ mod tests {
         let parsed = parser_expr().parse(token_stream).into_result();
         let expected = Ok((
             IndexKey(
-                Box::new((Ident("params".to_string()), span(0..14))),
+                Box::new((Ident("params"), span(0..14))),
                 vec![
-                    (Value(Num("10".to_string())), span(7..9)),
-                    (Value(Num("10".to_string())), span(11..13)),
+                    (Value(Num("10")), span(7..9)),
+                    (Value(Num("10")), span(11..13)),
                 ],
             ),
             span(0..14),
@@ -608,18 +584,18 @@ mod tests {
             Binary(
                 Box::new((
                     Binary(
-                        Box::new((Ident("x".to_string()), span(0..1))),
+                        Box::new((Ident("x"), span(0..1))),
                         Eq,
-                        Box::new((Value(Num("5".to_string())), span(5..6))),
+                        Box::new((Value(Num("5")), span(5..6))),
                     ),
                     span(0..6),
                 )),
-                And("&&".to_string()),
+                And("&&"),
                 Box::new((
                     Binary(
-                        Box::new((Ident("y".to_string()), span(10..11))),
+                        Box::new((Ident("y"), span(10..11))),
                         Eq,
-                        Box::new((Value(Num("10".to_string())), span(15..17))),
+                        Box::new((Value(Num("10")), span(15..17))),
                     ),
                     span(10..17),
                 )),

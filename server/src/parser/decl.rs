@@ -258,7 +258,7 @@ mod tests {
             identifier: ("test".to_string(), span(18..22)),
             params: (
                 vec![Parameter {
-                    identifier: "z".to_string(),
+                    identifier: "z",
                     ..Default::default()
                 }],
                 span(22..25),
@@ -266,12 +266,8 @@ mod tests {
             ),
             body: (
                 vec![
-                    Var(
-                        Some(KwLang::Eng),
-                        "x".to_string(),
-                        Some((Ident("z".to_string()), span(53..54))),
-                    ),
-                    Ret(KwLang::Eng, Some((Ident("x".to_string()), span(80..81)))),
+                    Var(Some(KwLang::Eng), "x", Some((Ident("z"), span(53..54)))),
+                    Ret(KwLang::Eng, Some((Ident("x"), span(80..81)))),
                 ],
                 span(26..97),
             ),
@@ -302,16 +298,16 @@ mod tests {
             params: (
                 vec![
                     Parameter {
-                        identifier: "x".to_string(),
+                        identifier: "x",
                         ..Default::default()
                     },
                     Parameter {
-                        identifier: "y".to_string(),
-                        initializer: Some(Value(Num("1".to_string()))),
+                        identifier: "y",
+                        initializer: Some(Value(Num("1"))),
                         ..Default::default()
                     },
                     Parameter {
-                        identifier: "z".to_string(),
+                        identifier: "z",
                         question_mark: true,
                         ..Default::default()
                     },
@@ -320,17 +316,11 @@ mod tests {
                 None,
             ),
             body: (
-                vec![Ret(
-                    KwLang::Eng,
-                    Some((Value(Num("10".to_string())), span(180..182))),
-                )],
+                vec![Ret(KwLang::Eng, Some((Value(Num("10")), span(180..182))))],
                 span(155..197),
             ),
-            descr: Some(vec![
-                " description\n".to_string(),
-                " another one\n".to_string(),
-            ]),
-            doc_string: Some(" \n                ret: 10 \n            ".to_string()),
+            descr: Some(vec![" description\n", " another one\n"]),
+            doc_string: Some(vec![" \n                ret: 10 \n            "]),
         }]);
         assert_eq!(parsed, expected);
     }
@@ -387,11 +377,7 @@ mod tests {
         let expected = Some(vec![Decl::Func {
             lang: KwLang::Eng,
             identifier: ("test".to_string(), span(18..22)),
-            params: (
-                vec![],
-                span(22..97),
-                Some("Error parsing arguments".to_string()),
-            ),
+            params: (vec![], span(22..97), Some("Error parsing arguments")),
             body: (vec![], span(98..100)),
             descr: None,
             doc_string: None,
@@ -418,7 +404,7 @@ mod tests {
         let expected = Ok(vec![Decl::Class {
             lang: KwLang::Eng,
             identifier: ("Test".to_string(), span(19..23)),
-            extends: Some("Base".to_string()),
+            extends: Some("Base"),
             methods: (
                 vec![
                     Method {
@@ -451,11 +437,11 @@ mod tests {
                         params: (
                             vec![
                                 Parameter {
-                                    identifier: "a".to_string(),
+                                    identifier: "a",
                                     ..Default::default()
                                 },
                                 Parameter {
-                                    identifier: "b".to_string(),
+                                    identifier: "b",
                                     ..Default::default()
                                 },
                             ],
@@ -496,7 +482,7 @@ mod tests {
         let expected = Some(vec![Decl::Class {
             lang: KwLang::Eng,
             identifier: ("Test".to_string(), span(19..23)),
-            extends: Some("Base".to_string()),
+            extends: Some("Base"),
             methods: (
                 vec![
                     Method {
@@ -529,11 +515,11 @@ mod tests {
                         params: (
                             vec![
                                 Parameter {
-                                    identifier: "a".to_string(),
+                                    identifier: "a",
                                     ..Default::default()
                                 },
                                 Parameter {
-                                    identifier: "b".to_string(),
+                                    identifier: "b",
                                     ..Default::default()
                                 },
                             ],

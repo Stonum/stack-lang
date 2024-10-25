@@ -396,8 +396,8 @@ mod tests {
         let parsed = parser_stmt().parse(token_stream).into_result();
         let expected = Ok(Stmt::Var(
             Some(KwLang::Ru),
-            "y".to_string(),
-            Some((Value(Num("10.5".to_string())), span(15..19))),
+            "y",
+            Some((Value(Num("10.5")), span(15..19))),
         ));
         assert_eq!(parsed, expected);
     }
@@ -410,10 +410,10 @@ mod tests {
         let expected = Ok(Stmt::InlineComment(
             Box::new(Stmt::Var(
                 Some(KwLang::Ru),
-                "y".to_string(),
-                Some((Value(Num("10.5".to_string())), span(15..19))),
+                "y",
+                Some((Value(Num("10.5")), span(15..19))),
             )),
-            (" комментарий".to_string(), span(21..45)),
+            (" комментарий", span(21..45)),
         ));
         assert_eq!(parsed, expected);
     }
@@ -423,10 +423,7 @@ mod tests {
         let source = r#"return y;"#;
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
-        let expected = Ok(Stmt::Ret(
-            KwLang::Eng,
-            Some((Ident("y".to_string()), span(7..8))),
-        ));
+        let expected = Ok(Stmt::Ret(KwLang::Eng, Some((Ident("y"), span(7..8)))));
         assert_eq!(parsed, expected);
 
         let source = r#"return;"#;
@@ -451,22 +448,19 @@ mod tests {
         let expected = Ok(Stmt::Block(vec![
             Stmt::Var(
                 Some(KwLang::Ru),
-                "y".to_string(),
-                Some((Value(Num("10.5".to_string())), span(46..52))),
+                "y",
+                Some((Value(Num("10.5")), span(46..52))),
             ),
             Stmt::Var(
                 Some(KwLang::Eng),
-                "z".to_string(),
-                Some((Value(Str("hello".to_string())), span(76..83))),
+                "z",
+                Some((Value(Str("hello")), span(76..83))),
             ),
             Stmt::Var(
                 None,
-                "x".to_string(),
+                "x",
                 Some((
-                    Obj(vec![(
-                        "a".to_string(),
-                        (Value(Num("1".to_string())), span(111..112)),
-                    )]),
+                    Obj(vec![("a", (Value(Num("1")), span(111..112)))]),
                     span(105..114),
                 )),
             ),
@@ -498,11 +492,11 @@ mod tests {
         let token_stream = token_stream_from_str(source);
         let parsed = parser_stmt().parse(token_stream).into_result();
         let expected = Ok(Stmt::Block(vec![
-            Stmt::Var(Some(KwLang::Eng), "x".to_string(), None),
+            Stmt::Var(Some(KwLang::Eng), "x", None),
             Stmt::Block(vec![Stmt::Var(
                 Some(KwLang::Eng),
-                "y".to_string(),
-                Some((Value(Num("1".to_string())), span(86..87))),
+                "y",
+                Some((Value(Num("1")), span(86..87))),
             )]),
         ]));
         assert_eq!(parsed, expected);
@@ -514,16 +508,16 @@ mod tests {
             KwLang::Eng,
             (
                 Binary(
-                    Box::new((Ident("x".to_string()), span(17..18))),
+                    Box::new((Ident("x"), span(17..18))),
                     Eq,
-                    Box::new((Value(Num("1".to_string())), span(22..23))),
+                    Box::new((Value(Num("1")), span(22..23))),
                 ),
                 span(17..23),
             ),
             Box::new(Stmt::Block(vec![Stmt::Var(
                 None,
-                "y".to_string(),
-                Some((Ident("x".to_string()), span(48..49))),
+                "y",
+                Some((Ident("x"), span(48..49))),
             )])),
             None,
         ));
@@ -552,21 +546,21 @@ mod tests {
             KwLang::Eng,
             (
                 Binary(
-                    Box::new((Ident("x".to_string()), span(17..18))),
+                    Box::new((Ident("x"), span(17..18))),
                     Eq,
-                    Box::new((Value(Num("1".to_string())), span(22..23))),
+                    Box::new((Value(Num("1")), span(22..23))),
                 ),
                 span(17..23),
             ),
             Box::new(Stmt::Block(vec![Stmt::Var(
                 None,
-                "y".to_string(),
-                Some((Ident("x".to_string()), span(47..48))),
+                "y",
+                Some((Ident("x"), span(47..48))),
             )])),
             Some(Box::new(Stmt::Block(vec![Stmt::Var(
                 None,
-                "y".to_string(),
-                Some((Value(Num("10".to_string())), span(90..92))),
+                "y",
+                Some((Value(Num("10")), span(90..92))),
             )]))),
         ));
 
@@ -632,16 +626,16 @@ mod tests {
             KwLang::Eng,
             (
                 Binary(
-                    Box::new((Ident("x".to_string()), span(20..21))),
+                    Box::new((Ident("x"), span(20..21))),
                     Lt,
-                    Box::new((Value(Num("1".to_string())), span(24..25))),
+                    Box::new((Value(Num("1")), span(24..25))),
                 ),
                 span(20..25),
             ),
             Box::new(Stmt::Block(vec![Stmt::Var(
                 None,
-                "x".to_string(),
-                Some((Value(Num("1".to_string())), span(49..50))),
+                "x",
+                Some((Value(Num("1")), span(49..50))),
             )])),
         ));
         assert_eq!(parsed, expected);
@@ -658,23 +652,23 @@ mod tests {
         let parsed = parser_stmt().parse(token_stream).into_result();
         let expected = Ok(Stmt::ForAll(
             KwLang::Eng,
-            "i".to_string(),
+            "i",
             (
                 Arr(vec![
-                    (Value(Num("1".to_string())), span(28..29)),
-                    (Value(Num("2".to_string())), span(30..31)),
-                    (Value(Num("3".to_string())), span(32..33)),
+                    (Value(Num("1")), span(28..29)),
+                    (Value(Num("2")), span(30..31)),
+                    (Value(Num("3")), span(32..33)),
                 ]),
                 span(26..34),
             ),
             Box::new(Stmt::Block(vec![Stmt::Var(
                 None,
-                "x".to_string(),
+                "x",
                 Some((
                     Binary(
-                        Box::new((Ident("x".to_string()), span(58..59))),
+                        Box::new((Ident("x"), span(58..59))),
                         Add,
-                        Box::new((Ident("i".to_string()), span(62..64))),
+                        Box::new((Ident("i"), span(62..64))),
                     ),
                     span(58..64),
                 )),
@@ -694,9 +688,9 @@ mod tests {
         let parsed = parser_stmt().parse(token_stream).into_result();
         let expected = Ok(Stmt::ForAll2(
             KwLang::Ru,
-            "Элементов".to_string(),
-            (Ident("м".to_string()), span(48..50)),
-            "инд".to_string(),
+            "Элементов",
+            (Ident("м"), span(48..50)),
+            "инд",
             Box::new(Stmt::Block(vec![])),
         ));
         assert_eq!(parsed, expected);
@@ -714,39 +708,35 @@ mod tests {
         let parsed = parser_stmt().parse(token_stream).into_result();
         let expected = Ok(Stmt::For(
             KwLang::Eng,
-            Box::new(Stmt::Var(
-                None,
-                "i".to_string(),
-                Some((Value(Num("0".to_string())), span(22..23))),
-            )),
+            Box::new(Stmt::Var(None, "i", Some((Value(Num("0")), span(22..23))))),
             (
                 Binary(
-                    Box::new((Ident("i".to_string()), span(25..26))),
+                    Box::new((Ident("i"), span(25..26))),
                     Lt,
-                    Box::new((Value(Num("10".to_string())), span(29..31))),
+                    Box::new((Value(Num("10")), span(29..31))),
                 ),
                 span(25..31),
             ),
             Box::new(Stmt::Var(
                 None,
-                "i".to_string(),
+                "i",
                 Some((
                     Binary(
-                        Box::new((Ident("i".to_string()), span(37..38))),
+                        Box::new((Ident("i"), span(37..38))),
                         Add,
-                        Box::new((Value(Num("1".to_string())), span(41..42))),
+                        Box::new((Value(Num("1")), span(41..42))),
                     ),
                     span(37..42),
                 )),
             )),
             Box::new(Stmt::Block(vec![Stmt::Var(
                 None,
-                "x".to_string(),
+                "x",
                 Some((
                     Binary(
-                        Box::new((Ident("x".to_string()), span(81..82))),
+                        Box::new((Ident("x"), span(81..82))),
                         Add,
-                        Box::new((Ident("i".to_string()), span(85..87))),
+                        Box::new((Ident("i"), span(85..87))),
                     ),
                     span(81..87),
                 )),
@@ -771,25 +761,25 @@ mod tests {
         let parsed = parser_stmt().parse(token_stream).into_result();
         let expected = Ok(Stmt::Switch(
             KwLang::Eng,
-            (Ident("x".to_string()), span(20..21)),
+            (Ident("x"), span(20..21)),
             vec![
                 (
                     Some(vec![
-                        (Value(Num("1".to_string())), span(46..47)),
-                        (Value(Num("2".to_string())), span(49..50)),
+                        (Value(Num("1")), span(46..47)),
+                        (Value(Num("2")), span(49..50)),
                     ]),
                     Box::new(Stmt::Block(vec![Stmt::Var(
                         None,
-                        "y".to_string(),
-                        Some((Value(Num("1".to_string())), span(78..79))),
+                        "y",
+                        Some((Value(Num("1")), span(78..79))),
                     )])),
                 ),
                 (
                     None,
                     Box::new(Stmt::Block(vec![Stmt::Var(
                         None,
-                        "y".to_string(),
-                        Some((Value(Num("10".to_string())), span(147..149))),
+                        "y",
+                        Some((Value(Num("10")), span(147..149))),
                     )])),
                 ),
             ],
@@ -811,32 +801,24 @@ mod tests {
         let parsed = parser_stmt().parse(token_stream).into_result();
         let expected = Ok(Stmt::Switch(
             KwLang::Eng,
-            (Ident("x".to_string()), span(20..21)),
+            (Ident("x"), span(20..21)),
             vec![
                 (
                     Some(vec![
-                        (Value(Num("1".to_string())), span(46..47)),
-                        (Value(Num("2".to_string())), span(49..50)),
+                        (Value(Num("1")), span(46..47)),
+                        (Value(Num("2")), span(49..50)),
                     ]),
                     Box::new(Stmt::Block(vec![
-                        Stmt::Var(
-                            None,
-                            "y".to_string(),
-                            Some((Value(Num("1".to_string())), span(76..77))),
-                        ),
-                        Stmt::Var(
-                            None,
-                            "y".to_string(),
-                            Some((Value(Num("2".to_string())), span(103..104))),
-                        ),
+                        Stmt::Var(None, "y", Some((Value(Num("1")), span(76..77)))),
+                        Stmt::Var(None, "y", Some((Value(Num("2")), span(103..104)))),
                     ])),
                 ),
                 (
                     None,
                     Box::new(Stmt::Block(vec![Stmt::Var(
                         None,
-                        "y".to_string(),
-                        Some((Value(Num("10".to_string())), span(131..133))),
+                        "y",
+                        Some((Value(Num("10")), span(131..133))),
                     )])),
                 ),
             ],
@@ -861,27 +843,27 @@ mod tests {
             KwLang::Eng,
             Box::new(Stmt::Block(vec![Stmt::Var(
                 None,
-                "x".to_string(),
+                "x",
                 Some((
                     Binary(
-                        Box::new((Ident("x".to_string()), span(38..39))),
+                        Box::new((Ident("x"), span(38..39))),
                         Div,
-                        Box::new((Value(Num("0".to_string())), span(42..43))),
+                        Box::new((Value(Num("0")), span(42..43))),
                     ),
                     span(38..43),
                 )),
             )])),
             Some((
-                Some((Ident("e".to_string()), span(65..66))),
+                Some((Ident("e"), span(65..66))),
                 Box::new(Stmt::Block(vec![Stmt::Throw(
                     KwLang::Eng,
-                    Some((Value(Num("1".to_string())), span(91..92))),
+                    Some((Value(Num("1")), span(91..92))),
                 )])),
             )),
             Some(Box::new(Stmt::Block(vec![Stmt::Var(
                 None,
-                "x".to_string(),
-                Some((Value(Num("0".to_string())), span(137..138))),
+                "x",
+                Some((Value(Num("0")), span(137..138))),
             )]))),
         ));
 
@@ -903,9 +885,9 @@ mod tests {
             KwLang::Eng,
             (
                 Binary(
-                    Box::new((Ident("x".to_string()), span(17..18))),
+                    Box::new((Ident("x"), span(17..18))),
                     Eq,
-                    Box::new((Value(Num("1".to_string())), span(22..23))),
+                    Box::new((Value(Num("1")), span(22..23))),
                 ),
                 span(17..23),
             ),
@@ -913,28 +895,25 @@ mod tests {
                 KwLang::Eng,
                 (
                     Binary(
-                        Box::new((Ident("x".to_string()), span(49..50))),
+                        Box::new((Ident("x"), span(49..50))),
                         Lt,
-                        Box::new((Value(Num("10".to_string())), span(53..55))),
+                        Box::new((Value(Num("10")), span(53..55))),
                     ),
                     span(49..55),
                 ),
                 Box::new(Stmt::Block(vec![Stmt::ForAll(
                     KwLang::Eng,
-                    "i".to_string(),
+                    "i",
                     (
                         Arr(vec![
-                            (Value(Num("1".to_string())), span(90..91)),
-                            (Value(Num("2".to_string())), span(92..93)),
-                            (Value(Num("3".to_string())), span(94..95)),
+                            (Value(Num("1")), span(90..91)),
+                            (Value(Num("2")), span(92..93)),
+                            (Value(Num("3")), span(94..95)),
                         ]),
                         span(88..96),
                     ),
                     Box::new(Stmt::Block(vec![Stmt::Expr((
-                        UnaryRight(
-                            Box::new((Ident("x".to_string()), span(120..123))),
-                            UnaryOp::Add,
-                        ),
+                        UnaryRight(Box::new((Ident("x"), span(120..123))), UnaryOp::Add),
                         span(120..123),
                     ))])),
                 )])),
