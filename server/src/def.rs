@@ -59,17 +59,23 @@ impl Definition {
     }
 
     pub fn from_method(method: Method, rope: &Rope) -> Self {
+        let Method {
+            identifier,
+            params,
+            descr,
+            doc_string,
+            ..
+        } = method;
         Definition::Func {
-            identifier: method.identifier.0.join("."),
-            params: method
-                .params
+            identifier: identifier.0.join("."),
+            params: params
                 .0
                 .into_iter()
                 .map(|x| x.identifier.to_string())
                 .collect(),
-            descr: method.descr.map(|d| d.join("\n").to_string()),
-            doc_string: method.doc_string.map(|d| d.join("\n").to_string()),
-            pos: position(rope, method.identifier.1.into()).unwrap_or_default(),
+            descr: descr.map(|d| d.join("\n").to_string()),
+            doc_string: doc_string.map(|d| d.join("\n").to_string()),
+            pos: position(rope, identifier.1.into()).unwrap_or_default(),
         }
     }
 

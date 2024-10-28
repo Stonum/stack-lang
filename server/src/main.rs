@@ -1,6 +1,7 @@
 #![allow(deprecated)]
 use std::path::PathBuf;
 
+use chumsky::error::Rich;
 use log::error;
 use log::info;
 
@@ -11,11 +12,13 @@ use ropey::Rope;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use stack_lang_server::cst::Decl;
 use stack_lang_server::def::Definition;
 use stack_lang_server::lexer::{Lexer, Token};
 use stack_lang_server::parser;
 use stack_lang_server::position;
 
+use tokio::runtime::Handle;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::notification::Notification;
 use tower_lsp::lsp_types::*;
@@ -129,6 +132,8 @@ impl LanguageServer for Backend {
             .log_message(MessageType::INFO, format!("found {} files", files.len()))
             .await;
 
+        let mut handles = vec![];
+        let current = Handle::current();
         for (i, file) in files.iter().enumerate() {
             self.client
                 .send_notification::<StatusBarNotification>(StatusBarParams {
@@ -137,12 +142,19 @@ impl LanguageServer for Backend {
                 .await;
 
             if let Ok(text) = tokio::fs::read_to_string(&file).await {
-                self.set_definition(&TextDocumentItem {
-                    uri: Url::from_file_path(&file).unwrap(),
-                    text,
-                    version: 0,
-                })
-                .await;
+                let handle = current.spawn_blocking(move || {
+                    let (rope, declarations, _) = parse_source(&text);
+                    get_definitions(declarations, rope)
+                });
+
+                handles.push((Url::from_file_path(file).unwrap(), handle));
+            }
+        }
+
+        for (uri, handle) in handles {
+            if let Some(definitions) = handle.await.unwrap() {
+                self.definitions_map
+                    .insert(uri.to_file_path().unwrap_or_default(), definitions);
             }
         }
 
@@ -171,8 +183,7 @@ impl LanguageServer for Backend {
             version: params.text_document.version,
         };
 
-        self.set_definition(&text_document).await;
-        self.on_change(&text_document).await;
+        self.on_change(text_document).await;
     }
 
     async fn did_change(&self, mut params: DidChangeTextDocumentParams) {
@@ -181,8 +192,7 @@ impl LanguageServer for Backend {
             text: std::mem::take(&mut params.content_changes[0].text),
             version: params.text_document.version,
         };
-        self.set_definition(&text_document).await;
-        self.on_change(&text_document).await;
+        self.on_change(text_document).await;
     }
 
     async fn did_change_watched_files(&self, params: DidChangeWatchedFilesParams) {
@@ -201,8 +211,7 @@ impl LanguageServer for Backend {
                     .await;
 
                     if let Some(text_document) = text_document {
-                        self.set_definition(&text_document).await;
-                        self.on_change(&text_document).await;
+                        self.on_change(text_document).await;
                     }
                 }
                 FileChangeType::DELETED => {
@@ -468,38 +477,17 @@ impl Notification for StatusBarNotification {
 }
 
 impl Backend {
-    async fn set_definition(&self, params: &TextDocumentItem) {
-        let TextDocumentItem { uri, text, .. } = params;
+    async fn on_change(&self, params: TextDocumentItem) {
+        let (rope, declarations, errors) = parse_source(&params.text);
 
-        let rope = Rope::from_str(text);
-        let decl = parser::parse(text, false).into_output();
-
-        if let Some(decl) = decl {
-            let definitions = decl
-                .into_iter()
-                .map(|d| Definition::try_from_declaration(d, &rope))
-                .filter(|x| x.is_ok())
-                .map(|x| x.unwrap())
-                .collect();
-
-            self.definitions_map
-                .insert(uri.to_file_path().unwrap_or_default(), definitions);
-        }
-    }
-
-    async fn on_change(&self, params: &TextDocumentItem) {
-        let TextDocumentItem { uri, text, .. } = params;
-
-        let rope = ropey::Rope::from_str(text);
-        self.document_map.insert(uri.to_string(), rope.clone());
-
-        let (decl, errs) = parser::parse(text, false).into_output_errors();
+        self.document_map
+            .insert(params.uri.to_string(), rope.clone());
 
         let mut diagnostics = vec![];
 
-        if decl.is_none() {
+        if declarations.is_none() {
             let mut diagnostic = Diagnostic::new_simple(Range::default(), format!("Parse error"));
-            if let Some(error) = errs.last() {
+            if let Some(error) = errors.last() {
                 let pos = position(&rope, (*error.span()).into());
                 diagnostic = Diagnostic::new_simple(
                     pos.unwrap_or_default(),
@@ -511,7 +499,7 @@ impl Backend {
 
         #[cfg(debug_assertions)]
         {
-            diagnostics = errs
+            diagnostics = errors
                 .into_iter()
                 .map(|error| {
                     let pos = position(&rope, (*error.span()).into());
@@ -521,19 +509,12 @@ impl Backend {
         }
 
         self.client
-            .publish_diagnostics(uri.clone(), diagnostics, Some(params.version))
+            .publish_diagnostics(params.uri.clone(), diagnostics, None)
             .await;
 
-        if let Some(decl) = decl {
-            let definitions = decl
-                .into_iter()
-                .map(|d| Definition::try_from_declaration(d, &rope))
-                .filter(|x| x.is_ok())
-                .map(|x| x.unwrap())
-                .collect();
-
+        if let Some(definitions) = get_definitions(declarations, rope) {
             self.definitions_map
-                .insert(uri.to_file_path().unwrap_or_default(), definitions);
+                .insert(params.uri.to_file_path().unwrap_or_default(), definitions);
         }
     }
 
@@ -590,4 +571,30 @@ async fn get_files(dir: Url, files: &mut Vec<String>) -> std::io::Result<()> {
     }
 
     Ok(())
+}
+
+fn parse_source<'source>(
+    text: &'source str,
+) -> (
+    Rope,
+    Option<Vec<Decl<'source>>>,
+    Vec<Rich<'source, Token<'source>>>,
+) {
+    let rope = Rope::from_str(text);
+    let (declarations, errors) = parser::parse(text, false).into_output_errors();
+
+    (rope, declarations, errors)
+}
+
+fn get_definitions(declarations: Option<Vec<Decl<'_>>>, rope: Rope) -> Option<Vec<Definition>> {
+    if let Some(decl) = declarations {
+        return Some(
+            decl.into_iter()
+                .map(|d| Definition::try_from_declaration(d, &rope))
+                .filter(|x| x.is_ok())
+                .map(|x| x.unwrap())
+                .collect(),
+        );
+    }
+    None
 }
