@@ -1,7 +1,7 @@
 {
    "name": "stack-lang",
    "description": "stack language server",
-   "version": "0.0.5",
+   "version": "0.0.6",
    "repository": "https://github.com/stonum/stack-lang",
    "publisher": "stonum",
    "categories": ["Programming Languages", "Formatters", "Linters"],
@@ -67,8 +67,9 @@
    },
    "scripts": {
       "postinstall": "cd client && npm i",
-      "vscode:prepublish": "concurrently  \"npm run client:compile\" \"npm run server:build\"",
-      "server:build": "cd server && cargo build --release --bins && cp ./target/release/*.exe ./ && cd ..",
+      "1vscode:prepublish": "concurrently  \"npm run client:compile\" \"npm run server:build_win\" \"npm run server:build_linux\"",
+      "server:build_win": "cd server && cargo build --release --bins && cp ./target/release/*.exe ./ && cd ..",
+      "server:build_linux": "cd server && cross build --target x86_64-unknown-linux-gnu --release --bins && cp ./target/x86_64-unknown-linux-gnu/release/stack-lang-server ./ && cd ..",
       "client:compile": "tsc -b",
       "watch": "rm -rf client/out && tsc -b -w",
       "package": "vsce package",

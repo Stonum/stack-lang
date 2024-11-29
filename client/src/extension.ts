@@ -28,13 +28,12 @@ let client: LanguageClient;
 let statusBarItem: StatusBarItem;
 
 export async function activate(context: ExtensionContext) {
-
    const command =
       process.env.SERVER_PATH ||
       path.join(
          context.extensionPath,
          "server",
-         "stack-lang-server.exe"
+         process.platform === "linux" ? "stack-lang-server" : "stack-lang-server.exe"
       );
 
    const run: Executable = {

@@ -1,6 +1,6 @@
 /server/target
 /server/examples
-/server/*.exe
+/server/stack-lang-server*
 node_modules
 /client/out
 
