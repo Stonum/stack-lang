@@ -3,7 +3,7 @@ use super::position;
 use ropey::Rope;
 use tower_lsp::lsp_types::Range;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Definition {
     Func {
         identifier: String,

@@ -5,7 +5,7 @@ pub type Span = SimpleSpan<usize>;
 pub type Spanned<T> = (T, Span);
 
 // Expressions
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Value<'source> {
     Null(&'source str),
     Bool(&'source str),
@@ -14,7 +14,7 @@ pub enum Value<'source> {
     LongStr(&'source str),
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BinaryOp<'source> {
     Add,
     Sub,
@@ -37,7 +37,7 @@ pub enum BinaryOp<'source> {
     Mod,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum UnaryOp {
     Add,
     Sub,
@@ -45,7 +45,7 @@ pub enum UnaryOp {
     Minus,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub enum Expr<'source> {
     Error,
     Value(Value<'source>),
@@ -91,7 +91,7 @@ impl<'source> std::fmt::Debug for Expr<'source> {
 }
 
 // Statements
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub enum Stmt<'source> {
     Error(Spanned<&'source str>),
     EmptyLine,
@@ -202,7 +202,7 @@ impl<'source> std::fmt::Debug for Stmt<'source> {
 }
 
 // Declarations
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct Parameter<'source> {
     pub identifier: &'source str,
     pub question_mark: bool,
@@ -219,7 +219,7 @@ impl<'source> std::fmt::Display for Parameter<'source> {
     }
 }
 
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub enum MethodType {
     #[default]
     Func,
@@ -227,7 +227,7 @@ pub enum MethodType {
     Setter,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Method<'source> {
     pub m_type: MethodType,
     pub identifier: Spanned<Vec<&'source str>>,
@@ -237,7 +237,7 @@ pub struct Method<'source> {
     pub doc_string: Option<Vec<&'source str>>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Decl<'source> {
     Error,
     Stmt(Spanned<Stmt<'source>>), // any stmt between declarations
