@@ -1,6 +1,6 @@
-mod decl;
-mod expr;
-mod stmt;
+// mod decl;
+// mod expr;
+// mod stmt;
 
 use std::iter::Map;
 use std::ops::Range;
@@ -14,7 +14,7 @@ use crate::lexer::KwLang;
 use crate::lexer::Token;
 use logos::{Logos, SpannedIter};
 
-use self::decl::parser_decl;
+// use self::decl::parser_decl;
 
 use crate::cst;
 use chumsky::span::SimpleSpan;
@@ -43,7 +43,9 @@ pub fn parse<'source>(
     source: &'source str,
     skip_parse_body: bool,
 ) -> ParseResult<Vec<cst::Decl>, chumsky::error::Rich<'_, Token<'_>>> {
-    let token_stream = token_stream_from_str(source);
+    todo!();
 
-    parser_decl(skip_parse_body).parse(token_stream)
+    // let token_stream = token_stream_from_str(source);
+
+    // parser_decl(skip_parse_body).parse(token_stream)
 }
