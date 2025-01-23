@@ -274,7 +274,7 @@ fn parse_m_with_cache(text: &str, cache: &mut NodeCache) -> Parse<AnyMRoot> {
 }
 
 fn parse_common(text: &str) -> (Vec<Event<MSyntaxKind>>, Vec<ParseDiagnostic>, Vec<Trivia>) {
-    let mut p = MParser::new(text, MFileSource::module());
+    let mut p = MParser::new(text, MFileSource::script());
     syntax_rules::program::parse(&mut p);
 
     let (events, errors, trivia) = p.finish();
@@ -289,7 +289,7 @@ mod tests {
 
     #[test]
     fn test_parse_common() {
-        let (events, errors, trivia) = parse_common("function a() { return 1; }");
+        let (events, errors, trivia) = parse_common("func a() { return 1; }");
         dbg!(events);
         dbg!(errors);
         dbg!(trivia);
@@ -297,7 +297,19 @@ mod tests {
 
     #[test]
     fn test_parse() {
-        let res = parse("function a() { return 1; }");
+        let res = parse(
+            r#"
+            # function a
+            func a() { 
+                return 1; 
+            }
+
+            #function b
+            func b() {
+                return a() + 2;
+            }
+        "#,
+        );
         dbg!(res);
     }
 }
