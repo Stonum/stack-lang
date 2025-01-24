@@ -735,6 +735,22 @@ pub fn m_getter_class_member(
         ],
     ))
 }
+pub fn m_hash_map_expression(
+    at_token: SyntaxToken,
+    l_paren_token: SyntaxToken,
+    members: MHashMapMemberList,
+    r_paren_token: SyntaxToken,
+) -> MHashMapExpression {
+    MHashMapExpression::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_HASH_MAP_EXPRESSION,
+        [
+            Some(SyntaxElement::Token(at_token)),
+            Some(SyntaxElement::Token(l_paren_token)),
+            Some(SyntaxElement::Node(members.into_syntax())),
+            Some(SyntaxElement::Token(r_paren_token)),
+        ],
+    ))
+}
 pub fn m_identifier_assignment(name_token: SyntaxToken) -> MIdentifierAssignment {
     MIdentifierAssignment::unwrap_cast(SyntaxNode::new_detached(
         MSyntaxKind::M_IDENTIFIER_ASSIGNMENT,
@@ -1541,6 +1557,27 @@ where
         items
             .into_iter()
             .map(|item| Some(item.into_syntax().into())),
+    ))
+}
+pub fn m_hash_map_member_list<I, S>(items: I, separators: S) -> MHashMapMemberList
+where
+    I: IntoIterator<Item = AnyMObjectMember>,
+    I::IntoIter: ExactSizeIterator,
+    S: IntoIterator<Item = MSyntaxToken>,
+    S::IntoIter: ExactSizeIterator,
+{
+    let mut items = items.into_iter();
+    let mut separators = separators.into_iter();
+    let length = items.len() + separators.len();
+    MHashMapMemberList::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_HASH_MAP_MEMBER_LIST,
+        (0..length).map(|index| {
+            if index % 2 == 0 {
+                Some(items.next()?.into_syntax().into())
+            } else {
+                Some(separators.next()?.into())
+            }
+        }),
     ))
 }
 pub fn m_object_member_list<I, S>(items: I, separators: S) -> MObjectMemberList

@@ -20,7 +20,7 @@ use super::m_parse_error::{
     expected_expression, expected_identifier, expected_simple_assignment_target,
     invalid_assignment_error,
 };
-use super::object::parse_object_expression;
+use super::object::{parse_hashmap_expression, parse_object_expression};
 use super::stmt::STMT_RECOVERY_SET;
 
 use super::syntax::{MSyntaxKind::*, *};
@@ -924,6 +924,16 @@ fn parse_primary_expression(p: &mut MParser, context: ExpressionContext) -> Pars
         // ((foo))
         // (foo)
         T!['('] => parse_parenthesized_expression(p).unwrap(),
+        T![@] => match p.nth(1) {
+            T!['['] => parse_array_expr(p).unwrap(),
+            T!['{'] => parse_object_expression(p).unwrap(),
+            T!['('] => parse_hashmap_expression(p).unwrap(),
+            _ => {
+                let m = p.start();
+                p.bump(T![@]);
+                m.complete(p, M_BOGUS)
+            }
+        },
         T!['['] => parse_array_expr(p).unwrap(),
         T!['{'] if context.is_object_expression_allowed() => parse_object_expression(p).unwrap(),
 
@@ -1053,20 +1063,21 @@ impl ParseSeparatedList for ArrayElementsList {
 
 /// An array literal such as `[foo, bar, ...baz]`.
 // test js array_expr
-// [foo, bar];
-// [foo];
-// [,foo];
-// [foo,];
-// [,,,,,foo,,,,];
-// [...a, ...b];
+// @[foo, bar];
+// @[foo];
+// @[,foo];
+// @[foo,];
+// @[,,,,,foo,,,,];
+// @[...a, ...b];
 
 // test_err js array_expr_incomplete
 // let a = [
 fn parse_array_expr(p: &mut MParser) -> ParsedSyntax {
-    if !p.at(T!['[']) {
+    if !p.at(T![@]) && !p.nth_at(1, T!['[']) {
         return Absent;
     }
     let m = p.start();
+    p.bump(T![@]);
     p.bump(T!['[']);
 
     // test js array_element_in_expr

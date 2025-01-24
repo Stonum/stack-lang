@@ -59,17 +59,66 @@ impl ParseSeparatedList for ObjectMembersList {
 }
 
 /// An object literal such as `{ a: b, "b": 5 + 5 }`.
-pub(super) fn parse_object_expression(p: &mut MParser) -> ParsedSyntax {
-    if !p.at(T!['{']) {
+pub(crate) fn parse_object_expression(p: &mut MParser) -> ParsedSyntax {
+    if !p.at(T![@]) && !p.nth_at(1, T!['{']) {
         return Absent;
     }
     let m = p.start();
+    p.bump(T![@]);
     p.bump(T!['{']);
 
     ObjectMembersList.parse_list(p);
 
     p.expect(T!['}']);
     Present(m.complete(p, M_OBJECT_EXPRESSION))
+}
+
+struct HashMapMembersList;
+
+impl ParseSeparatedList for HashMapMembersList {
+    type Kind = MSyntaxKind;
+    type Parser<'source> = MParser<'source>;
+
+    const LIST_KIND: Self::Kind = M_HASH_MAP_MEMBER_LIST;
+
+    fn parse_element(&mut self, p: &mut MParser) -> ParsedSyntax {
+        parse_object_member(p)
+    }
+
+    fn is_at_list_end(&self, p: &mut MParser) -> bool {
+        p.at(T![')'])
+    }
+
+    fn recover(&mut self, p: &mut MParser, parsed_element: ParsedSyntax) -> RecoveryResult {
+        parsed_element.or_recover_with_token_set(
+            p,
+            &ParseRecoveryTokenSet::new(M_BOGUS_MEMBER, token_set![T![,], T![')'], T![;], T![:]])
+                .enable_recovery_on_line_break(),
+            m_parse_error::expected_object_member,
+        )
+    }
+
+    fn separating_element_kind(&mut self) -> MSyntaxKind {
+        T![,]
+    }
+
+    fn allow_trailing_separating_element(&self) -> bool {
+        true
+    }
+}
+
+pub(crate) fn parse_hashmap_expression(p: &mut MParser) -> ParsedSyntax {
+    if !p.at(T![@]) && !p.nth_at(1, T!['(']) {
+        return Absent;
+    }
+    let m = p.start();
+    p.bump(T![@]);
+    p.bump(T!['(']);
+
+    HashMapMembersList.parse_list(p);
+
+    p.expect(T![')']);
+    Present(m.complete(p, M_HASH_MAP_EXPRESSION))
 }
 
 /// An individual object property such as `"a": b` or `5: 6 + 6`.
@@ -206,14 +255,14 @@ pub fn parse_computed_member_name(p: &mut MParser) -> ParsedSyntax {
     Present(m.complete(p, M_COMPUTED_MEMBER_NAME))
 }
 
-pub(super) fn is_at_literal_member_name(p: &mut MParser, offset: usize) -> bool {
+pub(crate) fn is_at_literal_member_name(p: &mut MParser, offset: usize) -> bool {
     matches!(
         p.nth(offset),
         M_STRING_LITERAL | M_NUMBER_LITERAL | T![ident]
     ) || p.nth(offset).is_keyword()
 }
 
-pub(super) fn parse_literal_member_name(p: &mut MParser) -> ParsedSyntax {
+pub(crate) fn parse_literal_member_name(p: &mut MParser) -> ParsedSyntax {
     let m = p.start();
     match p.cur() {
         M_STRING_LITERAL | M_NUMBER_LITERAL | T![ident] => {
