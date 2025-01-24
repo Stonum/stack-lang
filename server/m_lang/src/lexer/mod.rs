@@ -1,9 +1,8 @@
 mod errors;
-mod tests;
 
-use super::MSyntaxKind;
-use crate::m_lang::syntax::MSyntaxKind::*;
-use crate::m_lang::syntax::T;
+use crate::syntax::MSyntaxKind;
+use crate::syntax::MSyntaxKind::*;
+use crate::syntax::T;
 
 use biome_parser::diagnostic::ParseDiagnostic;
 use biome_parser::lexer::{
@@ -65,7 +64,7 @@ pub enum MReLexContext {
 
 /// An extremely fast, lookup table based, lossless ECMAScript lexer
 #[derive(Debug)]
-pub(crate) struct MLexer<'src> {
+pub struct MLexer<'src> {
     /// Source text
     source: &'src str,
 

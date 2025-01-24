@@ -1,8 +1,7 @@
-pub mod lexer;
 mod rewrite;
 mod rewrite_parser;
 mod single_token_parse_recovery;
-mod span;
+pub mod span;
 mod state;
 mod syntax_rules;
 pub mod token_source;
@@ -15,7 +14,6 @@ use biome_parser::tree_sink::LosslessTreeSink;
 use biome_parser::{prelude::*, ParserContextCheckpoint};
 use biome_parser::{AnyParse, Parser, ParserContext};
 use biome_rowan::{AstNode, NodeCache};
-use lexer::MReLexContext;
 use state::{ChangeParserState, ParserStateGuard};
 
 use self::token_source::MTokenSource;
@@ -24,6 +22,7 @@ use self::state::{MParserState, MParserStateCheckpoint};
 use super::factory::MSyntaxFactory;
 use super::syntax::{AnyMRoot, MSyntaxNode};
 use super::syntax::{MFileSource, MLanguage, MSyntaxKind, TextRange, T};
+use crate::lexer::MReLexContext;
 use token_source::MTokenSourceCheckpoint;
 
 pub type MLosslessTreeSink<'source> = LosslessTreeSink<'source, MLanguage, MSyntaxFactory>;
@@ -306,7 +305,14 @@ mod tests {
 
             #function b
             func b() {
-                return a() + 2;
+                var ar = [
+                    1, # comment line
+                    2,
+
+                    3,
+                    4
+                ];
+                return a() + ar;
             }
         "#,
         );

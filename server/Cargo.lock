@@ -722,6 +722,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "m_lang"
+version = "0.1.0"
+dependencies = [
+ "biome_parser",
+ "biome_rowan",
+ "biome_unicode_table",
+ "enumflags2",
+ "serde",
+ "serde_json",
+ "tracing",
+]
+
+[[package]]
 name = "memchr"
 version = "2.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1167,15 +1180,12 @@ dependencies = [
 name = "stack-lang-server"
 version = "0.1.0"
 dependencies = [
- "biome_parser",
- "biome_rowan",
- "biome_unicode_table",
  "chumsky",
  "dashmap 5.4.0",
- "enumflags2",
  "env_logger",
  "log",
  "logos",
+ "m_lang",
  "ropey",
  "rust-ini",
  "serde",
@@ -1183,7 +1193,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "tower-lsp",
- "tracing",
 ]
 
 [[package]]

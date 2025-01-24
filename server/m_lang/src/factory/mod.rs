@@ -1,4 +1,4 @@
-use crate::m_lang::syntax::MLanguage;
+use crate::syntax::MLanguage;
 use biome_rowan::TreeBuilder;
 
 mod generated;

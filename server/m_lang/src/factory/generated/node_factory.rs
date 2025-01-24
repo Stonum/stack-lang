@@ -2,7 +2,7 @@
 
 #![allow(clippy::redundant_closure)]
 #![allow(clippy::too_many_arguments)]
-use crate::m_lang::syntax::{
+use crate::syntax::{
     MSyntaxElement as SyntaxElement, MSyntaxNode as SyntaxNode, MSyntaxToken as SyntaxToken, *,
 };
 use biome_rowan::AstNode;

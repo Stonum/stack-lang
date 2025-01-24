@@ -1,14 +1,16 @@
 #![cfg(test)]
 #![allow(unused_mut, unused_variables, unused_assignments)]
 
-use super::super::span::Span;
-use super::{MLexContext, MLexer, TextRange, TextSize};
+use m_lang::lexer::{MLexContext, MLexer};
 
-use crate::m_lang::syntax::MSyntaxKind::{self, EOF};
-use crate::m_lang::syntax::MSyntaxKind::{M_NUMBER_LITERAL, NEWLINE, WHITESPACE};
-use crate::m_lang::syntax::T;
+use m_lang::parser::span::Span;
+use m_lang::syntax::MSyntaxKind::{self, EOF};
+use m_lang::syntax::MSyntaxKind::{M_NUMBER_LITERAL, NEWLINE, WHITESPACE};
+use m_lang::syntax::T;
 
 use biome_parser::lexer::{BufferedLexer, Lexer};
+use biome_rowan::TextRange;
+use biome_rowan::TextSize;
 
 // Assert the result of lexing a piece of source code,
 // and make sure the tokens yielded are fully lossless and the source can be reconstructed from only the tokens
@@ -28,7 +30,7 @@ macro_rules! assert_lex {
         $(
             assert_eq!(
                 tokens[idx].0,
-                crate::m_lang::syntax::MSyntaxKind::$kind,
+                m_lang::syntax::MSyntaxKind::$kind,
                 "expected token kind {}, but found {:?}",
                 stringify!($kind),
                 tokens[idx].0,

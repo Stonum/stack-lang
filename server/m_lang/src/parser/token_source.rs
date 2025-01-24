@@ -5,8 +5,8 @@ use biome_parser::token_source::{
 };
 use biome_rowan::{TextRange, TextSize, TriviaPieceKind};
 
-use super::lexer::{MLexContext, MLexer, MReLexContext};
-use super::MSyntaxKind::{self, EOF};
+use crate::lexer::{MLexContext, MLexer, MReLexContext};
+use crate::syntax::MSyntaxKind::{self, EOF};
 
 /// Token source for the parser that skips over any non-trivia token.
 pub struct MTokenSource<'l> {

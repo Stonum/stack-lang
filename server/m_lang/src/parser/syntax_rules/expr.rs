@@ -3,7 +3,7 @@
 
 use std::ops::{BitOr, BitOrAssign, Sub};
 
-use crate::m_lang::parser::lexer::MReLexContext;
+use crate::lexer::MReLexContext;
 
 use super::rewrite::rewrite_events;
 use super::rewrite::RewriteParseEvents;

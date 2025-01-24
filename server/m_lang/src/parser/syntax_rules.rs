@@ -18,7 +18,7 @@ use super::span;
 use super::state;
 use super::MParser;
 use super::MParserCheckpoint;
-use crate::m_lang::syntax;
+use crate::syntax;
 
 use biome_parser::parse_recovery::{ParseRecoveryTokenSet, RecoveryResult};
 use biome_parser::parsed_syntax::ParsedSyntax;

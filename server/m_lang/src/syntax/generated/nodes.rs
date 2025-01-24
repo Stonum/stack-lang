@@ -2,7 +2,7 @@
 
 #![allow(clippy::enum_variant_names)]
 #![allow(clippy::match_like_matches_macro)]
-use crate::m_lang::syntax::{
+use crate::syntax::{
     macros::map_syntax_node,
     MLanguage as Language, MSyntaxElement as SyntaxElement,
     MSyntaxElementChildren as SyntaxElementChildren,

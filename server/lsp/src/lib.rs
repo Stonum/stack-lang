@@ -6,7 +6,6 @@ pub mod def;
 pub mod fmt;
 pub mod lexer;
 // pub mod lexer_v2;
-pub mod m_lang;
 pub mod nodes;
 pub mod parser;
 // pub mod parser_v2;

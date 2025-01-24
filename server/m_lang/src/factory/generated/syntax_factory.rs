@@ -1,6 +1,6 @@
 //! Generated file, do not edit by hand, see `xtask/codegen`
 
-use crate::m_lang::syntax::{MSyntaxKind, MSyntaxKind::*, *};
+use crate::syntax::{MSyntaxKind, MSyntaxKind::*, *};
 use crate::T;
 use biome_rowan::{
     AstNode, ParsedChildren, RawNodeSlots, RawSyntaxNode, SyntaxFactory, SyntaxKind,
