@@ -23,6 +23,10 @@ use std::fmt::{Debug, Formatter};
 #[doc = r" the slots are not statically known."]
 #[allow(dead_code)]
 pub(crate) const SLOT_MAP_EMPTY_VALUE: u8 = u8::MAX;
+#[derive(Serialize)]
+pub struct AnyMModuleItemFields {
+    pub any_m_statement: SyntaxResult<AnyMStatement>,
+}
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MArrayExpression {
     pub(crate) syntax: SyntaxNode,
@@ -2450,6 +2454,51 @@ pub struct MMethodClassMemberFields {
     pub body: SyntaxResult<MFunctionBody>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
+pub struct MModule {
+    pub(crate) syntax: SyntaxNode,
+}
+impl MModule {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> MModuleFields {
+        MModuleFields {
+            directives: self.directives(),
+            items: self.items(),
+            eof_token: self.eof_token(),
+        }
+    }
+    pub fn directives(&self) -> MDirectiveList {
+        support::list(&self.syntax, 0usize)
+    }
+    pub fn items(&self) -> MModuleItemList {
+        support::list(&self.syntax, 1usize)
+    }
+    pub fn eof_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 2usize)
+    }
+}
+impl Serialize for MModule {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct MModuleFields {
+    pub directives: MDirectiveList,
+    pub items: MModuleItemList,
+    pub eof_token: SyntaxResult<SyntaxToken>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MName {
     pub(crate) syntax: SyntaxNode,
 }
@@ -4589,12 +4638,19 @@ impl AnyMParameter {
 #[derive(Clone, PartialEq, Eq, Hash, Serialize)]
 pub enum AnyMRoot {
     MExpressionSnipped(MExpressionSnipped),
+    MModule(MModule),
     MScript(MScript),
 }
 impl AnyMRoot {
     pub fn as_m_expression_snipped(&self) -> Option<&MExpressionSnipped> {
         match &self {
             AnyMRoot::MExpressionSnipped(item) => Some(item),
+            _ => None,
+        }
+    }
+    pub fn as_m_module(&self) -> Option<&MModule> {
+        match &self {
+            AnyMRoot::MModule(item) => Some(item),
             _ => None,
         }
     }
@@ -7190,6 +7246,46 @@ impl From<MMethodClassMember> for SyntaxNode {
 }
 impl From<MMethodClassMember> for SyntaxElement {
     fn from(n: MMethodClassMember) -> SyntaxElement {
+        n.syntax.into()
+    }
+}
+impl AstNode for MModule {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_MODULE as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_MODULE
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for MModule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MModule")
+            .field("directives", &self.directives())
+            .field("items", &self.items())
+            .field("eof_token", &support::DebugSyntaxResult(self.eof_token()))
+            .finish()
+    }
+}
+impl From<MModule> for SyntaxNode {
+    fn from(n: MModule) -> SyntaxNode {
+        n.syntax
+    }
+}
+impl From<MModule> for SyntaxElement {
+    fn from(n: MModule) -> SyntaxElement {
         n.syntax.into()
     }
 }
@@ -10514,6 +10610,11 @@ impl From<MExpressionSnipped> for AnyMRoot {
         AnyMRoot::MExpressionSnipped(node)
     }
 }
+impl From<MModule> for AnyMRoot {
+    fn from(node: MModule) -> AnyMRoot {
+        AnyMRoot::MModule(node)
+    }
+}
 impl From<MScript> for AnyMRoot {
     fn from(node: MScript) -> AnyMRoot {
         AnyMRoot::MScript(node)
@@ -10521,13 +10622,16 @@ impl From<MScript> for AnyMRoot {
 }
 impl AstNode for AnyMRoot {
     type Language = Language;
-    const KIND_SET: SyntaxKindSet<Language> = MExpressionSnipped::KIND_SET.union(MScript::KIND_SET);
+    const KIND_SET: SyntaxKindSet<Language> = MExpressionSnipped::KIND_SET
+        .union(MModule::KIND_SET)
+        .union(MScript::KIND_SET);
     fn can_cast(kind: SyntaxKind) -> bool {
-        matches!(kind, M_EXPRESSION_SNIPPED | M_SCRIPT)
+        matches!(kind, M_EXPRESSION_SNIPPED | M_MODULE | M_SCRIPT)
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         let res = match syntax.kind() {
             M_EXPRESSION_SNIPPED => AnyMRoot::MExpressionSnipped(MExpressionSnipped { syntax }),
+            M_MODULE => AnyMRoot::MModule(MModule { syntax }),
             M_SCRIPT => AnyMRoot::MScript(MScript { syntax }),
             _ => return None,
         };
@@ -10536,12 +10640,14 @@ impl AstNode for AnyMRoot {
     fn syntax(&self) -> &SyntaxNode {
         match self {
             AnyMRoot::MExpressionSnipped(it) => &it.syntax,
+            AnyMRoot::MModule(it) => &it.syntax,
             AnyMRoot::MScript(it) => &it.syntax,
         }
     }
     fn into_syntax(self) -> SyntaxNode {
         match self {
             AnyMRoot::MExpressionSnipped(it) => it.syntax,
+            AnyMRoot::MModule(it) => it.syntax,
             AnyMRoot::MScript(it) => it.syntax,
         }
     }
@@ -10550,6 +10656,7 @@ impl std::fmt::Debug for AnyMRoot {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             AnyMRoot::MExpressionSnipped(it) => std::fmt::Debug::fmt(it, f),
+            AnyMRoot::MModule(it) => std::fmt::Debug::fmt(it, f),
             AnyMRoot::MScript(it) => std::fmt::Debug::fmt(it, f),
         }
     }
@@ -10558,6 +10665,7 @@ impl From<AnyMRoot> for SyntaxNode {
     fn from(n: AnyMRoot) -> SyntaxNode {
         match n {
             AnyMRoot::MExpressionSnipped(it) => it.into(),
+            AnyMRoot::MModule(it) => it.into(),
             AnyMRoot::MScript(it) => it.into(),
         }
     }
@@ -11303,6 +11411,11 @@ impl std::fmt::Display for MLongStringLiteralExpression {
     }
 }
 impl std::fmt::Display for MMethodClassMember {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for MModule {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
@@ -12362,6 +12475,88 @@ impl IntoIterator for MHashMapMemberList {
 impl IntoIterator for &MHashMapMemberList {
     type Item = SyntaxResult<AnyMObjectMember>;
     type IntoIter = AstSeparatedListNodesIterator<Language, AnyMObjectMember>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+#[derive(Clone, Eq, PartialEq, Hash)]
+pub struct MModuleItemList {
+    syntax_list: SyntaxList,
+}
+impl MModuleItemList {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self {
+            syntax_list: syntax.into_list(),
+        }
+    }
+}
+impl AstNode for MModuleItemList {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_MODULE_ITEM_LIST as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_MODULE_ITEM_LIST
+    }
+    fn cast(syntax: SyntaxNode) -> Option<MModuleItemList> {
+        if Self::can_cast(syntax.kind()) {
+            Some(MModuleItemList {
+                syntax_list: syntax.into_list(),
+            })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        self.syntax_list.node()
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax_list.into_node()
+    }
+}
+impl Serialize for MModuleItemList {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.len()))?;
+        for e in self.iter() {
+            seq.serialize_element(&e)?;
+        }
+        seq.end()
+    }
+}
+impl AstNodeList for MModuleItemList {
+    type Language = Language;
+    type Node = AnyMStatement;
+    fn syntax_list(&self) -> &SyntaxList {
+        &self.syntax_list
+    }
+    fn into_syntax_list(self) -> SyntaxList {
+        self.syntax_list
+    }
+}
+impl Debug for MModuleItemList {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("MModuleItemList ")?;
+        f.debug_list().entries(self.iter()).finish()
+    }
+}
+impl IntoIterator for &MModuleItemList {
+    type Item = AnyMStatement;
+    type IntoIter = AstNodeListIterator<Language, AnyMStatement>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+impl IntoIterator for MModuleItemList {
+    type Item = AnyMStatement;
+    type IntoIter = AstNodeListIterator<Language, AnyMStatement>;
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }

@@ -390,6 +390,9 @@ pub(super) fn parse_block_impl(p: &mut MParser, block_kind: MSyntaxKind) -> Pars
     let m = p.start();
     p.bump(T!['{']);
 
+    let directives_list = p.start();
+    directives_list.complete(p, M_DIRECTIVE_LIST);
+
     let statement_list = p.start();
 
     parse_statements(p, true, statement_list);

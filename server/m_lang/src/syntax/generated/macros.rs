@@ -210,6 +210,11 @@ macro_rules! map_syntax_node {
                         unsafe { crate::syntax::MHashMapExpression::new_unchecked(node) };
                     $body
                 }
+                $crate::syntax::MSyntaxKind::M_HASH_MAP_EXPRESSION => {
+                    let $pattern =
+                        unsafe { $crate::syntax::MHashMapExpression::new_unchecked(node) };
+                    $body
+                }
                 crate::syntax::MSyntaxKind::M_IDENTIFIER_ASSIGNMENT => {
                     let $pattern =
                         unsafe { crate::syntax::MIdentifierAssignment::new_unchecked(node) };
@@ -260,6 +265,10 @@ macro_rules! map_syntax_node {
                 crate::syntax::MSyntaxKind::M_METHOD_CLASS_MEMBER => {
                     let $pattern =
                         unsafe { crate::syntax::MMethodClassMember::new_unchecked(node) };
+                    $body
+                }
+                $crate::syntax::MSyntaxKind::M_MODULE => {
+                    let $pattern = unsafe { $crate::syntax::MModule::new_unchecked(node) };
                     $body
                 }
                 crate::syntax::MSyntaxKind::M_NAME => {
@@ -474,6 +483,15 @@ macro_rules! map_syntax_node {
                 crate::syntax::MSyntaxKind::M_HASH_MAP_MEMBER_LIST => {
                     let $pattern =
                         unsafe { crate::syntax::MHashMapMemberList::new_unchecked(node) };
+                    $body
+                }
+                crate::syntax::MSyntaxKind::M_HASH_MAP_MEMBER_LIST => {
+                    let $pattern =
+                        unsafe { crate::syntax::MHashMapMemberList::new_unchecked(node) };
+                    $body
+                }
+                crate::syntax::MSyntaxKind::M_MODULE_ITEM_LIST => {
+                    let $pattern = unsafe { crate::syntax::MModuleItemList::new_unchecked(node) };
                     $body
                 }
                 crate::syntax::MSyntaxKind::M_OBJECT_MEMBER_LIST => {

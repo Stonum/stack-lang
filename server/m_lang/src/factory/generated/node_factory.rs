@@ -893,6 +893,20 @@ pub fn m_method_class_member(
         ],
     ))
 }
+pub fn m_module(
+    directives: MDirectiveList,
+    items: MModuleItemList,
+    eof_token: SyntaxToken,
+) -> MModule {
+    MModule::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_MODULE,
+        [
+            Some(SyntaxElement::Node(directives.into_syntax())),
+            Some(SyntaxElement::Node(items.into_syntax())),
+            Some(SyntaxElement::Token(eof_token)),
+        ],
+    ))
+}
 pub fn m_name(value_token: SyntaxToken) -> MName {
     MName::unwrap_cast(SyntaxNode::new_detached(
         MSyntaxKind::M_NAME,
@@ -1578,6 +1592,18 @@ where
                 Some(separators.next()?.into())
             }
         }),
+    ))
+}
+pub fn m_module_item_list<I>(items: I) -> MModuleItemList
+where
+    I: IntoIterator<Item = AnyMStatement>,
+    I::IntoIter: ExactSizeIterator,
+{
+    MModuleItemList::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_MODULE_ITEM_LIST,
+        items
+            .into_iter()
+            .map(|item| Some(item.into_syntax().into())),
     ))
 }
 pub fn m_object_member_list<I, S>(items: I, separators: S) -> MObjectMemberList

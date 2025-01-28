@@ -7,13 +7,14 @@ use super::syntax::ModuleKind;
 
 use biome_parser::prelude::*;
 
-// use super::stmt::parse_directives;
 use super::MParser;
 
 pub(crate) fn parse(p: &mut MParser) -> CompletedMarker {
     let m = p.start();
-    p.eat(UNICODE_BOM);
-    // p.eat(M_SHEBANG);
+
+    // !TODO - parse directives
+    let directives = p.start();
+    directives.complete(p, M_DIRECTIVE_LIST);
 
     let statement_list = p.start();
 

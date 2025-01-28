@@ -257,14 +257,18 @@ impl<T> From<Parse<T>> for AnyParse {
     }
 }
 
-pub fn parse(text: &str) -> Parse<AnyMRoot> {
+pub fn parse(text: &str, source_type: MFileSource) -> Parse<AnyMRoot> {
     let mut cache = NodeCache::default();
-    parse_m_with_cache(text, &mut cache)
+    parse_m_with_cache(text, source_type, &mut cache)
 }
 
-fn parse_m_with_cache(text: &str, cache: &mut NodeCache) -> Parse<AnyMRoot> {
+fn parse_m_with_cache(
+    text: &str,
+    source_type: MFileSource,
+    cache: &mut NodeCache,
+) -> Parse<AnyMRoot> {
     tracing::debug_span!("parse").in_scope(move || {
-        let (events, errors, tokens) = parse_common(text);
+        let (events, errors, tokens) = parse_common(text, source_type);
         let mut tree_sink = MLosslessTreeSink::with_cache(text, &tokens, cache);
         biome_parser::event::process(&mut tree_sink, events, errors);
         let (green, parse_errors) = tree_sink.finish();
@@ -272,8 +276,11 @@ fn parse_m_with_cache(text: &str, cache: &mut NodeCache) -> Parse<AnyMRoot> {
     })
 }
 
-fn parse_common(text: &str) -> (Vec<Event<MSyntaxKind>>, Vec<ParseDiagnostic>, Vec<Trivia>) {
-    let mut p = MParser::new(text, MFileSource::script());
+fn parse_common(
+    text: &str,
+    source_type: MFileSource,
+) -> (Vec<Event<MSyntaxKind>>, Vec<ParseDiagnostic>, Vec<Trivia>) {
+    let mut p = MParser::new(text, source_type);
     syntax_rules::program::parse(&mut p);
 
     let (events, errors, trivia) = p.finish();
