@@ -121,7 +121,7 @@ impl<'src> Lexer<'src> for MLexer<'src> {
         self.current_start
     }
 
-    fn next_token(&mut self, context: Self::LexContext) -> Self::Kind {
+    fn next_token(&mut self, _context: Self::LexContext) -> Self::Kind {
         self.current_start = TextSize::from(self.position as u32);
         self.current_flags = TokenFlags::empty();
 
@@ -1183,6 +1183,10 @@ impl<'src> MLexer<'src> {
     #[inline]
     fn resolve_eq(&mut self) -> MSyntaxKind {
         match self.next_byte() {
+            Some(b'=') => {
+                self.next_byte();
+                EQ2
+            }
             _ => T![=],
         }
     }

@@ -26,7 +26,7 @@ pub fn m_array_hole() -> MArrayHole {
     MArrayHole::unwrap_cast(SyntaxNode::new_detached(MSyntaxKind::M_ARRAY_HOLE, []))
 }
 pub fn m_assignment_expression(
-    left: MAssignmentPattern,
+    left: AnyMAssignment,
     operator_token_token: SyntaxToken,
     right: AnyMExpression,
 ) -> MAssignmentExpression {
@@ -37,12 +37,6 @@ pub fn m_assignment_expression(
             Some(SyntaxElement::Token(operator_token_token)),
             Some(SyntaxElement::Node(right.into_syntax())),
         ],
-    ))
-}
-pub fn m_assignment_pattern(any_m_assignment: AnyMAssignment) -> MAssignmentPattern {
-    MAssignmentPattern::unwrap_cast(SyntaxNode::new_detached(
-        MSyntaxKind::M_ASSIGNMENT_PATTERN,
-        [Some(SyntaxElement::Node(any_m_assignment.into_syntax()))],
     ))
 }
 pub fn m_bigint_literal_expression(value_token: SyntaxToken) -> MBigintLiteralExpression {
@@ -63,12 +57,6 @@ pub fn m_binary_expression(
             Some(SyntaxElement::Token(operator_token_token)),
             Some(SyntaxElement::Node(right.into_syntax())),
         ],
-    ))
-}
-pub fn m_binding_pattern(any_m_binding: AnyMBinding) -> MBindingPattern {
-    MBindingPattern::unwrap_cast(SyntaxNode::new_detached(
-        MSyntaxKind::M_BINDING_PATTERN,
-        [Some(SyntaxElement::Node(any_m_binding.into_syntax()))],
     ))
 }
 pub fn m_block_statement(
@@ -187,7 +175,7 @@ impl MCatchClauseBuilder {
 }
 pub fn m_catch_declaration(
     l_paren_token: SyntaxToken,
-    binding: MBindingPattern,
+    binding: AnyMBinding,
     r_paren_token: SyntaxToken,
 ) -> MCatchDeclaration {
     MCatchDeclaration::unwrap_cast(SyntaxNode::new_detached(
@@ -645,14 +633,14 @@ impl MForVariableDeclarationBuilder {
         ))
     }
 }
-pub fn m_formal_parameter(binding: MBindingPattern) -> MFormalParameterBuilder {
+pub fn m_formal_parameter(binding: AnyMBinding) -> MFormalParameterBuilder {
     MFormalParameterBuilder {
         binding,
         initializer: None,
     }
 }
 pub struct MFormalParameterBuilder {
-    binding: MBindingPattern,
+    binding: AnyMBinding,
     initializer: Option<MInitializerClause>,
 }
 impl MFormalParameterBuilder {
@@ -1056,10 +1044,10 @@ pub fn m_rest_parameter(dotdotdot_token: SyntaxToken) -> MRestParameterBuilder {
 }
 pub struct MRestParameterBuilder {
     dotdotdot_token: SyntaxToken,
-    binding: Option<MBindingPattern>,
+    binding: Option<AnyMBinding>,
 }
 impl MRestParameterBuilder {
-    pub fn with_binding(mut self, binding: MBindingPattern) -> Self {
+    pub fn with_binding(mut self, binding: AnyMBinding) -> Self {
         self.binding = Some(binding);
         self
     }
@@ -1416,14 +1404,14 @@ impl MVariableDeclarationClauseBuilder {
         ))
     }
 }
-pub fn m_variable_declarator(id: MBindingPattern) -> MVariableDeclaratorBuilder {
+pub fn m_variable_declarator(id: AnyMBinding) -> MVariableDeclaratorBuilder {
     MVariableDeclaratorBuilder {
         id,
         initializer: None,
     }
 }
 pub struct MVariableDeclaratorBuilder {
-    id: MBindingPattern,
+    id: AnyMBinding,
     initializer: Option<MInitializerClause>,
 }
 impl MVariableDeclaratorBuilder {

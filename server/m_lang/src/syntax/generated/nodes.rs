@@ -126,7 +126,7 @@ impl MAssignmentExpression {
             right: self.right(),
         }
     }
-    pub fn left(&self) -> SyntaxResult<MAssignmentPattern> {
+    pub fn left(&self) -> SyntaxResult<AnyMAssignment> {
         support::required_node(&self.syntax, 0usize)
     }
     pub fn operator_token(&self) -> SyntaxResult<SyntaxToken> {
@@ -146,44 +146,9 @@ impl Serialize for MAssignmentExpression {
 }
 #[derive(Serialize)]
 pub struct MAssignmentExpressionFields {
-    pub left: SyntaxResult<MAssignmentPattern>,
+    pub left: SyntaxResult<AnyMAssignment>,
     pub operator_token: SyntaxResult<SyntaxToken>,
     pub right: SyntaxResult<AnyMExpression>,
-}
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub struct MAssignmentPattern {
-    pub(crate) syntax: SyntaxNode,
-}
-impl MAssignmentPattern {
-    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
-    #[doc = r""]
-    #[doc = r" # Safety"]
-    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
-    #[doc = r" or a match on [SyntaxNode::kind]"]
-    #[inline]
-    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
-        Self { syntax }
-    }
-    pub fn as_fields(&self) -> MAssignmentPatternFields {
-        MAssignmentPatternFields {
-            any_m_assignment: self.any_m_assignment(),
-        }
-    }
-    pub fn any_m_assignment(&self) -> SyntaxResult<AnyMAssignment> {
-        support::required_node(&self.syntax, 0usize)
-    }
-}
-impl Serialize for MAssignmentPattern {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.as_fields().serialize(serializer)
-    }
-}
-#[derive(Serialize)]
-pub struct MAssignmentPatternFields {
-    pub any_m_assignment: SyntaxResult<AnyMAssignment>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MBigintLiteralExpression {
@@ -264,41 +229,6 @@ pub struct MBinaryExpressionFields {
     pub left: SyntaxResult<AnyMExpression>,
     pub operator_token: SyntaxResult<SyntaxToken>,
     pub right: SyntaxResult<AnyMExpression>,
-}
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub struct MBindingPattern {
-    pub(crate) syntax: SyntaxNode,
-}
-impl MBindingPattern {
-    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
-    #[doc = r""]
-    #[doc = r" # Safety"]
-    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
-    #[doc = r" or a match on [SyntaxNode::kind]"]
-    #[inline]
-    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
-        Self { syntax }
-    }
-    pub fn as_fields(&self) -> MBindingPatternFields {
-        MBindingPatternFields {
-            any_m_binding: self.any_m_binding(),
-        }
-    }
-    pub fn any_m_binding(&self) -> SyntaxResult<AnyMBinding> {
-        support::required_node(&self.syntax, 0usize)
-    }
-}
-impl Serialize for MBindingPattern {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.as_fields().serialize(serializer)
-    }
-}
-#[derive(Serialize)]
-pub struct MBindingPatternFields {
-    pub any_m_binding: SyntaxResult<AnyMBinding>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MBlockStatement {
@@ -624,7 +554,7 @@ impl MCatchDeclaration {
     pub fn l_paren_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 0usize)
     }
-    pub fn binding(&self) -> SyntaxResult<MBindingPattern> {
+    pub fn binding(&self) -> SyntaxResult<AnyMBinding> {
         support::required_node(&self.syntax, 1usize)
     }
     pub fn r_paren_token(&self) -> SyntaxResult<SyntaxToken> {
@@ -642,7 +572,7 @@ impl Serialize for MCatchDeclaration {
 #[derive(Serialize)]
 pub struct MCatchDeclarationFields {
     pub l_paren_token: SyntaxResult<SyntaxToken>,
-    pub binding: SyntaxResult<MBindingPattern>,
+    pub binding: SyntaxResult<AnyMBinding>,
     pub r_paren_token: SyntaxResult<SyntaxToken>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -1730,7 +1660,7 @@ impl MFormalParameter {
             initializer: self.initializer(),
         }
     }
-    pub fn binding(&self) -> SyntaxResult<MBindingPattern> {
+    pub fn binding(&self) -> SyntaxResult<AnyMBinding> {
         support::required_node(&self.syntax, 0usize)
     }
     pub fn initializer(&self) -> Option<MInitializerClause> {
@@ -1747,7 +1677,7 @@ impl Serialize for MFormalParameter {
 }
 #[derive(Serialize)]
 pub struct MFormalParameterFields {
-    pub binding: SyntaxResult<MBindingPattern>,
+    pub binding: SyntaxResult<AnyMBinding>,
     pub initializer: Option<MInitializerClause>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -3006,7 +2936,7 @@ impl MRestParameter {
     pub fn dotdotdot_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 0usize)
     }
-    pub fn binding(&self) -> Option<MBindingPattern> {
+    pub fn binding(&self) -> Option<AnyMBinding> {
         support::node(&self.syntax, 1usize)
     }
 }
@@ -3021,7 +2951,7 @@ impl Serialize for MRestParameter {
 #[derive(Serialize)]
 pub struct MRestParameterFields {
     pub dotdotdot_token: SyntaxResult<SyntaxToken>,
-    pub binding: Option<MBindingPattern>,
+    pub binding: Option<AnyMBinding>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MReturnStatement {
@@ -3881,7 +3811,7 @@ impl MVariableDeclarator {
             initializer: self.initializer(),
         }
     }
-    pub fn id(&self) -> SyntaxResult<MBindingPattern> {
+    pub fn id(&self) -> SyntaxResult<AnyMBinding> {
         support::required_node(&self.syntax, 0usize)
     }
     pub fn initializer(&self) -> Option<MInitializerClause> {
@@ -3898,7 +3828,7 @@ impl Serialize for MVariableDeclarator {
 }
 #[derive(Serialize)]
 pub struct MVariableDeclaratorFields {
-    pub id: SyntaxResult<MBindingPattern>,
+    pub id: SyntaxResult<AnyMBinding>,
     pub initializer: Option<MInitializerClause>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -4412,13 +4342,13 @@ impl AnyMExpression {
 }
 #[derive(Clone, PartialEq, Eq, Hash, Serialize)]
 pub enum AnyMForInOrOfInitializer {
-    MAssignmentPattern(MAssignmentPattern),
+    AnyMAssignment(AnyMAssignment),
     MForVariableDeclaration(MForVariableDeclaration),
 }
 impl AnyMForInOrOfInitializer {
-    pub fn as_m_assignment_pattern(&self) -> Option<&MAssignmentPattern> {
+    pub fn as_m_assignment_pattern(&self) -> Option<&AnyMAssignment> {
         match &self {
-            AnyMForInOrOfInitializer::MAssignmentPattern(item) => Some(item),
+            AnyMForInOrOfInitializer::AnyMAssignment(item) => Some(item),
             _ => None,
         }
     }
@@ -4951,47 +4881,6 @@ impl From<MAssignmentExpression> for SyntaxElement {
         n.syntax.into()
     }
 }
-impl AstNode for MAssignmentPattern {
-    type Language = Language;
-    const KIND_SET: SyntaxKindSet<Language> =
-        SyntaxKindSet::from_raw(RawSyntaxKind(M_ASSIGNMENT_PATTERN as u16));
-    fn can_cast(kind: SyntaxKind) -> bool {
-        kind == M_ASSIGNMENT_PATTERN
-    }
-    fn cast(syntax: SyntaxNode) -> Option<Self> {
-        if Self::can_cast(syntax.kind()) {
-            Some(Self { syntax })
-        } else {
-            None
-        }
-    }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.syntax
-    }
-    fn into_syntax(self) -> SyntaxNode {
-        self.syntax
-    }
-}
-impl std::fmt::Debug for MAssignmentPattern {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("MAssignmentPattern")
-            .field(
-                "any_m_assignment",
-                &support::DebugSyntaxResult(self.any_m_assignment()),
-            )
-            .finish()
-    }
-}
-impl From<MAssignmentPattern> for SyntaxNode {
-    fn from(n: MAssignmentPattern) -> SyntaxNode {
-        n.syntax
-    }
-}
-impl From<MAssignmentPattern> for SyntaxElement {
-    fn from(n: MAssignmentPattern) -> SyntaxElement {
-        n.syntax.into()
-    }
-}
 impl AstNode for MBigintLiteralExpression {
     type Language = Language;
     const KIND_SET: SyntaxKindSet<Language> =
@@ -5073,47 +4962,6 @@ impl From<MBinaryExpression> for SyntaxNode {
 }
 impl From<MBinaryExpression> for SyntaxElement {
     fn from(n: MBinaryExpression) -> SyntaxElement {
-        n.syntax.into()
-    }
-}
-impl AstNode for MBindingPattern {
-    type Language = Language;
-    const KIND_SET: SyntaxKindSet<Language> =
-        SyntaxKindSet::from_raw(RawSyntaxKind(M_BINDING_PATTERN as u16));
-    fn can_cast(kind: SyntaxKind) -> bool {
-        kind == M_BINDING_PATTERN
-    }
-    fn cast(syntax: SyntaxNode) -> Option<Self> {
-        if Self::can_cast(syntax.kind()) {
-            Some(Self { syntax })
-        } else {
-            None
-        }
-    }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.syntax
-    }
-    fn into_syntax(self) -> SyntaxNode {
-        self.syntax
-    }
-}
-impl std::fmt::Debug for MBindingPattern {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("MBindingPattern")
-            .field(
-                "any_m_binding",
-                &support::DebugSyntaxResult(self.any_m_binding()),
-            )
-            .finish()
-    }
-}
-impl From<MBindingPattern> for SyntaxNode {
-    fn from(n: MBindingPattern) -> SyntaxNode {
-        n.syntax
-    }
-}
-impl From<MBindingPattern> for SyntaxElement {
-    fn from(n: MBindingPattern) -> SyntaxElement {
         n.syntax.into()
     }
 }
@@ -9888,11 +9736,6 @@ impl From<AnyMExpression> for SyntaxElement {
         node.into()
     }
 }
-impl From<MAssignmentPattern> for AnyMForInOrOfInitializer {
-    fn from(node: MAssignmentPattern) -> AnyMForInOrOfInitializer {
-        AnyMForInOrOfInitializer::MAssignmentPattern(node)
-    }
-}
 impl From<MForVariableDeclaration> for AnyMForInOrOfInitializer {
     fn from(node: MForVariableDeclaration) -> AnyMForInOrOfInitializer {
         AnyMForInOrOfInitializer::MForVariableDeclaration(node)
@@ -9901,33 +9744,39 @@ impl From<MForVariableDeclaration> for AnyMForInOrOfInitializer {
 impl AstNode for AnyMForInOrOfInitializer {
     type Language = Language;
     const KIND_SET: SyntaxKindSet<Language> =
-        MAssignmentPattern::KIND_SET.union(MForVariableDeclaration::KIND_SET);
+        AnyMAssignment::KIND_SET.union(MForVariableDeclaration::KIND_SET);
     fn can_cast(kind: SyntaxKind) -> bool {
-        matches!(kind, M_ASSIGNMENT_PATTERN | M_FOR_VARIABLE_DECLARATION)
+        match kind {
+            M_FOR_VARIABLE_DECLARATION => true,
+            k if AnyMAssignment::can_cast(k) => true,
+            _ => false,
+        }
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         let res = match syntax.kind() {
-            M_ASSIGNMENT_PATTERN => {
-                AnyMForInOrOfInitializer::MAssignmentPattern(MAssignmentPattern { syntax })
-            }
             M_FOR_VARIABLE_DECLARATION => {
                 AnyMForInOrOfInitializer::MForVariableDeclaration(MForVariableDeclaration {
                     syntax,
                 })
             }
-            _ => return None,
+            _ => {
+                if let Some(any_m_assignment) = AnyMAssignment::cast(syntax) {
+                    return Some(AnyMForInOrOfInitializer::AnyMAssignment(any_m_assignment));
+                }
+                return None;
+            }
         };
         Some(res)
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            AnyMForInOrOfInitializer::MAssignmentPattern(it) => &it.syntax,
+            AnyMForInOrOfInitializer::AnyMAssignment(it) => it.syntax(),
             AnyMForInOrOfInitializer::MForVariableDeclaration(it) => &it.syntax,
         }
     }
     fn into_syntax(self) -> SyntaxNode {
         match self {
-            AnyMForInOrOfInitializer::MAssignmentPattern(it) => it.syntax,
+            AnyMForInOrOfInitializer::AnyMAssignment(it) => it.into_syntax(),
             AnyMForInOrOfInitializer::MForVariableDeclaration(it) => it.syntax,
         }
     }
@@ -9935,7 +9784,7 @@ impl AstNode for AnyMForInOrOfInitializer {
 impl std::fmt::Debug for AnyMForInOrOfInitializer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AnyMForInOrOfInitializer::MAssignmentPattern(it) => std::fmt::Debug::fmt(it, f),
+            AnyMForInOrOfInitializer::AnyMAssignment(it) => std::fmt::Debug::fmt(it, f),
             AnyMForInOrOfInitializer::MForVariableDeclaration(it) => std::fmt::Debug::fmt(it, f),
         }
     }
@@ -9943,7 +9792,7 @@ impl std::fmt::Debug for AnyMForInOrOfInitializer {
 impl From<AnyMForInOrOfInitializer> for SyntaxNode {
     fn from(n: AnyMForInOrOfInitializer) -> SyntaxNode {
         match n {
-            AnyMForInOrOfInitializer::MAssignmentPattern(it) => it.into(),
+            AnyMForInOrOfInitializer::AnyMAssignment(it) => it.into(),
             AnyMForInOrOfInitializer::MForVariableDeclaration(it) => it.into(),
         }
     }
@@ -11155,22 +11004,12 @@ impl std::fmt::Display for MAssignmentExpression {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
-impl std::fmt::Display for MAssignmentPattern {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(self.syntax(), f)
-    }
-}
 impl std::fmt::Display for MBigintLiteralExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
 impl std::fmt::Display for MBinaryExpression {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(self.syntax(), f)
-    }
-}
-impl std::fmt::Display for MBindingPattern {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

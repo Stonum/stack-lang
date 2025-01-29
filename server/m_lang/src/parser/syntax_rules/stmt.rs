@@ -87,7 +87,7 @@ pub(crate) fn optional_semi(p: &mut MParser) -> bool {
     is_semi(p, 0)
 }
 
-pub(super) fn is_semi(p: &mut MParser, offset: usize) -> bool {
+pub(crate) fn is_semi(p: &mut MParser, offset: usize) -> bool {
     p.nth_at(offset, T![;])
         || p.nth_at(offset, EOF)
         || p.nth_at(offset, T!['}'])
@@ -582,22 +582,22 @@ pub(crate) fn parse_variable_statement(p: &mut MParser, context: StatementContex
 
         let mut statement = m.complete(p, M_VARIABLE_STATEMENT);
 
-        if !is_var && context.is_single_statement() {
-            // test js hoisted_declaration_in_single_statement_context
-            // if (true) var a;
-            //
-            // test_err js lexical_declaration_in_single_statement_context
-            // if (true) let a;
-            // while (true) const b = 5;
-            p.error(
-                p.err_builder(
-                    "Lexical declaration cannot appear in a single-statement context",
-                    statement.range(p),
-                )
-                .with_hint("Wrap this declaration in a block statement"),
-            );
-            statement.change_to_bogus(p);
-        }
+        // if !is_var && context.is_single_statement() {
+        //     // test js hoisted_declaration_in_single_statement_context
+        //     // if (true) var a;
+        //     //
+        //     // test_err js lexical_declaration_in_single_statement_context
+        //     // if (true) let a;
+        //     // while (true) const b = 5;
+        //     p.error(
+        //         p.err_builder(
+        //             "Lexical declaration cannot appear in a single-statement context",
+        //             statement.range(p),
+        //         )
+        //         .with_hint("Wrap this declaration in a block statement"),
+        //     );
+        //     statement.change_to_bogus(p);
+        // }
 
         statement
     })

@@ -11,6 +11,7 @@ use super::MParser;
 
 pub(crate) fn parse(p: &mut MParser) -> CompletedMarker {
     let m = p.start();
+    // p.eat(UNICODE_BOM);
 
     // !TODO - parse directives
     let directives = p.start();

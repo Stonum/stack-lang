@@ -76,7 +76,7 @@ impl SyntaxFactory for MSyntaxFactory {
                 let mut slots: RawNodeSlots<3usize> = RawNodeSlots::default();
                 let mut current_element = elements.next();
                 if let Some(element) = &current_element {
-                    if MAssignmentPattern::can_cast(element.kind()) {
+                    if AnyMAssignment::can_cast(element.kind()) {
                         slots.mark_present();
                         current_element = elements.next();
                     }
@@ -106,25 +106,6 @@ impl SyntaxFactory for MSyntaxFactory {
                     );
                 }
                 slots.into_node(M_ASSIGNMENT_EXPRESSION, children)
-            }
-            M_ASSIGNMENT_PATTERN => {
-                let mut elements = (&children).into_iter();
-                let mut slots: RawNodeSlots<1usize> = RawNodeSlots::default();
-                let mut current_element = elements.next();
-                if let Some(element) = &current_element {
-                    if AnyMAssignment::can_cast(element.kind()) {
-                        slots.mark_present();
-                        current_element = elements.next();
-                    }
-                }
-                slots.next_slot();
-                if current_element.is_some() {
-                    return RawSyntaxNode::new(
-                        M_ASSIGNMENT_PATTERN.to_bogus(),
-                        children.into_iter().map(Some),
-                    );
-                }
-                slots.into_node(M_ASSIGNMENT_PATTERN, children)
             }
             M_BIGINT_LITERAL_EXPRESSION => {
                 let mut elements = (&children).into_iter();
@@ -192,25 +173,6 @@ impl SyntaxFactory for MSyntaxFactory {
                     );
                 }
                 slots.into_node(M_BINARY_EXPRESSION, children)
-            }
-            M_BINDING_PATTERN => {
-                let mut elements = (&children).into_iter();
-                let mut slots: RawNodeSlots<1usize> = RawNodeSlots::default();
-                let mut current_element = elements.next();
-                if let Some(element) = &current_element {
-                    if AnyMBinding::can_cast(element.kind()) {
-                        slots.mark_present();
-                        current_element = elements.next();
-                    }
-                }
-                slots.next_slot();
-                if current_element.is_some() {
-                    return RawSyntaxNode::new(
-                        M_BINDING_PATTERN.to_bogus(),
-                        children.into_iter().map(Some),
-                    );
-                }
-                slots.into_node(M_BINDING_PATTERN, children)
             }
             M_BLOCK_STATEMENT => {
                 let mut elements = (&children).into_iter();
@@ -434,7 +396,7 @@ impl SyntaxFactory for MSyntaxFactory {
                 }
                 slots.next_slot();
                 if let Some(element) = &current_element {
-                    if MBindingPattern::can_cast(element.kind()) {
+                    if AnyMBinding::can_cast(element.kind()) {
                         slots.mark_present();
                         current_element = elements.next();
                     }
@@ -1258,7 +1220,7 @@ impl SyntaxFactory for MSyntaxFactory {
                 let mut slots: RawNodeSlots<2usize> = RawNodeSlots::default();
                 let mut current_element = elements.next();
                 if let Some(element) = &current_element {
-                    if MBindingPattern::can_cast(element.kind()) {
+                    if AnyMBinding::can_cast(element.kind()) {
                         slots.mark_present();
                         current_element = elements.next();
                     }
@@ -2144,7 +2106,7 @@ impl SyntaxFactory for MSyntaxFactory {
                 }
                 slots.next_slot();
                 if let Some(element) = &current_element {
-                    if MBindingPattern::can_cast(element.kind()) {
+                    if AnyMBinding::can_cast(element.kind()) {
                         slots.mark_present();
                         current_element = elements.next();
                     }
@@ -2766,7 +2728,7 @@ impl SyntaxFactory for MSyntaxFactory {
                 let mut slots: RawNodeSlots<2usize> = RawNodeSlots::default();
                 let mut current_element = elements.next();
                 if let Some(element) = &current_element {
-                    if MBindingPattern::can_cast(element.kind()) {
+                    if AnyMBinding::can_cast(element.kind()) {
                         slots.mark_present();
                         current_element = elements.next();
                     }
