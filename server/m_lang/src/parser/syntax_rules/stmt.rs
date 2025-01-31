@@ -390,8 +390,10 @@ pub(super) fn parse_block_impl(p: &mut MParser, block_kind: MSyntaxKind) -> Pars
     let m = p.start();
     p.bump(T!['{']);
 
-    let directives_list = p.start();
-    directives_list.complete(p, M_DIRECTIVE_LIST);
+    if block_kind == M_FUNCTION_BODY {
+        let directives_list = p.start();
+        directives_list.complete(p, M_DIRECTIVE_LIST);
+    }
 
     let statement_list = p.start();
 
@@ -972,7 +974,7 @@ fn parse_for_statement(p: &mut MParser) -> ParsedSyntax {
     })
     .or_add_diagnostic(p, expected_statement);
 
-    let mut completed = m.complete(p, kind);
+    let completed = m.complete(p, kind);
 
     Present(completed)
 }
