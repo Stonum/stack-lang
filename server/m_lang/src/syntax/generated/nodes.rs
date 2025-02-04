@@ -1396,6 +1396,71 @@ pub struct MFinallyClauseFields {
     pub body: SyntaxResult<MBlockStatement>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
+pub struct MForAllInStatement {
+    pub(crate) syntax: SyntaxNode,
+}
+impl MForAllInStatement {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> MForAllInStatementFields {
+        MForAllInStatementFields {
+            forall_token: self.forall_token(),
+            l_paren_token: self.l_paren_token(),
+            initializer: self.initializer(),
+            in_token: self.in_token(),
+            expression: self.expression(),
+            r_paren_token: self.r_paren_token(),
+            body: self.body(),
+        }
+    }
+    pub fn forall_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 0usize)
+    }
+    pub fn l_paren_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 1usize)
+    }
+    pub fn initializer(&self) -> SyntaxResult<AnyMForInInitializer> {
+        support::required_node(&self.syntax, 2usize)
+    }
+    pub fn in_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 3usize)
+    }
+    pub fn expression(&self) -> SyntaxResult<AnyMExpression> {
+        support::required_node(&self.syntax, 4usize)
+    }
+    pub fn r_paren_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 5usize)
+    }
+    pub fn body(&self) -> SyntaxResult<AnyMStatement> {
+        support::required_node(&self.syntax, 6usize)
+    }
+}
+impl Serialize for MForAllInStatement {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct MForAllInStatementFields {
+    pub forall_token: SyntaxResult<SyntaxToken>,
+    pub l_paren_token: SyntaxResult<SyntaxToken>,
+    pub initializer: SyntaxResult<AnyMForInInitializer>,
+    pub in_token: SyntaxResult<SyntaxToken>,
+    pub expression: SyntaxResult<AnyMExpression>,
+    pub r_paren_token: SyntaxResult<SyntaxToken>,
+    pub body: SyntaxResult<AnyMStatement>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MForAllStatement {
     pub(crate) syntax: SyntaxNode,
 }
@@ -1432,7 +1497,7 @@ impl MForAllStatement {
     pub fn in_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 3usize)
     }
-    pub fn initializer(&self) -> SyntaxResult<AnyMForInOrOfInitializer> {
+    pub fn initializer(&self) -> SyntaxResult<AnyMForInInitializer> {
         support::required_node(&self.syntax, 4usize)
     }
     pub fn r_paren_token(&self) -> SyntaxResult<SyntaxToken> {
@@ -1456,72 +1521,7 @@ pub struct MForAllStatementFields {
     pub l_paren_token: SyntaxResult<SyntaxToken>,
     pub iterator: SyntaxResult<AnyMExpression>,
     pub in_token: SyntaxResult<SyntaxToken>,
-    pub initializer: SyntaxResult<AnyMForInOrOfInitializer>,
-    pub r_paren_token: SyntaxResult<SyntaxToken>,
-    pub body: SyntaxResult<AnyMStatement>,
-}
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub struct MForInStatement {
-    pub(crate) syntax: SyntaxNode,
-}
-impl MForInStatement {
-    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
-    #[doc = r""]
-    #[doc = r" # Safety"]
-    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
-    #[doc = r" or a match on [SyntaxNode::kind]"]
-    #[inline]
-    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
-        Self { syntax }
-    }
-    pub fn as_fields(&self) -> MForInStatementFields {
-        MForInStatementFields {
-            forall_token: self.forall_token(),
-            l_paren_token: self.l_paren_token(),
-            initializer: self.initializer(),
-            in_token: self.in_token(),
-            expression: self.expression(),
-            r_paren_token: self.r_paren_token(),
-            body: self.body(),
-        }
-    }
-    pub fn forall_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 0usize)
-    }
-    pub fn l_paren_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 1usize)
-    }
-    pub fn initializer(&self) -> SyntaxResult<AnyMForInOrOfInitializer> {
-        support::required_node(&self.syntax, 2usize)
-    }
-    pub fn in_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 3usize)
-    }
-    pub fn expression(&self) -> SyntaxResult<AnyMExpression> {
-        support::required_node(&self.syntax, 4usize)
-    }
-    pub fn r_paren_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 5usize)
-    }
-    pub fn body(&self) -> SyntaxResult<AnyMStatement> {
-        support::required_node(&self.syntax, 6usize)
-    }
-}
-impl Serialize for MForInStatement {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.as_fields().serialize(serializer)
-    }
-}
-#[derive(Serialize)]
-pub struct MForInStatementFields {
-    pub forall_token: SyntaxResult<SyntaxToken>,
-    pub l_paren_token: SyntaxResult<SyntaxToken>,
-    pub initializer: SyntaxResult<AnyMForInOrOfInitializer>,
-    pub in_token: SyntaxResult<SyntaxToken>,
-    pub expression: SyntaxResult<AnyMExpression>,
+    pub initializer: SyntaxResult<AnyMForInInitializer>,
     pub r_paren_token: SyntaxResult<SyntaxToken>,
     pub body: SyntaxResult<AnyMStatement>,
 }
@@ -4341,20 +4341,20 @@ impl AnyMExpression {
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, Serialize)]
-pub enum AnyMForInOrOfInitializer {
+pub enum AnyMForInInitializer {
     AnyMAssignment(AnyMAssignment),
     MForVariableDeclaration(MForVariableDeclaration),
 }
-impl AnyMForInOrOfInitializer {
+impl AnyMForInInitializer {
     pub fn as_m_assignment_pattern(&self) -> Option<&AnyMAssignment> {
         match &self {
-            AnyMForInOrOfInitializer::AnyMAssignment(item) => Some(item),
+            AnyMForInInitializer::AnyMAssignment(item) => Some(item),
             _ => None,
         }
     }
     pub fn as_m_for_variable_declaration(&self) -> Option<&MForVariableDeclaration> {
         match &self {
-            AnyMForInOrOfInitializer::MForVariableDeclaration(item) => Some(item),
+            AnyMForInInitializer::MForVariableDeclaration(item) => Some(item),
             _ => None,
         }
     }
@@ -4602,7 +4602,7 @@ pub enum AnyMStatement {
     MEmptyStatement(MEmptyStatement),
     MExpressionStatement(MExpressionStatement),
     MForAllStatement(MForAllStatement),
-    MForInStatement(MForInStatement),
+    MForAllInStatement(MForAllInStatement),
     MForStatement(MForStatement),
     MFunctionDeclaration(MFunctionDeclaration),
     MIfStatement(MIfStatement),
@@ -4663,15 +4663,15 @@ impl AnyMStatement {
             _ => None,
         }
     }
-    pub fn as_m_for_all_statement(&self) -> Option<&MForAllStatement> {
+    pub fn as_m_for_all_in_statement(&self) -> Option<&MForAllInStatement> {
         match &self {
-            AnyMStatement::MForAllStatement(item) => Some(item),
+            AnyMStatement::MForAllInStatement(item) => Some(item),
             _ => None,
         }
     }
-    pub fn as_m_for_in_statement(&self) -> Option<&MForInStatement> {
+    pub fn as_m_for_all_statement(&self) -> Option<&MForAllStatement> {
         match &self {
-            AnyMStatement::MForInStatement(item) => Some(item),
+            AnyMStatement::MForAllStatement(item) => Some(item),
             _ => None,
         }
     }
@@ -6158,6 +6158,62 @@ impl From<MFinallyClause> for SyntaxElement {
         n.syntax.into()
     }
 }
+impl AstNode for MForAllInStatement {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_FOR_ALL_IN_STATEMENT as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_FOR_ALL_IN_STATEMENT
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for MForAllInStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MForAllInStatement")
+            .field(
+                "forall_token",
+                &support::DebugSyntaxResult(self.forall_token()),
+            )
+            .field(
+                "l_paren_token",
+                &support::DebugSyntaxResult(self.l_paren_token()),
+            )
+            .field(
+                "initializer",
+                &support::DebugSyntaxResult(self.initializer()),
+            )
+            .field("in_token", &support::DebugSyntaxResult(self.in_token()))
+            .field("expression", &support::DebugSyntaxResult(self.expression()))
+            .field(
+                "r_paren_token",
+                &support::DebugSyntaxResult(self.r_paren_token()),
+            )
+            .field("body", &support::DebugSyntaxResult(self.body()))
+            .finish()
+    }
+}
+impl From<MForAllInStatement> for SyntaxNode {
+    fn from(n: MForAllInStatement) -> SyntaxNode {
+        n.syntax
+    }
+}
+impl From<MForAllInStatement> for SyntaxElement {
+    fn from(n: MForAllInStatement) -> SyntaxElement {
+        n.syntax.into()
+    }
+}
 impl AstNode for MForAllStatement {
     type Language = Language;
     const KIND_SET: SyntaxKindSet<Language> =
@@ -6211,62 +6267,6 @@ impl From<MForAllStatement> for SyntaxNode {
 }
 impl From<MForAllStatement> for SyntaxElement {
     fn from(n: MForAllStatement) -> SyntaxElement {
-        n.syntax.into()
-    }
-}
-impl AstNode for MForInStatement {
-    type Language = Language;
-    const KIND_SET: SyntaxKindSet<Language> =
-        SyntaxKindSet::from_raw(RawSyntaxKind(M_FOR_IN_STATEMENT as u16));
-    fn can_cast(kind: SyntaxKind) -> bool {
-        kind == M_FOR_IN_STATEMENT
-    }
-    fn cast(syntax: SyntaxNode) -> Option<Self> {
-        if Self::can_cast(syntax.kind()) {
-            Some(Self { syntax })
-        } else {
-            None
-        }
-    }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.syntax
-    }
-    fn into_syntax(self) -> SyntaxNode {
-        self.syntax
-    }
-}
-impl std::fmt::Debug for MForInStatement {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("MForInStatement")
-            .field(
-                "forall_token",
-                &support::DebugSyntaxResult(self.forall_token()),
-            )
-            .field(
-                "l_paren_token",
-                &support::DebugSyntaxResult(self.l_paren_token()),
-            )
-            .field(
-                "initializer",
-                &support::DebugSyntaxResult(self.initializer()),
-            )
-            .field("in_token", &support::DebugSyntaxResult(self.in_token()))
-            .field("expression", &support::DebugSyntaxResult(self.expression()))
-            .field(
-                "r_paren_token",
-                &support::DebugSyntaxResult(self.r_paren_token()),
-            )
-            .field("body", &support::DebugSyntaxResult(self.body()))
-            .finish()
-    }
-}
-impl From<MForInStatement> for SyntaxNode {
-    fn from(n: MForInStatement) -> SyntaxNode {
-        n.syntax
-    }
-}
-impl From<MForInStatement> for SyntaxElement {
-    fn from(n: MForInStatement) -> SyntaxElement {
         n.syntax.into()
     }
 }
@@ -9736,12 +9736,12 @@ impl From<AnyMExpression> for SyntaxElement {
         node.into()
     }
 }
-impl From<MForVariableDeclaration> for AnyMForInOrOfInitializer {
-    fn from(node: MForVariableDeclaration) -> AnyMForInOrOfInitializer {
-        AnyMForInOrOfInitializer::MForVariableDeclaration(node)
+impl From<MForVariableDeclaration> for AnyMForInInitializer {
+    fn from(node: MForVariableDeclaration) -> AnyMForInInitializer {
+        AnyMForInInitializer::MForVariableDeclaration(node)
     }
 }
-impl AstNode for AnyMForInOrOfInitializer {
+impl AstNode for AnyMForInInitializer {
     type Language = Language;
     const KIND_SET: SyntaxKindSet<Language> =
         AnyMAssignment::KIND_SET.union(MForVariableDeclaration::KIND_SET);
@@ -9755,13 +9755,11 @@ impl AstNode for AnyMForInOrOfInitializer {
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         let res = match syntax.kind() {
             M_FOR_VARIABLE_DECLARATION => {
-                AnyMForInOrOfInitializer::MForVariableDeclaration(MForVariableDeclaration {
-                    syntax,
-                })
+                AnyMForInInitializer::MForVariableDeclaration(MForVariableDeclaration { syntax })
             }
             _ => {
                 if let Some(any_m_assignment) = AnyMAssignment::cast(syntax) {
-                    return Some(AnyMForInOrOfInitializer::AnyMAssignment(any_m_assignment));
+                    return Some(AnyMForInInitializer::AnyMAssignment(any_m_assignment));
                 }
                 return None;
             }
@@ -9770,35 +9768,35 @@ impl AstNode for AnyMForInOrOfInitializer {
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            AnyMForInOrOfInitializer::AnyMAssignment(it) => it.syntax(),
-            AnyMForInOrOfInitializer::MForVariableDeclaration(it) => &it.syntax,
+            AnyMForInInitializer::MForVariableDeclaration(it) => &it.syntax,
+            AnyMForInInitializer::AnyMAssignment(it) => it.syntax(),
         }
     }
     fn into_syntax(self) -> SyntaxNode {
         match self {
-            AnyMForInOrOfInitializer::AnyMAssignment(it) => it.into_syntax(),
-            AnyMForInOrOfInitializer::MForVariableDeclaration(it) => it.syntax,
+            AnyMForInInitializer::MForVariableDeclaration(it) => it.syntax,
+            AnyMForInInitializer::AnyMAssignment(it) => it.into_syntax(),
         }
     }
 }
-impl std::fmt::Debug for AnyMForInOrOfInitializer {
+impl std::fmt::Debug for AnyMForInInitializer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AnyMForInOrOfInitializer::AnyMAssignment(it) => std::fmt::Debug::fmt(it, f),
-            AnyMForInOrOfInitializer::MForVariableDeclaration(it) => std::fmt::Debug::fmt(it, f),
+            AnyMForInInitializer::AnyMAssignment(it) => std::fmt::Debug::fmt(it, f),
+            AnyMForInInitializer::MForVariableDeclaration(it) => std::fmt::Debug::fmt(it, f),
         }
     }
 }
-impl From<AnyMForInOrOfInitializer> for SyntaxNode {
-    fn from(n: AnyMForInOrOfInitializer) -> SyntaxNode {
+impl From<AnyMForInInitializer> for SyntaxNode {
+    fn from(n: AnyMForInInitializer) -> SyntaxNode {
         match n {
-            AnyMForInOrOfInitializer::AnyMAssignment(it) => it.into(),
-            AnyMForInOrOfInitializer::MForVariableDeclaration(it) => it.into(),
+            AnyMForInInitializer::AnyMAssignment(it) => it.into(),
+            AnyMForInInitializer::MForVariableDeclaration(it) => it.into(),
         }
     }
 }
-impl From<AnyMForInOrOfInitializer> for SyntaxElement {
-    fn from(n: AnyMForInOrOfInitializer) -> SyntaxElement {
+impl From<AnyMForInInitializer> for SyntaxElement {
+    fn from(n: AnyMForInInitializer) -> SyntaxElement {
         let node: SyntaxNode = n.into();
         node.into()
     }
@@ -10565,14 +10563,14 @@ impl From<MExpressionStatement> for AnyMStatement {
         AnyMStatement::MExpressionStatement(node)
     }
 }
+impl From<MForAllInStatement> for AnyMStatement {
+    fn from(node: MForAllInStatement) -> AnyMStatement {
+        AnyMStatement::MForAllInStatement(node)
+    }
+}
 impl From<MForAllStatement> for AnyMStatement {
     fn from(node: MForAllStatement) -> AnyMStatement {
         AnyMStatement::MForAllStatement(node)
-    }
-}
-impl From<MForInStatement> for AnyMStatement {
-    fn from(node: MForInStatement) -> AnyMStatement {
-        AnyMStatement::MForInStatement(node)
     }
 }
 impl From<MForStatement> for AnyMStatement {
@@ -10636,7 +10634,7 @@ impl AstNode for AnyMStatement {
         .union(MEmptyStatement::KIND_SET)
         .union(MExpressionStatement::KIND_SET)
         .union(MForAllStatement::KIND_SET)
-        .union(MForInStatement::KIND_SET)
+        .union(MForAllInStatement::KIND_SET)
         .union(MForStatement::KIND_SET)
         .union(MFunctionDeclaration::KIND_SET)
         .union(MIfStatement::KIND_SET)
@@ -10659,7 +10657,7 @@ impl AstNode for AnyMStatement {
                 | M_EMPTY_STATEMENT
                 | M_EXPRESSION_STATEMENT
                 | M_FOR_ALL_STATEMENT
-                | M_FOR_IN_STATEMENT
+                | M_FOR_ALL_IN_STATEMENT
                 | M_FOR_STATEMENT
                 | M_FUNCTION_DECLARATION
                 | M_IF_STATEMENT
@@ -10686,8 +10684,10 @@ impl AstNode for AnyMStatement {
             M_EXPRESSION_STATEMENT => {
                 AnyMStatement::MExpressionStatement(MExpressionStatement { syntax })
             }
+            M_FOR_ALL_IN_STATEMENT => {
+                AnyMStatement::MForAllInStatement(MForAllInStatement { syntax })
+            }
             M_FOR_ALL_STATEMENT => AnyMStatement::MForAllStatement(MForAllStatement { syntax }),
-            M_FOR_IN_STATEMENT => AnyMStatement::MForInStatement(MForInStatement { syntax }),
             M_FOR_STATEMENT => AnyMStatement::MForStatement(MForStatement { syntax }),
             M_FUNCTION_DECLARATION => {
                 AnyMStatement::MFunctionDeclaration(MFunctionDeclaration { syntax })
@@ -10719,7 +10719,7 @@ impl AstNode for AnyMStatement {
             AnyMStatement::MEmptyStatement(it) => &it.syntax,
             AnyMStatement::MExpressionStatement(it) => &it.syntax,
             AnyMStatement::MForAllStatement(it) => &it.syntax,
-            AnyMStatement::MForInStatement(it) => &it.syntax,
+            AnyMStatement::MForAllInStatement(it) => &it.syntax,
             AnyMStatement::MForStatement(it) => &it.syntax,
             AnyMStatement::MFunctionDeclaration(it) => &it.syntax,
             AnyMStatement::MIfStatement(it) => &it.syntax,
@@ -10743,7 +10743,7 @@ impl AstNode for AnyMStatement {
             AnyMStatement::MEmptyStatement(it) => it.syntax,
             AnyMStatement::MExpressionStatement(it) => it.syntax,
             AnyMStatement::MForAllStatement(it) => it.syntax,
-            AnyMStatement::MForInStatement(it) => it.syntax,
+            AnyMStatement::MForAllInStatement(it) => it.syntax,
             AnyMStatement::MForStatement(it) => it.syntax,
             AnyMStatement::MFunctionDeclaration(it) => it.syntax,
             AnyMStatement::MIfStatement(it) => it.syntax,
@@ -10769,7 +10769,7 @@ impl std::fmt::Debug for AnyMStatement {
             AnyMStatement::MEmptyStatement(it) => std::fmt::Debug::fmt(it, f),
             AnyMStatement::MExpressionStatement(it) => std::fmt::Debug::fmt(it, f),
             AnyMStatement::MForAllStatement(it) => std::fmt::Debug::fmt(it, f),
-            AnyMStatement::MForInStatement(it) => std::fmt::Debug::fmt(it, f),
+            AnyMStatement::MForAllInStatement(it) => std::fmt::Debug::fmt(it, f),
             AnyMStatement::MForStatement(it) => std::fmt::Debug::fmt(it, f),
             AnyMStatement::MFunctionDeclaration(it) => std::fmt::Debug::fmt(it, f),
             AnyMStatement::MIfStatement(it) => std::fmt::Debug::fmt(it, f),
@@ -10795,7 +10795,7 @@ impl From<AnyMStatement> for SyntaxNode {
             AnyMStatement::MEmptyStatement(it) => it.into(),
             AnyMStatement::MExpressionStatement(it) => it.into(),
             AnyMStatement::MForAllStatement(it) => it.into(),
-            AnyMStatement::MForInStatement(it) => it.into(),
+            AnyMStatement::MForAllInStatement(it) => it.into(),
             AnyMStatement::MForStatement(it) => it.into(),
             AnyMStatement::MFunctionDeclaration(it) => it.into(),
             AnyMStatement::MIfStatement(it) => it.into(),
@@ -10924,7 +10924,7 @@ impl std::fmt::Display for AnyMExpression {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
-impl std::fmt::Display for AnyMForInOrOfInitializer {
+impl std::fmt::Display for AnyMForInInitializer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
@@ -11149,12 +11149,12 @@ impl std::fmt::Display for MFinallyClause {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
-impl std::fmt::Display for MForAllStatement {
+impl std::fmt::Display for MForAllInStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
-impl std::fmt::Display for MForInStatement {
+impl std::fmt::Display for MForAllStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

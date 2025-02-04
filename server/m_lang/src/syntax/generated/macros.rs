@@ -160,8 +160,9 @@ macro_rules! map_syntax_node {
                     let $pattern = unsafe { crate::syntax::MForAllStatement::new_unchecked(node) };
                     $body
                 }
-                crate::syntax::MSyntaxKind::M_FOR_IN_STATEMENT => {
-                    let $pattern = unsafe { crate::syntax::MForInStatement::new_unchecked(node) };
+                crate::syntax::MSyntaxKind::M_FOR_ALL_IN_STATEMENT => {
+                    let $pattern =
+                        unsafe { crate::syntax::MForAllInStatement::new_unchecked(node) };
                     $body
                 }
                 crate::syntax::MSyntaxKind::M_FOR_STATEMENT => {

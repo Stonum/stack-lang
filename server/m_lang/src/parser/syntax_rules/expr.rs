@@ -433,6 +433,10 @@ fn parse_binary_or_logical_expression_recursive(
         // 1 >> /* a comment */ > 2;
         let op = p.re_lex(MReLexContext::BinaryOperator);
 
+        if op == T![in] && !context.is_in_included() {
+            break;
+        }
+
         let new_precedence = match OperatorPrecedence::try_from_binary_operator(op) {
             Some(precedence) => precedence,
             // Not a binary operator
@@ -451,7 +455,7 @@ fn parse_binary_or_logical_expression_recursive(
 
         let op_range = p.cur_range();
 
-        let mut is_bogus = false;
+        let is_bogus = false;
         if let Present(left) = &mut left {
         } else {
             let err = p
@@ -1002,7 +1006,7 @@ pub(super) fn parse_identifier(p: &mut MParser, kind: MSyntaxKind) -> ParsedSynt
 
     let m = p.start();
     p.bump_remap(T![ident]);
-    let mut identifier = m.complete(p, kind);
+    let identifier = m.complete(p, kind);
 
     Present(identifier)
 }

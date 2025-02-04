@@ -16,9 +16,10 @@ fn test_parse_function_declaration() {
 fn test_parse_class_declaration() {
     let res = parse(
         r#"
+            # TODO class a extends b {}
             class a {
                 constructor() {
-                    var _b = 1;
+                    var _b = 1; # inline comment
                 }
 
                 get b() { return this._b; }
@@ -59,14 +60,38 @@ fn test_parse_expressions() {
 }
 
 #[test]
+fn test_parse_loop() {
+    let res = parse(
+        r#"
+            for (var i = 0; i < 10; i++) {
+                println(i);
+            }
+            forall (var x in @[1,2,3]) {
+                println(x);
+            }
+            while(x < 10) {
+                println(x);
+                x++;
+            }
+        "#,
+        MFileSource::script(),
+    );
+
+    assert!(res.try_tree().is_some());
+}
+
+#[test]
 fn test_parse() {
     let res = parse(
         r#"
-            x == 5 && y == 10
+            forall (value in @[1,2,3]) {
+                println(x);
+            }
         "#,
         MFileSource::script(),
     );
 
     dbg!(&res.syntax());
+    dbg!(&res.diagnostics());
     assert!(res.try_tree().is_some());
 }

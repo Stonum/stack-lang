@@ -1067,6 +1067,7 @@ fn keywords() {
         "false",
         "finally",
         "for",
+        "forall",
         "func",
         "if",
         "in",

@@ -14,7 +14,7 @@ impl SyntaxFactory for MSyntaxFactory {
         kind: Self::Kind,
         children: ParsedChildren<Self::Kind>,
     ) -> RawSyntaxNode<Self::Kind> {
-        match kind {
+        match dbg!(kind) {
             M_BOGUS | M_BOGUS_ASSIGNMENT | M_BOGUS_BINDING | M_BOGUS_EXPRESSION
             | M_BOGUS_MEMBER | M_BOGUS_PARAMETER | M_BOGUS_STATEMENT => {
                 RawSyntaxNode::new(kind, children.into_iter().map(Some))
@@ -992,6 +992,67 @@ impl SyntaxFactory for MSyntaxFactory {
                 }
                 slots.into_node(M_FINALLY_CLAUSE, children)
             }
+            M_FOR_ALL_IN_STATEMENT => {
+                let mut elements = (&children).into_iter();
+                let mut slots: RawNodeSlots<7usize> = RawNodeSlots::default();
+                let mut current_element = elements.next();
+                if let Some(element) = &current_element {
+                    if element.kind() == T![forall] {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if let Some(element) = &current_element {
+                    if element.kind() == T!['('] {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if let Some(element) = &current_element {
+                    if AnyMForInInitializer::can_cast(element.kind()) {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if let Some(element) = &current_element {
+                    if element.kind() == T![in] {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if let Some(element) = &current_element {
+                    if AnyMExpression::can_cast(element.kind()) {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if let Some(element) = &current_element {
+                    if element.kind() == T![')'] {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if let Some(element) = &current_element {
+                    if AnyMStatement::can_cast(element.kind()) {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if current_element.is_some() {
+                    return RawSyntaxNode::new(
+                        M_FOR_ALL_IN_STATEMENT.to_bogus(),
+                        children.into_iter().map(Some),
+                    );
+                }
+                slots.into_node(M_FOR_ALL_IN_STATEMENT, children)
+            }
             M_FOR_ALL_STATEMENT => {
                 let mut elements = (&children).into_iter();
                 let mut slots: RawNodeSlots<7usize> = RawNodeSlots::default();
@@ -1025,7 +1086,7 @@ impl SyntaxFactory for MSyntaxFactory {
                 }
                 slots.next_slot();
                 if let Some(element) = &current_element {
-                    if AnyMForInOrOfInitializer::can_cast(element.kind()) {
+                    if AnyMForInInitializer::can_cast(element.kind()) {
                         slots.mark_present();
                         current_element = elements.next();
                     }
@@ -1052,67 +1113,6 @@ impl SyntaxFactory for MSyntaxFactory {
                     );
                 }
                 slots.into_node(M_FOR_ALL_STATEMENT, children)
-            }
-            M_FOR_IN_STATEMENT => {
-                let mut elements = (&children).into_iter();
-                let mut slots: RawNodeSlots<7usize> = RawNodeSlots::default();
-                let mut current_element = elements.next();
-                if let Some(element) = &current_element {
-                    if element.kind() == T![forall] {
-                        slots.mark_present();
-                        current_element = elements.next();
-                    }
-                }
-                slots.next_slot();
-                if let Some(element) = &current_element {
-                    if element.kind() == T!['('] {
-                        slots.mark_present();
-                        current_element = elements.next();
-                    }
-                }
-                slots.next_slot();
-                if let Some(element) = &current_element {
-                    if AnyMForInOrOfInitializer::can_cast(element.kind()) {
-                        slots.mark_present();
-                        current_element = elements.next();
-                    }
-                }
-                slots.next_slot();
-                if let Some(element) = &current_element {
-                    if element.kind() == T![in] {
-                        slots.mark_present();
-                        current_element = elements.next();
-                    }
-                }
-                slots.next_slot();
-                if let Some(element) = &current_element {
-                    if AnyMExpression::can_cast(element.kind()) {
-                        slots.mark_present();
-                        current_element = elements.next();
-                    }
-                }
-                slots.next_slot();
-                if let Some(element) = &current_element {
-                    if element.kind() == T![')'] {
-                        slots.mark_present();
-                        current_element = elements.next();
-                    }
-                }
-                slots.next_slot();
-                if let Some(element) = &current_element {
-                    if AnyMStatement::can_cast(element.kind()) {
-                        slots.mark_present();
-                        current_element = elements.next();
-                    }
-                }
-                slots.next_slot();
-                if current_element.is_some() {
-                    return RawSyntaxNode::new(
-                        M_FOR_IN_STATEMENT.to_bogus(),
-                        children.into_iter().map(Some),
-                    );
-                }
-                slots.into_node(M_FOR_IN_STATEMENT, children)
             }
             M_FOR_STATEMENT => {
                 let mut elements = (&children).into_iter();

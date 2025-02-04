@@ -783,6 +783,7 @@ impl<'src> MLexer<'src> {
                 "false" | "ложь" => FALSE_KW,
                 "finally" | "заключение" => FINALLY_KW,
                 "for" | "для" => FOR_KW,
+                "forall" | "длявсех" => FORALL_KW,
                 "func" | "функция" => FUNCTION_KW,
                 "get" | "получить" => GET_KW,
                 "if" | "если" => IF_KW,

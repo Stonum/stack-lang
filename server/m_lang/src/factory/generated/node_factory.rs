@@ -498,12 +498,34 @@ pub fn m_finally_clause(finally_token: SyntaxToken, body: MBlockStatement) -> MF
         ],
     ))
 }
+pub fn m_for_all_in_statement(
+    forall_token: SyntaxToken,
+    l_paren_token: SyntaxToken,
+    initializer: AnyMForInInitializer,
+    in_token: SyntaxToken,
+    expression: AnyMExpression,
+    r_paren_token: SyntaxToken,
+    body: AnyMStatement,
+) -> MForAllInStatement {
+    MForAllInStatement::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_FOR_ALL_IN_STATEMENT,
+        [
+            Some(SyntaxElement::Token(forall_token)),
+            Some(SyntaxElement::Token(l_paren_token)),
+            Some(SyntaxElement::Node(initializer.into_syntax())),
+            Some(SyntaxElement::Token(in_token)),
+            Some(SyntaxElement::Node(expression.into_syntax())),
+            Some(SyntaxElement::Token(r_paren_token)),
+            Some(SyntaxElement::Node(body.into_syntax())),
+        ],
+    ))
+}
 pub fn m_for_all_statement(
     forall_token: SyntaxToken,
     l_paren_token: SyntaxToken,
     iterator: AnyMExpression,
     in_token: SyntaxToken,
-    initializer: AnyMForInOrOfInitializer,
+    initializer: AnyMForInInitializer,
     r_paren_token: SyntaxToken,
     body: AnyMStatement,
 ) -> MForAllStatement {
@@ -515,28 +537,6 @@ pub fn m_for_all_statement(
             Some(SyntaxElement::Node(iterator.into_syntax())),
             Some(SyntaxElement::Token(in_token)),
             Some(SyntaxElement::Node(initializer.into_syntax())),
-            Some(SyntaxElement::Token(r_paren_token)),
-            Some(SyntaxElement::Node(body.into_syntax())),
-        ],
-    ))
-}
-pub fn m_for_in_statement(
-    forall_token: SyntaxToken,
-    l_paren_token: SyntaxToken,
-    initializer: AnyMForInOrOfInitializer,
-    in_token: SyntaxToken,
-    expression: AnyMExpression,
-    r_paren_token: SyntaxToken,
-    body: AnyMStatement,
-) -> MForInStatement {
-    MForInStatement::unwrap_cast(SyntaxNode::new_detached(
-        MSyntaxKind::M_FOR_IN_STATEMENT,
-        [
-            Some(SyntaxElement::Token(forall_token)),
-            Some(SyntaxElement::Token(l_paren_token)),
-            Some(SyntaxElement::Node(initializer.into_syntax())),
-            Some(SyntaxElement::Token(in_token)),
-            Some(SyntaxElement::Node(expression.into_syntax())),
             Some(SyntaxElement::Token(r_paren_token)),
             Some(SyntaxElement::Node(body.into_syntax())),
         ],

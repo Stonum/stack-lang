@@ -129,6 +129,7 @@ pub(crate) fn parse_statement(p: &mut MParser, context: StatementContext) -> Par
 
         T![var] => parse_variable_statement(p, context),
         T![for] => parse_for_statement(p),
+        T![forall] => parse_forall_statement(p),
 
         T![switch] => parse_switch_statement(p),
         T![try] => parse_try_statement(p),
@@ -853,57 +854,21 @@ fn parse_for_head(p: &mut MParser, has_l_paren: bool) -> MSyntaxKind {
     if is_nth_at_variable_declarations(p, 0) {
         let m = p.start();
 
-        let (declarations, additional_declarations) =
-            eat_variable_declaration(p, VariableDeclarationParent::For).unwrap();
-
-        let is_in = p.at(T![in]);
-
-        if is_in {
-            // remove the intermediate list node created by parse variable declarations that is not needed
-            // for a ForInOrOfInitializer where the variable declaration is a direct child.
-            declarations.undo_completion(p).abandon(p);
-
-            if let Some(additional_declarations_range) = additional_declarations {
-                p.error(
-                    p.err_builder(
-                        format!(
-                            "Only a single declaration is allowed in a `for...{}` statement.",
-                            "in",
-                        ),
-                        additional_declarations_range,
-                    )
-                    .with_hint("additional declarations"),
-                );
-            }
-
-            m.complete(p, M_FOR_VARIABLE_DECLARATION);
-
-            parse_for_of_or_in_head(p)
-        } else {
-            m.complete(p, M_VARIABLE_DECLARATION);
-            parse_normal_for_head(p);
-            M_FOR_STATEMENT
+        if eat_variable_declaration(p, VariableDeclarationParent::For).is_none() {
+            return M_BOGUS;
         }
+
+        m.complete(p, M_VARIABLE_DECLARATION);
+        parse_normal_for_head(p);
+        M_FOR_STATEMENT
     } else {
         // for (some_expression`
-        let checkpoint = p.checkpoint();
-
         let init_expr = parse_expression(
             p,
             ExpressionContext::default()
                 .and_include_in(false)
                 .and_object_expression_allowed(has_l_paren),
         );
-
-        if p.at(T![in]) {
-            // for (assignment_pattern in ...
-            if let Present(assignment_expr) = init_expr {
-                let mut assignment =
-                    expression_to_assignment_pattern(p, assignment_expr, checkpoint);
-            }
-
-            return parse_for_of_or_in_head(p);
-        }
 
         init_expr.or_add_diagnostic(p, m_parse_error::expected_expression);
 
@@ -930,34 +895,82 @@ fn parse_normal_for_head(p: &mut MParser) {
     }
 }
 
+/// Parses the header of a forall statement into the current node
+fn parse_forall_head(p: &mut MParser, has_l_paren: bool) -> MSyntaxKind {
+    // `forall (var x in ...)` | `forall (iterator(obj, index)) `
+
+    if is_nth_at_variable_declarations(p, 0) {
+        let m = p.start();
+
+        let (declarations, additional_declarations) =
+            eat_variable_declaration(p, VariableDeclarationParent::For).unwrap();
+
+        let is_in = p.at(T![in]);
+
+        if is_in {
+            // remove the intermediate list node created by parse variable declarations that is not needed
+            // for a ForInOrOfInitializer where the variable declaration is a direct child.
+            declarations.undo_completion(p).abandon(p);
+
+            if let Some(additional_declarations_range) = additional_declarations {
+                p.error(
+                    p.err_builder(
+                        format!(
+                            "Only a single declaration is allowed in a `for...{}` statement.",
+                            "in",
+                        ),
+                        additional_declarations_range,
+                    )
+                    .with_hint("additional declarations"),
+                );
+            }
+
+            m.complete(p, M_FOR_VARIABLE_DECLARATION);
+
+            parse_forall_in_head(p)
+        } else {
+            p.error(p.err_builder(
+                format!("Expected in keyword in `for...{}` statement.", "in",),
+                p.cur_range(),
+            ));
+
+            M_BOGUS
+        }
+    } else {
+        let checkpoint = p.checkpoint();
+        let init_expr = parse_expression(
+            p,
+            ExpressionContext::default()
+                .and_include_in(false)
+                .and_object_expression_allowed(has_l_paren),
+        );
+        dbg!(p.cur());
+        if p.at(T![in]) {
+            // forall (assignment_pattern in ...
+            if let Present(assignment_expr) = init_expr {
+                expression_to_assignment_pattern(p, assignment_expr, checkpoint);
+            }
+
+            return parse_forall_in_head(p);
+        }
+        return M_BOGUS;
+        unimplemented!("parse forall iterator factory")
+    }
+}
+
 /// Expects to be positioned right before the of or in keyword
-fn parse_for_of_or_in_head(p: &mut MParser) -> MSyntaxKind {
+fn parse_forall_in_head(p: &mut MParser) -> MSyntaxKind {
     p.bump_any();
     parse_expression(p, ExpressionContext::default())
         .or_add_diagnostic(p, m_parse_error::expected_expression);
 
-    M_FOR_IN_STATEMENT
+    M_FOR_ALL_IN_STATEMENT
 }
 
 /// Either a traditional for statement or a for.. in statement
-// test js for_stmt
-// for (let i = 5; i < 10; i++) {}
-// for (let { foo, bar } of {}) {}
-// for (foo in {}) {}
+// for (var i = 5; i < 10; i++) {}
 // for (;;) {}
-// for (let foo of []) {}
-// for (let i = 5, j = 6; i < j; ++j) {}
-// for await (let a of []) {}
 fn parse_for_statement(p: &mut MParser) -> ParsedSyntax {
-    // test_err js for_stmt_err
-    // for ;; {}
-    // for let i = 5; i < 10; i++ {}
-    // for let i = 5; i < 10; ++i {}
-    // for (in []) {}
-    // for (let i, j = 6 of []) {}
-    // for await (let a in []) {}
-    // for await (let i = 0; i < 10; ++i) {}
-    // for (let [a];;) {}
     if !p.at(T![for]) {
         return Absent;
     }
@@ -967,6 +980,31 @@ fn parse_for_statement(p: &mut MParser) -> ParsedSyntax {
 
     let has_l_paren = p.expect(T!['(']);
     let kind = parse_for_head(p, has_l_paren);
+    p.expect(T![')']);
+
+    p.with_state(EnterBreakable(BreakableKind::Iteration), |p| {
+        parse_statement(p, StatementContext::For)
+    })
+    .or_add_diagnostic(p, expected_statement);
+
+    let completed = m.complete(p, kind);
+
+    Present(completed)
+}
+
+/// Either a traditional for statement or a for.. in statement
+// for (var i = 5; i < 10; i++) {}
+// for (;;) {}
+fn parse_forall_statement(p: &mut MParser) -> ParsedSyntax {
+    if !p.at(T![forall]) {
+        return Absent;
+    }
+
+    let m = p.start();
+    p.expect(T![forall]);
+
+    let has_l_paren = p.expect(T!['(']);
+    let kind = parse_forall_head(p, has_l_paren);
     p.expect(T![')']);
 
     p.with_state(EnterBreakable(BreakableKind::Iteration), |p| {
