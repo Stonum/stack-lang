@@ -38,7 +38,7 @@ pub const EXPR_RECOVERY_SET: TokenSet<MSyntaxKind> =
     token_set![VAR_KW, R_PAREN, L_PAREN, L_BRACK, R_BRACK];
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub(super) struct ExpressionContext(ExpressionContextFlags);
+pub(crate) struct ExpressionContext(ExpressionContextFlags);
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[bitflags]
@@ -70,11 +70,6 @@ impl ExpressionContextFlags {
     /// the start of a computed class member.
     const IN_DECORATOR: Self = Self(make_bitflags!(ExpressionContextFlag::{InDecorator}));
 
-    /// If `true` allows a typescript type assertion.
-    /// Currently disabled on "new" expressions.
-    const ALLOW_TS_TYPE_ASSERTION: Self =
-        Self(make_bitflags!(ExpressionContextFlag::{AllowTSTypeAssertion}));
-
     pub fn contains(&self, other: impl Into<ExpressionContextFlags>) -> bool {
         self.0.contains(other.into().0)
     }
@@ -103,35 +98,27 @@ impl Sub for ExpressionContextFlags {
 }
 
 impl ExpressionContext {
-    pub(super) fn and_include_in(self, include: bool) -> Self {
+    pub(crate) fn and_include_in(self, include: bool) -> Self {
         self.and(ExpressionContextFlags::INCLUDE_IN, include)
     }
 
-    pub(super) fn and_object_expression_allowed(self, allowed: bool) -> Self {
+    pub(crate) fn and_object_expression_allowed(self, allowed: bool) -> Self {
         self.and(ExpressionContextFlags::ALLOW_OBJECT_EXPRESSION, allowed)
     }
 
-    pub(super) fn and_in_decorator(self, in_decorator: bool) -> Self {
-        self.and(ExpressionContextFlags::IN_DECORATOR, in_decorator)
-    }
-
-    pub(super) fn and_ts_type_assertion_allowed(self, allowed: bool) -> Self {
-        self.and(ExpressionContextFlags::ALLOW_TS_TYPE_ASSERTION, allowed)
-    }
-
     /// Returns true if object expressions or object patterns are valid in this context
-    pub(super) fn is_object_expression_allowed(&self) -> bool {
+    pub(crate) fn is_object_expression_allowed(&self) -> bool {
         self.0
             .contains(ExpressionContextFlags::ALLOW_OBJECT_EXPRESSION)
     }
 
     /// Returns `true` if the expression parsing includes binary in expressions.
-    pub(super) fn is_in_included(&self) -> bool {
+    pub(crate) fn is_in_included(&self) -> bool {
         self.0.contains(ExpressionContextFlags::INCLUDE_IN)
     }
 
     /// Returns `true` if currently parsing a decorator expression `@<expr>`.
-    pub(super) fn is_in_decorator(&self) -> bool {
+    pub(crate) fn is_in_decorator(&self) -> bool {
         self.0.contains(ExpressionContextFlags::IN_DECORATOR)
     }
 
@@ -146,15 +133,13 @@ impl ExpressionContext {
 impl Default for ExpressionContext {
     fn default() -> Self {
         ExpressionContext(
-            ExpressionContextFlags::INCLUDE_IN
-                | ExpressionContextFlags::ALLOW_OBJECT_EXPRESSION
-                | ExpressionContextFlags::ALLOW_TS_TYPE_ASSERTION,
+            ExpressionContextFlags::INCLUDE_IN | ExpressionContextFlags::ALLOW_OBJECT_EXPRESSION,
         )
     }
 }
 
 /// Parses an expression or recovers to the point of where the next statement starts
-pub(super) fn parse_expression_or_recover_to_next_statement(
+pub(crate) fn parse_expression_or_recover_to_next_statement(
     p: &mut MParser,
     assign: bool,
     context: ExpressionContext,
@@ -179,7 +164,7 @@ pub(super) fn parse_expression_or_recover_to_next_statement(
 /// A literal expression.
 ///
 /// `TRUE | FALSE | NUMBER | STRING | NULL`
-// test js literals
+// test literals
 // 5
 // true
 // false
@@ -187,23 +172,23 @@ pub(super) fn parse_expression_or_recover_to_next_statement(
 // "foo"
 // 'bar'
 // null
-// 0, 0.0, 0n, 0e00
+// 0, 0.0, 0i, 0e00
 // "test\
 // new-line";
 // /^[يفمئامئ‍ئاسۆند]/i; //regex with unicode
 // /[\p{Control}--[\t\n]]/v;
 // /\’/; // regex with escaped non-ascii chars (issue #1941)
 
-// test_err js literals
+// test_err literals
 // 00, 012, 08, 091, 0789 // parser errors
 // 01n, 0_0, 01.2 // lexer errors
 // "test
 // continues" // unterminated string literal
 
-// test_err js regex
+// test_err regex
 // /[\p{Control}--[\t\n]]/vv;
 // /[\p{Control}--[\t\n]]/uv;
-pub(super) fn parse_literal_expression(p: &mut MParser) -> ParsedSyntax {
+pub(crate) fn parse_literal_expression(p: &mut MParser) -> ParsedSyntax {
     let literal_kind = match p.cur() {
         MSyntaxKind::M_NUMBER_LITERAL => {
             return parse_number_literal_expression(p)
@@ -220,7 +205,7 @@ pub(super) fn parse_literal_expression(p: &mut MParser) -> ParsedSyntax {
     Present(m.complete(p, literal_kind))
 }
 
-pub(super) fn parse_big_int_literal_expression(p: &mut MParser) -> ParsedSyntax {
+pub(crate) fn parse_big_int_literal_expression(p: &mut MParser) -> ParsedSyntax {
     if !p.at(M_NUMBER_LITERAL) || !p.cur_text().ends_with('n') {
         return Absent;
     }
@@ -230,7 +215,7 @@ pub(super) fn parse_big_int_literal_expression(p: &mut MParser) -> ParsedSyntax 
     Present(m.complete(p, M_BIGINT_LITERAL_EXPRESSION))
 }
 
-pub(super) fn parse_number_literal_expression(p: &mut MParser) -> ParsedSyntax {
+pub(crate) fn parse_number_literal_expression(p: &mut MParser) -> ParsedSyntax {
     let cur_src = p.cur_text();
     if !p.at(M_NUMBER_LITERAL) || cur_src.ends_with('n') {
         return Absent;
@@ -242,8 +227,7 @@ pub(super) fn parse_number_literal_expression(p: &mut MParser) -> ParsedSyntax {
 }
 
 /// Parses an assignment expression or any higher expression
-/// https://tc39.es/ecma262/multipage/ecmascript-language-expressions.html#prod-AssignmentExpression
-pub(super) fn parse_assignment_expression_or_higher(
+pub(crate) fn parse_assignment_expression_or_higher(
     p: &mut MParser,
     context: ExpressionContext,
 ) -> ParsedSyntax {
@@ -259,30 +243,23 @@ fn parse_assignment_expression_or_higher_base(
         .and_then(|target| parse_assign_expr_recursive(p, target, checkpoint, context))
 }
 
-// test js assign_expr
-// foo += bar = b ??= 3;
+// test assign_expr
 // foo -= bar;
 // (foo = bar);
-// [foo, bar] = baz;
-// [foo, bar = "default", ...rest] = baz;
-// [,,,foo,bar] = baz;
-// ({ bar, baz } = {});
-// ({ bar: [baz = "baz"], foo = "foo", ...rest } = {});
 
-// test_err js assign_expr_right
+// test_err assign_expr_right
 // (foo = );
 
-// test_err js assign_expr_left
+// test_err assign_expr_left
 // ( = foo);
 
-// test js assign_eval_member_or_computed_expr
+// test assign_eval_member_or_computed_expr
 // eval.foo = 10
 // arguments[1] = "baz"
 // eval[2] = "Chungking Express"
 
-// test_err js assign_eval_or_arguments
+// test_err assign_eval_or_arguments
 // eval = 0
-// eval ??= 2
 // eval *= 4
 // arguments = "foo"
 // arguments ||= "baz"
@@ -323,12 +300,12 @@ fn is_assign_token(kind: MSyntaxKind) -> bool {
 }
 
 /// A conditional expression such as `foo ? bar : baz`
-// test js conditional_expr
+// test conditional_expr
 // foo ? bar : baz
 // foo ? bar : baz ? bar : baz
 
-pub(super) fn parse_conditional_expr(p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
-    // test_err js conditional_expr_err
+pub(crate) fn parse_conditional_expr(p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
+    // test_err conditional_expr_err
     // foo ? bar baz
     // foo ? bar baz ? foo : bar
     // foo ? bar :
@@ -356,28 +333,11 @@ pub(super) fn parse_conditional_expr(p: &mut MParser, context: ExpressionContext
 /// Specialized version of [parse_assignment_expression_or_higher].
 /// We need to make sure that on a successful arrow expression parse that
 /// the next token is `:`.
-// test js arrow_expr_in_alternate
-// a ? (b) : a => {};
-
-// test ts ts_arrow_exrp_in_alternate
-// a ? (b) : a => {};
-
-// test jsx jsx_arrow_exrp_in_alternate
-// bar ? (foo) : (<a>{() => {}}</a>);
 fn parse_conditional_expr_consequent(p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
     let checkpoint = p.checkpoint();
 
     p.rewind(checkpoint);
     parse_assignment_expression_or_higher_base(p, context)
-}
-
-pub(super) fn is_at_binary_operator(p: &MParser, context: ExpressionContext) -> bool {
-    let cur_kind = p.cur();
-
-    match cur_kind {
-        T![in] => context.is_in_included(),
-        kind => OperatorPrecedence::try_from_binary_operator(kind).is_some(),
-    }
 }
 
 /// A binary expression such as `2 + 2` or `foo * bar + 2` or a logical expression 'a || b'
@@ -386,19 +346,12 @@ fn parse_binary_or_logical_expression(
     left_precedence: OperatorPrecedence,
     context: ExpressionContext,
 ) -> ParsedSyntax {
-    // test js private_name_presence_check
-    // class A {
-    // 	#prop;
-    // 	test() {
-    //    #prop in this
-    //  }
-    // }
     let left = parse_unary_expr(p, context);
 
     parse_binary_or_logical_expression_recursive(p, left, left_precedence, context)
 }
 
-// test js binary_expressions
+// test binary_expressions
 // 5 * 5
 // 6 ** 6 ** 7
 // 1 + 2 * 3
@@ -406,14 +359,12 @@ fn parse_binary_or_logical_expression(
 // 1 / 2
 // 74 in foo
 // foo instanceof Array
-// foo ?? bar
 // a >> b
-// a >>> b
 // 1 + 1 + 1 + 1
 // 5 + 6 - 1 * 2 / 1 ** 6
 // class Test { #name; test() { true && #name in {} } }
 
-// test_err js binary_expressions_err
+// test_err binary_expressions_err
 // foo(foo +);
 // foo + * 2;
 // !foo * bar;
@@ -429,7 +380,7 @@ fn parse_binary_or_logical_expression_recursive(
     // current operator has the same or a lower precedence than the left-hand side expression. Thus,
     // the algorithm goes at most `count(OperatorPrecedence)` levels deep.
     loop {
-        // test_err js js_right_shift_comments
+        // test_err js_right_shift_comments
         // 1 >> /* a comment */ > 2;
         let op = p.re_lex(MReLexContext::BinaryOperator);
 
@@ -456,8 +407,7 @@ fn parse_binary_or_logical_expression_recursive(
         let op_range = p.cur_range();
 
         let is_bogus = false;
-        if let Present(left) = &mut left {
-        } else {
+        if let Absent = &mut left {
             let err = p
                 .err_builder(
                     format!(
@@ -480,13 +430,11 @@ fn parse_binary_or_logical_expression_recursive(
             M_BOGUS_EXPRESSION
         } else {
             match op {
-                // test js logical_expressions
-                // foo ?? bar
+                // test logical_expressions
                 // a || b
                 // a && b
                 //
-                // test_err js logical_expressions_err
-                // foo ?? * 2;
+                // test_err logical_expressions_err
                 // !foo && bar;
                 // foo(foo ||)
                 T![||] | T![&&] => M_LOGICAL_EXPRESSION,
@@ -502,29 +450,24 @@ fn parse_binary_or_logical_expression_recursive(
 }
 
 /// A member or new expression with subscripts. e.g. `new foo`, `new Foo()`, `foo`, or `foo().bar[5]`
-// test js new_exprs
+// test new_exprs
 // new Foo()
 // new foo;
 // new.target
 // new new new new Foo();
-// new Foo(bar, baz, 6 + 6, foo[bar] + ((foo) => {}) * foo?.bar)
 
-// test_err js new_exprs
+// test_err new_exprs
 // new;
 fn parse_member_expression_or_higher(p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
-    parse_primary_expression(p, context)
-        .map(|lhs| parse_member_expression_rest(p, lhs, context, true, &mut false))
+    parse_primary_expression(p, context).map(|lhs| parse_member_expression_rest(p, lhs, context))
 }
 
-// test_err js subscripts_err
-// foo()?.baz[].;
+// test_err subscripts_err
 // BAR`b
 fn parse_member_expression_rest(
     p: &mut MParser,
     lhs: CompletedMarker,
     context: ExpressionContext,
-    allow_optional_chain: bool,
-    in_optional_chain: &mut bool,
 ) -> CompletedMarker {
     let mut progress = ParserProgress::default();
     let mut lhs = lhs;
@@ -535,7 +478,7 @@ fn parse_member_expression_rest(
             T![.] => parse_static_member_expression(p, lhs, T![.]).unwrap(),
             // Don't parse out `[` as a member expression because it may as well be the start of a computed class member
             T!['['] if !context.is_in_decorator() => {
-                parse_computed_member_expression(p, lhs, false).unwrap()
+                parse_computed_member_expression(p, lhs).unwrap()
             }
             _ => {
                 break;
@@ -546,14 +489,6 @@ fn parse_member_expression_rest(
     lhs
 }
 
-// test_err ts ts_new_operator
-// new A<test><test>();
-
-// test ts ts_new_operator
-// var c2 = new T<string>;  // Ok
-// var x1 = new SS<number>(); // OK
-// var x3 = new SS();         // OK
-// var x4 = new SS;           // OK
 fn parse_new_expr(p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
     if !p.at(T![new]) {
         return Absent;
@@ -564,11 +499,7 @@ fn parse_new_expr(p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
 
     parse_primary_expression(p, context)
         .or_add_diagnostic(p, expected_expression)
-        .map(|expr| parse_member_expression_rest(p, expr, context, false, &mut false));
-
-    // test ts ts_new_with_type_arguments
-    // class Test<A, B, C> {}
-    // new Test<A, B, C>();
+        .map(|expr| parse_member_expression_rest(p, expr, context));
 
     if p.at(T!['(']) {
         parse_call_arguments(p).unwrap();
@@ -577,7 +508,7 @@ fn parse_new_expr(p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
     Present(m.complete(p, M_NEW_EXPRESSION))
 }
 
-// test js super_expression
+// test super_expression
 // class Test extends B {
 //   constructor() {
 //     super();
@@ -588,11 +519,11 @@ fn parse_new_expr(p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
 //   }
 // }
 //
-// test_err js super_expression_err
+// test_err super_expression_err
 // class Test extends B {
 //   test() {
 //     super();
-//     super?.test();
+//     super.test();
 //   }
 // }
 // super();
@@ -618,27 +549,14 @@ fn parse_super_expression(p: &mut MParser) -> ParsedSyntax {
     }
 }
 
-// test js subscripts
+// test subscripts
 // foo`bar`
 // foo(bar)(baz)(baz)[bar]
 
 /// A static member expression for accessing a property
-// test js static_member_expression
+// test  static_member_expression
 // foo.bar
-// foo.await
-// foo.yield
 // foo.for
-// foo?.for
-// foo?.bar
-// class Test {
-//   #bar
-//   test(other) {
-//     this.#bar;
-//     this?.#bar;
-//     other.#bar;
-//     other?.#bar;
-//   }
-// }
 fn parse_static_member_expression(
     p: &mut MParser,
     lhs: CompletedMarker,
@@ -652,30 +570,24 @@ fn parse_static_member_expression(
     Present(m.complete(p, M_STATIC_MEMBER_EXPRESSION))
 }
 
-pub(super) fn parse_any_name(p: &mut MParser) -> ParsedSyntax {
+pub(crate) fn parse_any_name(p: &mut MParser) -> ParsedSyntax {
     parse_name(p)
 }
 
-/// An array expression for property access or indexing, such as `foo[0]` or `foo?.["bar"]`
-// test js computed_member_expression
+/// An array expression for property access or indexing, such as `foo[0]`
+// test computed_member_expression
 // foo[bar]
 // foo[5 + 5]
 // foo["bar"]
 // foo[bar][baz]
-// foo?.[bar]
-fn parse_computed_member_expression(
-    p: &mut MParser,
-    lhs: CompletedMarker,
-    optional_chain: bool,
-) -> ParsedSyntax {
-    // test_err js bracket_expr_err
+fn parse_computed_member_expression(p: &mut MParser, lhs: CompletedMarker) -> ParsedSyntax {
+    // test_err bracket_expr_err
     // foo[]
-    // foo?.[]
     // foo[
     let m = lhs.precede(p);
 
     p.expect(T!['[']);
-    // test js computed_member_in
+    // test  computed_member_in
     // for ({}["x" in {}];;) {}
     parse_expression(p, ExpressionContext::default()).or_add_diagnostic(p, expected_expression);
 
@@ -685,7 +597,7 @@ fn parse_computed_member_expression(
 }
 
 /// An identifier name, either an ident or a keyword
-pub(super) fn parse_name(p: &mut MParser) -> ParsedSyntax {
+pub(crate) fn parse_name(p: &mut MParser) -> ParsedSyntax {
     if is_at_name(p) {
         let m = p.start();
         p.bump_remap(T![ident]);
@@ -699,7 +611,7 @@ pub(super) fn parse_name(p: &mut MParser) -> ParsedSyntax {
 ///
 /// `"(" (AssignExpr ",")* ")"`
 
-// test js call_arguments
+// test call_arguments
 // function foo(...args) {}
 // let a, b, c, d;
 // foo(a);
@@ -707,7 +619,7 @@ pub(super) fn parse_name(p: &mut MParser) -> ParsedSyntax {
 // foo(a, b, ...c);
 // foo(...a, ...b, c, ...d,);
 //
-// test_err js invalid_arg_list
+// test_err invalid_arg_list
 // function foo(...args) {}
 // let a, b, c;
 // foo(a,b;
@@ -719,7 +631,7 @@ fn parse_call_arguments(p: &mut MParser) -> ParsedSyntax {
         return Absent;
     }
 
-    // test js in_expr_in_arguments
+    // test in_expr_in_arguments
     // function foo() {}
     // for (foo("call" in foo);;) {}
 
@@ -776,18 +688,18 @@ fn parse_call_arguments(p: &mut MParser) -> ParsedSyntax {
     Present(m.complete(p, M_CALL_ARGUMENTS))
 }
 
-// test js parenthesized_sequence_expression
+// test parenthesized_sequence_expression
 // (a, b);
 // (a, b, c);
 // (a, b, c, d, e, f);
 // (a, b, c, d, e, f)
 // (a, b, c)
 
-// test_err js incomplete_parenthesized_sequence_expression
+// test_err incomplete_parenthesized_sequence_expression
 // (a,;
 // (a, b, c;
 
-// test js m_parenthesized_expression
+// test m_parenthesized_expression
 // ((foo))
 // (foo)
 
@@ -799,14 +711,14 @@ fn parse_parenthesized_expression(p: &mut MParser) -> ParsedSyntax {
     let m = p.start();
     p.bump(T!['(']);
 
-    // test js for_with_in_in_parenthesized_expression
+    // test for_with_in_in_parenthesized_expression
     // for((true,"selectionStart"in true);;) {}
     if p.at(T![')']) {
-        // test_err js empty_parenthesized_expression
+        // test_err empty_parenthesized_expression
         // ();
         p.error(
             p.err_builder(
-                "Parenthesized expression didnt contain anything",
+                "Parenthesized expression didn't contain anything",
                 p.cur_range(),
             )
             .with_hint("Expected an expression here"),
@@ -825,7 +737,7 @@ fn parse_parenthesized_expression(p: &mut MParser) -> ParsedSyntax {
 }
 
 /// A general expression.
-pub(super) fn parse_expression(p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
+pub(crate) fn parse_expression(p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
     let first = parse_assignment_expression_or_higher(p, context);
 
     if p.at(T![,]) {
@@ -835,10 +747,10 @@ pub(super) fn parse_expression(p: &mut MParser, context: ExpressionContext) -> P
     }
 }
 
-// test js sequence_expr
+// test sequence_expr
 // 1, 2, 3, 4, 5
 
-// test_err js sequence_expr
+// test_err sequence_expr
 // 1, 2, , 4
 fn parse_sequence_expression_recursive(
     p: &mut MParser,
@@ -864,11 +776,11 @@ fn parse_sequence_expression_recursive(
 }
 
 #[inline]
-pub(super) fn is_at_expression(p: &mut MParser) -> bool {
+pub(crate) fn is_at_expression(p: &mut MParser) -> bool {
     is_nth_at_expression(p, 0)
 }
 
-pub(super) fn is_nth_at_expression(p: &mut MParser, n: usize) -> bool {
+pub(crate) fn is_nth_at_expression(p: &mut MParser, n: usize) -> bool {
     match p.nth(n) {
         T![!]
         | T!['(']
@@ -910,7 +822,7 @@ fn parse_primary_expression(p: &mut MParser, context: ExpressionContext) -> Pars
 
     let complete = match p.cur() {
         T![this] => {
-            // test js this_expr
+            // test this_expr
             // this
             // this.foo
             let m = p.start();
@@ -918,13 +830,13 @@ fn parse_primary_expression(p: &mut MParser, context: ExpressionContext) -> Pars
             m.complete(p, M_THIS_EXPRESSION)
         }
         T![function] => {
-            // test js function_expr
-            // let a = function() {}
-            // let b = function foo() {}
+            // test function_expr
+            // let a = func() {}
+            // let b = func foo() {}
 
             parse_function_expression(p).unwrap()
         }
-        // test js grouping_expr
+        // test grouping_expr
         // ((foo))
         // (foo)
         T!['('] => parse_parenthesized_expression(p).unwrap(),
@@ -941,8 +853,6 @@ fn parse_primary_expression(p: &mut MParser, context: ExpressionContext) -> Pars
         T!['['] => parse_array_expr(p).unwrap(),
         T!['{'] if context.is_object_expression_allowed() => parse_object_expression(p).unwrap(),
 
-        // test_err js import_keyword_in_expression_position
-        // let a = import;
         T![new] => parse_new_expr(p, context).unwrap(),
 
         ERROR_TOKEN => {
@@ -960,46 +870,27 @@ fn parse_primary_expression(p: &mut MParser, context: ExpressionContext) -> Pars
     Present(complete)
 }
 
-pub(super) fn parse_identifier_expression(p: &mut MParser) -> ParsedSyntax {
+pub(crate) fn parse_identifier_expression(p: &mut MParser) -> ParsedSyntax {
     parse_reference_identifier(p)
         .map(|identifier| identifier.precede(p).complete(p, M_IDENTIFIER_EXPRESSION))
 }
 
-// test_err js identifier
-// yield;
-// await;
-pub(super) fn parse_reference_identifier(p: &mut MParser) -> ParsedSyntax {
+pub(crate) fn parse_reference_identifier(p: &mut MParser) -> ParsedSyntax {
     parse_identifier(p, M_REFERENCE_IDENTIFIER)
 }
 
-pub(super) fn is_nth_at_reference_identifier(p: &mut MParser, n: usize) -> bool {
+pub(crate) fn is_nth_at_reference_identifier(p: &mut MParser, n: usize) -> bool {
     is_nth_at_identifier(p, n)
 }
 
-// test js identifier_loose_mode
+// test identifier_loose_mode
 // // SCRIPT
 // foo;
-// yield;
-// await;
 //
-// test js identifier
+// test identifier
 // foo;
 // let accessor = 5;
-//
-// test_err js identifier_err
-// yield;
-// await;
-// async function test(await) {}
-// function* test(yield) {}
-// enum;
-// implements;
-// interface;
-
-/// Parses an identifier if it is valid in this context or returns `Invalid` if the context isn't valid in this context.
-/// An identifier is invalid if:
-/// * It is named `await` inside of an async function
-/// * It is named `yield` inside of a generator function or in strict mode
-pub(super) fn parse_identifier(p: &mut MParser, kind: MSyntaxKind) -> ParsedSyntax {
+pub(crate) fn parse_identifier(p: &mut MParser, kind: MSyntaxKind) -> ParsedSyntax {
     if !is_at_identifier(p) {
         return Absent;
     }
@@ -1012,18 +903,13 @@ pub(super) fn parse_identifier(p: &mut MParser, kind: MSyntaxKind) -> ParsedSynt
 }
 
 #[inline]
-pub(super) fn is_at_identifier(p: &mut MParser) -> bool {
+pub(crate) fn is_at_identifier(p: &mut MParser) -> bool {
     is_nth_at_identifier(p, 0)
 }
 
 #[inline]
-pub(super) fn is_nth_at_identifier(p: &mut MParser, n: usize) -> bool {
+pub(crate) fn is_nth_at_identifier(p: &mut MParser, n: usize) -> bool {
     p.nth_at(n, T![ident])
-}
-
-#[inline]
-pub(super) fn is_nth_at_identifier_or_keyword(p: &mut MParser, n: usize) -> bool {
-    p.nth(n).is_keyword() || is_nth_at_identifier(p, n)
 }
 
 struct ArrayElementsList;
@@ -1065,8 +951,8 @@ impl ParseSeparatedList for ArrayElementsList {
     }
 }
 
-/// An array literal such as `[foo, bar, ...baz]`.
-// test js array_expr
+/// An array literal such as `@[foo, bar, ...baz]`.
+// test array_expr
 // @[foo, bar];
 // @[foo];
 // @[,foo];
@@ -1074,7 +960,7 @@ impl ParseSeparatedList for ArrayElementsList {
 // @[,,,,,foo,,,,];
 // @[...a, ...b];
 
-// test_err js array_expr_incomplete
+// test_err array_expr_incomplete
 // let a = [
 fn parse_array_expr(p: &mut MParser) -> ParsedSyntax {
     if !p.at(T![@]) && !p.nth_at(1, T!['[']) {
@@ -1084,7 +970,7 @@ fn parse_array_expr(p: &mut MParser) -> ParsedSyntax {
     p.bump(T![@]);
     p.bump(T!['[']);
 
-    // test js array_element_in_expr
+    // test array_element_in_expr
     // for(["a" in {}];;) {}
     ArrayElementsList.parse_list(p);
 
@@ -1092,10 +978,10 @@ fn parse_array_expr(p: &mut MParser) -> ParsedSyntax {
     Present(m.complete(p, M_ARRAY_EXPRESSION))
 }
 
-// test_err js spread
+// test_err spread
 // [...]
 /// A spread element consisting of three dots and an assignment expression such as `...foo`
-pub(super) fn parse_spread_element(p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
+pub(crate) fn parse_spread_element(p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
     if !p.at(T![...]) {
         return Absent;
     }
@@ -1107,9 +993,9 @@ pub(super) fn parse_spread_element(p: &mut MParser, context: ExpressionContext) 
 }
 
 /// A left hand side expression, either a member expression or a call expression such as `foo()`.
-pub(super) fn parse_lhs_expr(p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
+pub(crate) fn parse_lhs_expr(p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
     // super.foo and super[bar]
-    // test js super_property_access
+    // test super_property_access
     // super.foo
     // super[bar]
     // super[foo][bar]
@@ -1128,9 +1014,8 @@ fn parse_call_expression_rest(
     context: ExpressionContext,
 ) -> CompletedMarker {
     let mut lhs = lhs;
-    let mut in_optional_chain = false;
     loop {
-        lhs = parse_member_expression_rest(p, lhs, context, true, &mut in_optional_chain);
+        lhs = parse_member_expression_rest(p, lhs, context);
 
         if !matches!(p.cur(), T![<] | T!['(']) {
             break lhs;
@@ -1142,24 +1027,12 @@ fn parse_call_expression_rest(
 
         let start_pos = p.source().position();
 
-        // test ts ts_call_expr_with_type_arguments
-        // function a<A, B, C>() {}
-        // a<A, B, C>();
-        // (() => { a }).a<A, B, C>()
-        // (() => a)<A, B, C>();
-        // type A<T> = T;
-        // a<<T>(arg: T) => number, number, string>();
-
         if p.at(T!['(']) {
             parse_call_arguments(p)
                 .or_add_diagnostic(p, |p, _| expected_token(T!['(']).into_diagnostic(p));
             lhs = m.complete(p, M_CALL_EXPRESSION);
         } else {
             break {
-                // test ts optional_chain_call_less_than
-                // String(item)?.b < 0;
-                // String(item)?.b <aBcd;
-
                 // Safety:
                 // * The method initially checks if the parsers at a '<', '(', or '?.' token.
                 // * if the parser is at '?.': It takes the branch right above, ensuring that no token was consumed
@@ -1173,8 +1046,8 @@ fn parse_call_expression_rest(
     }
 }
 
-/// A postifx expression, either `LHSExpr [no linebreak] ++` or `LHSExpr [no linebreak] --`.
-// test js postfix_expr
+/// A postfix expression, either `LHSExpr [no linebreak] ++` or `LHSExpr [no linebreak] --`.
+// test postfix_expr
 // foo++
 // foo--
 fn parse_postfix_expr(p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
@@ -1182,7 +1055,7 @@ fn parse_postfix_expr(p: &mut MParser, context: ExpressionContext) -> ParsedSynt
     let lhs = parse_lhs_expr(p, context);
     lhs.map(|marker| {
         if !p.has_preceding_line_break() {
-            // test js post_update_expr
+            // test post_update_expr
             // foo++
             // foo--
             match p.cur() {
@@ -1207,10 +1080,10 @@ fn parse_postfix_expr(p: &mut MParser, context: ExpressionContext) -> ParsedSynt
 }
 
 /// A unary expression such as `!foo` or `++bar`
-pub(super) fn parse_unary_expr(p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
+pub(crate) fn parse_unary_expr(p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
     const UNARY_SINGLE: TokenSet<MSyntaxKind> = token_set![T![delete], T![+], T![-], T![!]];
 
-    // test js pre_update_expr
+    // test pre_update_expr
     // ++foo
     // --foo
     if p.at(T![++]) {
@@ -1230,9 +1103,8 @@ pub(super) fn parse_unary_expr(p: &mut MParser, context: ExpressionContext) -> P
         return Present(complete);
     }
 
-    // test js m_unary_expressions
+    // test m_unary_expressions
     // delete a['test'];
-    // void a;
     // typeof a;
     // +1;
     // -1;
@@ -1240,7 +1112,7 @@ pub(super) fn parse_unary_expr(p: &mut MParser, context: ExpressionContext) -> P
     // !true;
     // -a + -b + +a;
 
-    // test_err js unary_expr
+    // test_err unary_expr
     // ++ ;
     // -- ;
     // -;
@@ -1257,56 +1129,37 @@ pub(super) fn parse_unary_expr(p: &mut MParser, context: ExpressionContext) -> P
             p.bump_any();
         }
 
-        // test js unary_delete
+        // test unary_delete
         // delete obj.key;
         // delete (obj).key;
         // delete obj.#member.key;
         // delete (obj.#member).key;
         // delete func().#member.key;
         // delete (func().#member).key;
-        // delete obj?.#member.key;
-        // delete (obj?.#member).key;
-        // delete obj?.inner.#member.key;
-        // delete (obj?.inner.#member).key;
         // delete obj[key];
         // delete (obj)[key];
         // delete obj.#member[key];
         // delete (obj.#member)[key];
         // delete func().#member[key];
         // delete (func().#member)[key];
-        // delete obj?.#member[key];
-        // delete (obj?.#member)[key];
-        // delete obj?.inner.#member[key];
-        // delete (obj?.inner.#member)[key];
-        // delete (obj.#key, obj.key);
-        // delete (#key in obj);
         // delete (obj.key);
         // delete (console.log(1));
         // delete (() => {});
 
-        // test js unary_delete_nested
+        // test unary_delete_nested
         // class TestClass { #member = true; method() { delete func(this.#member) } }
         // class TestClass { #member = true; method() { delete [this.#member] } }
         // class TestClass { #member = true; method() { delete { key: this.#member } } }
         // class TestClass { #member = true; method() { delete (() => { this.#member; }) } }
         // class TestClass { #member = true; method() { delete (param => { this.#member; }) } }
-        // class TestClass { #member = true; method() { delete (async () => { this.#member; }) } }
 
-        // test_err js unary_delete
+        // test_err unary_delete
         // delete ident;
-        // delete obj.#member;
-        // delete func().#member;
-        // delete obj?.#member;
-        // delete obj?.inner.#member;
 
-        // test_err js unary_delete_parenthesized
+        // test_err unary_delete_parenthesized
         // delete (ident);
         // delete ((ident));
         // delete (obj.key, ident);
-        // delete (obj.#member);
-        // delete (func().#member);
-        // delete (obj?.#member);
-        // delete (obj?.inner.#member);
         // delete (obj.key, obj.#key);
 
         let kind = M_UNARY_EXPRESSION;
@@ -1374,10 +1227,10 @@ impl RewriteParseEvents for DeleteExpressionRewriter {
     }
 }
 
-pub(super) fn is_at_name(p: &mut MParser) -> bool {
+pub(crate) fn is_at_name(p: &mut MParser) -> bool {
     is_nth_at_name(p, 0)
 }
 
-pub(super) fn is_nth_at_name(p: &mut MParser, offset: usize) -> bool {
+pub(crate) fn is_nth_at_name(p: &mut MParser, offset: usize) -> bool {
     p.nth_at(offset, T![ident]) || p.nth(offset).is_keyword()
 }

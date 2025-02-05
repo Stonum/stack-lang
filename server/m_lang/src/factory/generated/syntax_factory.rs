@@ -14,7 +14,7 @@ impl SyntaxFactory for MSyntaxFactory {
         kind: Self::Kind,
         children: ParsedChildren<Self::Kind>,
     ) -> RawSyntaxNode<Self::Kind> {
-        match dbg!(kind) {
+        match kind {
             M_BOGUS | M_BOGUS_ASSIGNMENT | M_BOGUS_BINDING | M_BOGUS_EXPRESSION
             | M_BOGUS_MEMBER | M_BOGUS_PARAMETER | M_BOGUS_STATEMENT => {
                 RawSyntaxNode::new(kind, children.into_iter().map(Some))

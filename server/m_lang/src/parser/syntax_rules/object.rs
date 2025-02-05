@@ -1,13 +1,11 @@
-use super::single_token_parse_recovery::SingleTokenParseRecovery;
 use super::{Absent, MParser, ParseRecoveryTokenSet, ParsedSyntax, Present, RecoveryResult};
 
 use super::expr::{
     is_nth_at_reference_identifier, parse_assignment_expression_or_higher, parse_expression,
     parse_reference_identifier, ExpressionContext,
 };
-use super::function::{parse_function_body, parse_parameter_list, ParameterContext};
+
 use super::m_parse_error;
-use super::state::SignatureFlags;
 use super::syntax::{
     MSyntaxKind::{self, *},
     T,
@@ -15,11 +13,11 @@ use super::syntax::{
 use biome_parser::parse_lists::ParseSeparatedList;
 use biome_parser::prelude::*;
 
-// test js object_expr
+// test object_expr
 // let a = {};
 // let b = {foo,}
 //
-// test_err js object_expr_err
+// test_err object_expr_err
 // let a = {, foo}
 // let b = { foo bar }
 // let b = { foo
@@ -124,7 +122,7 @@ pub(crate) fn parse_hashmap_expression(p: &mut MParser) -> ParsedSyntax {
 /// An individual object property such as `"a": b` or `5: 6 + 6`.
 fn parse_object_member(p: &mut MParser) -> ParsedSyntax {
     match p.cur() {
-        // test js object_expr_spread_prop
+        // test object_expr_spread_prop
         // let a = {...foo}
         T![...] => {
             let m = p.start();
@@ -139,7 +137,7 @@ fn parse_object_member(p: &mut MParser) -> ParsedSyntax {
             if is_nth_at_reference_identifier(p, 0)
                 && !token_set![T!['('], T![<], T![:]].contains(p.nth(1))
             {
-                // test js object_expr_ident_prop
+                // test object_expr_ident_prop
                 // ({foo})
                 parse_reference_identifier(p).unwrap();
 
@@ -148,11 +146,6 @@ fn parse_object_member(p: &mut MParser) -> ParsedSyntax {
                 // assignment expression. Thus, it's needed that the parser silently parses over a "{ arrow = test }"
                 // property
                 if p.at(T![=]) {
-                    // test js assignment_shorthand_prop_with_initializer
-                    // for ({ arrow = () => {} } of [{}]) {}
-                    //
-                    // test_err js object_shorthand_with_initializer
-                    // ({ arrow = () => {} })
                     p.error(p.err_builder("Did you mean to use a `:`?", p.cur_range()));
                     p.bump(T![=]);
                     parse_assignment_expression_or_higher(p, ExpressionContext::default()).ok();
@@ -166,7 +159,7 @@ fn parse_object_member(p: &mut MParser) -> ParsedSyntax {
             let member_name = parse_object_member_name(p)
                 .or_add_diagnostic(p, m_parse_error::expected_object_member);
 
-            // test js object_expr_method
+            // test object_expr_method
             // let b = {
             //   foo() {},
             //   "bar"(a, b, c) {},
@@ -175,29 +168,33 @@ fn parse_object_member(p: &mut MParser) -> ParsedSyntax {
             // }
 
             if member_name.is_some() {
-                // test js object_prop_name
+                // test object_prop_name
                 // let a = {"foo": foo, [6 + 6]: foo, bar: foo, 7: foo}
 
-                // test js object_expr_ident_literal_prop
+                // test object_expr_ident_literal_prop
                 // let b = { a: true }
 
                 // If the member name was a literal OR we're at a colon
                 p.expect(T![:]);
 
-                // test js object_prop_in_rhs
+                // test object_prop_in_rhs
                 // for ({ a: "x" in {} };;) {}
                 parse_assignment_expression_or_higher(p, ExpressionContext::default())
                     .or_add_diagnostic(p, m_parse_error::expected_expression_assignment);
                 Present(m.complete(p, M_PROPERTY_OBJECT_MEMBER))
             } else {
-                // test_err js object_expr_error_prop_name
+                // test_err object_expr_error_prop_name
                 // let a = { /: 6, /: /foo/ }
                 // let b = {{}}
 
-                // test_err js object_expr_non_ident_literal_prop
+                // test_err object_expr_non_ident_literal_prop
                 // let d = {5}
 
-                SingleTokenParseRecovery::new(token_set![T![:], T![,]], M_BOGUS).recover(p);
+                super::single_token_parse_recovery::SingleTokenParseRecovery::new(
+                    token_set![T![:], T![,]],
+                    M_BOGUS,
+                )
+                .recover(p);
 
                 if p.eat(T![:]) {
                     parse_assignment_expression_or_higher(p, ExpressionContext::default())
@@ -216,7 +213,7 @@ fn parse_object_member(p: &mut MParser) -> ParsedSyntax {
     }
 }
 
-// test js object_member_name
+// test object_member_name
 // let a = {"foo": foo, [6 + 6]: foo, bar: foo, 7: foo}
 /// Parses a `MAnyObjectMemberName` and returns its completion marker
 pub fn parse_object_member_name(p: &mut MParser) -> ParsedSyntax {
@@ -224,18 +221,6 @@ pub fn parse_object_member_name(p: &mut MParser) -> ParsedSyntax {
         T!['['] => parse_computed_member_name(p),
         _ => parse_literal_member_name(p),
     }
-}
-
-pub fn is_nth_at_type_member_name(p: &mut MParser, offset: usize) -> bool {
-    let nth = p.nth(offset);
-
-    let start_names = token_set![M_STRING_LITERAL, M_NUMBER_LITERAL, T![ident], T!['[']];
-
-    nth.is_keyword() || start_names.contains(nth)
-}
-
-pub fn is_at_object_member_name(p: &mut MParser) -> bool {
-    is_nth_at_type_member_name(p, 0)
 }
 
 pub fn parse_computed_member_name(p: &mut MParser) -> ParsedSyntax {
@@ -246,7 +231,7 @@ pub fn parse_computed_member_name(p: &mut MParser) -> ParsedSyntax {
     let m = p.start();
     p.expect(T!['[']);
 
-    // test js computed_member_name_in
+    // test computed_member_name_in
     // for ({["x" in {}]: 3} ;;) {}
     parse_expression(p, ExpressionContext::default())
         .or_add_diagnostic(p, m_parse_error::expected_expression);

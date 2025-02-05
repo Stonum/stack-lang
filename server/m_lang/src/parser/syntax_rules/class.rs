@@ -6,16 +6,15 @@ use super::expr::{parse_assignment_expression_or_higher, parse_lhs_expr, Express
 
 use super::function::{
     parse_any_parameter, parse_formal_parameter, parse_function_body, parse_parameter_list,
-    parse_parameters_list, ParameterContext,
+    parse_parameters_list,
 };
 use super::m_parse_error;
-use super::m_parse_error::unexpected_body_inside_ambient_context;
 
 use super::object::{
     is_at_literal_member_name, parse_computed_member_name, parse_literal_member_name,
 };
 use super::state::{EnterParameters, SignatureFlags};
-use super::stmt::{optional_semi, StatementContext};
+use super::stmt::StatementContext;
 
 use super::syntax::MSyntaxKind::*;
 use super::syntax::{MSyntaxKind, T};
@@ -26,12 +25,11 @@ use biome_parser::prelude::*;
 
 use biome_rowan::{SyntaxKind, TextRange};
 
-// test js class_declaration
+// test class_declaration
 // class foo {}
 // class foo extends bar {}
-// class foo extends foo.bar {}
 
-// test_err js class_decl_err
+// test_err class_decl_err
 // class {}
 // class extends bar {}
 // class foo { set {} }
@@ -41,7 +39,7 @@ use biome_rowan::{SyntaxKind, TextRange};
 ///
 /// A class can be invalid if
 /// * It uses an illegal identifier name
-pub(super) fn parse_class_declaration(p: &mut MParser, context: StatementContext) -> ParsedSyntax {
+pub(crate) fn parse_class_declaration(p: &mut MParser, context: StatementContext) -> ParsedSyntax {
     if !matches!(p.cur(), T![class]) {
         return Absent;
     }
@@ -49,7 +47,7 @@ pub(super) fn parse_class_declaration(p: &mut MParser, context: StatementContext
     let mut class = parse_class(p, ClassKind::Declaration);
 
     if !class.kind(p).is_bogus() && context.is_single_statement() {
-        // test_err js class_in_single_statement_context
+        // test_err class_in_single_statement_context
         // if (true) class A {}
         p.error(
             p.err_builder(
@@ -85,29 +83,20 @@ impl From<ClassKind> for MSyntaxKind {
     }
 }
 
-// test js class_named_abstract_is_valid_in_js
-// class abstract {}
-
-// test ts ts_class_named_abstract_is_valid_in_ts
-// class abstract {}
 #[inline]
 fn parse_class(p: &mut MParser, kind: ClassKind) -> CompletedMarker {
     let m = p.start();
-    let is_abstract = false;
 
     let class_token_range = p.cur_range();
     p.expect(T![class]);
 
-    // test_err ts class_decl_no_id
+    // test_err class_decl_no_id
     // class {}
     // class implements B {}
     let id = parse_binding(p);
 
     // parse class id
     match id {
-        Present(id) => {
-            let text = p.text(id.range(p));
-        }
         Absent => {
             if !kind.is_id_optional() {
                 let err = p.err_builder(
@@ -118,39 +107,28 @@ fn parse_class(p: &mut MParser, kind: ClassKind) -> CompletedMarker {
                 p.error(err);
             }
         }
+        _ => (),
     }
 
     eat_class_heritage_clause(p);
 
     p.expect(T!['{']);
-    ClassMembersList {
-        inside_abstract_class: is_abstract,
-    }
-    .parse_list(p);
+    ClassMembersList.parse_list(p);
     p.expect(T!['}']);
 
     m.complete(p, kind.into())
 }
 
-// test_err js class_extends_err
+// test_err  class_extends_err
 // class A extends bar extends foo {}
 // class B extends bar, foo {}
 // class C implements B {}
 //
-// test_err ts ts_class_heritage_clause_errors
-// class A {}
-// interface Int {}
-// class B implements Int extends A {}
-// class C implements Int implements Int {}
-// class D implements {}
-// class E extends {}
-// class F extends E, {}
-/// Eats a class's 'implements' and 'extends' clauses, attaching them to the current active node.
+/// Eats a class's 'extends' clauses, attaching them to the current active node.
 /// Implements error recovery in case a class has multiple extends/implements clauses or if they appear
 /// out of order
 fn eat_class_heritage_clause(p: &mut MParser) {
     let mut first_extends: Option<CompletedMarker> = None;
-    let mut first_implements: Option<CompletedMarker> = None;
 
     loop {
         match p.cur() {
@@ -172,11 +150,6 @@ fn eat_class_heritage_clause(p: &mut MParser) {
     }
 }
 
-// test ts ts_extends_generic_type
-// type IHasVisualizationModel = string;
-// class D extends C<IHasVisualizationModel> {
-//     x = "string";
-// }
 fn parse_extends_clause(p: &mut MParser) -> ParsedSyntax {
     if !p.at(T![extends]) {
         return Absent;
@@ -216,7 +189,6 @@ fn parse_extends_expression(p: &mut MParser) -> ParsedSyntax {
     if p.at(T!['{']) && p.nth_at(1, T!['}']) {
         // Don't eat the body of the class as an object expression except if we have
         // * extends {} {
-        // * extends {} implements
         // * extends {},
         if !matches!(p.nth(2), T![extends] | T!['{'] | T![,]) {
             return Absent;
@@ -226,9 +198,7 @@ fn parse_extends_expression(p: &mut MParser) -> ParsedSyntax {
     parse_lhs_expr(p, ExpressionContext::default())
 }
 
-struct ClassMembersList {
-    inside_abstract_class: bool,
-}
+struct ClassMembersList;
 
 impl ParseNodeList for ClassMembersList {
     type Kind = MSyntaxKind;
@@ -237,7 +207,7 @@ impl ParseNodeList for ClassMembersList {
     const LIST_KIND: MSyntaxKind = M_CLASS_MEMBER_LIST;
 
     fn parse_element(&mut self, p: &mut MParser) -> ParsedSyntax {
-        parse_class_member(p, self.inside_abstract_class)
+        parse_class_member(p)
     }
 
     fn is_at_list_end(&self, p: &mut MParser) -> bool {
@@ -245,7 +215,7 @@ impl ParseNodeList for ClassMembersList {
     }
 
     fn recover(&mut self, p: &mut MParser, parsed_element: ParsedSyntax) -> RecoveryResult {
-        // test_err js invalid_method_recover
+        // test_err invalid_method_recover
         // class {
         //   [1 + 1] = () => {
         //     let a=;
@@ -259,13 +229,13 @@ impl ParseNodeList for ClassMembersList {
     }
 }
 
-// test js class_declare
+// test class_declare
 // class B { declare() {} }
 // class B { declare = foo }
 
-fn parse_class_member(p: &mut MParser, inside_abstract_class: bool) -> ParsedSyntax {
+fn parse_class_member(p: &mut MParser) -> ParsedSyntax {
     let member_marker = p.start();
-    // test js class_empty_element
+    // test class_empty_element
     // class foo { ;;;;;;;;;; get foo() {};;;;}
     if p.eat(T![;]) {
         return Present(member_marker.complete(p, M_EMPTY_CLASS_MEMBER));
@@ -278,50 +248,34 @@ fn parse_class_member(p: &mut MParser, inside_abstract_class: bool) -> ParsedSyn
 
 fn parse_class_member_impl(p: &mut MParser, member_marker: Marker) -> ParsedSyntax {
     let start_token_pos = p.source().position();
-    let generator_range = p.cur_range();
 
-    // test js getter_class_member
+    // test getter_class_member
     // class Getters {
     //   get foo() {}
     //   get static() {}
-    //   static get bar() {}
     //   get "baz"() {}
     //   get ["a" + "b"]() {}
     //   get 5() {}
-    //   get #private() {}
-    // }
-    // class NotGetters {
-    //   get() {}
-    //   async get() {}
-    //   static get() {}
     // }
     //
-    // test_err js method_getter_err
+    // test_err method_getter_err
     // class foo {
     //  get {}
     // }
     //
 
-    // test js setter_class_member
+    // test setter_class_member
     // class Setters {
     //   set foo(a) {}
     //   set bax(a,) {}
     //   set static(a) {}
-    //   static set bar(a) {}
-    //   static set baz(a,) {}
     //   set "baz"(a) {}
     //   set ["a" + "b"](a) {}
     //   set 5(a) {}
     //   set 6(a,) {}
-    //   set #private(a) {}
-    // }
-    // class NotSetters {
-    //   set(a) {}
-    //   async set(a) {}
-    //   static set(a) {}
     // }
     //
-    // test_err js setter_class_member
+    // test_err setter_class_member
     // class Setters {
     //   set foo() {}
     // }
@@ -340,27 +294,13 @@ fn parse_class_member_impl(p: &mut MParser, member_marker: Marker) -> ParsedSynt
             p.expect(T!['(']);
             p.expect(T![')']);
 
-            let member_kind = expect_accessor_body(p, &member_marker);
+            let member_kind = expect_accessor_body(p);
             member_marker.complete(p, member_kind.as_getter_syntax_kind())
         } else {
             let has_l_paren = p.expect(T!['(']);
             p.with_state(EnterParameters(SignatureFlags::empty()), |p| {
-                // test ts ts_decorator_on_class_setter { "parse_class_parameter_decorators": true }
-                // class A {
-                //     set val(@dec x) {}
-                //     set val(@dec.fn() x) {}
-                //     set val(@dec() x) {}
-                // }
-
-                // test_err ts ts_decorator_on_class_setter
-                // class A {
-                //     set val(@dec x) {}
-                //     set val(@dec.fn() x) {}
-                //     set val(@dec() x) {}
-                // }
                 parse_formal_parameter(
                     p,
-                    ParameterContext::ClassSetter,
                     ExpressionContext::default().and_object_expression_allowed(has_l_paren),
                 )
             })
@@ -372,7 +312,7 @@ fn parse_class_member_impl(p: &mut MParser, member_marker: Marker) -> ParsedSynt
 
             p.expect(T![')']);
 
-            let member_kind = expect_accessor_body(p, &member_marker);
+            let member_kind = expect_accessor_body(p);
             member_marker.complete(p, member_kind.as_setter_syntax_kind())
         };
 
@@ -384,10 +324,7 @@ fn parse_class_member_impl(p: &mut MParser, member_marker: Marker) -> ParsedSynt
         parse_class_member_name(p).or_add_diagnostic(p, m_parse_error::expected_class_member_name);
 
     if is_at_method_class_member(p, 0) {
-        // test js class_static_constructor_method
-        // class B { static constructor() {} }
-
-        // test js constructor_class_member
+        // test  constructor_class_member
         // class Foo {
         //   constructor(a) {
         //     this.a = a;
@@ -401,36 +338,12 @@ fn parse_class_member_impl(p: &mut MParser, member_marker: Marker) -> ParsedSynt
         return if is_constructor {
             Present(parse_constructor_class_member_body(p, member_marker))
         } else {
-            // test js method_class_member
+            // test method_class_member
             // class Test {
             //   method() {}
-            //   async asyncMethod() {}
-            //   async* asyncGeneratorMethod() {}
-            //   * generatorMethod() {}
             //   "foo"() {}
             //   ["foo" + "bar"]() {}
             //   5() {}
-            //   #private() {}
-            // }
-            // class ContextualKeywords {
-            //    // Methods called static
-            //   static() {}
-            //   async static() {}
-            //   * static() {}
-            //   async* static() {}
-            //   declare() {}
-            //   get() {} // Method called get
-            //   set() {} // Method called set
-            // }
-            // class Static {
-            //   static method() {}
-            //   static async asyncMethod() {}
-            //   static async* asyncGeneratorMethod() {}
-            //   static * generatorMethod() {}
-            //   static static() {}
-            //   static async static() {}
-            //   static async* static() {}
-            //   static * static() {}
             // }
             Present(parse_method_class_member_rest(
                 p,
@@ -442,41 +355,6 @@ fn parse_class_member_impl(p: &mut MParser, member_marker: Marker) -> ParsedSynt
 
     match member_name {
         Some(_) => {
-            // test js property_class_member
-            // class foo {
-            //   property
-            //   declare;
-            //   initializedProperty = "a"
-            //   "a";
-            //   5
-            //   ["a" + "b"]
-            //   static staticProperty
-            //   static staticInitializedProperty = 1
-            //   #private
-            //   #privateInitialized = "a"
-            //   static #staticPrivate
-            //   static #staticPrivateInitializedProperty = 1
-            // }
-            //
-            // test_err js class_declare_member
-            // class B { declare foo }
-
-            // test ts ts_property_class_member_can_be_named_set_or_get
-            // class B { set: String; get: Number }
-            // let mut property = parse_property_class_member_body(p, member_marker, modifiers);
-
-            // if !property.kind(p).is_bogus() && is_constructor {
-            //     let err = p.err_builder(
-            //         "class properties may not be called `constructor`",
-            //         property.range(p),
-            //     );
-
-            //     p.error(err);
-            //     property.change_to_bogus(p);
-            // }
-
-            // Present(property)
-
             debug_assert_eq!(
                 p.source().position(),
                 start_token_pos,
@@ -485,7 +363,7 @@ fn parse_class_member_impl(p: &mut MParser, member_marker: Marker) -> ParsedSynt
             Absent
         }
         None => {
-            // test_err js block_stmt_in_class
+            // test_err block_stmt_in_class
             // class S{{}}
             debug_assert_eq!(
                 p.source().position(),
@@ -499,27 +377,13 @@ fn parse_class_member_impl(p: &mut MParser, member_marker: Marker) -> ParsedSynt
     }
 }
 
-fn expect_member_semi(p: &mut MParser, member_marker: &Marker, name: &str) {
-    if !optional_semi(p) {
-        // Gets the start of the member
-        let end = p.last_end().unwrap_or_else(|| p.cur_range().start());
-
-        let err = p.err_builder(
-            format!("expected a semicolon to end the {name}, but found none"),
-            member_marker.start()..end,
-        );
-
-        p.error(err);
-    }
-}
-
-/// Eats the '?' token for optional member. Emits an error if this isn't typescript
+/// Eats the '?' token for optional member
 fn optional_member_token(p: &mut MParser) -> Result<Option<TextRange>, TextRange> {
     if p.at(T![?]) {
         let range = p.cur_range();
         p.bump(T![?]);
 
-        // test_err js optional_member
+        // test_err optional_member
         // class B { foo?; }
 
         let err = p.err_builder("`?` modifiers can only be used in TypeScript files", range);
@@ -531,7 +395,7 @@ fn optional_member_token(p: &mut MParser) -> Result<Option<TextRange>, TextRange
     }
 }
 
-// test_err js class_property_initializer
+// test_err class_property_initializer
 // class B { lorem = ; }
 pub(crate) fn parse_initializer_clause(
     p: &mut MParser,
@@ -555,13 +419,8 @@ fn parse_method_class_member(p: &mut MParser, m: Marker, flags: SignatureFlags) 
     parse_method_class_member_rest(p, m, flags)
 }
 
-// test_err js class_member_method_parameters
+// test_err class_member_method_parameters
 // class B { foo(a {} }
-
-// test ts ts_method_class_member
-// class Test {
-//   test<A, B extends A, R>(a: A, b: B): R {}
-// }
 
 /// Parses the body (everything after the identifier name) of a method class member
 /// that includes: parameters and its types, return type and method body
@@ -570,16 +429,11 @@ fn parse_method_class_member_rest(
     m: Marker,
     flags: SignatureFlags,
 ) -> CompletedMarker {
-    // test ts ts_optional_method_class_member
-    // class A { test?() {} }
     let optional = optional_member_token(p);
 
-    let parameter_context = ParameterContext::Declaration;
+    parse_parameter_list(p, flags).or_add_diagnostic(p, m_parse_error::expected_class_parameters);
 
-    parse_parameter_list(p, parameter_context, flags)
-        .or_add_diagnostic(p, m_parse_error::expected_class_parameters);
-
-    let member_kind = expect_method_body(p, &m, ClassMethodMemberKind::Method(flags));
+    let member_kind = expect_method_body(p, ClassMethodMemberKind::Method(flags));
     let mut member = m.complete(p, member_kind.as_method_syntax_kind());
 
     if optional.is_err() {
@@ -634,24 +488,6 @@ enum ClassMethodMemberKind {
 }
 
 impl ClassMethodMemberKind {
-    /// The body of methods is optional if it's a method overload definition
-    /// ```ts
-    /// class Test {
-    ///   method();
-    ///   method() { ... }
-    /// }
-    /// ```
-    const fn is_body_optional(&self) -> bool {
-        matches!(
-            self,
-            ClassMethodMemberKind::Method(_) | ClassMethodMemberKind::Constructor
-        )
-    }
-
-    const fn is_constructor(&self) -> bool {
-        matches!(self, ClassMethodMemberKind::Constructor)
-    }
-
     const fn signature_flags(&self) -> SignatureFlags {
         match self {
             ClassMethodMemberKind::Method(flags) => *flags,
@@ -663,61 +499,30 @@ impl ClassMethodMemberKind {
 
 /// Parses the body of a method (constructor, getter, setter, or regular method).
 ///
-/// TypeScript supports method signatures. These are methods without a body (and are terminated by a semicolon or ASI).
-/// A method is a signature if one of the following applies
-/// * The member has an `abstract` modifier (not supported by constructors)
-/// * It's a declaration in an ambient context (`declare class { ... }` or `declare namespace { class { ... } }`).
-/// * It's a method overload (doesn't apply to getters/setters)
-///
 /// The method determines which case applies to the current member and emits a diagnostic if:
 /// * the body is absent for a method declaration
 /// * the body is present for a method signature
 /// * a method signature isn't terminate by a semicolon or ASI
 ///
 /// The method returns the inferred kind (signature or declaration) of the parsed method body
-fn expect_method_body(
-    p: &mut MParser,
-    member_marker: &Marker,
-    method_kind: ClassMethodMemberKind,
-) -> MemberKind {
+fn expect_method_body(p: &mut MParser, method_kind: ClassMethodMemberKind) -> MemberKind {
     let body = parse_function_body(p, method_kind.signature_flags());
 
-    // test ts typescript_members_can_have_no_body_in_ambient_context
-    // declare class Test {
-    //     constructor();
-    //     name();
-    //     get test(): string;
-    //     set test(v);
-    // }
-    // declare namespace n {
-    //      class Test {
-    //          constructor()
-    //          name()
-    //          get test(): string
-    //          set test(v)
-    //      }
-    // }
-
-    // test_err ts ts_method_members_with_missing_body
-    // class Test {
-    //      constructor() method() get test()
-    //      set test(value)
-    // }
     body.or_add_diagnostic(p, m_parse_error::expected_class_method_body);
     MemberKind::Declaration
 }
 
-// test_err js getter_class_no_body
+// test_err getter_class_no_body
 // class Getters {
 //   get foo()
 // }
 
-// test_err js setter_class_no_body
+// test_err setter_class_no_body
 // class Setters {
 //   set foo(a)
 // }
-fn expect_accessor_body(p: &mut MParser, member_marker: &Marker) -> MemberKind {
-    expect_method_body(p, member_marker, ClassMethodMemberKind::Accessor)
+fn expect_accessor_body(p: &mut MParser) -> MemberKind {
+    expect_method_body(p, ClassMethodMemberKind::Accessor)
 }
 
 fn parse_constructor_class_member_body(p: &mut MParser, member_marker: Marker) -> CompletedMarker {
@@ -730,8 +535,7 @@ fn parse_constructor_class_member_body(p: &mut MParser, member_marker: Marker) -
     parse_constructor_parameter_list(p)
         .or_add_diagnostic(p, m_parse_error::expected_constructor_parameters);
 
-    let constructor_kind =
-        expect_method_body(p, &member_marker, ClassMethodMemberKind::Constructor);
+    let constructor_kind = expect_method_body(p, ClassMethodMemberKind::Constructor);
 
     member_marker.complete(p, constructor_kind.as_constructor_syntax_kind())
 }
@@ -739,10 +543,10 @@ fn parse_constructor_class_member_body(p: &mut MParser, member_marker: Marker) -
 fn parse_constructor_parameter_list(p: &mut MParser) -> ParsedSyntax {
     let m = p.start();
 
-    // test js super_expression_in_constructor_parameter_list
+    // test  super_expression_in_constructor_parameter_list
     // class A extends B { constructor(c = super()) {} }
     //
-    // test_err js super_expression_in_constructor_parameter_list
+    // test_err super_expression_in_constructor_parameter_list
     // class A extends B { constructor(super()) {} }
     let flags = SignatureFlags::CONSTRUCTOR;
 
@@ -755,11 +559,11 @@ fn parse_constructor_parameter_list(p: &mut MParser) -> ParsedSyntax {
     Present(m.complete(p, M_CONSTRUCTOR_PARAMETERS))
 }
 
-// test_err js m_constructor_parameter_reserved_names
+// test_err m_constructor_parameter_reserved_names
 // // SCRIPT
 // class A { constructor(readonly, private, protected, public) {} }
 fn parse_constructor_parameter(p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
-    parse_any_parameter(p, ParameterContext::ClassImplementation, context)
+    parse_any_parameter(p, context)
 }
 
 fn is_at_class_member_name(p: &mut MParser, offset: usize) -> bool {
@@ -782,11 +586,6 @@ fn is_at_method_class_member(p: &mut MParser, mut offset: usize) -> bool {
     p.nth_at(offset, T!['(']) || p.nth_at(offset, T![<])
 }
 
-// test js static_generator_constructor_method
-// class A {
-// 	static async * constructor() {}
-// 	static * constructor() {}
-// }
 fn is_at_constructor(p: &MParser) -> bool {
     p.at(T![constructor]) || matches!(p.cur_text(), "\"constructor\"" | "'constructor'")
 }

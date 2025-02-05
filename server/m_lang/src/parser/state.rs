@@ -49,11 +49,6 @@ impl MParserState {
             .contains(ParsingContextFlags::IN_CONSTRUCTOR)
     }
 
-    pub fn is_top_level(&self) -> bool {
-        self.parsing_context
-            .contains(ParsingContextFlags::TOP_LEVEL)
-    }
-
     pub fn continue_allowed(&self) -> bool {
         self.parsing_context
             .contains(ParsingContextFlags::CONTINUE_ALLOWED)
@@ -148,15 +143,6 @@ where
 {
     snapshot: C::Snapshot,
     inner: &'parser mut MParser<'t>,
-}
-
-impl<'parser, 't, C: ChangeParserState> ParserStateGuard<'parser, 't, C> {
-    pub fn new(parser: &'parser mut MParser<'t>, snapshot: C::Snapshot) -> Self {
-        Self {
-            snapshot,
-            inner: parser,
-        }
-    }
 }
 
 impl<'parser, 't, C: ChangeParserState> Drop for ParserStateGuard<'parser, 't, C> {

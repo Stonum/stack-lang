@@ -1,77 +1,29 @@
 use super::rewrite_parser::{RewriteMarker, RewriteParser, RewriteToken};
 use super::MParserCheckpoint;
 
-use super::class::parse_initializer_clause;
-use super::expr::{is_at_identifier, parse_conditional_expr, parse_unary_expr, ExpressionContext};
-use super::m_parse_error::{
-    expected_assignment_target, expected_identifier, expected_object_member_name,
-    invalid_assignment_error,
-};
-use super::object::{is_at_object_member_name, parse_object_member_name};
-use super::pattern::{ParseArrayPattern, ParseObjectPattern, ParseWithDefaultPattern};
+use super::expr::{parse_unary_expr, ExpressionContext};
+use super::m_parse_error::invalid_assignment_error;
+
 use super::rewrite::{rewrite_events, RewriteParseEvents};
 use super::syntax::{MSyntaxKind::*, *};
 use super::MParser;
 
-use biome_parser::diagnostic::expected_any;
-use biome_parser::parse_recovery::ParseRecoveryTokenSet;
 use biome_parser::prelude::*;
 
-// test js assignment_target
-// foo += bar = b ??= 3;
+// test assignment_target
 // a.foo -= bar;
 // (foo = bar);
 // (((foo))) = bar;
 // a["test"] = bar;
 // a.call().chain().member = x;
-// ++count === 3
+// ++count == 3
 // a['b'] = c[d] = "test"
 
-// test_err js invalid_assignment_target
+// test_err invalid_assignment_target
 // ++a = b;
 // (++a) = b;
 // (a = b;
-// a?.b = b;
-// a?.["b"] = b;
 // (a +) = b;
-
-// test ts ts_non_null_assignment
-// let a;
-// a! &= 2;
-// let b = { a: null };
-// b.a! &= 5
-
-// test ts ts_as_assignment
-// let a: any;
-// type B<A> = { a: A };
-// (a as string) = "string";
-// ((a as any) as string) = null;
-// ({ b: a as string } = { b: "test" });
-// ([ a as string ] = [ "test" ]);
-// for (a as string in []) {}
-// (a as B<string>) = { a: "test" };
-// (<number> a) += 1
-
-// test_err ts ts_as_assignment_no_parenthesize
-// let a: any;
-// a as string = "string";
-// (a() as string) = "string";
-// <number> a = 3;
-
-// test ts ts_satisfies_assignment
-// let a: any;
-// type B<A> = { a: A };
-// (a satisfies string) = "string";
-// ((a satisfies any) satisfies string) = null;
-// ({ b: a satisfies string } = { b: "test" });
-// ([ a satisfies string ] = [ "test" ]);
-// for (a satisfies string in []) {}
-// (a satisfies B<string>) = { a: "test" };
-
-// test_err ts ts_satisfies_assignment_no_parenthesize
-// let a: any;
-// a satisfies string = "string";
-// (a() satisfies string) = "string";
 
 /// Converts the passed in lhs expression to an assignment pattern
 /// The passed checkpoint allows to restore the parser to the state before it started parsing the expression.
@@ -93,31 +45,6 @@ pub fn expression_to_assignment_pattern(
     }
 }
 
-// test js array_or_object_member_assignment
-// [{
-//   get y() {
-//     throw new Test262Error('The property should not be accessed.');
-//   },
-//   set y(val) {
-//     setValue = val;
-//   }
-// }.y = 42] = [23];
-// ({ x: {
-//   get y() {
-//     throw new Test262Error('The property should not be accessed.');
-//   },
-//   set y(val) {
-//     setValue = val;
-//   }
-// }.y = 42 } = { x: 23 });
-pub fn parse_assignment_pattern(p: &mut MParser) -> ParsedSyntax {
-    let checkpoint = p.checkpoint();
-    let assignment_expression = parse_conditional_expr(p, ExpressionContext::default());
-
-    assignment_expression
-        .map(|expression| expression_to_assignment_pattern(p, expression, checkpoint))
-}
-
 /// Re-parses an expression as an assignment.
 pub fn expression_to_assignment(
     p: &mut MParser,
@@ -125,7 +52,7 @@ pub fn expression_to_assignment(
     checkpoint: MParserCheckpoint,
 ) -> CompletedMarker {
     try_expression_to_assignment(p, target, checkpoint).unwrap_or_else(
-        // test_err js M_regex_assignment
+        // test_err M_regex_assignment
         // /=0*_:m/=/*_:|
         |mut invalid_assignment_target| {
             // Doesn't seem to be a valid assignment target. Recover and create an error.
@@ -143,14 +70,12 @@ pub fn expression_to_assignment(
 
 pub enum AssignmentExprPrecedence {
     Unary,
-    Conditional,
 }
 
 impl AssignmentExprPrecedence {
     fn parse_expression(&self, p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
         match self {
             AssignmentExprPrecedence::Unary => parse_unary_expr(p, context),
-            AssignmentExprPrecedence::Conditional => parse_conditional_expr(p, context),
         }
     }
 }
@@ -215,7 +140,6 @@ impl ReparseAssignment {
 /// Rewrites expressions to assignments
 /// * Converts parenthesized expression to parenthesized assignment
 /// * Converts computed/static member expressions to computed/static member assignment.
-///   Validates that the operator isn't `?.` .
 /// * Converts identifier expressions to identifier assignment, drops the inner reference identifier
 impl RewriteParseEvents for ReparseAssignment {
     fn start_node(&mut self, kind: MSyntaxKind, p: &mut RewriteParser) {
@@ -257,7 +181,7 @@ impl RewriteParseEvents for ReparseAssignment {
 
             match kind {
                 M_IDENTIFIER_ASSIGNMENT => {
-                    // test_err js eval_arguments_assignment
+                    // test_err eval_arguments_assignment
                     // eval = "test";
                     // arguments = "test";
                     let name = completed.text(p);
@@ -286,33 +210,9 @@ impl RewriteParseEvents for ReparseAssignment {
 
             self.result = Some(completed.into());
         }
-
-        // if AnyTsType::can_cast(kind)
-        //     && matches!(
-        //         self.parents.last(),
-        //         Some((
-        //             TS_TYPE_ASSERTION_ASSIGNMENT | TS_AS_ASSIGNMENT | TS_SATISFIES_ASSIGNMENT,
-        //             _
-        //         ))
-        //     )
-        // {
-        //     self.inside_assignment = true;
-        // }
     }
 
     fn token(&mut self, token: RewriteToken, p: &mut RewriteParser) {
-        let parent = self.parents.last_mut();
-
-        // if let Some((parent_kind, _)) = parent {
-        //     if matches!(
-        //         *parent_kind,
-        //         M_COMPUTED_MEMBER_ASSIGNMENT | M_STATIC_MEMBER_ASSIGNMENT
-        //     ) && token.kind == T![?.]
-        //     {
-        //         *parent_kind = M_BOGUS_ASSIGNMENT
-        //     }
-        // }
-
         p.bump(token)
     }
 }

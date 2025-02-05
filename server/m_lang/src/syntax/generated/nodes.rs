@@ -4714,9 +4714,6 @@ impl AnyMStatement {
         }
     }
     pub fn as_m_for_all_in_statement(&self) -> Option<&MForAllInStatement> {
-        /*************  ✨ Codeium Command ⭐  *************/
-        /// Returns the `MTryStatement` variant if the `AnyMStatement` is of that variant, otherwise `None`.
-        /******  b88c215f-2eb9-49bc-ab27-779b61094300  *******/
         match &self {
             AnyMStatement::MForAllInStatement(item) => Some(item),
             _ => None,

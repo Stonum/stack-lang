@@ -10,18 +10,12 @@ use biome_parser::parse_recovery::ParseRecoveryTokenSet;
 use biome_parser::prelude::*;
 use biome_parser::ParserProgress;
 
-// test js module
-// import a from "b";
-// export { a };
-// c();
-// import { c } from "c";
 pub fn parse_module_body(p: &mut MParser, statement_list: Marker) {
     parse_module_item_list(p, ModuleItemListParent::Module, statement_list);
 }
 
 pub enum ModuleItemListParent {
     Module,
-    Block,
 }
 
 impl ModuleItemListParent {
@@ -35,10 +29,7 @@ impl ModuleItemListParent {
             return true;
         }
 
-        match self {
-            ModuleItemListParent::Block => p.at(T!['}']),
-            _ => false,
-        }
+        false
     }
 }
 
@@ -48,13 +39,6 @@ pub fn parse_module_item_list(p: &mut MParser, parent: ModuleItemListParent, lis
     let recovery_set = if parent.is_module() {
         STMT_RECOVERY_SET
     } else {
-        // test_err ts module_closing_curly
-        // declare module A {
-        //  "name": "troublesome-lib",
-        //  "typings": "lib/index.d.ts",
-        //  "version": "0.0.1"
-        // }
-
         // don't eat the closing `}` if inside a block
         STMT_RECOVERY_SET.union(token_set!(T!['}']))
     };

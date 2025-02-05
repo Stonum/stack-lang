@@ -5,6 +5,7 @@ fn test_parse_function_declaration() {
     let res = parse(
         r#"
             func b() {}
+            func z(a, b, c = 10) {}
         "#,
         MFileSource::module(),
     );
@@ -16,7 +17,6 @@ fn test_parse_function_declaration() {
 fn test_parse_class_declaration() {
     let res = parse(
         r#"
-            # TODO class a extends b {}
             class a {
                 constructor() {
                     var _b = 1; # inline comment
@@ -27,6 +27,11 @@ fn test_parse_class_declaration() {
 
                 print() {
                     println(this._b);
+                }
+            }
+            class b extends a {
+                constructor() {
+                    super();
                 }
             }
         "#,
@@ -76,6 +81,25 @@ fn test_parse_loop() {
             forall (factory(@[1,2,3], x)) {
                 println(x);
             }
+        "#,
+        MFileSource::script(),
+    );
+
+    assert!(res.try_tree().is_some());
+}
+
+#[test]
+fn test_parse_condition() {
+    let res = parse(
+        r#"
+            if (x == 1) {
+                println(x);
+            } else if (x == 2) {
+                println(x);
+            } else {
+                println(x);
+            }
+            var x = z == 1 ? 1 : 2;
         "#,
         MFileSource::script(),
     );

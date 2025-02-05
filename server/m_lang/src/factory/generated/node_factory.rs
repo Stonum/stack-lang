@@ -2,6 +2,7 @@
 
 #![allow(clippy::redundant_closure)]
 #![allow(clippy::too_many_arguments)]
+#![allow(dead_code)]
 use crate::syntax::{
     MSyntaxElement as SyntaxElement, MSyntaxNode as SyntaxNode, MSyntaxToken as SyntaxToken, *,
 };

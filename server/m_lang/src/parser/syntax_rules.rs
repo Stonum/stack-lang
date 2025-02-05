@@ -1,5 +1,4 @@
 mod assignment;
-mod auxiliary;
 mod binding;
 mod class;
 pub mod expr;
@@ -7,7 +6,6 @@ mod function;
 mod m_parse_error;
 mod module;
 mod object;
-mod pattern;
 pub mod program;
 mod stmt;
 
@@ -23,4 +21,3 @@ use crate::syntax;
 use biome_parser::parse_recovery::{ParseRecoveryTokenSet, RecoveryResult};
 use biome_parser::parsed_syntax::ParsedSyntax;
 use biome_parser::parsed_syntax::ParsedSyntax::{Absent, Present};
-// use biome_parser::prelude::*;

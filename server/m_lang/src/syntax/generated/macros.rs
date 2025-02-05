@@ -207,11 +207,6 @@ macro_rules! map_syntax_node {
                         unsafe { crate::syntax::MHashMapExpression::new_unchecked(node) };
                     $body
                 }
-                $crate::syntax::MSyntaxKind::M_HASH_MAP_EXPRESSION => {
-                    let $pattern =
-                        unsafe { $crate::syntax::MHashMapExpression::new_unchecked(node) };
-                    $body
-                }
                 crate::syntax::MSyntaxKind::M_IDENTIFIER_ASSIGNMENT => {
                     let $pattern =
                         unsafe { crate::syntax::MIdentifierAssignment::new_unchecked(node) };
@@ -475,11 +470,6 @@ macro_rules! map_syntax_node {
                 }
                 crate::syntax::MSyntaxKind::M_DIRECTIVE_LIST => {
                     let $pattern = unsafe { crate::syntax::MDirectiveList::new_unchecked(node) };
-                    $body
-                }
-                crate::syntax::MSyntaxKind::M_HASH_MAP_MEMBER_LIST => {
-                    let $pattern =
-                        unsafe { crate::syntax::MHashMapMemberList::new_unchecked(node) };
                     $body
                 }
                 crate::syntax::MSyntaxKind::M_HASH_MAP_MEMBER_LIST => {

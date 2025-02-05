@@ -14,7 +14,7 @@ use biome_parser::tree_sink::LosslessTreeSink;
 use biome_parser::{prelude::*, ParserContextCheckpoint};
 use biome_parser::{AnyParse, Parser, ParserContext};
 use biome_rowan::{AstNode, NodeCache};
-use state::{ChangeParserState, ParserStateGuard};
+use state::ChangeParserState;
 
 use self::token_source::MTokenSource;
 
@@ -81,16 +81,6 @@ impl<'source> MParser<'source> {
         self.rewind(checkpoint);
 
         result
-    }
-
-    /// Applies the passed in change to the parser's state and reverts the
-    /// changes when the returned [ParserStateGuard] goes out of scope.
-    pub(self) fn with_scoped_state<'p, C: ChangeParserState>(
-        &'p mut self,
-        change: C,
-    ) -> ParserStateGuard<'p, 'source, C> {
-        let snapshot = change.apply(self.state_mut());
-        ParserStateGuard::new(self, snapshot)
     }
 
     /// Applies the passed in change to the parser state before applying the passed `func` and

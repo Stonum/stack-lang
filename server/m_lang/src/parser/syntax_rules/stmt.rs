@@ -45,16 +45,16 @@ pub const STMT_RECOVERY_SET: TokenSet<MSyntaxKind> = token_set![
 
 /// Consume an explicit semicolon, or try to automatically insert one,
 /// or add an error to the parser if there was none and it could not be inserted
-// test js semicolons
-// let foo = bar;
-// let foo2 = b;
-// let foo3;
-// let foo4
-// let foo5
+// test semicolons
+// var foo = bar;
+// var foo2 = b;
+// var foo3;
+// var foo4
+// var foo5
 // function foo6() { return true }
 pub(crate) fn semi(p: &mut MParser, err_range: TextRange) -> bool {
-    // test_err js semicolons_err
-    // let foo = bar throw foo
+    // test_err semicolons_err
+    // var foo = bar throw foo
 
     if !optional_semi(p) {
         let err = p
@@ -99,7 +99,6 @@ pub(crate) fn is_semi(p: &mut MParser, offset: usize) -> bool {
 pub(crate) enum StatementContext {
     If,
     While,
-    With,
     For,
     // Block, Switch consequence, etc.
     StatementList,
@@ -109,13 +108,9 @@ impl StatementContext {
     pub(crate) fn is_single_statement(&self) -> bool {
         !matches!(self, StatementContext::StatementList)
     }
-
-    pub(crate) fn is_statement_list(&self) -> bool {
-        matches!(self, StatementContext::StatementList)
-    }
 }
 
-/// A generic statement such as a block, if, while, with, etc
+/// A generic statement such as a block, if, while, etc
 ///
 /// Error handling and recovering happens inside this function, so the
 /// caller has to pass a recovery set.
@@ -128,7 +123,7 @@ pub(crate) fn parse_statement(p: &mut MParser, context: StatementContext) -> Par
         T![if] => parse_if_statement(p),
         T![while] => parse_while_statement(p),
 
-        T![var] => parse_variable_statement(p, context),
+        T![var] => parse_variable_statement(p),
         T![for] => parse_for_statement(p),
         T![forall] => parse_forall_statement(p),
 
@@ -150,21 +145,6 @@ pub(crate) fn parse_statement(p: &mut MParser, context: StatementContext) -> Par
     }
 }
 
-// test js ts_keyword_assignments
-// declare = 1;
-// abstract = 2;
-// namespace = 3;
-// type = 4;
-// module = 5;
-// global = 6;
-//
-// test js ts_keywords_assignments_script
-// // SCRIPT
-// interface = 1;
-// private = 2;
-// protected = 3;
-// public = 4;
-// implements = 5;
 fn parse_expression_statement(p: &mut MParser) -> ParsedSyntax {
     let start = p.cur_range().start();
 
@@ -180,17 +160,17 @@ fn parse_expression_statement(p: &mut MParser) -> ParsedSyntax {
     }
 }
 
-// test js debugger_stmt
-// debugger;
+// test debugger_stmt
+// debug;
 
-// test_err js debugger_stmt
+// test_err debugger_stmt
 // function foo() {
-//   debugger {
+//   debug {
 //     var something = "lorem";
 //   }
 // }
 
-/// A debugger statement such as `debugger;`
+/// A debugger statement such as `debug;`
 fn parse_debugger_statement(p: &mut MParser) -> ParsedSyntax {
     if !p.at(T![debug]) {
         return Absent;
@@ -203,11 +183,11 @@ fn parse_debugger_statement(p: &mut MParser) -> ParsedSyntax {
 }
 
 /// A throw statement such as `throw new Error("uh oh");`
-// test js throw_stmt
+// test throw_stmt
 // throw new Error("foo");
 // throw "foo"
 fn parse_throw_statement(p: &mut MParser) -> ParsedSyntax {
-    // test_err js throw_stmt_err
+    // test_err throw_stmt_err
     // throw
     // new Error("oh no :(")
     // throw;
@@ -238,7 +218,7 @@ fn parse_throw_statement(p: &mut MParser) -> ParsedSyntax {
     Present(m.complete(p, M_THROW_STATEMENT))
 }
 
-// test js break_stmt
+// test break_stmt
 // while (true) {
 //   break;
 //   foo: {
@@ -249,7 +229,7 @@ fn parse_throw_statement(p: &mut MParser) -> ParsedSyntax {
 //   break out;
 // }
 
-// test_err js break_stmt
+// test_err break_stmt
 // function foo() { break; }
 // while (true) {
 //   break foo;
@@ -280,7 +260,7 @@ fn parse_break_statement(p: &mut MParser) -> ParsedSyntax {
     }
 }
 
-// test js continue_stmt
+// test continue_stmt
 // outer: while(true) {
 // while (true) {
 //   continue;
@@ -289,7 +269,7 @@ fn parse_break_statement(p: &mut MParser) -> ParsedSyntax {
 //   continue
 // }
 
-// test_err js continue_stmt
+// test_err continue_stmt
 // function foo() { continue; }
 // while (true) {
 //   continue foo;
@@ -306,8 +286,6 @@ fn parse_continue_statement(p: &mut MParser) -> ParsedSyntax {
     let start = p.cur_range();
     p.expect(T![continue]); // continue keyword
 
-    // test js async_continue_stmt
-    // async: for(a of b) continue async;
     let error = if !p.state().continue_allowed() {
         Some(p.err_builder( "A `continue` statement can only be used within an enclosing `for`, `while` or 'forall' statement.",start ))
     } else {
@@ -324,7 +302,7 @@ fn parse_continue_statement(p: &mut MParser) -> ParsedSyntax {
     }
 }
 
-// test js return_stmt
+// test return_stmt
 // () => {
 //   return;
 //   return foo;
@@ -332,7 +310,7 @@ fn parse_continue_statement(p: &mut MParser) -> ParsedSyntax {
 // }
 /// A return statement with an optional value such as `return a;`
 fn parse_return_statement(p: &mut MParser) -> ParsedSyntax {
-    // test_err js return_stmt_err
+    // test_err return_stmt_err
     // return;
     // return foo;
     if !p.at(T![return]) {
@@ -361,7 +339,7 @@ fn parse_return_statement(p: &mut MParser) -> ParsedSyntax {
     Present(complete)
 }
 
-// test js empty_stmt
+// test empty_stmt
 // ;
 /// An empty statement denoted by a single semicolon.
 fn parse_empty_statement(p: &mut MParser) -> ParsedSyntax {
@@ -374,7 +352,7 @@ fn parse_empty_statement(p: &mut MParser) -> ParsedSyntax {
     }
 }
 
-// test js block_stmt
+// test block_stmt
 // {}
 // {{{{}}}}
 // { foo = bar; }
@@ -411,7 +389,7 @@ pub(super) fn parse_block_impl(p: &mut MParser, block_kind: MSyntaxKind) -> Pars
 pub(crate) fn parse_statements(p: &mut MParser, stop_on_r_curly: bool, statement_list: Marker) {
     let mut progress = ParserProgress::default();
 
-    // test_err js statements_closing_curly
+    // test_err statements_closing_curly
     // {
     // "name": "troublesome-lib",
     // "typings": "lib/index.d.ts",
@@ -460,13 +438,13 @@ fn parenthesized_expression(p: &mut MParser) -> bool {
 }
 
 /// An if statement such as `if (foo) { bar(); }`
-// test js if_stmt
+// test if_stmt
 // if (true) {} else {}
 // if (true) {}
 // if (true) false
 // if (bar) {} else if (true) {} else {}
 fn parse_if_statement(p: &mut MParser) -> ParsedSyntax {
-    // test_err js if_stmt_err
+    // test_err if_stmt_err
     // if (true) else {}
     // if (true) else
     // if else {}
@@ -497,11 +475,11 @@ fn parse_if_statement(p: &mut MParser) -> ParsedSyntax {
 }
 
 /// A while statement such as `while(true) { do_something() }`
-// test js while_stmt
+// test while_stmt
 // while (true) {}
 // while (5) {}
 fn parse_while_statement(p: &mut MParser) -> ParsedSyntax {
-    // test_err js while_stmt_err
+    // test_err while_stmt_err
     // while true {}
     // while {}
     // while (true {}
@@ -528,80 +506,31 @@ pub(crate) fn is_nth_at_variable_declarations(p: &mut MParser, n: usize) -> bool
     }
 }
 
-/// A var, const, using or let declaration statement such as `var a = 5, b;` or `let {a, b} = foo;`
-// test js var_decl
+/// A var, const, using or let declaration statement such as `var a = 5, b;`
+// test var_decl
 // var a = 5;
-// let { foo, bar } = 5;
-// let bar2, foo2;
-// const b = 5;
-// const { foo5: [bar11], baz6 } = {};
-// let foo6 = "lorem", bar7 = "ipsum", third8 = "value", fourth = 6;
+// var bar2, foo2;
+// var b = 5;
+// var foo6 = "lorem", bar7 = "ipsum", third8 = "value", fourth = 6;
 // var q, w, e, r, t;
 //
-// test js using_declaration_statement
-// using a = b;
-// using c = d, e = _;
-// using [g] = h;
-// using [j]
-// = k;
-// await using l = m;
-// await
-// using p = q;
-// await using[r];
-// await using ([s] = t);
-// await (using [u] = v);
-// using w = {};
-// using x = null;
-// using y = undefined;
-// using z = (foo, bar);
-//
-// test_err js variable_declaration_statement_err
-// let a, { b } = { a: 10 }
-// const c = 1, { d } = { a: 10 }
-// const e;
-// let [f];
-// const { g };
-//
-// test_err js using_declaration_statement_err
-// using a;
-// using {b};
-// using c = d, e;
-// export using m = n;
-// await using f;
-// await using g = h, j;
-// await using [o] = p;
-// export await using q = r;
-// await let s;
-// await const t = 1;
-pub(crate) fn parse_variable_statement(p: &mut MParser, context: StatementContext) -> ParsedSyntax {
-    // test_err js var_decl_err
+// test_err variable_declaration_statement_err
+// var a, { b } = { a: 10 }
+// var c = 1, { d } = { a: 10 }
+// var e;
+// var [f];
+// var { g };
+pub(crate) fn parse_variable_statement(p: &mut MParser) -> ParsedSyntax {
+    // test_err var_decl_err
     // var a =;
-    // const b = 5 let c = 5;
+    // var b = 5 var c = 5;
     let start = p.cur_range().start();
-    let is_var = p.at(T![var]);
 
     parse_variable_declaration(p, VariableDeclarationParent::VariableStatement).map(|declaration| {
         let m = declaration.precede(p);
         semi(p, TextRange::new(start, p.cur_range().start()));
 
-        let mut statement = m.complete(p, M_VARIABLE_STATEMENT);
-
-        // if !is_var && context.is_single_statement() {
-        //     // test js hoisted_declaration_in_single_statement_context
-        //     // if (true) var a;
-        //     //
-        //     // test_err js lexical_declaration_in_single_statement_context
-        //     // if (true) let a;
-        //     // while (true) const b = 5;
-        //     p.error(
-        //         p.err_builder(
-        //             "Lexical declaration cannot appear in a single-statement context",
-        //             statement.range(p),
-        //         )
-        //         .with_hint("Wrap this declaration in a block statement"),
-        //     );
-        //     statement.change_to_bogus(p);
-        // }
+        let statement = m.complete(p, M_VARIABLE_STATEMENT);
 
         statement
     })
@@ -623,17 +552,14 @@ pub(super) fn parse_variable_declaration(
 /// What's the parent node of the variable declaration
 #[derive(Clone, Debug, Copy, Eq, PartialEq)]
 pub(super) enum VariableDeclarationParent {
-    /// Declaration inside a `for...of` or `for...in` or `for (;;)` loop
+    /// Declaration inside a `for...in` or `for (;;)` loop
     For,
 
-    /// Declaration as part of a variable statement (`let a`, `const b`, or `var c`).
+    /// Declaration as part of a variable statement (`var a`).
     VariableStatement,
-
-    /// Declaration as part of another statement, like `export let ...` or `declare let a`
-    Clause,
 }
 
-/// Parses and consume variable declarations like `var`/`let`/`const`/`using`/`await using`.
+/// Parses and consume variable declarations like `var`.
 /// Returns a tuple where
 /// * the first element is the marker to the not yet completed list
 /// * the second element is the range of all variable declarations except the first one. Is [None] if
@@ -642,7 +568,7 @@ fn eat_variable_declaration(
     p: &mut MParser,
     declaration_parent: VariableDeclarationParent,
 ) -> Option<(CompletedMarker, Option<TextRange>)> {
-    let mut context = VariableDeclaratorContext::new(declaration_parent);
+    let context = VariableDeclaratorContext::new(declaration_parent);
 
     match p.cur() {
         T![var] => {
@@ -669,12 +595,12 @@ struct VariableDeclaratorList {
     remaining_declarator_range: Option<TextRange>,
 }
 
-// test_err js variable_declarator_list_incomplete
-// const a = 1,
+// test_err variable_declarator_list_incomplete
+// var a = 1,
 //
-// test_err js variable_declarator_list_empty
-// const;
-// const
+// test_err variable_declarator_list_empty
+// var;
+// var
 impl ParseSeparatedList for VariableDeclaratorList {
     type Kind = MSyntaxKind;
     type Parser<'source> = MParser<'source>;
@@ -728,9 +654,9 @@ impl ParseSeparatedList for VariableDeclaratorList {
 }
 
 struct VariableDeclaratorContext {
-    /// What kind of variable declaration is this (`var`, `let`, `const`, 'using')
+    /// What kind of variable declaration is this (`var`)
     kind_name: Option<&'static str>,
-    /// Is this the first declaration in the declaration list (a first, b second in `let a, b`)
+    /// Is this the first declaration in the declaration list (a first, b second in `var a, b`)
     is_first: bool,
     /// What's the parent of the variable declaration
     parent: VariableDeclarationParent,
@@ -750,37 +676,24 @@ impl VariableDeclaratorContext {
     }
 }
 
-// test js scoped_declarations
-// let a = {
+// test scoped_declarations
+// var a = {
 //   test() {
-//     let a = "inner";
+//     var a = "inner";
 //   }
 // };
-//
-// test js using_declarations_inside_for_statement
-// for (using x of y) {};
-// for await (using x of y) {};
-// for (await using x of y) {};
-// for await (await using x of y) {};
-//
-// test_err js invalid_using_declarations_inside_for_statement
-// for (await using of x) {};
-// for await (await using of x) {};
-//
 // A single declarator, either `ident` or `ident = assign_expr`
 fn parse_variable_declarator(p: &mut MParser, context: &VariableDeclaratorContext) -> ParsedSyntax {
     p.state_mut().duplicate_binding_parent = context.kind_name;
-    let id = parse_binding_pattern(p, ExpressionContext::default());
+    let id = parse_binding_pattern(p);
     p.state_mut().duplicate_binding_parent = None;
 
     id.map(|id| {
-        let id_kind = id.kind(p);
-        let id_range = id.range(p);
         let m = id.precede(p);
 
         let duplicate_binding_parent = p.state_mut().duplicate_binding_parent.take();
 
-        let mut initializer = parse_initializer_clause(
+        let initializer = parse_initializer_clause(
             p,
             ExpressionContext::default()
                 .and_include_in(context.parent != VariableDeclarationParent::For),
@@ -796,40 +709,16 @@ fn parse_variable_declarator(p: &mut MParser, context: &VariableDeclaratorContex
 
         if is_in_for_in {
             if let Some(initializer) = initializer {
-                // Initializers are disallowed for `for..in` and `for..of`,
+                // Initializers are disallowed for `for..in`,
                 // except for `for(var ... in ...)` in loose mode
 
-                // test js for_in_initializer_loose_mode
+                // test for_in_initializer_loose_mode
                 // // SCRIPT
                 // for (var i = 0 in []) {}
-
-                // test_err js for_in_and_of_initializer_loose_mode
-                // // SCRIPT
-                // for (let i = 0 in []) {}
-                // for (const i = 0 in []) {}
-                // for (var i = 0 of []) {}
-                // for (let i = 0 of []) {}
-                // for (const i = 0 of []) {}
-
-                // test_err js for_in_and_of_initializer_strict_mode
-                // for (var i = 0 in []) {}
-                // for (let i = 0 in []) {}
-                // for (const i = 0 in []) {}
-                // for (var i = 0 of []) {}
-                // for (let i = 0 of []) {}
-                // for (const i = 0 of []) {}
-                // for (using x = y of z) {};
-                // for await (using x = y of z) {};
-                // for (await using x = y of z) {};
-                // for await (await using x = y of z) {};
 
                 if !is_in_for_in || !context.is_var() {
                     let err = p.err_builder(
-                        if is_in_for_in {
-                            "`for..in` statement declarators cannot have an initializer expression"
-                        } else {
-                            "`for..of` statement declarators cannot have an initializer expression"
-                        },
+                        "`for..in` statement declarators cannot have an initializer expression",
                         initializer.range(p),
                     );
 
@@ -850,7 +739,7 @@ fn parse_for_head(p: &mut MParser, has_l_paren: bool) -> MSyntaxKind {
         return M_FOR_STATEMENT;
     }
 
-    // `for (let...` | `for (const...` | `for (var...`
+    // `for (var...`
 
     if is_nth_at_variable_declarations(p, 0) {
         let m = p.start();
@@ -1180,20 +1069,13 @@ impl ParseNodeList for SwitchCasesList {
 }
 
 /// A switch statement such as
-///
-/// ```js
-/// switch (a) {
-///     case foo:
-///         bar();
-/// }
-/// ```
-// test js switch_stmt
+// test switch_stmt
 // switch (foo) {
 //  case bar:
 //  default:
 // }
 fn parse_switch_statement(p: &mut MParser) -> ParsedSyntax {
-    // test_err js switch_stmt_err
+    // test_err switch_stmt_err
     // switch foo {}
     // switch {}
     // switch { var i = 0 }
@@ -1242,7 +1124,7 @@ fn parse_catch_declaration(p: &mut MParser) -> ParsedSyntax {
     let declaration_marker = p.start();
 
     p.bump_any(); // bump (
-    parse_binding_pattern(p, ExpressionContext::default()).or_add_diagnostic(p, expected_binding);
+    parse_binding_pattern(p).or_add_diagnostic(p, expected_binding);
 
     p.expect(T![')']);
 
@@ -1250,15 +1132,8 @@ fn parse_catch_declaration(p: &mut MParser) -> ParsedSyntax {
 }
 
 /// A try statement such as
-///
-/// ```js
-/// try {
-///     something();
-/// } catch (a) {
-///
-/// }
-/// ```
-// test js try_stmt
+//
+// test try_stmt
 // try {} catch {}
 // try {} catch (e) {}
 // try {} catch {} finally {}
