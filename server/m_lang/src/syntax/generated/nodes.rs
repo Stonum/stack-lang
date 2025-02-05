@@ -1478,9 +1478,7 @@ impl MForAllStatement {
         MForAllStatementFields {
             forall_token: self.forall_token(),
             l_paren_token: self.l_paren_token(),
-            iterator: self.iterator(),
-            in_token: self.in_token(),
-            initializer: self.initializer(),
+            iter: self.iter(),
             r_paren_token: self.r_paren_token(),
             body: self.body(),
         }
@@ -1491,20 +1489,14 @@ impl MForAllStatement {
     pub fn l_paren_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 1usize)
     }
-    pub fn iterator(&self) -> SyntaxResult<AnyMExpression> {
+    pub fn iter(&self) -> SyntaxResult<MForIteratorFactory> {
         support::required_node(&self.syntax, 2usize)
     }
-    pub fn in_token(&self) -> SyntaxResult<SyntaxToken> {
+    pub fn r_paren_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 3usize)
     }
-    pub fn initializer(&self) -> SyntaxResult<AnyMForInInitializer> {
-        support::required_node(&self.syntax, 4usize)
-    }
-    pub fn r_paren_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 5usize)
-    }
     pub fn body(&self) -> SyntaxResult<AnyMStatement> {
-        support::required_node(&self.syntax, 6usize)
+        support::required_node(&self.syntax, 4usize)
     }
 }
 impl Serialize for MForAllStatement {
@@ -1519,11 +1511,69 @@ impl Serialize for MForAllStatement {
 pub struct MForAllStatementFields {
     pub forall_token: SyntaxResult<SyntaxToken>,
     pub l_paren_token: SyntaxResult<SyntaxToken>,
-    pub iterator: SyntaxResult<AnyMExpression>,
-    pub in_token: SyntaxResult<SyntaxToken>,
-    pub initializer: SyntaxResult<AnyMForInInitializer>,
+    pub iter: SyntaxResult<MForIteratorFactory>,
     pub r_paren_token: SyntaxResult<SyntaxToken>,
     pub body: SyntaxResult<AnyMStatement>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct MForIteratorFactory {
+    pub(crate) syntax: SyntaxNode,
+}
+impl MForIteratorFactory {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> MForIteratorFactoryFields {
+        MForIteratorFactoryFields {
+            name: self.name(),
+            l_paren_token: self.l_paren_token(),
+            expression: self.expression(),
+            comma_token: self.comma_token(),
+            initializer: self.initializer(),
+            r_paren_token: self.r_paren_token(),
+        }
+    }
+    pub fn name(&self) -> SyntaxResult<MIdentifierExpression> {
+        support::required_node(&self.syntax, 0usize)
+    }
+    pub fn l_paren_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 1usize)
+    }
+    pub fn expression(&self) -> SyntaxResult<AnyMExpression> {
+        support::required_node(&self.syntax, 2usize)
+    }
+    pub fn comma_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 3usize)
+    }
+    pub fn initializer(&self) -> SyntaxResult<MVariableDeclarator> {
+        support::required_node(&self.syntax, 4usize)
+    }
+    pub fn r_paren_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 5usize)
+    }
+}
+impl Serialize for MForIteratorFactory {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct MForIteratorFactoryFields {
+    pub name: SyntaxResult<MIdentifierExpression>,
+    pub l_paren_token: SyntaxResult<SyntaxToken>,
+    pub expression: SyntaxResult<AnyMExpression>,
+    pub comma_token: SyntaxResult<SyntaxToken>,
+    pub initializer: SyntaxResult<MVariableDeclarator>,
+    pub r_paren_token: SyntaxResult<SyntaxToken>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MForStatement {
@@ -4664,6 +4714,9 @@ impl AnyMStatement {
         }
     }
     pub fn as_m_for_all_in_statement(&self) -> Option<&MForAllInStatement> {
+        /*************  ✨ Codeium Command ⭐  *************/
+        /// Returns the `MTryStatement` variant if the `AnyMStatement` is of that variant, otherwise `None`.
+        /******  b88c215f-2eb9-49bc-ab27-779b61094300  *******/
         match &self {
             AnyMStatement::MForAllInStatement(item) => Some(item),
             _ => None,
@@ -6246,12 +6299,7 @@ impl std::fmt::Debug for MForAllStatement {
                 "l_paren_token",
                 &support::DebugSyntaxResult(self.l_paren_token()),
             )
-            .field("iterator", &support::DebugSyntaxResult(self.iterator()))
-            .field("in_token", &support::DebugSyntaxResult(self.in_token()))
-            .field(
-                "initializer",
-                &support::DebugSyntaxResult(self.initializer()),
-            )
+            .field("iter", &support::DebugSyntaxResult(self.iter()))
             .field(
                 "r_paren_token",
                 &support::DebugSyntaxResult(self.r_paren_token()),
@@ -6267,6 +6315,61 @@ impl From<MForAllStatement> for SyntaxNode {
 }
 impl From<MForAllStatement> for SyntaxElement {
     fn from(n: MForAllStatement) -> SyntaxElement {
+        n.syntax.into()
+    }
+}
+impl AstNode for MForIteratorFactory {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_FOR_ITERATOR_FACTORY as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_FOR_ITERATOR_FACTORY
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for MForIteratorFactory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MForIteratorFactory")
+            .field("name", &support::DebugSyntaxResult(self.name()))
+            .field(
+                "l_paren_token",
+                &support::DebugSyntaxResult(self.l_paren_token()),
+            )
+            .field("expression", &support::DebugSyntaxResult(self.expression()))
+            .field(
+                "comma_token",
+                &support::DebugSyntaxResult(self.comma_token()),
+            )
+            .field(
+                "initializer",
+                &support::DebugSyntaxResult(self.initializer()),
+            )
+            .field(
+                "r_paren_token",
+                &support::DebugSyntaxResult(self.r_paren_token()),
+            )
+            .finish()
+    }
+}
+impl From<MForIteratorFactory> for SyntaxNode {
+    fn from(n: MForIteratorFactory) -> SyntaxNode {
+        n.syntax
+    }
+}
+impl From<MForIteratorFactory> for SyntaxElement {
+    fn from(n: MForIteratorFactory) -> SyntaxElement {
         n.syntax.into()
     }
 }
@@ -11155,6 +11258,11 @@ impl std::fmt::Display for MForAllInStatement {
     }
 }
 impl std::fmt::Display for MForAllStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for MForIteratorFactory {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

@@ -960,7 +960,7 @@ fn parse_primary_expression(p: &mut MParser, context: ExpressionContext) -> Pars
     Present(complete)
 }
 
-fn parse_identifier_expression(p: &mut MParser) -> ParsedSyntax {
+pub(super) fn parse_identifier_expression(p: &mut MParser) -> ParsedSyntax {
     parse_reference_identifier(p)
         .map(|identifier| identifier.precede(p).complete(p, M_IDENTIFIER_EXPRESSION))
 }

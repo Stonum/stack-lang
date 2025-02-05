@@ -73,6 +73,9 @@ fn test_parse_loop() {
                 println(x);
                 x++;
             }
+            forall (factory(@[1,2,3], x)) {
+                println(x);
+            }
         "#,
         MFileSource::script(),
     );
@@ -84,7 +87,7 @@ fn test_parse_loop() {
 fn test_parse() {
     let res = parse(
         r#"
-            forall (value in @[1,2,3]) {
+            forall (factory(@[1,2,3], x)) {
                 println(x);
             }
         "#,
@@ -93,5 +96,6 @@ fn test_parse() {
 
     dbg!(&res.syntax());
     dbg!(&res.diagnostics());
+    // dbg!(&res.tree());
     assert!(res.try_tree().is_some());
 }

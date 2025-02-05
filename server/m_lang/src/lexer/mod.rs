@@ -791,7 +791,7 @@ impl<'src> MLexer<'src> {
                 "new" | "новый" => NEW_KW,
                 "null" | "nil" | "нуль" => NULL_KW,
                 "return" | "вернуть" => RETURN_KW,
-                "super" => SUPER_KW,
+                "super" | "базовый" => SUPER_KW,
                 "switch" | "выборпо" => SWITCH_KW,
                 "set" | "установить" => SET_KW,
                 "this" | "этот" => THIS_KW,

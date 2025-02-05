@@ -523,9 +523,7 @@ pub fn m_for_all_in_statement(
 pub fn m_for_all_statement(
     forall_token: SyntaxToken,
     l_paren_token: SyntaxToken,
-    iterator: AnyMExpression,
-    in_token: SyntaxToken,
-    initializer: AnyMForInInitializer,
+    iter: MForIteratorFactory,
     r_paren_token: SyntaxToken,
     body: AnyMStatement,
 ) -> MForAllStatement {
@@ -534,11 +532,29 @@ pub fn m_for_all_statement(
         [
             Some(SyntaxElement::Token(forall_token)),
             Some(SyntaxElement::Token(l_paren_token)),
-            Some(SyntaxElement::Node(iterator.into_syntax())),
-            Some(SyntaxElement::Token(in_token)),
-            Some(SyntaxElement::Node(initializer.into_syntax())),
+            Some(SyntaxElement::Node(iter.into_syntax())),
             Some(SyntaxElement::Token(r_paren_token)),
             Some(SyntaxElement::Node(body.into_syntax())),
+        ],
+    ))
+}
+pub fn m_for_iterator_factory(
+    name: MIdentifierExpression,
+    l_paren_token: SyntaxToken,
+    expression: AnyMExpression,
+    comma_token: SyntaxToken,
+    initializer: MVariableDeclarator,
+    r_paren_token: SyntaxToken,
+) -> MForIteratorFactory {
+    MForIteratorFactory::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_FOR_ITERATOR_FACTORY,
+        [
+            Some(SyntaxElement::Node(name.into_syntax())),
+            Some(SyntaxElement::Token(l_paren_token)),
+            Some(SyntaxElement::Node(expression.into_syntax())),
+            Some(SyntaxElement::Token(comma_token)),
+            Some(SyntaxElement::Node(initializer.into_syntax())),
+            Some(SyntaxElement::Token(r_paren_token)),
         ],
     ))
 }

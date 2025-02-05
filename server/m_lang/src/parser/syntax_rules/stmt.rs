@@ -1,13 +1,14 @@
 //! Statements, these include `if`, `while`, `for`, `;`, and more.
+use crate::parser::syntax_rules::expr::parse_assignment_expression_or_higher;
+
 use super::binding::*;
 
-use super::expr::parse_expression;
+use super::expr::{parse_expression, parse_identifier_expression};
 
 use super::assignment::expression_to_assignment_pattern;
 use super::class::{parse_class_declaration, parse_initializer_clause};
 use super::expr::{
-    is_at_expression, is_at_identifier, parse_expression_or_recover_to_next_statement,
-    parse_identifier, ExpressionContext,
+    is_at_expression, parse_expression_or_recover_to_next_statement, ExpressionContext,
 };
 use super::function::parse_function_declaration;
 use super::m_parse_error;
@@ -897,7 +898,7 @@ fn parse_normal_for_head(p: &mut MParser) {
 
 /// Parses the header of a forall statement into the current node
 fn parse_forall_head(p: &mut MParser, has_l_paren: bool) -> MSyntaxKind {
-    // `forall (var x in ...)` | `forall (iterator(obj, index)) `
+    // `forall (var x in ...)` | `forall (factory(obj, index)) `
 
     if is_nth_at_variable_declarations(p, 0) {
         let m = p.start();
@@ -936,6 +937,32 @@ fn parse_forall_head(p: &mut MParser, has_l_paren: bool) -> MSyntaxKind {
 
             M_BOGUS
         }
+    } else if p.nth_at(1, T!['(']) {
+        let m = p.start();
+        if let Present(_identifier) = parse_identifier_expression(p) {
+            p.bump(T!['(']);
+
+            parse_assignment_expression_or_higher(p, ExpressionContext::default())
+                .or_add_diagnostic(p, m_parse_error::expected_expression);
+
+            p.expect(T![,]);
+
+            let context = VariableDeclaratorContext::new(VariableDeclarationParent::For);
+
+            parse_variable_declarator(p, &context)
+                .or_add_diagnostic(p, m_parse_error::expected_declaration);
+
+            if p.expect(T![')']) {
+                m.complete(p, M_FOR_ITERATOR_FACTORY);
+            } else {
+                m.complete(p, M_BOGUS_EXPRESSION);
+            }
+
+            return M_FOR_ALL_STATEMENT;
+        }
+        m.complete(p, M_BOGUS_EXPRESSION);
+
+        M_BOGUS
     } else {
         let checkpoint = p.checkpoint();
         let init_expr = parse_expression(
@@ -944,7 +971,6 @@ fn parse_forall_head(p: &mut MParser, has_l_paren: bool) -> MSyntaxKind {
                 .and_include_in(false)
                 .and_object_expression_allowed(has_l_paren),
         );
-        dbg!(p.cur());
         if p.at(T![in]) {
             // forall (assignment_pattern in ...
             if let Present(assignment_expr) = init_expr {
@@ -953,8 +979,7 @@ fn parse_forall_head(p: &mut MParser, has_l_paren: bool) -> MSyntaxKind {
 
             return parse_forall_in_head(p);
         }
-        return M_BOGUS;
-        unimplemented!("parse forall iterator factory")
+        M_BOGUS
     }
 }
 

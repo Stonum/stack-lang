@@ -1055,7 +1055,7 @@ impl SyntaxFactory for MSyntaxFactory {
             }
             M_FOR_ALL_STATEMENT => {
                 let mut elements = (&children).into_iter();
-                let mut slots: RawNodeSlots<7usize> = RawNodeSlots::default();
+                let mut slots: RawNodeSlots<5usize> = RawNodeSlots::default();
                 let mut current_element = elements.next();
                 if let Some(element) = &current_element {
                     if element.kind() == T![forall] {
@@ -1072,21 +1072,7 @@ impl SyntaxFactory for MSyntaxFactory {
                 }
                 slots.next_slot();
                 if let Some(element) = &current_element {
-                    if AnyMExpression::can_cast(element.kind()) {
-                        slots.mark_present();
-                        current_element = elements.next();
-                    }
-                }
-                slots.next_slot();
-                if let Some(element) = &current_element {
-                    if element.kind() == T![in] {
-                        slots.mark_present();
-                        current_element = elements.next();
-                    }
-                }
-                slots.next_slot();
-                if let Some(element) = &current_element {
-                    if AnyMForInInitializer::can_cast(element.kind()) {
+                    if MForIteratorFactory::can_cast(element.kind()) {
                         slots.mark_present();
                         current_element = elements.next();
                     }
@@ -1113,6 +1099,60 @@ impl SyntaxFactory for MSyntaxFactory {
                     );
                 }
                 slots.into_node(M_FOR_ALL_STATEMENT, children)
+            }
+            M_FOR_ITERATOR_FACTORY => {
+                let mut elements = (&children).into_iter();
+                let mut slots: RawNodeSlots<6usize> = RawNodeSlots::default();
+                let mut current_element = elements.next();
+                if let Some(element) = &current_element {
+                    if MIdentifierExpression::can_cast(element.kind()) {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if let Some(element) = &current_element {
+                    if element.kind() == T!['('] {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if let Some(element) = &current_element {
+                    if AnyMExpression::can_cast(element.kind()) {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if let Some(element) = &current_element {
+                    if element.kind() == T ! [,] {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if let Some(element) = &current_element {
+                    if MVariableDeclarator::can_cast(element.kind()) {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if let Some(element) = &current_element {
+                    if element.kind() == T![')'] {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if current_element.is_some() {
+                    return RawSyntaxNode::new(
+                        M_FOR_ITERATOR_FACTORY.to_bogus(),
+                        children.into_iter().map(Some),
+                    );
+                }
+                slots.into_node(M_FOR_ITERATOR_FACTORY, children)
             }
             M_FOR_STATEMENT => {
                 let mut elements = (&children).into_iter();
