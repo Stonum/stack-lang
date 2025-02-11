@@ -1,6 +1,11 @@
 [workspace]
+workspace.resolver = "2"
 
 members = [
     "lsp",
     "m_lang"
 ]
+
+[workspace.dependencies]
+serde_json = "1.0.78"
+serde = { version = "1.0", features = ["derive"] }
