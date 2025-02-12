@@ -158,8 +158,6 @@ impl LanguageServer for Backend {
                     let semantics = semantics(parsed.syntax());
                     let rope = Rope::from_str(&text);
                     (rope, semantics)
-                    // let (rope, declarations, _) = parse_source(&text);
-                    // get_definitions(declarations, rope)
                 });
 
                 handles.push((Url::from_file_path(file).unwrap(), handle));

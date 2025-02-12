@@ -1,3 +1,4 @@
+use biome_rowan::{TextRange, TextSize, WalkEvent};
 use m_lang::{parser::parse, syntax::MFileSource};
 
 #[test]
@@ -111,15 +112,26 @@ fn test_parse_condition() {
 fn test_parse() {
     let res = parse(
         r#"
-            forall (factory(@[1,2,3], x)) {
-                println(x);
-            }
+           Перем ключКонф = "Конфигурация_Юрист_" + (КодЗадачиАРМЮрист() == 278 ? "ФЛ" : "ЮЛ");
         "#,
         MFileSource::script(),
     );
 
-    dbg!(&res.syntax());
-    dbg!(&res.diagnostics());
+    // dbg!(&res.syntax());
+    // dbg!(&res.try_tree());
+
+    let syntax = res.syntax();
+    let x = syntax.covering_element(TextRange::new(TextSize::from(84), TextSize::from(118)));
+    dbg!(x);
+
+    // for event in res.syntax().preorder() {
+    //     if let WalkEvent::Enter(node) = event {
+    //         dbg!(node.kind());
+    //         let x = node.covering_element(TextRange::new(TextSize::from(84), TextSize::from(118)));
+    //         dbg!(x);
+    //     }
+    // }
+
     // dbg!(&res.tree());
-    assert!(res.try_tree().is_some());
+    panic!();
 }

@@ -82,6 +82,22 @@ fn identifier() {
 }
 
 #[test]
+fn identifier_with_at() {
+    assert_lex! {
+        "@Дата",
+        IDENT:9
+    }
+}
+
+#[test]
+fn identifier_with_single_quotes() {
+    assert_lex! {
+        "'Список лицевых'",
+        IDENT:29
+    }
+}
+
+#[test]
 fn unicode_identifier() {
     assert_lex! {
         r#"\uD83D\uDCA9"#,
