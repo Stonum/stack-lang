@@ -1,14 +1,13 @@
 use std::fmt::Display;
 
 use biome_rowan::syntax::SyntaxTrivia;
-use biome_rowan::{AstNode, SyntaxNode, SyntaxResult, TextRange, TriviaPieceKind, WalkEvent};
+use biome_rowan::{
+    AstNode, SyntaxNode, SyntaxResult, TextRange, TextSize, TriviaPieceKind, WalkEvent,
+};
 
-use crate::syntax::{MClassDeclaration, MFunctionDeclaration, MLanguage, MSyntaxNode};
+use crate::syntax::{MClassDeclaration, MFunctionDeclaration, MLanguage, MSyntaxKind, MSyntaxNode};
 
 pub fn semantics(root: SyntaxNode<MLanguage>) -> SemanticModel {
-    // let parsed = parse(source, file_source);
-
-    // let root = parsed.syntax();
     let mut collector = SemanticModel::default();
 
     for event in root.preorder() {
@@ -18,6 +17,21 @@ pub fn semantics(root: SyntaxNode<MLanguage>) -> SemanticModel {
     }
 
     collector
+}
+
+pub fn identifier_for_offset(root: SyntaxNode<MLanguage>, offset: u32) -> Option<String> {
+    let token = root
+        .covering_element(TextRange::new(
+            TextSize::from(offset),
+            TextSize::from(offset),
+        ))
+        .into_token()?;
+
+    if token.kind() == MSyntaxKind::IDENT {
+        return Some(token.text().to_string());
+    }
+
+    None
 }
 
 #[derive(Debug, Default)]
@@ -63,6 +77,15 @@ pub trait Definition {
     fn id(&self) -> String;
     fn description(&self) -> Option<String>;
     fn doc_string(&self) -> Option<String>;
+
+    fn to_markdown(&self) -> String {
+        format!(
+            "**{}**  {}  {}",
+            self.id(),
+            self.description().unwrap_or_default().replace("#", "\\#"),
+            self.doc_string().unwrap_or_default().replace("#", "\\#")
+        )
+    }
 }
 
 impl Definition for AnyMDefinition {

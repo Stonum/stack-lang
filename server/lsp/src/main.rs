@@ -1,23 +1,26 @@
 #![allow(deprecated)]
 use std::path::PathBuf;
 
-use chumsky::error::Rich;
 use log::error;
 use log::info;
 
 use ini::Ini;
 
+use biome_diagnostics::diagnostic::Diagnostic as _;
 use dashmap::DashMap;
+use m_lang::syntax::TextRange;
+use m_lang::syntax::TextSize;
 use ropey::Rope;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use stack_lang_server::cst::Decl;
-use stack_lang_server::def::Definition;
-use stack_lang_server::lexer::{Lexer, Token};
-use stack_lang_server::parser;
-use stack_lang_server::position;
+use m_lang::{
+    parser::parse,
+    semantic::{identifier_for_offset, semantics, Definition, SemanticModel},
+    syntax::MFileSource,
+};
 
+use stack_lang_server::{def, position};
 use tokio::runtime::Handle;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::notification::Notification;
@@ -28,8 +31,8 @@ use std::time::Instant;
 
 struct Backend {
     client: Client,
-    document_map: DashMap<String, Rope>,
-    definitions_map: DashMap<PathBuf, Vec<Definition>>,
+    document_map: DashMap<PathBuf, Rope>,
+    definitions_map: DashMap<PathBuf, SemanticModel>,
 }
 
 #[tower_lsp::async_trait]
@@ -112,6 +115,13 @@ impl LanguageServer for Backend {
 
         // get all workspace folders if we don't have them yet
         if folders.is_none() {
+            self.client
+                .log_message(
+                    MessageType::INFO,
+                    format!("parse definitions from workspace folder!"),
+                )
+                .await;
+
             folders = async {
                 let f = self.client.workspace_folders().await.ok()?;
                 f.map(|f| f.into_iter().map(|f| f.uri).collect())
@@ -119,6 +129,7 @@ impl LanguageServer for Backend {
             .await;
         }
 
+        // !TODO - parse without sub folders if from ini file
         let mut files = vec![];
         if let Some(folders) = folders {
             for folder in folders {
@@ -143,8 +154,12 @@ impl LanguageServer for Backend {
 
             if let Ok(text) = tokio::fs::read_to_string(&file).await {
                 let handle = current.spawn_blocking(move || {
-                    let (rope, declarations, _) = parse_source(&text);
-                    get_definitions(declarations, rope)
+                    let parsed = parse(&text, MFileSource::module());
+                    let semantics = semantics(parsed.syntax());
+                    let rope = Rope::from_str(&text);
+                    (rope, semantics)
+                    // let (rope, declarations, _) = parse_source(&text);
+                    // get_definitions(declarations, rope)
                 });
 
                 handles.push((Url::from_file_path(file).unwrap(), handle));
@@ -152,10 +167,11 @@ impl LanguageServer for Backend {
         }
 
         for (uri, handle) in handles {
-            if let Some(definitions) = handle.await.unwrap() {
-                self.definitions_map
-                    .insert(uri.to_file_path().unwrap_or_default(), definitions);
-            }
+            let (rope, semantics) = handle.await.unwrap();
+            self.document_map
+                .insert(uri.to_file_path().unwrap_or_default(), rope);
+            self.definitions_map
+                .insert(uri.to_file_path().unwrap_or_default(), semantics);
         }
 
         self.client
@@ -248,43 +264,45 @@ impl LanguageServer for Backend {
 
             let Position { character, line } = params.text_document_position_params.position;
 
-            let rope = self.document_map.get(uri.as_str())?;
+            let rope = self
+                .document_map
+                .get(&uri.to_file_path().unwrap_or_default())?;
             let source = rope.line(line as usize).to_string();
 
-            let mut lexer = Lexer::new(&source);
-            let rope = Rope::from(source.as_str());
+            let parsed = parse(&source, MFileSource::script());
+            let syntax = parsed.syntax();
 
-            let mut identifier = None;
-            while let Some(token) = lexer.next() {
-                if let Ok(token) = token {
-                    let range = position(&rope, lexer.span()).unwrap_or_default();
-                    if character >= range.start.character && character <= range.end.character {
-                        if let Token::Identifier(id) = token {
-                            identifier = Some(id.to_string());
-                            break;
-                        };
-                    }
-                }
-            }
+            let byte_offset = source
+                .chars()
+                .enumerate()
+                .take_while(|(index, _)| *index as u32 <= character)
+                .fold(0, |acc, (_, char)| acc + char.len_utf8());
 
-            let identifier = identifier?.to_lowercase();
-
+            let identifier = identifier_for_offset(syntax, byte_offset as u32)?.to_lowercase();
+            dbg!(&identifier);
             let mut loc: Vec<Location> = vec![];
             for m in self.definitions_map.iter() {
                 let (path, v) = m.pair();
                 let uri = Url::from_file_path(path).unwrap_or(Url::parse("file:///").unwrap());
-
+                dbg!(&uri);
                 let mut locations = v
+                    .module_definitions
                     .iter()
                     .filter_map(|def| {
-                        if def.identifier().to_lowercase() == identifier {
-                            return Some(Location::new(uri.clone(), def.position()));
+                        dbg!(&def.id());
+                        if def.id().to_lowercase() == identifier {
+                            dbg!(uri.as_str());
+                            let rope = self.document_map.get(path)?;
+                            let position = position(&rope, def.range())?;
+                            dbg!(&position);
+                            return Some(Location::new(uri.clone(), position));
                         }
                         None
                     })
                     .collect::<Vec<_>>();
                 loc.append(&mut locations);
             }
+
             Some(GotoDefinitionResponse::Array(loc))
         }
         .await;
@@ -298,71 +316,19 @@ impl LanguageServer for Backend {
         let file_uri = params.text_document.uri;
 
         let document_symbol = || -> Option<DocumentSymbolResponse> {
-            let mut vec = vec![];
-
-            let defs = self
+            let semantics = self
                 .definitions_map
                 .get(&file_uri.to_file_path().unwrap_or_default())?;
 
-            for def in defs.iter() {
-                match def {
-                    Definition::Func {
-                        identifier, pos, ..
-                    } => {
-                        let symbol = SymbolInformation {
-                            name: identifier.clone(),
-                            kind: SymbolKind::FUNCTION,
-                            tags: None,
-                            deprecated: None,
-                            location: Location::new(file_uri.clone(), *pos),
-                            container_name: None,
-                        };
+            let rope = self
+                .document_map
+                .get(&file_uri.to_file_path().unwrap_or_default())?;
 
-                        vec.push(symbol);
-                    }
-                    Definition::Class {
-                        identifier,
-                        pos,
-                        methods,
-                        ..
-                    } => {
-                        let symbol = SymbolInformation {
-                            name: identifier.clone(),
-                            kind: SymbolKind::CLASS,
-                            tags: None,
-                            deprecated: None,
-                            location: Location::new(file_uri.clone(), *pos),
-                            container_name: None,
-                        };
-
-                        vec.push(symbol);
-
-                        for method in methods.iter() {
-                            match method {
-                                Definition::Func {
-                                    identifier: method_identifier,
-                                    pos,
-                                    ..
-                                } => {
-                                    let symbol = SymbolInformation {
-                                        name: method_identifier.clone(),
-                                        kind: SymbolKind::FUNCTION,
-                                        tags: None,
-                                        deprecated: None,
-                                        location: Location::new(file_uri.clone(), *pos),
-                                        container_name: Some(identifier.clone()),
-                                    };
-
-                                    vec.push(symbol);
-                                }
-                                _ => unreachable!(),
-                            }
-                        }
-                    }
-                };
-            }
-
-            Some(DocumentSymbolResponse::Flat(vec))
+            Some(def::from_mlang(
+                file_uri,
+                &semantics.module_definitions,
+                &rope,
+            ))
         }();
 
         Ok(document_symbol)
@@ -374,41 +340,31 @@ impl LanguageServer for Backend {
 
             let Position { character, line } = params.text_document_position_params.position;
 
-            let rope = self.document_map.get(uri.as_str())?;
+            let rope = self
+                .document_map
+                .get(&uri.to_file_path().unwrap_or_default())?;
             let source = rope.line(line as usize).to_string();
 
-            let mut lexer = Lexer::new(&source);
-            let rope = Rope::from(source.as_str());
+            let parsed = parse(&source, MFileSource::script());
+            let syntax = parsed.syntax();
 
-            let mut identifier = None;
-            while let Some(token) = lexer.next() {
-                if let Ok(token) = token {
-                    let range = position(&rope, lexer.span()).unwrap_or_default();
-                    if character >= range.start.character && character <= range.end.character {
-                        if let Token::Identifier(id) = token {
-                            identifier = Some(id.to_string());
-                        };
-                    }
-                }
-            }
+            let byte_offset = source
+                .chars()
+                .enumerate()
+                .take_while(|(index, _)| *index as u32 <= character)
+                .fold(0, |acc, (_, char)| acc + char.len_utf8());
 
-            let identifier = identifier?.to_lowercase();
+            let identifier = identifier_for_offset(syntax, byte_offset as u32)?.to_lowercase();
 
             let mut loc: Vec<String> = vec![];
             for m in self.definitions_map.iter() {
                 let (_path, v) = m.pair();
-
                 let mut locations = v
+                    .module_definitions
                     .iter()
                     .filter_map(|def| {
-                        if def.identifier().to_lowercase() == identifier {
-                            return Some(format!(
-                                "**{}{}**  \n{}  \n{}",
-                                def.identifier(),
-                                def.parameters(),
-                                def.description(),
-                                def.doc_string()
-                            ));
+                        if def.id().to_lowercase() == identifier {
+                            return Some(def.to_markdown());
                         }
                         None
                     })
@@ -478,48 +434,52 @@ impl Notification for StatusBarNotification {
 
 impl Backend {
     async fn on_change(&self, params: TextDocumentItem) {
-        let (rope, declarations, errors) = parse_source(&params.text);
+        let uri = params.uri;
+        let text = params.text;
 
-        self.document_map
-            .insert(params.uri.to_string(), rope.clone());
+        self.client
+            .log_message(MessageType::INFO, format!("pon_change {}", uri.to_string()))
+            .await;
 
         let mut diagnostics = vec![];
-
-        if declarations.is_none() {
-            let mut diagnostic = Diagnostic::new_simple(Range::default(), format!("Parse error"));
-            if let Some(error) = errors.last() {
-                let pos = position(&rope, (*error.span()).into());
-                diagnostic = Diagnostic::new_simple(
-                    pos.unwrap_or_default(),
-                    format!("Parse error: {error}"),
-                );
-            }
-            diagnostics.push(diagnostic);
-        }
-
-        #[cfg(debug_assertions)]
         {
-            diagnostics = errors
-                .into_iter()
-                .map(|error| {
-                    let pos = position(&rope, (*error.span()).into());
-                    Diagnostic::new_simple(pos.unwrap_or_default(), format!("Parse error: {error}"))
-                })
-                .collect();
+            let parsed = parse(&text, MFileSource::module());
+            let semantics = semantics(parsed.syntax());
+            let rope = Rope::from_str(&text);
+
+            #[cfg(debug_assertions)]
+            {
+                diagnostics = parsed
+                    .diagnostics()
+                    .into_iter()
+                    .map(|error| {
+                        let range = error
+                            .location()
+                            .span
+                            .map(|range| position(&rope, range).unwrap_or_default());
+
+                        Diagnostic::new_simple(
+                            range.unwrap_or_default(),
+                            format!("{}", error.message),
+                        )
+                    })
+                    .collect();
+            }
+            dbg!(uri.to_string());
+            self.document_map
+                .insert(uri.to_file_path().unwrap_or_default(), rope);
+            self.definitions_map
+                .insert(uri.to_file_path().unwrap_or_default(), semantics);
         }
 
         self.client
-            .publish_diagnostics(params.uri.clone(), diagnostics, None)
+            .publish_diagnostics(uri.clone(), diagnostics, None)
             .await;
-
-        if let Some(definitions) = get_definitions(declarations, rope) {
-            self.definitions_map
-                .insert(params.uri.to_file_path().unwrap_or_default(), definitions);
-        }
     }
 
     async fn on_delete(&self, params: TextDocumentItem) {
-        self.document_map.remove(params.uri.as_str());
+        self.document_map
+            .remove(&params.uri.to_file_path().unwrap_or_default());
 
         self.client
             .publish_diagnostics(params.uri, vec![], Some(params.version))
@@ -571,30 +531,4 @@ async fn get_files(dir: Url, files: &mut Vec<String>) -> std::io::Result<()> {
     }
 
     Ok(())
-}
-
-fn parse_source<'source>(
-    text: &'source str,
-) -> (
-    Rope,
-    Option<Vec<Decl<'source>>>,
-    Vec<Rich<'source, Token<'source>>>,
-) {
-    let rope = Rope::from_str(text);
-    let (declarations, errors) = parser::parse(text, false).into_output_errors();
-
-    (rope, declarations, errors)
-}
-
-fn get_definitions(declarations: Option<Vec<Decl<'_>>>, rope: Rope) -> Option<Vec<Definition>> {
-    if let Some(decl) = declarations {
-        return Some(
-            decl.into_iter()
-                .map(|d| Definition::try_from_declaration(d, &rope))
-                .filter(|x| x.is_ok())
-                .map(|x| x.unwrap())
-                .collect(),
-        );
-    }
-    None
 }
