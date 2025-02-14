@@ -614,7 +614,7 @@ impl<'src> MLexer<'src> {
     ///
     /// ## Safety
     /// Must be called at a valid UT8 char boundary
-    fn consume_str_literal(&mut self, jsx_attribute: bool) -> bool {
+    fn consume_str_literal(&mut self) -> bool {
         self.assert_current_char_boundary();
         let quote = unsafe { self.current_unchecked() };
         let start = self.position;
@@ -623,10 +623,10 @@ impl<'src> MLexer<'src> {
         self.advance(1); // eats the start quote
         while let Some(chr) = self.current_byte() {
             match chr {
-                b'\\' if !jsx_attribute => {
+                b'\\' => {
                     valid &= self.consume_escape_sequence();
                 }
-                b'\r' | b'\n' if !jsx_attribute => {
+                b'\r' | b'\n' => {
                     let unterminated =
                         ParseDiagnostic::new("unterminated string literal", start..self.position)
                             .with_detail(start..self.position, "")
@@ -1230,7 +1230,6 @@ impl<'src> MLexer<'src> {
         // While a 16kb table will be ejected from cache very often leading to slowdowns, this also allows LLVM
         // to do more aggressive optimizations on the match regarding how to map it to instructions
         let dispatched = lookup_byte(byte);
-
         match dispatched {
             WHS => {
                 let kind = self.consume_newline_or_whitespaces();
@@ -1250,8 +1249,6 @@ impl<'src> MLexer<'src> {
             MIN => self.resolve_minus(),
             SLH => self.read_slash(),
             HAS => self.read_hash(),
-            // This simply changes state on the start
-            TPL => self.eat_byte(T!['`']),
             ZER => {
                 self.read_zero();
                 self.verify_number_end()
@@ -1304,8 +1301,15 @@ impl<'src> MLexer<'src> {
                 }
             }
             QOT => {
-                if self.consume_str_literal(false) {
+                if self.consume_str_literal() {
                     M_STRING_LITERAL
+                } else {
+                    ERROR_TOKEN
+                }
+            }
+            TPL => {
+                if self.consume_str_literal() {
+                    M_LONG_STRING_LITERAL
                 } else {
                     ERROR_TOKEN
                 }

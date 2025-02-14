@@ -870,18 +870,10 @@ pub fn m_logical_expression(
         ],
     ))
 }
-pub fn m_long_string_literal_expression(
-    l_tick_token: SyntaxToken,
-    elements: MTemplateElementList,
-    r_tick_token: SyntaxToken,
-) -> MLongStringLiteralExpression {
+pub fn m_long_string_literal_expression(value_token: SyntaxToken) -> MLongStringLiteralExpression {
     MLongStringLiteralExpression::unwrap_cast(SyntaxNode::new_detached(
         MSyntaxKind::M_LONG_STRING_LITERAL_EXPRESSION,
-        [
-            Some(SyntaxElement::Token(l_tick_token)),
-            Some(SyntaxElement::Node(elements.into_syntax())),
-            Some(SyntaxElement::Token(r_tick_token)),
-        ],
+        [Some(SyntaxElement::Token(value_token))],
     ))
 }
 pub fn m_method_class_member(

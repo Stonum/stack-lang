@@ -195,6 +195,7 @@ pub(crate) fn parse_literal_expression(p: &mut MParser) -> ParsedSyntax {
                 .or_else(|| parse_big_int_literal_expression(p));
         }
         MSyntaxKind::M_STRING_LITERAL => MSyntaxKind::M_STRING_LITERAL_EXPRESSION,
+        MSyntaxKind::M_LONG_STRING_LITERAL => MSyntaxKind::M_LONG_STRING_LITERAL_EXPRESSION,
         MSyntaxKind::NULL_KW => MSyntaxKind::M_NULL_LITERAL_EXPRESSION,
         MSyntaxKind::TRUE_KW | MSyntaxKind::FALSE_KW => MSyntaxKind::M_BOOLEAN_LITERAL_EXPRESSION,
         _ => return Absent,
@@ -840,6 +841,7 @@ fn parse_primary_expression(p: &mut MParser, context: ExpressionContext) -> Pars
         // ((foo))
         // (foo)
         T!['('] => parse_parenthesized_expression(p).unwrap(),
+
         T![@] => match p.nth(1) {
             T!['['] => parse_array_expr(p).unwrap(),
             T!['{'] => parse_object_expression(p).unwrap(),
@@ -850,8 +852,6 @@ fn parse_primary_expression(p: &mut MParser, context: ExpressionContext) -> Pars
                 m.complete(p, M_BOGUS)
             }
         },
-        T!['['] => parse_array_expr(p).unwrap(),
-        T!['{'] if context.is_object_expression_allowed() => parse_object_expression(p).unwrap(),
 
         T![new] => parse_new_expr(p, context).unwrap(),
 

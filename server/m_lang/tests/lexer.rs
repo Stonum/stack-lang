@@ -259,23 +259,21 @@ fn empty_string() {
         r#""""#,
         M_STRING_LITERAL:2
     }
-
     assert_lex! {
-        "''",
-        M_STRING_LITERAL:2
+        r#"``"#,
+        M_LONG_STRING_LITERAL:2
     }
 }
 
 #[test]
 fn simple_string() {
     assert_lex! {
-        r"'abcdefghijklmnopqrstuvwxyz123456789\'10🦀'",
-        M_STRING_LITERAL:45
-    }
-
-    assert_lex! {
         r#""abcdefghijklmnopqrstuvwxyz123456789\"10🦀""#,
         M_STRING_LITERAL:45
+    }
+    assert_lex! {
+        r#"`abcdefghijklmnopqrstuvwxyz123456789\`10🦀`"#,
+        M_LONG_STRING_LITERAL:45
     }
 }
 

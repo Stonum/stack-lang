@@ -2359,19 +2359,11 @@ impl MLongStringLiteralExpression {
     }
     pub fn as_fields(&self) -> MLongStringLiteralExpressionFields {
         MLongStringLiteralExpressionFields {
-            l_tick_token: self.l_tick_token(),
-            elements: self.elements(),
-            r_tick_token: self.r_tick_token(),
+            value_token: self.value_token(),
         }
     }
-    pub fn l_tick_token(&self) -> SyntaxResult<SyntaxToken> {
+    pub fn value_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 0usize)
-    }
-    pub fn elements(&self) -> MTemplateElementList {
-        support::list(&self.syntax, 1usize)
-    }
-    pub fn r_tick_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 2usize)
     }
 }
 impl Serialize for MLongStringLiteralExpression {
@@ -2384,9 +2376,7 @@ impl Serialize for MLongStringLiteralExpression {
 }
 #[derive(Serialize)]
 pub struct MLongStringLiteralExpressionFields {
-    pub l_tick_token: SyntaxResult<SyntaxToken>,
-    pub elements: MTemplateElementList,
-    pub r_tick_token: SyntaxResult<SyntaxToken>,
+    pub value_token: SyntaxResult<SyntaxToken>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MMethodClassMember {
@@ -4284,7 +4274,6 @@ pub enum AnyMExpression {
     MIdentifierExpression(MIdentifierExpression),
     MInExpression(MInExpression),
     MLogicalExpression(MLogicalExpression),
-    MLongStringLiteralExpression(MLongStringLiteralExpression),
     MNewExpression(MNewExpression),
     MObjectExpression(MObjectExpression),
     MParenthesizedExpression(MParenthesizedExpression),
@@ -4372,12 +4361,6 @@ impl AnyMExpression {
     pub fn as_m_logical_expression(&self) -> Option<&MLogicalExpression> {
         match &self {
             AnyMExpression::MLogicalExpression(item) => Some(item),
-            _ => None,
-        }
-    }
-    pub fn as_m_long_string_literal_expression(&self) -> Option<&MLongStringLiteralExpression> {
-        match &self {
-            AnyMExpression::MLongStringLiteralExpression(item) => Some(item),
             _ => None,
         }
     }
@@ -4560,6 +4543,7 @@ impl AnyMHashMapMemberName {
 pub enum AnyMLiteralExpression {
     MBigintLiteralExpression(MBigintLiteralExpression),
     MBooleanLiteralExpression(MBooleanLiteralExpression),
+    MLongStringLiteralExpression(MLongStringLiteralExpression),
     MNullLiteralExpression(MNullLiteralExpression),
     MNumberLiteralExpression(MNumberLiteralExpression),
     MStringLiteralExpression(MStringLiteralExpression),
@@ -4574,6 +4558,12 @@ impl AnyMLiteralExpression {
     pub fn as_m_boolean_literal_expression(&self) -> Option<&MBooleanLiteralExpression> {
         match &self {
             AnyMLiteralExpression::MBooleanLiteralExpression(item) => Some(item),
+            _ => None,
+        }
+    }
+    pub fn as_m_long_string_literal_expression(&self) -> Option<&MLongStringLiteralExpression> {
+        match &self {
+            AnyMLiteralExpression::MLongStringLiteralExpression(item) => Some(item),
             _ => None,
         }
     }
@@ -7188,13 +7178,8 @@ impl std::fmt::Debug for MLongStringLiteralExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MLongStringLiteralExpression")
             .field(
-                "l_tick_token",
-                &support::DebugSyntaxResult(self.l_tick_token()),
-            )
-            .field("elements", &self.elements())
-            .field(
-                "r_tick_token",
-                &support::DebugSyntaxResult(self.r_tick_token()),
+                "value_token",
+                &support::DebugSyntaxResult(self.value_token()),
             )
             .finish()
     }
@@ -9651,11 +9636,6 @@ impl From<MLogicalExpression> for AnyMExpression {
         AnyMExpression::MLogicalExpression(node)
     }
 }
-impl From<MLongStringLiteralExpression> for AnyMExpression {
-    fn from(node: MLongStringLiteralExpression) -> AnyMExpression {
-        AnyMExpression::MLongStringLiteralExpression(node)
-    }
-}
 impl From<MNewExpression> for AnyMExpression {
     fn from(node: MNewExpression) -> AnyMExpression {
         AnyMExpression::MNewExpression(node)
@@ -9721,7 +9701,6 @@ impl AstNode for AnyMExpression {
         .union(MIdentifierExpression::KIND_SET)
         .union(MInExpression::KIND_SET)
         .union(MLogicalExpression::KIND_SET)
-        .union(MLongStringLiteralExpression::KIND_SET)
         .union(MNewExpression::KIND_SET)
         .union(MObjectExpression::KIND_SET)
         .union(MParenthesizedExpression::KIND_SET)
@@ -9746,7 +9725,6 @@ impl AstNode for AnyMExpression {
             | M_IDENTIFIER_EXPRESSION
             | M_IN_EXPRESSION
             | M_LOGICAL_EXPRESSION
-            | M_LONG_STRING_LITERAL_EXPRESSION
             | M_NEW_EXPRESSION
             | M_OBJECT_EXPRESSION
             | M_PARENTHESIZED_EXPRESSION
@@ -9788,11 +9766,6 @@ impl AstNode for AnyMExpression {
             M_IN_EXPRESSION => AnyMExpression::MInExpression(MInExpression { syntax }),
             M_LOGICAL_EXPRESSION => {
                 AnyMExpression::MLogicalExpression(MLogicalExpression { syntax })
-            }
-            M_LONG_STRING_LITERAL_EXPRESSION => {
-                AnyMExpression::MLongStringLiteralExpression(MLongStringLiteralExpression {
-                    syntax,
-                })
             }
             M_NEW_EXPRESSION => AnyMExpression::MNewExpression(MNewExpression { syntax }),
             M_OBJECT_EXPRESSION => AnyMExpression::MObjectExpression(MObjectExpression { syntax }),
@@ -9839,7 +9812,6 @@ impl AstNode for AnyMExpression {
             AnyMExpression::MIdentifierExpression(it) => &it.syntax,
             AnyMExpression::MInExpression(it) => &it.syntax,
             AnyMExpression::MLogicalExpression(it) => &it.syntax,
-            AnyMExpression::MLongStringLiteralExpression(it) => &it.syntax,
             AnyMExpression::MNewExpression(it) => &it.syntax,
             AnyMExpression::MObjectExpression(it) => &it.syntax,
             AnyMExpression::MParenthesizedExpression(it) => &it.syntax,
@@ -9867,7 +9839,6 @@ impl AstNode for AnyMExpression {
             AnyMExpression::MIdentifierExpression(it) => it.syntax,
             AnyMExpression::MInExpression(it) => it.syntax,
             AnyMExpression::MLogicalExpression(it) => it.syntax,
-            AnyMExpression::MLongStringLiteralExpression(it) => it.syntax,
             AnyMExpression::MNewExpression(it) => it.syntax,
             AnyMExpression::MObjectExpression(it) => it.syntax,
             AnyMExpression::MParenthesizedExpression(it) => it.syntax,
@@ -9898,7 +9869,6 @@ impl std::fmt::Debug for AnyMExpression {
             AnyMExpression::MIdentifierExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MInExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MLogicalExpression(it) => std::fmt::Debug::fmt(it, f),
-            AnyMExpression::MLongStringLiteralExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MNewExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MObjectExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MParenthesizedExpression(it) => std::fmt::Debug::fmt(it, f),
@@ -9928,7 +9898,6 @@ impl From<AnyMExpression> for SyntaxNode {
             AnyMExpression::MIdentifierExpression(it) => it.into(),
             AnyMExpression::MInExpression(it) => it.into(),
             AnyMExpression::MLogicalExpression(it) => it.into(),
-            AnyMExpression::MLongStringLiteralExpression(it) => it.into(),
             AnyMExpression::MNewExpression(it) => it.into(),
             AnyMExpression::MObjectExpression(it) => it.into(),
             AnyMExpression::MParenthesizedExpression(it) => it.into(),
@@ -10341,6 +10310,11 @@ impl From<MBooleanLiteralExpression> for AnyMLiteralExpression {
         AnyMLiteralExpression::MBooleanLiteralExpression(node)
     }
 }
+impl From<MLongStringLiteralExpression> for AnyMLiteralExpression {
+    fn from(node: MLongStringLiteralExpression) -> AnyMLiteralExpression {
+        AnyMLiteralExpression::MLongStringLiteralExpression(node)
+    }
+}
 impl From<MNullLiteralExpression> for AnyMLiteralExpression {
     fn from(node: MNullLiteralExpression) -> AnyMLiteralExpression {
         AnyMLiteralExpression::MNullLiteralExpression(node)
@@ -10368,6 +10342,7 @@ impl AstNode for AnyMLiteralExpression {
             kind,
             M_BIGINT_LITERAL_EXPRESSION
                 | M_BOOLEAN_LITERAL_EXPRESSION
+                | M_LONG_STRING_LITERAL_EXPRESSION
                 | M_NULL_LITERAL_EXPRESSION
                 | M_NUMBER_LITERAL_EXPRESSION
                 | M_STRING_LITERAL_EXPRESSION
@@ -10392,6 +10367,11 @@ impl AstNode for AnyMLiteralExpression {
             M_STRING_LITERAL_EXPRESSION => {
                 AnyMLiteralExpression::MStringLiteralExpression(MStringLiteralExpression { syntax })
             }
+            M_LONG_STRING_LITERAL_EXPRESSION => {
+                AnyMLiteralExpression::MLongStringLiteralExpression(MLongStringLiteralExpression {
+                    syntax,
+                })
+            }
             _ => return None,
         };
         Some(res)
@@ -10403,6 +10383,7 @@ impl AstNode for AnyMLiteralExpression {
             AnyMLiteralExpression::MNullLiteralExpression(it) => &it.syntax,
             AnyMLiteralExpression::MNumberLiteralExpression(it) => &it.syntax,
             AnyMLiteralExpression::MStringLiteralExpression(it) => &it.syntax,
+            AnyMLiteralExpression::MLongStringLiteralExpression(it) => &it.syntax,
         }
     }
     fn into_syntax(self) -> SyntaxNode {
@@ -10412,6 +10393,7 @@ impl AstNode for AnyMLiteralExpression {
             AnyMLiteralExpression::MNullLiteralExpression(it) => it.syntax,
             AnyMLiteralExpression::MNumberLiteralExpression(it) => it.syntax,
             AnyMLiteralExpression::MStringLiteralExpression(it) => it.syntax,
+            AnyMLiteralExpression::MLongStringLiteralExpression(it) => it.syntax,
         }
     }
 }
@@ -10423,6 +10405,7 @@ impl std::fmt::Debug for AnyMLiteralExpression {
             AnyMLiteralExpression::MNullLiteralExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMLiteralExpression::MNumberLiteralExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMLiteralExpression::MStringLiteralExpression(it) => std::fmt::Debug::fmt(it, f),
+            AnyMLiteralExpression::MLongStringLiteralExpression(it) => std::fmt::Debug::fmt(it, f),
         }
     }
 }
@@ -10434,6 +10417,7 @@ impl From<AnyMLiteralExpression> for SyntaxNode {
             AnyMLiteralExpression::MNullLiteralExpression(it) => it.into(),
             AnyMLiteralExpression::MNumberLiteralExpression(it) => it.into(),
             AnyMLiteralExpression::MStringLiteralExpression(it) => it.into(),
+            AnyMLiteralExpression::MLongStringLiteralExpression(it) => it.into(),
         }
     }
 }

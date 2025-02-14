@@ -109,29 +109,14 @@ fn test_parse_condition() {
 }
 
 #[test]
-fn test_parse() {
+fn test_parse_strings_with_keyword() {
     let res = parse(
         r#"
-           Перем ключКонф = "Конфигурация_Юрист_" + (КодЗадачиАРМЮрист() == 278 ? "ФЛ" : "ЮЛ");
+           var short_string = "short string with class and class" ;
+           var long_string = `very very long string with class and class`;
         "#,
         MFileSource::script(),
     );
 
-    // dbg!(&res.syntax());
-    // dbg!(&res.try_tree());
-
-    let syntax = res.syntax();
-    let x = syntax.covering_element(TextRange::new(TextSize::from(84), TextSize::from(118)));
-    dbg!(x);
-
-    // for event in res.syntax().preorder() {
-    //     if let WalkEvent::Enter(node) = event {
-    //         dbg!(node.kind());
-    //         let x = node.covering_element(TextRange::new(TextSize::from(84), TextSize::from(118)));
-    //         dbg!(x);
-    //     }
-    // }
-
-    // dbg!(&res.tree());
-    panic!();
+    assert!(res.try_tree().is_some());
 }
