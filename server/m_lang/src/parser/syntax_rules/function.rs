@@ -1,6 +1,6 @@
 use super::binding::{parse_binding, parse_binding_pattern};
 use super::class::parse_initializer_clause;
-use super::expr::ExpressionContext;
+use super::expr::{parse_doc_string_expression, ExpressionContext};
 use super::m_parse_error;
 use super::m_parse_error::{expected_binding, expected_parameter};
 use super::state::{EnterFunction, EnterParameters, SignatureFlags};
@@ -103,6 +103,18 @@ fn parse_function(p: &mut MParser, m: Marker, kind: FunctionKind) -> CompletedMa
     }
 
     parse_parameter_list(p, flags).or_add_diagnostic(p, m_parse_error::expected_parameters);
+
+    if let Present(expr) = parse_doc_string_expression(p) {
+        match kind {
+            FunctionKind::Expression { .. } => {
+                p.error(p.err_builder(
+                    "expected function body, but found string expression",
+                    expr.range(p),
+                ));
+            }
+            _ => (),
+        }
+    }
 
     let body = parse_function_body(p, flags);
 

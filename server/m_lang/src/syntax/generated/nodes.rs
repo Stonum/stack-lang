@@ -629,6 +629,7 @@ impl MClassDeclaration {
             class_token: self.class_token(),
             id: self.id(),
             extends_clause: self.extends_clause(),
+            doc_string: self.doc_string(),
             l_curly_token: self.l_curly_token(),
             members: self.members(),
             r_curly_token: self.r_curly_token(),
@@ -643,14 +644,17 @@ impl MClassDeclaration {
     pub fn extends_clause(&self) -> Option<MExtendsClause> {
         support::node(&self.syntax, 2usize)
     }
+    pub fn doc_string(&self) -> Option<AnyMDocString> {
+        support::node(&self.syntax, 3usize)
+    }
     pub fn l_curly_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 3usize)
+        support::required_token(&self.syntax, 4usize)
     }
     pub fn members(&self) -> MClassMemberList {
-        support::list(&self.syntax, 4usize)
+        support::list(&self.syntax, 5usize)
     }
     pub fn r_curly_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 5usize)
+        support::required_token(&self.syntax, 6usize)
     }
 }
 impl Serialize for MClassDeclaration {
@@ -666,6 +670,7 @@ pub struct MClassDeclarationFields {
     pub class_token: SyntaxResult<SyntaxToken>,
     pub id: SyntaxResult<AnyMBinding>,
     pub extends_clause: Option<MExtendsClause>,
+    pub doc_string: Option<AnyMDocString>,
     pub l_curly_token: SyntaxResult<SyntaxToken>,
     pub members: MClassMemberList,
     pub r_curly_token: SyntaxResult<SyntaxToken>,
@@ -888,6 +893,7 @@ impl MConstructorClassMember {
         MConstructorClassMemberFields {
             name: self.name(),
             parameters: self.parameters(),
+            doc_string: self.doc_string(),
             body: self.body(),
         }
     }
@@ -897,8 +903,11 @@ impl MConstructorClassMember {
     pub fn parameters(&self) -> SyntaxResult<MConstructorParameters> {
         support::required_node(&self.syntax, 1usize)
     }
+    pub fn doc_string(&self) -> Option<AnyMDocString> {
+        support::node(&self.syntax, 2usize)
+    }
     pub fn body(&self) -> SyntaxResult<MFunctionBody> {
-        support::required_node(&self.syntax, 2usize)
+        support::required_node(&self.syntax, 3usize)
     }
 }
 impl Serialize for MConstructorClassMember {
@@ -913,6 +922,7 @@ impl Serialize for MConstructorClassMember {
 pub struct MConstructorClassMemberFields {
     pub name: SyntaxResult<MLiteralMemberName>,
     pub parameters: SyntaxResult<MConstructorParameters>,
+    pub doc_string: Option<AnyMDocString>,
     pub body: SyntaxResult<MFunctionBody>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -1799,6 +1809,7 @@ impl MFunctionDeclaration {
             function_token: self.function_token(),
             id: self.id(),
             parameters: self.parameters(),
+            doc_string: self.doc_string(),
             body: self.body(),
         }
     }
@@ -1811,8 +1822,11 @@ impl MFunctionDeclaration {
     pub fn parameters(&self) -> SyntaxResult<MParameters> {
         support::required_node(&self.syntax, 2usize)
     }
+    pub fn doc_string(&self) -> Option<AnyMDocString> {
+        support::node(&self.syntax, 3usize)
+    }
     pub fn body(&self) -> SyntaxResult<MFunctionBody> {
-        support::required_node(&self.syntax, 3usize)
+        support::required_node(&self.syntax, 4usize)
     }
 }
 impl Serialize for MFunctionDeclaration {
@@ -1828,6 +1842,7 @@ pub struct MFunctionDeclarationFields {
     pub function_token: SyntaxResult<SyntaxToken>,
     pub id: SyntaxResult<AnyMBinding>,
     pub parameters: SyntaxResult<MParameters>,
+    pub doc_string: Option<AnyMDocString>,
     pub body: SyntaxResult<MFunctionBody>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -1895,6 +1910,7 @@ impl MGetterClassMember {
             name: self.name(),
             l_paren_token: self.l_paren_token(),
             r_paren_token: self.r_paren_token(),
+            doc_string: self.doc_string(),
             body: self.body(),
         }
     }
@@ -1910,8 +1926,11 @@ impl MGetterClassMember {
     pub fn r_paren_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 3usize)
     }
+    pub fn doc_string(&self) -> Option<AnyMDocString> {
+        support::node(&self.syntax, 4usize)
+    }
     pub fn body(&self) -> SyntaxResult<MFunctionBody> {
-        support::required_node(&self.syntax, 4usize)
+        support::required_node(&self.syntax, 5usize)
     }
 }
 impl Serialize for MGetterClassMember {
@@ -1928,6 +1947,7 @@ pub struct MGetterClassMemberFields {
     pub name: SyntaxResult<AnyMClassMemberName>,
     pub l_paren_token: SyntaxResult<SyntaxToken>,
     pub r_paren_token: SyntaxResult<SyntaxToken>,
+    pub doc_string: Option<AnyMDocString>,
     pub body: SyntaxResult<MFunctionBody>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -2396,6 +2416,7 @@ impl MMethodClassMember {
         MMethodClassMemberFields {
             name: self.name(),
             parameters: self.parameters(),
+            doc_string: self.doc_string(),
             body: self.body(),
         }
     }
@@ -2405,8 +2426,11 @@ impl MMethodClassMember {
     pub fn parameters(&self) -> SyntaxResult<MParameters> {
         support::required_node(&self.syntax, 1usize)
     }
+    pub fn doc_string(&self) -> Option<AnyMDocString> {
+        support::node(&self.syntax, 2usize)
+    }
     pub fn body(&self) -> SyntaxResult<MFunctionBody> {
-        support::required_node(&self.syntax, 2usize)
+        support::required_node(&self.syntax, 3usize)
     }
 }
 impl Serialize for MMethodClassMember {
@@ -2421,6 +2445,7 @@ impl Serialize for MMethodClassMember {
 pub struct MMethodClassMemberFields {
     pub name: SyntaxResult<AnyMClassMemberName>,
     pub parameters: SyntaxResult<MParameters>,
+    pub doc_string: Option<AnyMDocString>,
     pub body: SyntaxResult<MFunctionBody>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -3195,6 +3220,7 @@ impl MSetterClassMember {
             parameter: self.parameter(),
             comma_token: self.comma_token(),
             r_paren_token: self.r_paren_token(),
+            doc_string: self.doc_string(),
             body: self.body(),
         }
     }
@@ -3216,8 +3242,11 @@ impl MSetterClassMember {
     pub fn r_paren_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 5usize)
     }
+    pub fn doc_string(&self) -> Option<AnyMDocString> {
+        support::node(&self.syntax, 6usize)
+    }
     pub fn body(&self) -> SyntaxResult<MFunctionBody> {
-        support::required_node(&self.syntax, 6usize)
+        support::required_node(&self.syntax, 7usize)
     }
 }
 impl Serialize for MSetterClassMember {
@@ -3236,6 +3265,7 @@ pub struct MSetterClassMemberFields {
     pub parameter: SyntaxResult<AnyMFormalParameter>,
     pub comma_token: Option<SyntaxToken>,
     pub r_paren_token: SyntaxResult<SyntaxToken>,
+    pub doc_string: Option<AnyMDocString>,
     pub body: SyntaxResult<MFunctionBody>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -4255,6 +4285,25 @@ impl AnyMDeclarationClause {
     pub fn as_m_variable_declaration_clause(&self) -> Option<&MVariableDeclarationClause> {
         match &self {
             AnyMDeclarationClause::MVariableDeclarationClause(item) => Some(item),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, Serialize)]
+pub enum AnyMDocString {
+    MLongStringLiteralExpression(MLongStringLiteralExpression),
+    MStringLiteralExpression(MStringLiteralExpression),
+}
+impl AnyMDocString {
+    pub fn as_m_long_string_literal_expression(&self) -> Option<&MLongStringLiteralExpression> {
+        match &self {
+            AnyMDocString::MLongStringLiteralExpression(item) => Some(item),
+            _ => None,
+        }
+    }
+    pub fn as_m_string_literal_expression(&self) -> Option<&MStringLiteralExpression> {
+        match &self {
+            AnyMDocString::MStringLiteralExpression(item) => Some(item),
             _ => None,
         }
     }
@@ -5485,6 +5534,10 @@ impl std::fmt::Debug for MClassDeclaration {
                 &support::DebugOptionalElement(self.extends_clause()),
             )
             .field(
+                "doc_string",
+                &support::DebugOptionalElement(self.doc_string()),
+            )
+            .field(
                 "l_curly_token",
                 &support::DebugSyntaxResult(self.l_curly_token()),
             )
@@ -5720,6 +5773,10 @@ impl std::fmt::Debug for MConstructorClassMember {
         f.debug_struct("MConstructorClassMember")
             .field("name", &support::DebugSyntaxResult(self.name()))
             .field("parameters", &support::DebugSyntaxResult(self.parameters()))
+            .field(
+                "doc_string",
+                &support::DebugOptionalElement(self.doc_string()),
+            )
             .field("body", &support::DebugSyntaxResult(self.body()))
             .finish()
     }
@@ -6634,6 +6691,10 @@ impl std::fmt::Debug for MFunctionDeclaration {
             )
             .field("id", &support::DebugSyntaxResult(self.id()))
             .field("parameters", &support::DebugSyntaxResult(self.parameters()))
+            .field(
+                "doc_string",
+                &support::DebugOptionalElement(self.doc_string()),
+            )
             .field("body", &support::DebugSyntaxResult(self.body()))
             .finish()
     }
@@ -6724,6 +6785,10 @@ impl std::fmt::Debug for MGetterClassMember {
             .field(
                 "r_paren_token",
                 &support::DebugSyntaxResult(self.r_paren_token()),
+            )
+            .field(
+                "doc_string",
+                &support::DebugOptionalElement(self.doc_string()),
             )
             .field("body", &support::DebugSyntaxResult(self.body()))
             .finish()
@@ -7220,6 +7285,10 @@ impl std::fmt::Debug for MMethodClassMember {
         f.debug_struct("MMethodClassMember")
             .field("name", &support::DebugSyntaxResult(self.name()))
             .field("parameters", &support::DebugSyntaxResult(self.parameters()))
+            .field(
+                "doc_string",
+                &support::DebugOptionalElement(self.doc_string()),
+            )
             .field("body", &support::DebugSyntaxResult(self.body()))
             .finish()
     }
@@ -8039,6 +8108,10 @@ impl std::fmt::Debug for MSetterClassMember {
             .field(
                 "r_paren_token",
                 &support::DebugSyntaxResult(self.r_paren_token()),
+            )
+            .field(
+                "doc_string",
+                &support::DebugOptionalElement(self.doc_string()),
             )
             .field("body", &support::DebugSyntaxResult(self.body()))
             .finish()
@@ -9572,6 +9645,73 @@ impl From<AnyMDeclarationClause> for SyntaxNode {
 }
 impl From<AnyMDeclarationClause> for SyntaxElement {
     fn from(n: AnyMDeclarationClause) -> SyntaxElement {
+        let node: SyntaxNode = n.into();
+        node.into()
+    }
+}
+impl From<MLongStringLiteralExpression> for AnyMDocString {
+    fn from(node: MLongStringLiteralExpression) -> AnyMDocString {
+        AnyMDocString::MLongStringLiteralExpression(node)
+    }
+}
+impl From<MStringLiteralExpression> for AnyMDocString {
+    fn from(node: MStringLiteralExpression) -> AnyMDocString {
+        AnyMDocString::MStringLiteralExpression(node)
+    }
+}
+impl AstNode for AnyMDocString {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        MLongStringLiteralExpression::KIND_SET.union(MStringLiteralExpression::KIND_SET);
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(
+            kind,
+            M_LONG_STRING_LITERAL_EXPRESSION | M_STRING_LITERAL_EXPRESSION
+        )
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        let res = match syntax.kind() {
+            M_LONG_STRING_LITERAL_EXPRESSION => {
+                AnyMDocString::MLongStringLiteralExpression(MLongStringLiteralExpression { syntax })
+            }
+            M_STRING_LITERAL_EXPRESSION => {
+                AnyMDocString::MStringLiteralExpression(MStringLiteralExpression { syntax })
+            }
+            _ => return None,
+        };
+        Some(res)
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        match self {
+            AnyMDocString::MLongStringLiteralExpression(it) => &it.syntax,
+            AnyMDocString::MStringLiteralExpression(it) => &it.syntax,
+        }
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        match self {
+            AnyMDocString::MLongStringLiteralExpression(it) => it.syntax,
+            AnyMDocString::MStringLiteralExpression(it) => it.syntax,
+        }
+    }
+}
+impl std::fmt::Debug for AnyMDocString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AnyMDocString::MLongStringLiteralExpression(it) => std::fmt::Debug::fmt(it, f),
+            AnyMDocString::MStringLiteralExpression(it) => std::fmt::Debug::fmt(it, f),
+        }
+    }
+}
+impl From<AnyMDocString> for SyntaxNode {
+    fn from(n: AnyMDocString) -> SyntaxNode {
+        match n {
+            AnyMDocString::MLongStringLiteralExpression(it) => it.into(),
+            AnyMDocString::MStringLiteralExpression(it) => it.into(),
+        }
+    }
+}
+impl From<AnyMDocString> for SyntaxElement {
+    fn from(n: AnyMDocString) -> SyntaxElement {
         let node: SyntaxNode = n.into();
         node.into()
     }
@@ -11115,6 +11255,11 @@ impl std::fmt::Display for AnyMDeclarationClause {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
+impl std::fmt::Display for AnyMDocString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
 impl std::fmt::Display for AnyMExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
@@ -12438,6 +12583,88 @@ impl IntoIterator for &MDirectiveList {
 impl IntoIterator for MDirectiveList {
     type Item = MDirective;
     type IntoIter = AstNodeListIterator<Language, MDirective>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+#[derive(Clone, Eq, PartialEq, Hash)]
+pub struct MDocStringExpression {
+    syntax_list: SyntaxList,
+}
+impl MDocStringExpression {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self {
+            syntax_list: syntax.into_list(),
+        }
+    }
+}
+impl AstNode for MDocStringExpression {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_DOC_STRING_EXPRESSION as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_DOC_STRING_EXPRESSION
+    }
+    fn cast(syntax: SyntaxNode) -> Option<MDocStringExpression> {
+        if Self::can_cast(syntax.kind()) {
+            Some(MDocStringExpression {
+                syntax_list: syntax.into_list(),
+            })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        self.syntax_list.node()
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax_list.into_node()
+    }
+}
+impl Serialize for MDocStringExpression {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.len()))?;
+        for e in self.iter() {
+            seq.serialize_element(&e)?;
+        }
+        seq.end()
+    }
+}
+impl AstNodeList for MDocStringExpression {
+    type Language = Language;
+    type Node = AnyMDocString;
+    fn syntax_list(&self) -> &SyntaxList {
+        &self.syntax_list
+    }
+    fn into_syntax_list(self) -> SyntaxList {
+        self.syntax_list
+    }
+}
+impl Debug for MDocStringExpression {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("MDocStringExpression ")?;
+        f.debug_list().entries(self.iter()).finish()
+    }
+}
+impl IntoIterator for &MDocStringExpression {
+    type Item = AnyMDocString;
+    type IntoIter = AstNodeListIterator<Language, AnyMDocString>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+impl IntoIterator for MDocStringExpression {
+    type Item = AnyMDocString;
+    type IntoIter = AstNodeListIterator<Language, AnyMDocString>;
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }

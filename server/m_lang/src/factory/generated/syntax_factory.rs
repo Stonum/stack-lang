@@ -435,7 +435,7 @@ impl SyntaxFactory for MSyntaxFactory {
             }
             M_CLASS_DECLARATION => {
                 let mut elements = (&children).into_iter();
-                let mut slots: RawNodeSlots<6usize> = RawNodeSlots::default();
+                let mut slots: RawNodeSlots<7usize> = RawNodeSlots::default();
                 let mut current_element = elements.next();
                 if let Some(element) = &current_element {
                     if element.kind() == T![class] {
@@ -453,6 +453,13 @@ impl SyntaxFactory for MSyntaxFactory {
                 slots.next_slot();
                 if let Some(element) = &current_element {
                     if MExtendsClause::can_cast(element.kind()) {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if let Some(element) = &current_element {
+                    if AnyMDocString::can_cast(element.kind()) {
                         slots.mark_present();
                         current_element = elements.next();
                     }
@@ -649,7 +656,7 @@ impl SyntaxFactory for MSyntaxFactory {
             }
             M_CONSTRUCTOR_CLASS_MEMBER => {
                 let mut elements = (&children).into_iter();
-                let mut slots: RawNodeSlots<3usize> = RawNodeSlots::default();
+                let mut slots: RawNodeSlots<4usize> = RawNodeSlots::default();
                 let mut current_element = elements.next();
                 if let Some(element) = &current_element {
                     if MLiteralMemberName::can_cast(element.kind()) {
@@ -660,6 +667,13 @@ impl SyntaxFactory for MSyntaxFactory {
                 slots.next_slot();
                 if let Some(element) = &current_element {
                     if MConstructorParameters::can_cast(element.kind()) {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if let Some(element) = &current_element {
+                    if AnyMDocString::can_cast(element.kind()) {
                         slots.mark_present();
                         current_element = elements.next();
                     }
@@ -1323,7 +1337,7 @@ impl SyntaxFactory for MSyntaxFactory {
             }
             M_FUNCTION_DECLARATION => {
                 let mut elements = (&children).into_iter();
-                let mut slots: RawNodeSlots<4usize> = RawNodeSlots::default();
+                let mut slots: RawNodeSlots<5usize> = RawNodeSlots::default();
                 let mut current_element = elements.next();
                 if let Some(element) = &current_element {
                     if element.kind() == T![function] {
@@ -1341,6 +1355,13 @@ impl SyntaxFactory for MSyntaxFactory {
                 slots.next_slot();
                 if let Some(element) = &current_element {
                     if MParameters::can_cast(element.kind()) {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if let Some(element) = &current_element {
+                    if AnyMDocString::can_cast(element.kind()) {
                         slots.mark_present();
                         current_element = elements.next();
                     }
@@ -1396,7 +1417,7 @@ impl SyntaxFactory for MSyntaxFactory {
             }
             M_GETTER_CLASS_MEMBER => {
                 let mut elements = (&children).into_iter();
-                let mut slots: RawNodeSlots<5usize> = RawNodeSlots::default();
+                let mut slots: RawNodeSlots<6usize> = RawNodeSlots::default();
                 let mut current_element = elements.next();
                 if let Some(element) = &current_element {
                     if element.kind() == T![get] {
@@ -1421,6 +1442,13 @@ impl SyntaxFactory for MSyntaxFactory {
                 slots.next_slot();
                 if let Some(element) = &current_element {
                     if element.kind() == T![')'] {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if let Some(element) = &current_element {
+                    if AnyMDocString::can_cast(element.kind()) {
                         slots.mark_present();
                         current_element = elements.next();
                     }
@@ -1743,7 +1771,7 @@ impl SyntaxFactory for MSyntaxFactory {
             }
             M_METHOD_CLASS_MEMBER => {
                 let mut elements = (&children).into_iter();
-                let mut slots: RawNodeSlots<3usize> = RawNodeSlots::default();
+                let mut slots: RawNodeSlots<4usize> = RawNodeSlots::default();
                 let mut current_element = elements.next();
                 if let Some(element) = &current_element {
                     if AnyMClassMemberName::can_cast(element.kind()) {
@@ -1754,6 +1782,13 @@ impl SyntaxFactory for MSyntaxFactory {
                 slots.next_slot();
                 if let Some(element) = &current_element {
                     if MParameters::can_cast(element.kind()) {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if let Some(element) = &current_element {
+                    if AnyMDocString::can_cast(element.kind()) {
                         slots.mark_present();
                         current_element = elements.next();
                     }
@@ -2277,7 +2312,7 @@ impl SyntaxFactory for MSyntaxFactory {
             }
             M_SETTER_CLASS_MEMBER => {
                 let mut elements = (&children).into_iter();
-                let mut slots: RawNodeSlots<7usize> = RawNodeSlots::default();
+                let mut slots: RawNodeSlots<8usize> = RawNodeSlots::default();
                 let mut current_element = elements.next();
                 if let Some(element) = &current_element {
                     if element.kind() == T![set] {
@@ -2316,6 +2351,13 @@ impl SyntaxFactory for MSyntaxFactory {
                 slots.next_slot();
                 if let Some(element) = &current_element {
                     if element.kind() == T![')'] {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if let Some(element) = &current_element {
+                    if AnyMDocString::can_cast(element.kind()) {
                         slots.mark_present();
                         current_element = elements.next();
                     }
@@ -2906,6 +2948,9 @@ impl SyntaxFactory for MSyntaxFactory {
                 true,
             ),
             M_DIRECTIVE_LIST => Self::make_node_list_syntax(kind, children, MDirective::can_cast),
+            M_DOC_STRING_EXPRESSION => {
+                Self::make_node_list_syntax(kind, children, AnyMDocString::can_cast)
+            }
             M_HASH_MAP_MEMBER_LIST => Self::make_separated_list_syntax(
                 kind,
                 children,

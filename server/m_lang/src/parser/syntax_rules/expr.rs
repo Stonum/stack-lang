@@ -1234,3 +1234,18 @@ pub(crate) fn is_at_name(p: &mut MParser) -> bool {
 pub(crate) fn is_nth_at_name(p: &mut MParser, offset: usize) -> bool {
     p.nth_at(offset, T![ident]) || p.nth(offset).is_keyword()
 }
+
+pub(crate) fn parse_doc_string_expression(p: &mut MParser) -> ParsedSyntax {
+    let literal_kind = match p.cur() {
+        MSyntaxKind::M_STRING_LITERAL => MSyntaxKind::M_STRING_LITERAL_EXPRESSION,
+        MSyntaxKind::M_LONG_STRING_LITERAL => MSyntaxKind::M_LONG_STRING_LITERAL_EXPRESSION,
+        _ => return Absent,
+    };
+    let m = p.start();
+    p.bump_any();
+    Present(m.complete(p, literal_kind))
+}
+
+pub(crate) fn eat_doc_string_expression(p: &mut MParser) {
+    let _ = parse_doc_string_expression(p);
+}

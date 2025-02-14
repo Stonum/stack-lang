@@ -2,7 +2,10 @@ use super::ParsedSyntax::{Absent, Present};
 use super::{MParser, ParsedSyntax, RecoveryResult};
 
 use super::binding::parse_binding;
-use super::expr::{parse_assignment_expression_or_higher, parse_lhs_expr, ExpressionContext};
+use super::expr::{
+    eat_doc_string_expression, parse_assignment_expression_or_higher, parse_lhs_expr,
+    ExpressionContext,
+};
 
 use super::function::{
     parse_any_parameter, parse_formal_parameter, parse_function_body, parse_parameter_list,
@@ -111,6 +114,8 @@ fn parse_class(p: &mut MParser, kind: ClassKind) -> CompletedMarker {
     }
 
     eat_class_heritage_clause(p);
+
+    eat_doc_string_expression(p);
 
     p.expect(T!['{']);
     ClassMembersList.parse_list(p);
@@ -294,6 +299,8 @@ fn parse_class_member_impl(p: &mut MParser, member_marker: Marker) -> ParsedSynt
             p.expect(T!['(']);
             p.expect(T![')']);
 
+            eat_doc_string_expression(p);
+
             let member_kind = expect_accessor_body(p);
             member_marker.complete(p, member_kind.as_getter_syntax_kind())
         } else {
@@ -311,6 +318,8 @@ fn parse_class_member_impl(p: &mut MParser, member_marker: Marker) -> ParsedSynt
             }
 
             p.expect(T![')']);
+
+            eat_doc_string_expression(p);
 
             let member_kind = expect_accessor_body(p);
             member_marker.complete(p, member_kind.as_setter_syntax_kind())
@@ -433,6 +442,7 @@ fn parse_method_class_member_rest(
 
     parse_parameter_list(p, flags).or_add_diagnostic(p, m_parse_error::expected_class_parameters);
 
+    eat_doc_string_expression(p);
     let member_kind = expect_method_body(p, ClassMethodMemberKind::Method(flags));
     let mut member = m.complete(p, member_kind.as_method_syntax_kind());
 
@@ -535,6 +545,7 @@ fn parse_constructor_class_member_body(p: &mut MParser, member_marker: Marker) -
     parse_constructor_parameter_list(p)
         .or_add_diagnostic(p, m_parse_error::expected_constructor_parameters);
 
+    eat_doc_string_expression(p);
     let constructor_kind = expect_method_body(p, ClassMethodMemberKind::Constructor);
 
     member_marker.complete(p, constructor_kind.as_constructor_syntax_kind())

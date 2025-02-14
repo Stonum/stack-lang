@@ -208,6 +208,7 @@ pub fn m_class_declaration(
         members,
         r_curly_token,
         extends_clause: None,
+        doc_string: None,
     }
 }
 pub struct MClassDeclarationBuilder {
@@ -217,10 +218,15 @@ pub struct MClassDeclarationBuilder {
     members: MClassMemberList,
     r_curly_token: SyntaxToken,
     extends_clause: Option<MExtendsClause>,
+    doc_string: Option<AnyMDocString>,
 }
 impl MClassDeclarationBuilder {
     pub fn with_extends_clause(mut self, extends_clause: MExtendsClause) -> Self {
         self.extends_clause = Some(extends_clause);
+        self
+    }
+    pub fn with_doc_string(mut self, doc_string: AnyMDocString) -> Self {
+        self.doc_string = Some(doc_string);
         self
     }
     pub fn build(self) -> MClassDeclaration {
@@ -230,6 +236,8 @@ impl MClassDeclarationBuilder {
                 Some(SyntaxElement::Token(self.class_token)),
                 Some(SyntaxElement::Node(self.id.into_syntax())),
                 self.extends_clause
+                    .map(|token| SyntaxElement::Node(token.into_syntax())),
+                self.doc_string
                     .map(|token| SyntaxElement::Node(token.into_syntax())),
                 Some(SyntaxElement::Token(self.l_curly_token)),
                 Some(SyntaxElement::Node(self.members.into_syntax())),
@@ -306,15 +314,37 @@ pub fn m_constructor_class_member(
     name: MLiteralMemberName,
     parameters: MConstructorParameters,
     body: MFunctionBody,
-) -> MConstructorClassMember {
-    MConstructorClassMember::unwrap_cast(SyntaxNode::new_detached(
-        MSyntaxKind::M_CONSTRUCTOR_CLASS_MEMBER,
-        [
-            Some(SyntaxElement::Node(name.into_syntax())),
-            Some(SyntaxElement::Node(parameters.into_syntax())),
-            Some(SyntaxElement::Node(body.into_syntax())),
-        ],
-    ))
+) -> MConstructorClassMemberBuilder {
+    MConstructorClassMemberBuilder {
+        name,
+        parameters,
+        body,
+        doc_string: None,
+    }
+}
+pub struct MConstructorClassMemberBuilder {
+    name: MLiteralMemberName,
+    parameters: MConstructorParameters,
+    body: MFunctionBody,
+    doc_string: Option<AnyMDocString>,
+}
+impl MConstructorClassMemberBuilder {
+    pub fn with_doc_string(mut self, doc_string: AnyMDocString) -> Self {
+        self.doc_string = Some(doc_string);
+        self
+    }
+    pub fn build(self) -> MConstructorClassMember {
+        MConstructorClassMember::unwrap_cast(SyntaxNode::new_detached(
+            MSyntaxKind::M_CONSTRUCTOR_CLASS_MEMBER,
+            [
+                Some(SyntaxElement::Node(self.name.into_syntax())),
+                Some(SyntaxElement::Node(self.parameters.into_syntax())),
+                self.doc_string
+                    .map(|token| SyntaxElement::Node(token.into_syntax())),
+                Some(SyntaxElement::Node(self.body.into_syntax())),
+            ],
+        ))
+    }
 }
 pub fn m_constructor_parameters(
     l_paren_token: SyntaxToken,
@@ -697,16 +727,40 @@ pub fn m_function_declaration(
     id: AnyMBinding,
     parameters: MParameters,
     body: MFunctionBody,
-) -> MFunctionDeclaration {
-    MFunctionDeclaration::unwrap_cast(SyntaxNode::new_detached(
-        MSyntaxKind::M_FUNCTION_DECLARATION,
-        [
-            Some(SyntaxElement::Token(function_token)),
-            Some(SyntaxElement::Node(id.into_syntax())),
-            Some(SyntaxElement::Node(parameters.into_syntax())),
-            Some(SyntaxElement::Node(body.into_syntax())),
-        ],
-    ))
+) -> MFunctionDeclarationBuilder {
+    MFunctionDeclarationBuilder {
+        function_token,
+        id,
+        parameters,
+        body,
+        doc_string: None,
+    }
+}
+pub struct MFunctionDeclarationBuilder {
+    function_token: SyntaxToken,
+    id: AnyMBinding,
+    parameters: MParameters,
+    body: MFunctionBody,
+    doc_string: Option<AnyMDocString>,
+}
+impl MFunctionDeclarationBuilder {
+    pub fn with_doc_string(mut self, doc_string: AnyMDocString) -> Self {
+        self.doc_string = Some(doc_string);
+        self
+    }
+    pub fn build(self) -> MFunctionDeclaration {
+        MFunctionDeclaration::unwrap_cast(SyntaxNode::new_detached(
+            MSyntaxKind::M_FUNCTION_DECLARATION,
+            [
+                Some(SyntaxElement::Token(self.function_token)),
+                Some(SyntaxElement::Node(self.id.into_syntax())),
+                Some(SyntaxElement::Node(self.parameters.into_syntax())),
+                self.doc_string
+                    .map(|token| SyntaxElement::Node(token.into_syntax())),
+                Some(SyntaxElement::Node(self.body.into_syntax())),
+            ],
+        ))
+    }
 }
 pub fn m_function_expression(
     function_token: SyntaxToken,
@@ -728,17 +782,43 @@ pub fn m_getter_class_member(
     l_paren_token: SyntaxToken,
     r_paren_token: SyntaxToken,
     body: MFunctionBody,
-) -> MGetterClassMember {
-    MGetterClassMember::unwrap_cast(SyntaxNode::new_detached(
-        MSyntaxKind::M_GETTER_CLASS_MEMBER,
-        [
-            Some(SyntaxElement::Token(get_token)),
-            Some(SyntaxElement::Node(name.into_syntax())),
-            Some(SyntaxElement::Token(l_paren_token)),
-            Some(SyntaxElement::Token(r_paren_token)),
-            Some(SyntaxElement::Node(body.into_syntax())),
-        ],
-    ))
+) -> MGetterClassMemberBuilder {
+    MGetterClassMemberBuilder {
+        get_token,
+        name,
+        l_paren_token,
+        r_paren_token,
+        body,
+        doc_string: None,
+    }
+}
+pub struct MGetterClassMemberBuilder {
+    get_token: SyntaxToken,
+    name: AnyMClassMemberName,
+    l_paren_token: SyntaxToken,
+    r_paren_token: SyntaxToken,
+    body: MFunctionBody,
+    doc_string: Option<AnyMDocString>,
+}
+impl MGetterClassMemberBuilder {
+    pub fn with_doc_string(mut self, doc_string: AnyMDocString) -> Self {
+        self.doc_string = Some(doc_string);
+        self
+    }
+    pub fn build(self) -> MGetterClassMember {
+        MGetterClassMember::unwrap_cast(SyntaxNode::new_detached(
+            MSyntaxKind::M_GETTER_CLASS_MEMBER,
+            [
+                Some(SyntaxElement::Token(self.get_token)),
+                Some(SyntaxElement::Node(self.name.into_syntax())),
+                Some(SyntaxElement::Token(self.l_paren_token)),
+                Some(SyntaxElement::Token(self.r_paren_token)),
+                self.doc_string
+                    .map(|token| SyntaxElement::Node(token.into_syntax())),
+                Some(SyntaxElement::Node(self.body.into_syntax())),
+            ],
+        ))
+    }
 }
 pub fn m_hash_map_expression(
     at_token: SyntaxToken,
@@ -880,15 +960,37 @@ pub fn m_method_class_member(
     name: AnyMClassMemberName,
     parameters: MParameters,
     body: MFunctionBody,
-) -> MMethodClassMember {
-    MMethodClassMember::unwrap_cast(SyntaxNode::new_detached(
-        MSyntaxKind::M_METHOD_CLASS_MEMBER,
-        [
-            Some(SyntaxElement::Node(name.into_syntax())),
-            Some(SyntaxElement::Node(parameters.into_syntax())),
-            Some(SyntaxElement::Node(body.into_syntax())),
-        ],
-    ))
+) -> MMethodClassMemberBuilder {
+    MMethodClassMemberBuilder {
+        name,
+        parameters,
+        body,
+        doc_string: None,
+    }
+}
+pub struct MMethodClassMemberBuilder {
+    name: AnyMClassMemberName,
+    parameters: MParameters,
+    body: MFunctionBody,
+    doc_string: Option<AnyMDocString>,
+}
+impl MMethodClassMemberBuilder {
+    pub fn with_doc_string(mut self, doc_string: AnyMDocString) -> Self {
+        self.doc_string = Some(doc_string);
+        self
+    }
+    pub fn build(self) -> MMethodClassMember {
+        MMethodClassMember::unwrap_cast(SyntaxNode::new_detached(
+            MSyntaxKind::M_METHOD_CLASS_MEMBER,
+            [
+                Some(SyntaxElement::Node(self.name.into_syntax())),
+                Some(SyntaxElement::Node(self.parameters.into_syntax())),
+                self.doc_string
+                    .map(|token| SyntaxElement::Node(token.into_syntax())),
+                Some(SyntaxElement::Node(self.body.into_syntax())),
+            ],
+        ))
+    }
 }
 pub fn m_module(
     directives: MDirectiveList,
@@ -1163,6 +1265,7 @@ pub fn m_setter_class_member(
         r_paren_token,
         body,
         comma_token: None,
+        doc_string: None,
     }
 }
 pub struct MSetterClassMemberBuilder {
@@ -1173,10 +1276,15 @@ pub struct MSetterClassMemberBuilder {
     r_paren_token: SyntaxToken,
     body: MFunctionBody,
     comma_token: Option<SyntaxToken>,
+    doc_string: Option<AnyMDocString>,
 }
 impl MSetterClassMemberBuilder {
     pub fn with_comma_token(mut self, comma_token: SyntaxToken) -> Self {
         self.comma_token = Some(comma_token);
+        self
+    }
+    pub fn with_doc_string(mut self, doc_string: AnyMDocString) -> Self {
+        self.doc_string = Some(doc_string);
         self
     }
     pub fn build(self) -> MSetterClassMember {
@@ -1189,6 +1297,8 @@ impl MSetterClassMemberBuilder {
                 Some(SyntaxElement::Node(self.parameter.into_syntax())),
                 self.comma_token.map(|token| SyntaxElement::Token(token)),
                 Some(SyntaxElement::Token(self.r_paren_token)),
+                self.doc_string
+                    .map(|token| SyntaxElement::Node(token.into_syntax())),
                 Some(SyntaxElement::Node(self.body.into_syntax())),
             ],
         ))
@@ -1579,6 +1689,18 @@ where
 {
     MDirectiveList::unwrap_cast(SyntaxNode::new_detached(
         MSyntaxKind::M_DIRECTIVE_LIST,
+        items
+            .into_iter()
+            .map(|item| Some(item.into_syntax().into())),
+    ))
+}
+pub fn m_doc_string_expression<I>(items: I) -> MDocStringExpression
+where
+    I: IntoIterator<Item = AnyMDocString>,
+    I::IntoIter: ExactSizeIterator,
+{
+    MDocStringExpression::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_DOC_STRING_EXPRESSION,
         items
             .into_iter()
             .map(|item| Some(item.into_syntax().into())),
