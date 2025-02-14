@@ -989,6 +989,20 @@ pub fn m_parameters(
         ],
     ))
 }
+pub fn m_parenthesized_assignment(
+    l_paren_token: SyntaxToken,
+    assignment: AnyMAssignment,
+    r_paren_token: SyntaxToken,
+) -> MParenthesizedAssignment {
+    MParenthesizedAssignment::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_PARENTHESIZED_ASSIGNMENT,
+        [
+            Some(SyntaxElement::Token(l_paren_token)),
+            Some(SyntaxElement::Node(assignment.into_syntax())),
+            Some(SyntaxElement::Token(r_paren_token)),
+        ],
+    ))
+}
 pub fn m_parenthesized_expression(
     l_paren_token: SyntaxToken,
     expression: AnyMExpression,

@@ -285,6 +285,11 @@ macro_rules! map_syntax_node {
                     let $pattern = unsafe { crate::syntax::MObjectExpression::new_unchecked(node) };
                     $body
                 }
+                crate::syntax::MSyntaxKind::M_PARENTHESIZED_ASSIGNMENT => {
+                    let $pattern =
+                        unsafe { crate::syntax::MParenthesizedAssignment::new_unchecked(node) };
+                    $body
+                }
                 crate::syntax::MSyntaxKind::M_PARAMETERS => {
                     let $pattern = unsafe { crate::syntax::MParameters::new_unchecked(node) };
                     $body

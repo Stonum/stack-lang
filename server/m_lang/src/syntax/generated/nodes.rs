@@ -2724,6 +2724,51 @@ pub struct MParametersFields {
     pub r_paren_token: SyntaxResult<SyntaxToken>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
+pub struct MParenthesizedAssignment {
+    pub(crate) syntax: SyntaxNode,
+}
+impl MParenthesizedAssignment {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> MParenthesizedAssignmentFields {
+        MParenthesizedAssignmentFields {
+            l_paren_token: self.l_paren_token(),
+            assignment: self.assignment(),
+            r_paren_token: self.r_paren_token(),
+        }
+    }
+    pub fn l_paren_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 0usize)
+    }
+    pub fn assignment(&self) -> SyntaxResult<AnyMAssignment> {
+        support::required_node(&self.syntax, 1usize)
+    }
+    pub fn r_paren_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 2usize)
+    }
+}
+impl Serialize for MParenthesizedAssignment {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct MParenthesizedAssignmentFields {
+    pub l_paren_token: SyntaxResult<SyntaxToken>,
+    pub assignment: SyntaxResult<AnyMAssignment>,
+    pub r_paren_token: SyntaxResult<SyntaxToken>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MParenthesizedExpression {
     pub(crate) syntax: SyntaxNode,
 }
@@ -4007,6 +4052,7 @@ pub enum AnyMAssignment {
     MBogusAssignment(MBogusAssignment),
     MComputedMemberAssignment(MComputedMemberAssignment),
     MIdentifierAssignment(MIdentifierAssignment),
+    MParenthesizedAssignment(MParenthesizedAssignment),
     MStaticMemberAssignment(MStaticMemberAssignment),
 }
 impl AnyMAssignment {
@@ -4025,6 +4071,12 @@ impl AnyMAssignment {
     pub fn as_m_identifier_assignment(&self) -> Option<&MIdentifierAssignment> {
         match &self {
             AnyMAssignment::MIdentifierAssignment(item) => Some(item),
+            _ => None,
+        }
+    }
+    pub fn as_m_parenthesized_assignment(&self) -> Option<&MParenthesizedAssignment> {
+        match &self {
+            AnyMAssignment::MParenthesizedAssignment(item) => Some(item),
             _ => None,
         }
     }
@@ -7495,6 +7547,52 @@ impl From<MParameters> for SyntaxElement {
         n.syntax.into()
     }
 }
+impl AstNode for MParenthesizedAssignment {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_PARENTHESIZED_ASSIGNMENT as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_PARENTHESIZED_ASSIGNMENT
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for MParenthesizedAssignment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MParenthesizedAssignment")
+            .field(
+                "l_paren_token",
+                &support::DebugSyntaxResult(self.l_paren_token()),
+            )
+            .field("assignment", &support::DebugSyntaxResult(self.assignment()))
+            .field(
+                "r_paren_token",
+                &support::DebugSyntaxResult(self.r_paren_token()),
+            )
+            .finish()
+    }
+}
+impl From<MParenthesizedAssignment> for SyntaxNode {
+    fn from(n: MParenthesizedAssignment) -> SyntaxNode {
+        n.syntax
+    }
+}
+impl From<MParenthesizedAssignment> for SyntaxElement {
+    fn from(n: MParenthesizedAssignment) -> SyntaxElement {
+        n.syntax.into()
+    }
+}
 impl AstNode for MParenthesizedExpression {
     type Language = Language;
     const KIND_SET: SyntaxKindSet<Language> =
@@ -8851,6 +8949,11 @@ impl From<MIdentifierAssignment> for AnyMAssignment {
         AnyMAssignment::MIdentifierAssignment(node)
     }
 }
+impl From<MParenthesizedAssignment> for AnyMAssignment {
+    fn from(node: MParenthesizedAssignment) -> AnyMAssignment {
+        AnyMAssignment::MParenthesizedAssignment(node)
+    }
+}
 impl From<MStaticMemberAssignment> for AnyMAssignment {
     fn from(node: MStaticMemberAssignment) -> AnyMAssignment {
         AnyMAssignment::MStaticMemberAssignment(node)
@@ -8861,6 +8964,7 @@ impl AstNode for AnyMAssignment {
     const KIND_SET: SyntaxKindSet<Language> = MBogusAssignment::KIND_SET
         .union(MComputedMemberAssignment::KIND_SET)
         .union(MIdentifierAssignment::KIND_SET)
+        .union(MParenthesizedAssignment::KIND_SET)
         .union(MStaticMemberAssignment::KIND_SET);
     fn can_cast(kind: SyntaxKind) -> bool {
         matches!(
@@ -8868,6 +8972,7 @@ impl AstNode for AnyMAssignment {
             M_BOGUS_ASSIGNMENT
                 | M_COMPUTED_MEMBER_ASSIGNMENT
                 | M_IDENTIFIER_ASSIGNMENT
+                | M_PARENTHESIZED_ASSIGNMENT
                 | M_STATIC_MEMBER_ASSIGNMENT
         )
     }
@@ -8879,6 +8984,9 @@ impl AstNode for AnyMAssignment {
             }
             M_IDENTIFIER_ASSIGNMENT => {
                 AnyMAssignment::MIdentifierAssignment(MIdentifierAssignment { syntax })
+            }
+            M_PARENTHESIZED_ASSIGNMENT => {
+                AnyMAssignment::MParenthesizedAssignment(MParenthesizedAssignment { syntax })
             }
             M_STATIC_MEMBER_ASSIGNMENT => {
                 AnyMAssignment::MStaticMemberAssignment(MStaticMemberAssignment { syntax })
@@ -8892,6 +9000,7 @@ impl AstNode for AnyMAssignment {
             AnyMAssignment::MBogusAssignment(it) => &it.syntax,
             AnyMAssignment::MComputedMemberAssignment(it) => &it.syntax,
             AnyMAssignment::MIdentifierAssignment(it) => &it.syntax,
+            AnyMAssignment::MParenthesizedAssignment(it) => &it.syntax,
             AnyMAssignment::MStaticMemberAssignment(it) => &it.syntax,
         }
     }
@@ -8900,6 +9009,7 @@ impl AstNode for AnyMAssignment {
             AnyMAssignment::MBogusAssignment(it) => it.syntax,
             AnyMAssignment::MComputedMemberAssignment(it) => it.syntax,
             AnyMAssignment::MIdentifierAssignment(it) => it.syntax,
+            AnyMAssignment::MParenthesizedAssignment(it) => it.syntax,
             AnyMAssignment::MStaticMemberAssignment(it) => it.syntax,
         }
     }
@@ -8910,6 +9020,7 @@ impl std::fmt::Debug for AnyMAssignment {
             AnyMAssignment::MBogusAssignment(it) => std::fmt::Debug::fmt(it, f),
             AnyMAssignment::MComputedMemberAssignment(it) => std::fmt::Debug::fmt(it, f),
             AnyMAssignment::MIdentifierAssignment(it) => std::fmt::Debug::fmt(it, f),
+            AnyMAssignment::MParenthesizedAssignment(it) => std::fmt::Debug::fmt(it, f),
             AnyMAssignment::MStaticMemberAssignment(it) => std::fmt::Debug::fmt(it, f),
         }
     }
@@ -8920,6 +9031,7 @@ impl From<AnyMAssignment> for SyntaxNode {
             AnyMAssignment::MBogusAssignment(it) => it.into(),
             AnyMAssignment::MComputedMemberAssignment(it) => it.into(),
             AnyMAssignment::MIdentifierAssignment(it) => it.into(),
+            AnyMAssignment::MParenthesizedAssignment(it) => it.into(),
             AnyMAssignment::MStaticMemberAssignment(it) => it.into(),
         }
     }
@@ -11390,6 +11502,11 @@ impl std::fmt::Display for MObjectExpression {
     }
 }
 impl std::fmt::Display for MParameters {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for MParenthesizedAssignment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
