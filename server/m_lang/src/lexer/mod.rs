@@ -1258,12 +1258,13 @@ impl<'src> MLexer<'src> {
                     self.advance(3);
                     return DOT3;
                 }
-                if let Some('0'..='9' | 'a'..='z' | 'A'..='Z') = self.peek_byte().map(|c| c as char)
-                {
-                    self.resolve_identifier(byte as char)
-                } else {
-                    self.eat_byte(T![.])
-                }
+                // TODO - remove this to parser
+                // if let Some('0'..='9' | 'a'..='z' | 'A'..='Z') = self.peek_byte().map(|c| c as char)
+                // {
+                //     self.resolve_identifier(byte as char)
+                // } else {
+                self.eat_byte(T![.])
+                // }
             }
             BSL => {
                 if self.peek_byte() == Some(b'u') {
