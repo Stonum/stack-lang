@@ -626,14 +626,6 @@ impl<'src> MLexer<'src> {
                 b'\\' => {
                     valid &= self.consume_escape_sequence();
                 }
-                b'\r' | b'\n' => {
-                    let unterminated =
-                        ParseDiagnostic::new("unterminated string literal", start..self.position)
-                            .with_detail(start..self.position, "")
-                            .with_hint("The closing quote must be on the same line.");
-                    self.push_diagnostic(unterminated);
-                    return false;
-                }
                 chr if chr == quote => {
                     self.advance(1);
                     return valid;

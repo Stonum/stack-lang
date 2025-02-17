@@ -287,6 +287,16 @@ fn simple_string() {
 }
 
 #[test]
+fn multiline_long_string() {
+    assert_lex! {
+        r#"`abcdef
+            ghijklmnopqrst
+            uvwxyz123456789\`10🦀`"#,
+        M_LONG_STRING_LITERAL:71
+    }
+}
+
+#[test]
 fn string_unicode_escape_invalid() {
     assert_lex! {
         r#""abcd\u21""#,

@@ -143,7 +143,9 @@ fn test_parse_doc_string() {
             `mega class documentation`
             {
                 constructor() 
-                `constructor docs`
+                `constructor 
+                 multiline 
+                 docs`
                 { 
                     this.a = 1; 
                 }
