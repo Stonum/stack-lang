@@ -98,6 +98,15 @@ fn identifier_with_single_quotes() {
 }
 
 #[test]
+fn global_scope_identifier() {
+    assert_lex! {
+        ".Дата",
+        DOT:1,
+        IDENT:8
+    }
+}
+
+#[test]
 fn unicode_identifier() {
     assert_lex! {
         r#"\uD83D\uDCA9"#,

@@ -1,5 +1,14 @@
 use biome_rowan::{TextRange, TextSize, WalkEvent};
-use m_lang::{parser::parse, syntax::MFileSource};
+use m_lang::{
+    parser::{parse, Parse},
+    syntax::{AnyMRoot, MFileSource},
+};
+
+#[inline]
+fn assert_result(res: Parse<AnyMRoot>) {
+    assert!(res.try_tree().is_some());
+    assert!(!res.has_errors());
+}
 
 #[test]
 fn test_parse_function_declaration() {
@@ -11,8 +20,7 @@ fn test_parse_function_declaration() {
         MFileSource::module(),
     );
 
-    assert!(res.try_tree().is_some());
-    assert!(!res.has_errors());
+    assert_result(res);
 }
 #[test]
 fn test_parse_class_declaration() {
@@ -39,8 +47,7 @@ fn test_parse_class_declaration() {
         MFileSource::module(),
     );
 
-    assert!(res.try_tree().is_some());
-    assert!(!res.has_errors());
+    assert_result(res);
 }
 #[test]
 fn test_parse_expressions() {
@@ -58,11 +65,12 @@ fn test_parse_expressions() {
             params[10, 10];
             x = y < 3 ? 5 : 10;
             x.sum(x, 5)
+            .x = 10;
         "#,
         MFileSource::script(),
     );
 
-    assert!(res.try_tree().is_some());
+    assert_result(res);
 }
 
 #[test]
@@ -86,7 +94,7 @@ fn test_parse_loop() {
         MFileSource::script(),
     );
 
-    assert!(res.try_tree().is_some());
+    assert_result(res);
 }
 
 #[test]
@@ -105,7 +113,7 @@ fn test_parse_condition() {
         MFileSource::script(),
     );
 
-    assert!(res.try_tree().is_some());
+    assert_result(res);
 }
 
 #[test]
@@ -118,13 +126,19 @@ fn test_parse_strings_with_keyword() {
         MFileSource::script(),
     );
 
-    assert!(res.try_tree().is_some());
+    assert_result(res);
 }
 
 #[test]
 fn test_parse_doc_string() {
     let res = parse(
         r#"
+            func mega_func() 
+            `mega function documentation`
+            {
+                return 123;
+            }
+
             class mega 
             `mega class documentation`
             {
@@ -138,5 +152,5 @@ fn test_parse_doc_string() {
         MFileSource::module(),
     );
 
-    assert!(res.try_tree().is_some());
+    assert_result(res);
 }
