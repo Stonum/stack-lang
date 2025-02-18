@@ -748,7 +748,7 @@ impl<'src> MLexer<'src> {
 
         // Note to keep the buffer large enough to fit every possible keyword that
         // the lexer can return
-        let mut buf = [0u8; 16];
+        let mut buf = [0u8; 34];
         let len = first.encode_utf8(&mut buf).len();
 
         let (count, escaped) = self.consume_and_get_ident(&mut buf[len..]);
