@@ -491,19 +491,6 @@ impl<'src> MLexer<'src> {
         }
     }
 
-    /// Reads a `\u0000` escape sequence and converts the sequence to a valid
-    /// Unicode character.
-    ///
-    /// This expects the current char to be the `u`. Afterwards, the current
-    /// char is the last hex digit.
-    ///
-    /// This function makes no attempt to match surrogate pairs, since those are
-    /// not valid characters inside JS identifiers anyway.
-    fn read_unicode_escape_char(&mut self) -> Result<char, ()> {
-        self.read_unicode_escape()
-            .and_then(|codepoint| std::char::from_u32(codepoint).ok_or(()))
-    }
-
     // Validate a `\x00 escape sequence, this expects the current char to be the `x`, it also does not skip over the escape sequence
     // The pos after this method is the last hex digit
     fn validate_hex_escape(&mut self) -> bool {
@@ -591,22 +578,20 @@ impl<'src> MLexer<'src> {
     /// This method will stop writing into the buffer if the buffer is too small to
     /// fit the whole identifier.
     #[inline]
-    fn consume_and_get_ident(&mut self, buf: &mut [u8], start_with_quote: bool) -> (usize, bool) {
+    fn consume_and_get_ident(&mut self, buf: &mut [u8], start_with_quote: bool) -> usize {
         let mut idx = 0;
-        let mut any_escaped = false;
         while self.next_byte_bounded().is_some() {
-            if let Some((c, escaped)) = self.cur_ident_part(start_with_quote) {
+            if let Some(c) = self.cur_ident_part(start_with_quote) {
                 if let Some(buf) = buf.get_mut(idx..idx + 4) {
                     let res = c.encode_utf8(buf);
                     idx += res.len();
-                    any_escaped |= escaped;
                 }
             } else {
-                return (idx, any_escaped);
+                return idx;
             }
         }
 
-        (idx, any_escaped)
+        idx
     }
 
     /// Consume a string literal and advance the lexer, and returning a list of errors that occurred when reading the string
@@ -657,44 +642,22 @@ impl<'src> MLexer<'src> {
     /// The character may be a char that was generated from a unicode escape sequence,
     /// e.g. `t` is returned, the actual source code is `\u{74}`
     #[inline]
-    fn cur_ident_part(&mut self, start_with_quote: bool) -> Option<(char, bool)> {
+    fn cur_ident_part(&mut self, start_with_quote: bool) -> Option<char> {
         debug_assert!(!self.is_eof());
 
         // Safety: we always call this method on a char
         let b = unsafe { self.current_unchecked() };
 
         match lookup_byte(b) {
-            IDT | DOL | DIG | ZER | AT_ => Some((b as char, false)),
-            WHS | QOT | PRD | BSL if start_with_quote => Some((b as char, false)),
+            IDT | DOL | DIG | ZER | AT_ => Some(b as char),
+            WHS | QOT | PRD | BSL if start_with_quote => Some(b as char),
             UNI => {
                 let chr = self.current_char_unchecked();
                 let res = is_id_continue(chr);
                 if res {
                     self.advance(chr.len_utf8() - 1);
-                    Some((chr, false))
+                    Some(chr)
                 } else {
-                    None
-                }
-            }
-            BSL if self.peek_byte() == Some(b'u') => {
-                let start = self.position;
-                self.next_byte();
-                let res = if self.peek_byte() == Some(b'{') {
-                    self.next_byte();
-                    self.read_codepoint_escape_char()
-                } else {
-                    self.read_unicode_escape_char()
-                };
-
-                if let Ok(c) = res {
-                    if is_id_continue(c) {
-                        Some((c, true))
-                    } else {
-                        self.position = start;
-                        None
-                    }
-                } else {
-                    self.position = start;
                     None
                 }
             }
@@ -719,10 +682,27 @@ impl<'src> MLexer<'src> {
 
         let start_with_quote = first == '\'';
 
-        let (count, escaped) = self.consume_and_get_ident(&mut buf[len..], start_with_quote);
+        let count = self.consume_and_get_ident(&mut buf[len..], start_with_quote);
 
-        if escaped {
-            self.current_flags |= TokenFlags::UNICODE_ESCAPE;
+        let last = buf[count + len - 1];
+        // check unterminated quote
+        if start_with_quote && last as char != first {
+            let unterminated =
+                ParseDiagnostic::new("unterminated identifier", self.position..self.position)
+                    .with_detail(self.position..self.position, "input ends here")
+                    .with_detail(start..start + 1, "identifier starts here");
+            self.push_diagnostic(unterminated);
+            return ERROR_TOKEN;
+        }
+        if self.current_byte() == Some(b'\\') {
+            let backslash = ParseDiagnostic::new("syntax error", self.position..self.position)
+                .with_detail(
+                    self.position..self.position,
+                    "eof was expected, not backslash",
+                );
+            self.push_diagnostic(backslash);
+            self.consume_ident();
+            return ERROR_TOKEN;
         }
 
         match std::str::from_utf8(&buf[..count + len]) {
@@ -757,21 +737,7 @@ impl<'src> MLexer<'src> {
                 "true" | "истина" => return TRUE_KW,
                 "while" | "пока" => return WHILE_KW,
                 "var" | "перем" => return VAR_KW,
-                _ => {
-                    let last = buf[count + len - 1];
-                    // check unterminated quote
-                    if start_with_quote && last as char != first {
-                        let unterminated = ParseDiagnostic::new(
-                            "unterminated identifier",
-                            self.position..self.position,
-                        )
-                        .with_detail(self.position..self.position, "input ends here")
-                        .with_detail(start..start + 1, "identifier starts here");
-                        self.push_diagnostic(unterminated);
-                        return ERROR_TOKEN;
-                    }
-                    return T![ident];
-                }
+                _ => return T![ident],
             },
             Err(_) => return ERROR_TOKEN,
         }
@@ -1013,8 +979,24 @@ impl<'src> MLexer<'src> {
 
     #[inline]
     fn verify_number_end(&mut self) -> MSyntaxKind {
-        // let err_start = self.position;
-        if !self.is_eof() && !self.cur_is_ws() {
+        if self.is_eof() || self.cur_is_ws() {
+            return M_NUMBER_LITERAL;
+        }
+
+        let current_char = self.current_char_unchecked();
+        if current_char == '\\' {
+            let err_start = self.position;
+            self.consume_ident();
+            let err = ParseDiagnostic::new(
+                "numbers cannot be followed by backslash",
+                err_start..self.position,
+            );
+
+            self.push_diagnostic(err);
+            return MSyntaxKind::ERROR_TOKEN;
+        }
+
+        if self.cur_ident_part(false).is_some() {
             self.consume_ident();
             T![ident]
         } else {
@@ -1212,41 +1194,6 @@ impl<'src> MLexer<'src> {
                 // } else {
                 self.eat_byte(T![.])
                 // }
-            }
-            BSL => {
-                if self.peek_byte() == Some(b'u') {
-                    self.next_byte();
-                    let res = if self.peek_byte() == Some(b'{') {
-                        self.next_byte();
-                        self.read_codepoint_escape_char()
-                    } else {
-                        self.read_unicode_escape_char()
-                    };
-
-                    match res {
-                        Ok(chr) => {
-                            if is_id_start(chr) {
-                                self.current_flags |= TokenFlags::UNICODE_ESCAPE;
-                                self.resolve_identifier(chr)
-                            } else {
-                                let err = ParseDiagnostic::new("unexpected unicode escape",
-                                                               start..self.position).with_hint("this escape is unexpected, as it does not designate the start of an identifier");
-                                self.push_diagnostic(err);
-                                self.next_byte();
-                                MSyntaxKind::ERROR_TOKEN
-                            }
-                        }
-                        Err(_) => MSyntaxKind::ERROR_TOKEN,
-                    }
-                } else {
-                    let err = ParseDiagnostic::new(
-                        format!("unexpected token `{}`", byte as char),
-                        start..self.position + 1,
-                    );
-                    self.push_diagnostic(err);
-                    self.next_byte();
-                    MSyntaxKind::ERROR_TOKEN
-                }
             }
             QOT => match byte {
                 b'\'' => self.resolve_identifier(byte as char),
