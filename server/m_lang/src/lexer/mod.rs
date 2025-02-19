@@ -578,7 +578,7 @@ impl<'src> MLexer<'src> {
     #[inline]
     fn consume_ident(&mut self) {
         loop {
-            if self.next_byte_bounded().is_none() || self.cur_ident_part().is_none() {
+            if self.next_byte_bounded().is_none() || self.cur_ident_part(false).is_none() {
                 break;
             }
         }
@@ -591,11 +591,11 @@ impl<'src> MLexer<'src> {
     /// This method will stop writing into the buffer if the buffer is too small to
     /// fit the whole identifier.
     #[inline]
-    fn consume_and_get_ident(&mut self, buf: &mut [u8]) -> (usize, bool) {
+    fn consume_and_get_ident(&mut self, buf: &mut [u8], start_with_quote: bool) -> (usize, bool) {
         let mut idx = 0;
         let mut any_escaped = false;
         while self.next_byte_bounded().is_some() {
-            if let Some((c, escaped)) = self.cur_ident_part() {
+            if let Some((c, escaped)) = self.cur_ident_part(start_with_quote) {
                 if let Some(buf) = buf.get_mut(idx..idx + 4) {
                     let res = c.encode_utf8(buf);
                     idx += res.len();
@@ -657,7 +657,7 @@ impl<'src> MLexer<'src> {
     /// The character may be a char that was generated from a unicode escape sequence,
     /// e.g. `t` is returned, the actual source code is `\u{74}`
     #[inline]
-    fn cur_ident_part(&mut self) -> Option<(char, bool)> {
+    fn cur_ident_part(&mut self, start_with_quote: bool) -> Option<(char, bool)> {
         debug_assert!(!self.is_eof());
 
         // Safety: we always call this method on a char
@@ -665,6 +665,7 @@ impl<'src> MLexer<'src> {
 
         match lookup_byte(b) {
             IDT | DOL | DIG | ZER | AT_ => Some((b as char, false)),
+            WHS | QOT | PRD | BSL if start_with_quote => Some((b as char, false)),
             UNI => {
                 let chr = self.current_char_unchecked();
                 let res = is_id_continue(chr);
@@ -701,41 +702,6 @@ impl<'src> MLexer<'src> {
         }
     }
 
-    // check if the current char is an identifier start, this implicitly advances if the char being matched
-    // is a `\uxxxx` sequence which is an identifier start, or if the char is a unicode char which is an identifier start
-    #[inline]
-    fn cur_is_ident_start(&mut self) -> bool {
-        debug_assert!(!self.is_eof());
-
-        // Safety: we always call this method on a char
-        let b = unsafe { self.current_unchecked() };
-
-        match lookup_byte(b) {
-            BSL if self.peek_byte() == Some(b'u') => {
-                let start = self.position;
-                self.next_byte();
-                if let Ok(chr) = self.read_unicode_escape_char() {
-                    if is_id_start(chr) {
-                        return true;
-                    }
-                }
-                self.position = start;
-                false
-            }
-            UNI => {
-                let chr = self.current_char_unchecked();
-                if is_id_start(chr) {
-                    self.advance(chr.len_utf8() - 1);
-                    true
-                } else {
-                    false
-                }
-            }
-            IDT | DOL => true,
-            _ => false,
-        }
-    }
-
     /// Returns the identifier token at the current position, or the keyword token if
     /// the identifier is a keyword.
     ///
@@ -749,8 +715,11 @@ impl<'src> MLexer<'src> {
         // the lexer can return
         let mut buf = [0u8; 36];
         let len = first.encode_utf8(&mut buf).len();
+        let start = self.position;
 
-        let (count, escaped) = self.consume_and_get_ident(&mut buf[len..]);
+        let start_with_quote = first == '\'';
+
+        let (count, escaped) = self.consume_and_get_ident(&mut buf[len..], start_with_quote);
 
         if escaped {
             self.current_flags |= TokenFlags::UNICODE_ESCAPE;
@@ -788,7 +757,21 @@ impl<'src> MLexer<'src> {
                 "true" | "истина" => return TRUE_KW,
                 "while" | "пока" => return WHILE_KW,
                 "var" | "перем" => return VAR_KW,
-                _ => return T![ident],
+                _ => {
+                    let last = buf[count + len - 1];
+                    // check unterminated quote
+                    if start_with_quote && last as char != first {
+                        let unterminated = ParseDiagnostic::new(
+                            "unterminated identifier",
+                            self.position..self.position,
+                        )
+                        .with_detail(self.position..self.position, "input ends here")
+                        .with_detail(start..start + 1, "identifier starts here");
+                        self.push_diagnostic(unterminated);
+                        return ERROR_TOKEN;
+                    }
+                    return T![ident];
+                }
             },
             Err(_) => return ERROR_TOKEN,
         }
@@ -1265,13 +1248,16 @@ impl<'src> MLexer<'src> {
                     MSyntaxKind::ERROR_TOKEN
                 }
             }
-            QOT => {
-                if self.consume_str_literal() {
-                    M_STRING_LITERAL
-                } else {
-                    ERROR_TOKEN
+            QOT => match byte {
+                b'\'' => self.resolve_identifier(byte as char),
+                _ => {
+                    if self.consume_str_literal() {
+                        M_STRING_LITERAL
+                    } else {
+                        ERROR_TOKEN
+                    }
                 }
-            }
+            },
             TPL => {
                 if self.consume_str_literal() {
                     M_LONG_STRING_LITERAL

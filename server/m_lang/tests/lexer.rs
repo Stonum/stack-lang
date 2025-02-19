@@ -315,7 +315,7 @@ fn string_unicode_escape_invalid() {
     }
 
     assert_lex! {
-        r"'abcd\u21'",
+        r"`abcd\u21`",
         ERROR_TOKEN:10
     }
 }
@@ -328,8 +328,8 @@ fn string_unicode_escape_valid() {
     }
 
     assert_lex! {
-        r"'abcd\u2000a'",
-        M_STRING_LITERAL:13
+        r"`abcd\u2000a`",
+        M_LONG_STRING_LITERAL:13
     }
 }
 
@@ -354,8 +354,8 @@ fn string_unicode_escape_valid_resolving_to_endquote() {
     }
 
     assert_lex! {
-        r"'abcd\u0027a'",
-        M_STRING_LITERAL:13
+        r"`abcd\u0027a`",
+        M_LONG_STRING_LITERAL:13
     }
 }
 
@@ -367,7 +367,7 @@ fn string_hex_escape_invalid() {
     }
 
     assert_lex! {
-        r"'abcd \xZ0 \xGH'",
+        r"`abcd \xZ0 \xGH`",
         ERROR_TOKEN:16
     }
 }
@@ -380,8 +380,8 @@ fn string_hex_escape_valid() {
     }
 
     assert_lex! {
-        r"'abcd \x00 \xAB'",
-        M_STRING_LITERAL:16
+        r"`abcd \x00 \xAB`",
+        M_LONG_STRING_LITERAL:16
     }
 }
 
@@ -393,7 +393,7 @@ fn unterminated_string() {
     }
 
     assert_lex! {
-        r#"'abcd"#,
+        r#"`abcd"#,
         ERROR_TOKEN:5
     }
 }
@@ -406,7 +406,7 @@ fn string_all_escapes() {
     }
 
     assert_lex! {
-        r"'\x\u2004\u20\ux\xNN'",
+        r"`\x\u2004\u20\ux\xNN`",
         ERROR_TOKEN:21
     }
 }
@@ -425,13 +425,13 @@ fn complex_string_1() {
     }
 
     assert_lex! {
-        r#" _this += 'str"n\u200bg';"#,
+        r#" _this += `str"n\u200bg`;"#,
         WHITESPACE:1,
         IDENT:5,
         WHITESPACE:1,
         PLUSEQ:2,
         WHITESPACE:1,
-        M_STRING_LITERAL:14,
+        M_LONG_STRING_LITERAL:14,
         SEMICOLON:1
     }
 }
@@ -439,13 +439,13 @@ fn complex_string_1() {
 #[test]
 fn unterminated_string_length() {
     assert_lex! {
-        "'abc",
+        "`abc",
         ERROR_TOKEN:4
     }
 }
 
 #[test]
-fn unterminated_string_with_escape_len() {
+fn unterminated_ident_with_escape_len() {
     assert_lex! {
         "'abc\\",
         ERROR_TOKEN:5
@@ -529,14 +529,10 @@ fn labels_c() {
 #[test]
 fn labels_d() {
     assert_lex! {
-        "debug default delete do",
+        "debug delete",
         DEBUG_KW:5,
         WHITESPACE:1,
-        DEFAULT_KW:7,
-        WHITESPACE:1,
         DELETE_KW:6,
-        WHITESPACE:1,
-        DO_KW:2
     }
 
     assert_lex! {
@@ -570,12 +566,12 @@ fn labels_e() {
 #[test]
 fn labels_f() {
     assert_lex! {
-        "finally for function",
+        "finally for func",
         FINALLY_KW:7,
         WHITESPACE:1,
         FOR_KW:3,
         WHITESPACE:1,
-        FUNCTION_KW:8
+        FUNCTION_KW:4
     }
 
     assert_lex! {
@@ -753,6 +749,11 @@ fn number_basic() {
 
     assert_lex! {
         ".13",
+        DOT:1,
+        M_NUMBER_LITERAL:2
+    }
+    assert_lex! {
+        "13.",
         M_NUMBER_LITERAL:3
     }
 }
@@ -779,37 +780,31 @@ fn number_with_int_suffix() {
 fn number_basic_err() {
     assert_lex! {
         r"25\u0046abcdef",
-        ERROR_TOKEN:14
+        IDENT:14
     }
 
     assert_lex! {
         r"25\uFEFFb",
-        M_NUMBER_LITERAL:2,
-        ERROR_TOKEN:6,
-        IDENT:1
+        IDENT:9
     }
 
     assert_lex! {
         r".32\u0046abde",
-        ERROR_TOKEN:13
+        DOT:1,
+        IDENT:12
     }
 
     assert_lex! {
-        r#"10e_1"#, // numeric separator error
-        ERROR_TOKEN:5
+        r#"10e_1"#,
+        IDENT:5
     }
 }
 
 #[test]
-fn number_leading_zero_err() {
+fn number_leading_zero() {
     assert_lex! {
         r#"01.1"#,
-        M_NUMBER_LITERAL:4, // error: unexpected number
-    }
-
-    assert_lex! {
-        r#"01n"#,
-        M_NUMBER_LITERAL:3 // error: Octal literals are not allowed for BigInts.
+        M_NUMBER_LITERAL:4,
     }
 }
 
@@ -829,7 +824,8 @@ fn number_complex() {
 
     assert_lex! {
         ".0e34",
-        M_NUMBER_LITERAL:5
+        DOT:1,
+        M_NUMBER_LITERAL:4
     }
 
     assert_lex! {
@@ -850,7 +846,8 @@ fn dot_number_disambiguation() {
 
     assert_lex! {
         ".0e+5",
-        M_NUMBER_LITERAL:5
+        DOT:1,
+        M_NUMBER_LITERAL:4
     }
 }
 
@@ -858,11 +855,11 @@ fn dot_number_disambiguation() {
 fn int32_literals() {
     assert_lex! {
         "0_i32 1743642_i32 1_i32",
-        M_NUMBER_LITERAL:2,
+        M_NUMBER_LITERAL:5,
         WHITESPACE:1,
-        M_NUMBER_LITERAL:8,
+        M_NUMBER_LITERAL:11,
         WHITESPACE:1,
-        M_NUMBER_LITERAL:2
+        M_NUMBER_LITERAL:5
     }
 }
 
@@ -874,7 +871,7 @@ fn int64_literals() {
         WHITESPACE:1,
         M_NUMBER_LITERAL:8,
         WHITESPACE:1,
-        M_NUMBER_LITERAL:2
+        M_NUMBER_LITERAL:5
     }
 }
 
@@ -934,7 +931,7 @@ fn fuzz_fail_2() {
 fn fuzz_fail_3() {
     assert_lex! {
         "0e",
-        ERROR_TOKEN:2
+        IDENT:2
     }
 }
 
@@ -942,11 +939,11 @@ fn fuzz_fail_3() {
 fn fuzz_fail_4() {
     assert_lex! {
         "0o 0b 0x",
-        ERROR_TOKEN:2,
+        IDENT:2,
         WHITESPACE:1,
-        ERROR_TOKEN:2,
+        IDENT:2,
         WHITESPACE:1,
-        ERROR_TOKEN:2
+        IDENT:2
     }
 }
 
@@ -1023,8 +1020,7 @@ fn at_token() {
 
     assert_lex! {
         "@foo",
-        AT:1,
-        IDENT:3
+        IDENT:4
     }
 }
 
