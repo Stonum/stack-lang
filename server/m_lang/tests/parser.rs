@@ -156,3 +156,35 @@ fn test_parse_doc_string() {
 
     assert_result(res);
 }
+
+#[test]
+fn test_computed_fields() {
+    let res = parse(
+        r#"
+            a[x] = 10;
+            a["x"] = 20;
+            f[a,b,c] = 30;
+            f["a","b","c"] = 40;
+            f["a", b, "c"] = f[a,b,c];
+            
+        "#,
+        MFileSource::script(),
+    );
+
+    assert_result(res);
+}
+
+#[test]
+fn test_computed_call() {
+    let res = parse(
+        r#"
+            var name = "function_name";
+            var z = typeof([name]);
+            var y = ["function_name"]();
+            var ob = new ["class_name"]();
+        "#,
+        MFileSource::script(),
+    );
+
+    assert_result(res);
+}

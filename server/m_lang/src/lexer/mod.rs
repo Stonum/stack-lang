@@ -664,11 +664,10 @@ impl<'src> MLexer<'src> {
         let b = unsafe { self.current_unchecked() };
 
         match lookup_byte(b) {
-            IDT | DOL | DIG | ZER => Some((b as char, false)),
-            // FIXME: This should use ID_Continue, not XID_Continue
+            IDT | DOL | DIG | ZER | AT_ => Some((b as char, false)),
             UNI => {
                 let chr = self.current_char_unchecked();
-                let res = is_js_id_continue(chr);
+                let res = is_id_continue(chr);
                 if res {
                     self.advance(chr.len_utf8() - 1);
                     Some((chr, false))
@@ -687,7 +686,7 @@ impl<'src> MLexer<'src> {
                 };
 
                 if let Ok(c) = res {
-                    if is_js_id_continue(c) {
+                    if is_id_continue(c) {
                         Some((c, true))
                     } else {
                         self.position = start;
@@ -716,7 +715,7 @@ impl<'src> MLexer<'src> {
                 let start = self.position;
                 self.next_byte();
                 if let Ok(chr) = self.read_unicode_escape_char() {
-                    if is_js_id_start(chr) {
+                    if is_id_start(chr) {
                         return true;
                     }
                 }
@@ -725,7 +724,7 @@ impl<'src> MLexer<'src> {
             }
             UNI => {
                 let chr = self.current_char_unchecked();
-                if is_js_id_start(chr) {
+                if is_id_start(chr) {
                     self.advance(chr.len_utf8() - 1);
                     true
                 } else {
@@ -748,7 +747,7 @@ impl<'src> MLexer<'src> {
 
         // Note to keep the buffer large enough to fit every possible keyword that
         // the lexer can return
-        let mut buf = [0u8; 34];
+        let mut buf = [0u8; 36];
         let len = first.encode_utf8(&mut buf).len();
 
         let (count, escaped) = self.consume_and_get_ident(&mut buf[len..]);
@@ -760,35 +759,35 @@ impl<'src> MLexer<'src> {
         match std::str::from_utf8(&buf[..count + len]) {
             Ok(s) => match s.to_lowercase().as_str() {
                 "break" | "прервать" => return BREAK_KW,
-                "case" | "выбор" => CASE_KW,
-                "catch" | "исключение" | "перехват" => CATCH_KW,
-                "class" | "класс" => CLASS_KW,
-                "constructor" | "" => CONSTRUCTOR_KW,
-                "continue" | "продолжить" => CONTINUE_KW,
-                "debug" | "отладить" => DEBUG_KW,
-                "delete" | "удалить" => DELETE_KW,
-                "else" | "иначе" => ELSE_KW,
-                "extends" | "расширяет" => EXTENDS_KW,
-                "false" | "ложь" => FALSE_KW,
-                "finally" | "заключение" => FINALLY_KW,
-                "for" | "для" => FOR_KW,
-                "forall" | "длявсех" => FORALL_KW,
-                "func" | "функция" => FUNCTION_KW,
-                "get" | "получить" => GET_KW,
-                "if" | "если" => IF_KW,
-                "in" | "в" => IN_KW,
-                "new" | "новый" => NEW_KW,
-                "null" | "nil" | "нуль" => NULL_KW,
-                "return" | "вернуть" => RETURN_KW,
-                "super" | "базовый" => SUPER_KW,
-                "switch" | "выборпо" => SWITCH_KW,
-                "set" | "установить" => SET_KW,
-                "this" | "этот" => THIS_KW,
-                "throw" | "вызватьисключение" => THROW_KW,
-                "try" | "попытка" => TRY_KW,
-                "true" | "истина" => TRUE_KW,
-                "while" | "пока" => WHILE_KW,
-                "var" | "перем" => VAR_KW,
+                "case" | "выбор" => return CASE_KW,
+                "catch" | "исключение" | "перехват" => return CATCH_KW,
+                "class" | "класс" => return CLASS_KW,
+                "constructor" => return CONSTRUCTOR_KW,
+                "continue" | "продолжить" => return CONTINUE_KW,
+                "debug" | "отладить" => return DEBUG_KW,
+                "delete" | "удалить" => return DELETE_KW,
+                "else" | "иначе" => return ELSE_KW,
+                "extends" | "расширяет" => return EXTENDS_KW,
+                "false" | "ложь" => return FALSE_KW,
+                "finally" | "заключение" => return FINALLY_KW,
+                "for" | "для" => return FOR_KW,
+                "forall" | "длявсех" => return FORALL_KW,
+                "func" | "функция" => return FUNCTION_KW,
+                "get" | "получить" => return GET_KW,
+                "if" | "если" => return IF_KW,
+                "in" | "в" => return IN_KW,
+                "new" | "новый" => return NEW_KW,
+                "null" | "nil" | "нуль" => return NULL_KW,
+                "return" | "вернуть" => return RETURN_KW,
+                "super" | "базовый" => return SUPER_KW,
+                "switch" | "выборпо" => return SWITCH_KW,
+                "set" | "установить" => return SET_KW,
+                "this" | "этот" => return THIS_KW,
+                "throw" | "вызватьисключение" => return THROW_KW,
+                "try" | "попытка" => return TRY_KW,
+                "true" | "истина" => return TRUE_KW,
+                "while" | "пока" => return WHILE_KW,
+                "var" | "перем" => return VAR_KW,
                 _ => return T![ident],
             },
             Err(_) => return ERROR_TOKEN,
@@ -822,25 +821,6 @@ impl<'src> MLexer<'src> {
                 } else {
                     self.next_byte();
                 }
-            }
-            Some(b'b' | b'B') => {
-                if self.special_number_start(|c| c == '0' || c == '1') {
-                    self.read_bindigits();
-                    self.maybe_bigint();
-                } else {
-                    self.next_byte();
-                }
-            }
-            Some(b'o' | b'O') => {
-                if self.special_number_start(|c| ('0'..='7').contains(&c)) {
-                    self.read_octaldigits();
-                    self.maybe_bigint();
-                } else {
-                    self.next_byte();
-                }
-            }
-            Some(b'n') => {
-                self.advance(2);
             }
             Some(b'.') => {
                 self.advance(1);
@@ -957,14 +937,29 @@ impl<'src> MLexer<'src> {
                         }
                     }
                 }
-                Some(b'n') => {
-                    if leading_zero {
-                        self.push_diagnostic(ParseDiagnostic::new(
-                            "Octal literals are not allowed for BigInts.",
-                            start..self.position + 1,
-                        ));
-                    }
+                Some(b'_') => {
                     self.next_byte();
+                    if Some(b'i' | b'I') == self.peek_byte() {
+                        self.next_byte();
+                        // 1_i64
+                        if Some(b'6') == self.peek_byte() && Some(b'4') == self.byte_at(2) {
+                            self.advance(2);
+                            self.current_byte();
+                            return;
+                        }
+                        // 1_i32
+                        if Some(b'3') == self.peek_byte() && Some(b'2') == self.byte_at(2) {
+                            self.advance(2);
+                            self.current_byte();
+                            return;
+                        }
+                    }
+                }
+                Some(b'i' | b'I') => {
+                    self.next_byte();
+                    if self.cur_is_ws() {
+                        return;
+                    }
                     return;
                 }
                 _ => {
@@ -1026,42 +1021,19 @@ impl<'src> MLexer<'src> {
     }
 
     #[inline]
-    fn read_bindigits(&mut self) {
-        loop {
-            match self.next_byte() {
-                Some(b'0' | b'1') => {}
-                _ => {
-                    return;
-                }
-            }
-        }
-    }
-
-    #[inline]
-    fn read_octaldigits(&mut self) {
-        loop {
-            match self.next_byte() {
-                Some(b'0'..=b'7') => {}
-                _ => {
-                    return;
-                }
-            }
+    fn cur_is_ws(&mut self) -> bool {
+        match self.current_byte() {
+            Some(b'\t' | b'\n' | b'\r' | b' ') => true,
+            _ => false,
         }
     }
 
     #[inline]
     fn verify_number_end(&mut self) -> MSyntaxKind {
-        let err_start = self.position;
-        if !self.is_eof() && self.cur_is_ident_start() {
+        // let err_start = self.position;
+        if !self.is_eof() && !self.cur_is_ws() {
             self.consume_ident();
-            let err = ParseDiagnostic::new(
-                "numbers cannot be followed by identifiers directly after",
-                err_start..self.position,
-            )
-            .with_hint("an identifier cannot appear here");
-
-            self.push_diagnostic(err);
-            MSyntaxKind::ERROR_TOKEN
+            T![ident]
         } else {
             M_NUMBER_LITERAL
         }
@@ -1270,7 +1242,7 @@ impl<'src> MLexer<'src> {
 
                     match res {
                         Ok(chr) => {
-                            if is_js_id_start(chr) {
+                            if is_id_start(chr) {
                                 self.current_flags |= TokenFlags::UNICODE_ESCAPE;
                                 self.resolve_identifier(chr)
                             } else {
@@ -1348,7 +1320,7 @@ impl<'src> MLexer<'src> {
                     kind
                 } else {
                     self.advance(chr.len_utf8() - 1);
-                    if is_js_id_start(chr) {
+                    if is_id_start(chr) {
                         self.resolve_identifier(chr)
                     } else {
                         let err = ParseDiagnostic::new(
@@ -1362,7 +1334,20 @@ impl<'src> MLexer<'src> {
                     }
                 }
             }
-            AT_ => self.eat_byte(T![@]),
+            AT_ => {
+                let next_chr = self.peek_byte();
+                if let Some(next_byte) = next_chr {
+                    // if it start of collections - then eat it
+                    if matches!(next_byte, b'[' | b'{' | b'(') {
+                        self.eat_byte(T![@])
+                    } else {
+                        let chr = self.current_char_unchecked();
+                        self.resolve_identifier(chr)
+                    }
+                } else {
+                    self.eat_byte(T![@])
+                }
+            }
             _ => {
                 let err = ParseDiagnostic::new(
                     format!("unexpected token `{}`", byte as char),
@@ -1377,7 +1362,15 @@ impl<'src> MLexer<'src> {
     }
 }
 
-/// Check if a char is a JS linebreak
+/// Check if a char is a linebreak
 fn is_linebreak(chr: char) -> bool {
     matches!(chr, '\n' | '\r' | '\u{2028}' | '\u{2029}')
+}
+
+fn is_id_continue(chr: char) -> bool {
+    chr == '@' || is_js_id_continue(chr)
+}
+
+fn is_id_start(chr: char) -> bool {
+    chr == '@' || is_js_id_start(chr)
 }

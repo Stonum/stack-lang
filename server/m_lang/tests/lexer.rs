@@ -87,6 +87,14 @@ fn identifier_with_at() {
         "@Дата",
         IDENT:9
     }
+    assert_lex! {
+        "Дата@",
+        IDENT:9
+    }
+    assert_lex! {
+        "Д@т@",
+        IDENT:6
+    }
 }
 
 #[test]
@@ -98,11 +106,14 @@ fn identifier_with_single_quotes() {
 }
 
 #[test]
-fn global_scope_identifier() {
+fn identifier_with_keyword() {
     assert_lex! {
-        ".Дата",
-        DOT:1,
-        IDENT:8
+        "SuperClass",
+        IDENT:10
+    }
+    assert_lex! {
+        "БазовыйКласс",
+        IDENT:24
     }
 }
 
@@ -707,6 +718,22 @@ fn labels_w() {
 }
 
 #[test]
+fn labels_0_9() {
+    assert_lex! {
+        "123ii",
+        IDENT:5
+    }
+    assert_lex! {
+        "_i64",
+        IDENT:4
+    }
+    assert_lex! {
+        "_i32",
+        IDENT:4
+    }
+}
+
+#[test]
 fn number_basic() {
     assert_lex! {
         "1",
@@ -727,6 +754,24 @@ fn number_basic() {
     assert_lex! {
         ".13",
         M_NUMBER_LITERAL:3
+    }
+}
+
+#[test]
+fn number_with_int_suffix() {
+    assert_lex! {
+        "123i 123I",
+        M_NUMBER_LITERAL:4
+        WHITESPACE:1
+        M_NUMBER_LITERAL:4
+    }
+    assert_lex! {
+        "123_i32",
+        M_NUMBER_LITERAL:7
+    }
+    assert_lex! {
+        "123_i64",
+        M_NUMBER_LITERAL:7
     }
 }
 
@@ -810,37 +855,21 @@ fn dot_number_disambiguation() {
 }
 
 #[test]
-fn binary_literals() {
+fn int32_literals() {
     assert_lex! {
-        "0b10101010, 0B10101010, 0b10101010n",
-        M_NUMBER_LITERAL:10,
-        COMMA:1,
+        "0_i32 1743642_i32 1_i32",
+        M_NUMBER_LITERAL:2,
         WHITESPACE:1,
-        M_NUMBER_LITERAL:10,
-        COMMA:1,
+        M_NUMBER_LITERAL:8,
         WHITESPACE:1,
-        M_NUMBER_LITERAL:11
+        M_NUMBER_LITERAL:2
     }
 }
 
 #[test]
-fn octal_literals() {
+fn int64_literals() {
     assert_lex! {
-        "0o01742242, 0B10101010, 0b10101010n",
-        M_NUMBER_LITERAL:10,
-        COMMA:1,
-        WHITESPACE:1,
-        M_NUMBER_LITERAL:10,
-        COMMA:1,
-        WHITESPACE:1,
-        M_NUMBER_LITERAL:11
-    }
-}
-
-#[test]
-fn bigint_literals() {
-    assert_lex! {
-        "0n 1743642n 1n",
+        "0i 1743642I 1_i64",
         M_NUMBER_LITERAL:2,
         WHITESPACE:1,
         M_NUMBER_LITERAL:8,
@@ -1087,38 +1116,39 @@ fn newline_space_must_be_two_tokens() {
 
 #[test]
 fn keywords() {
+    #[rustfmt::skip]
     let keywords = vec![
-        "break",
-        "case",
-        "catch",
-        "class",
-        "continue",
-        "debug",
-        "delete",
-        "else",
-        "extends",
-        "false",
-        "finally",
-        "for",
-        "forall",
-        "func",
-        "if",
-        "in",
-        "new",
-        "null",
-        "return",
-        "super",
-        "switch",
-        "this",
-        "throw",
-        "try",
-        "true",
-        "var",
-        "while",
+        "break", "прервать",
+        "case", "выбор",
+        "catch", "исключение", "перехват",
+        "class", "класс",
+        "continue", "продолжить",
+        "debug", "отладить",
+        "delete", "удалить",
+        "else", "иначе",
+        "extends", "расширяет",
+        "false", "ложь",
+        "finally", "заключение",
+        "for", "для",
+        "forall", "длявсех",
+        "func", "функция",
+        "if", "если",
+        "in", "в",
+        "new", "новый",
+        "null", "nil", "нуль",
+        "return", "вернуть",
+        "super", "базовый",
+        "switch", "выборпо",
+        "this", "этот",
+        "throw", "вызватьисключение",
+        "try", "попытка",
+        "true", "истина",
+        "var", "перем",
+        "while", "пока",
         // contextual keywords
-        "constructor",
-        "get",
-        "set",
+        "constructor", 
+        "get", "получить",
+        "set", "установить",
     ];
 
     for keyword in keywords {
