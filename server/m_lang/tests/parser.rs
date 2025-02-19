@@ -4,10 +4,11 @@ use m_lang::{
     syntax::{AnyMRoot, MFileSource},
 };
 
-#[inline]
-fn assert_result(res: Parse<AnyMRoot>) {
-    assert!(res.try_tree().is_some());
-    assert!(!res.has_errors());
+macro_rules! assert_parser {
+    ($res:expr) => {
+        assert!($res.try_tree().is_some());
+        assert!(!$res.has_errors());
+    };
 }
 
 #[test]
@@ -20,7 +21,7 @@ fn test_parse_function_declaration() {
         MFileSource::module(),
     );
 
-    assert_result(res);
+    assert_parser!(res);
 }
 #[test]
 fn test_parse_class_declaration() {
@@ -47,7 +48,7 @@ fn test_parse_class_declaration() {
         MFileSource::module(),
     );
 
-    assert_result(res);
+    assert_parser!(res);
 }
 #[test]
 fn test_parse_expressions() {
@@ -70,7 +71,7 @@ fn test_parse_expressions() {
         MFileSource::script(),
     );
 
-    assert_result(res);
+    assert_parser!(res);
 }
 
 #[test]
@@ -94,7 +95,7 @@ fn test_parse_loop() {
         MFileSource::script(),
     );
 
-    assert_result(res);
+    assert_parser!(res);
 }
 
 #[test]
@@ -112,8 +113,7 @@ fn test_parse_condition() {
         "#,
         MFileSource::script(),
     );
-
-    assert_result(res);
+    assert_parser!(res);
 }
 
 #[test]
@@ -126,7 +126,7 @@ fn test_parse_strings_with_keyword() {
         MFileSource::script(),
     );
 
-    assert_result(res);
+    assert_parser!(res);
 }
 
 #[test]
@@ -154,7 +154,7 @@ fn test_parse_doc_string() {
         MFileSource::module(),
     );
 
-    assert_result(res);
+    assert_parser!(res);
 }
 
 #[test]
@@ -171,7 +171,7 @@ fn test_computed_fields() {
         MFileSource::script(),
     );
 
-    assert_result(res);
+    assert_parser!(res);
 }
 
 #[test]
@@ -186,5 +186,5 @@ fn test_computed_call() {
         MFileSource::script(),
     );
 
-    assert_result(res);
+    assert_parser!(res);
 }

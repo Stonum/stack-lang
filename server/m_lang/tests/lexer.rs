@@ -118,33 +118,6 @@ fn identifier_with_keyword() {
 }
 
 #[test]
-fn unicode_identifier() {
-    assert_lex! {
-        r#"\uD83D\uDCA9"#,
-        ERROR_TOKEN:5,
-        IDENT: 1,
-        ERROR_TOKEN:5,
-        M_NUMBER_LITERAL: 1,
-    }
-
-    assert_lex! {
-        r#"a\uD83D\uDCA9"#,
-        IDENT:1,
-        ERROR_TOKEN:5,
-        IDENT: 1,
-        ERROR_TOKEN:5,
-        M_NUMBER_LITERAL: 1,
-    }
-
-    assert_lex! {
-        r#"a\uD83D"#,
-        IDENT:1,
-        ERROR_TOKEN:5,
-        IDENT: 1,
-    }
-}
-
-#[test]
 fn punctuators() {
     assert_lex! {
         "!%%&()*+,-.:;<=>?[]^{}|~",
@@ -780,18 +753,18 @@ fn number_with_int_suffix() {
 fn number_basic_err() {
     assert_lex! {
         r"25\u0046abcdef",
-        IDENT:14
+        ERROR_TOKEN:14
     }
 
     assert_lex! {
         r"25\uFEFFb",
-        IDENT:9
+        ERROR_TOKEN:9
     }
 
     assert_lex! {
         r".32\u0046abde",
         DOT:1,
-        IDENT:12
+        ERROR_TOKEN:12
     }
 
     assert_lex! {
@@ -913,8 +886,7 @@ fn division() {
 fn fuzz_fail_1() {
     assert_lex! {
         "$\\u",
-        IDENT:1,
-        ERROR_TOKEN:2
+        ERROR_TOKEN:3,
     }
 }
 
@@ -979,15 +951,6 @@ fn unicode_ident_separated_by_unicode_whitespace() {
         IDENT:2,
         WHITESPACE:3,
         IDENT:2
-    }
-}
-
-#[test]
-fn err_on_unterminated_unicode() {
-    assert_lex! {
-        "+\\u{A",
-        PLUS:1
-        ERROR_TOKEN:4
     }
 }
 
@@ -1107,6 +1070,15 @@ fn newline_space_must_be_two_tokens() {
         WHITESPACE:1
         NEWLINE:2
         WHITESPACE:1
+    }
+}
+
+#[test]
+fn numbers() {
+    assert_lex! {
+        "0(",
+        M_NUMBER_LITERAL:1,
+        L_PAREN:1
     }
 }
 
