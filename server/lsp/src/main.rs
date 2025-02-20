@@ -8,8 +8,6 @@ use ini::Ini;
 
 use biome_diagnostics::diagnostic::Diagnostic as _;
 use dashmap::DashMap;
-use m_lang::syntax::TextRange;
-use m_lang::syntax::TextSize;
 use ropey::Rope;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -463,7 +461,6 @@ impl Backend {
                     })
                     .collect();
             }
-            dbg!(uri.to_string());
             self.document_map
                 .insert(uri.to_file_path().unwrap_or_default(), rope);
             self.definitions_map
