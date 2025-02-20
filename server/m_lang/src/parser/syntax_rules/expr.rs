@@ -5,6 +5,7 @@ use std::ops::{BitOr, BitOrAssign, Sub};
 
 use crate::lexer::MReLexContext;
 
+use super::object::parse_computed_member_name;
 use super::rewrite::rewrite_events;
 use super::rewrite::RewriteParseEvents;
 use super::rewrite_parser::{RewriteMarker, RewriteParser};
@@ -841,6 +842,9 @@ fn parse_primary_expression(p: &mut MParser, context: ExpressionContext) -> Pars
         // ((foo))
         // (foo)
         T!['('] => parse_parenthesized_expression(p).unwrap(),
+
+        // [name]
+        T!['['] => parse_computed_member_name(p).unwrap(),
 
         T![@] => match p.nth(1) {
             T!['['] => parse_array_expr(p).unwrap(),

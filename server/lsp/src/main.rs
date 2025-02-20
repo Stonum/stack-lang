@@ -433,10 +433,6 @@ impl Backend {
         let uri = params.uri;
         let text = params.text;
 
-        self.client
-            .log_message(MessageType::INFO, format!("pon_change {}", uri.to_string()))
-            .await;
-
         let mut diagnostics = vec![];
         {
             let parsed = parse(&text, MFileSource::module());
@@ -461,6 +457,7 @@ impl Backend {
                     })
                     .collect();
             }
+
             self.document_map
                 .insert(uri.to_file_path().unwrap_or_default(), rope);
             self.definitions_map
