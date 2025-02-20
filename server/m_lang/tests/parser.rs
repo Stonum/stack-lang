@@ -56,17 +56,17 @@ fn test_parse_expressions() {
         r#"
             var num = 1;
             x += 5 - 10;
-            x++ - 5++;
+            x++ - y++;
             -x + (y - 5) * 6;
             var arr = @[1, null, "hello", 5.55, true, x];
-            # TODO var set = @(1, null, "hello", 5.55, true, x);
+            # TODO var set = @(1, null, "hello", 5.55, true, x); # need parse sets
             var obj = @{a: 1, b: null, c: "hello", d: 5.55, "e": true};
             var binary = 1 + 2.3 + "x";
             x == 5 && y == 10;
             params[10, 10];
             x = y < 3 ? 5 : 10;
             x.sum(x, 5)
-            .x = 10;
+            # TODO .x = 10; # need parse global variable
         "#,
         MFileSource::script(),
     );

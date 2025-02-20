@@ -56,13 +56,13 @@ impl biome_rowan::SyntaxKind for MSyntaxKind {
 
     fn to_bogus(&self) -> MSyntaxKind {
         match self {
-            // kind if AnyMExpression::can_cast(*kind) => M_BOGUS_EXPRESSION,
-            // kind if AnyMBinding::can_cast(*kind) => M_BOGUS_BINDING,
-            // kind if AnyMClassMember::can_cast(*kind) || AnyMObjectMember::can_cast(*kind) => {
-            //     M_BOGUS_MEMBER
-            // }
-            // kind if AnyMAssignment::can_cast(*kind) => M_BOGUS_ASSIGNMENT,
-            // kind if AnyMParameter::can_cast(*kind) => M_BOGUS_PARAMETER,
+            kind if AnyMExpression::can_cast(*kind) => M_BOGUS_EXPRESSION,
+            kind if AnyMBinding::can_cast(*kind) => M_BOGUS_BINDING,
+            kind if AnyMClassMember::can_cast(*kind) || AnyMObjectMember::can_cast(*kind) => {
+                M_BOGUS_MEMBER
+            }
+            kind if AnyMAssignment::can_cast(*kind) => M_BOGUS_ASSIGNMENT,
+            kind if AnyMParameter::can_cast(*kind) => M_BOGUS_PARAMETER,
             _ => M_BOGUS,
         }
     }
@@ -206,25 +206,6 @@ impl OperatorPrecedence {
     }
 }
 
-/// Similar to [MSyntaxToken::text_trimmed()], but removes the quotes of string literals.
-///
-/// ## Examples
-///
-/// ```
-/// use biome_js_syntax::{MSyntaxKind, MSyntaxToken, inner_string_text};
-///
-/// let a = MSyntaxToken::new_detached(MSyntaxKind::M_STRING_LITERAL, "'inner_string_text'", [], []);
-/// let b = MSyntaxToken::new_detached(MSyntaxKind::M_STRING_LITERAL, "\"inner_string_text\"", [], []);
-/// assert_eq!(inner_string_text(&a), inner_string_text(&b));
-///
-/// let a = MSyntaxToken::new_detached(MSyntaxKind::LET_KW, "let", [], []);
-/// let b = MSyntaxToken::new_detached(MSyntaxKind::LET_KW, "let", [], []);
-/// assert_eq!(inner_string_text(&a), inner_string_text(&b));
-///
-/// let a = MSyntaxToken::new_detached(MSyntaxKind::LET_KW, "let", [], []);
-/// let b = MSyntaxToken::new_detached(MSyntaxKind::CONST_KW, "const", [], []);
-/// assert!(inner_string_text(&a) != inner_string_text(&b));
-/// ```
 pub fn inner_string_text(token: &MSyntaxToken) -> TokenText {
     let mut text = token.token_text_trimmed();
     if matches!(token.kind(), MSyntaxKind::M_STRING_LITERAL) {
@@ -235,14 +216,3 @@ pub fn inner_string_text(token: &MSyntaxToken) -> TokenText {
     }
     text
 }
-
-// Returns `Ok(true)` if `maybe_argument` is an argument of a [test call expression](MCallExpression::is_test_call_expression).
-// pub fn is_test_call_argument(maybe_argument: &MSyntaxNode) -> SyntaxResult<bool> {
-//     let call_expression = maybe_argument
-//         .parent()
-//         .and_then(MCallArgumentList::cast)
-//         .and_then(|args| args.syntax().grand_parent())
-//         .and_then(MCallExpression::cast);
-
-//     call_expression.map_or(Ok(false), |call| call.is_test_call_expression())
-// }
