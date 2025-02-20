@@ -945,6 +945,14 @@ fn unicode_ident_start_handling() {
 }
 
 #[test]
+fn unicode_ident_start_numbers() {
+    assert_lex! {
+        "1234_Тест",
+        IDENT:13
+    }
+}
+
+#[test]
 fn unicode_ident_separated_by_unicode_whitespace() {
     assert_lex! {
         "β\u{FEFF}α",

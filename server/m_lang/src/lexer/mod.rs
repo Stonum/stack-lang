@@ -887,22 +887,21 @@ impl<'src> MLexer<'src> {
                     }
                 }
                 Some(b'_') => {
-                    self.next_byte();
                     if Some(b'i' | b'I') == self.peek_byte() {
                         self.next_byte();
                         // 1_i64
                         if Some(b'6') == self.peek_byte() && Some(b'4') == self.byte_at(2) {
-                            self.advance(2);
-                            self.current_byte();
+                            self.advance(3);
                             return;
                         }
                         // 1_i32
                         if Some(b'3') == self.peek_byte() && Some(b'2') == self.byte_at(2) {
-                            self.advance(2);
-                            self.current_byte();
+                            self.advance(3);
                             return;
                         }
+                        return;
                     }
+                    return;
                 }
                 Some(b'i' | b'I') => {
                     self.next_byte();
@@ -982,9 +981,7 @@ impl<'src> MLexer<'src> {
         if self.is_eof() || self.cur_is_ws() {
             return M_NUMBER_LITERAL;
         }
-
-        let current_char = self.current_char_unchecked();
-        if current_char == '\\' {
+        if self.current_byte() == Some(b'\\') {
             let err_start = self.position;
             self.consume_ident();
             let err = ParseDiagnostic::new(
