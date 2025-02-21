@@ -167,8 +167,8 @@ impl OperatorPrecedence {
     /// Returns the precedence for a binary operator token or [None] if the token isn't a binary operator
     pub fn try_from_binary_operator(kind: MSyntaxKind) -> Option<OperatorPrecedence> {
         Some(match kind {
-            T![||] => OperatorPrecedence::LogicalOr,
-            T![&&] => OperatorPrecedence::LogicalAnd,
+            T![||] | T![or] => OperatorPrecedence::LogicalOr,
+            T![&&] | T![and] => OperatorPrecedence::LogicalAnd,
             T![|] => OperatorPrecedence::BitwiseOr,
             T![^] => OperatorPrecedence::BitwiseXor,
             T![&] => OperatorPrecedence::BitwiseAnd,

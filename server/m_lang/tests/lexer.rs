@@ -1094,6 +1094,7 @@ fn numbers() {
 fn keywords() {
     #[rustfmt::skip]
     let keywords = vec![
+        "and", "и",
         "break", "прервать",
         "case", "выбор",
         "catch", "исключение", "перехват",
@@ -1115,6 +1116,7 @@ fn keywords() {
         "return", "вернуть",
         "super", "базовый",
         "switch", "выборпо",
+        "or", "или",
         "this", "этот",
         "throw", "вызватьисключение",
         "try", "попытка",

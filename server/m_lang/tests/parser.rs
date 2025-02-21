@@ -114,6 +114,24 @@ fn test_parse_condition() {
         MFileSource::script(),
     );
     assert_parser!(res);
+
+    let res = parse(
+        r#"
+            if (x == 1 || x == 2)
+                println(x);
+        "#,
+        MFileSource::script(),
+    );
+    assert_parser!(res);
+
+    let res = parse(
+        r#"
+            if (x == 1 or x == 2)
+                println(x);
+        "#,
+        MFileSource::script(),
+    );
+    assert_parser!(res);
 }
 
 #[test]

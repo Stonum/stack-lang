@@ -261,6 +261,7 @@ impl MSyntaxKind {
     }
     pub fn from_keyword(ident: &str) -> Option<MSyntaxKind> {
         let kw = match ident {
+            "and" | "и" => AND_KW,
             "break" | "прервать" => BREAK_KW,
             "case" | "выбор" => CASE_KW,
             "catch" | "исключение" | "перехват" => CATCH_KW,
@@ -285,6 +286,7 @@ impl MSyntaxKind {
             "super" | "базовый" => SUPER_KW,
             "switch" | "выборпо" => SWITCH_KW,
             "set" | "установить" => SET_KW,
+            "or" | "или" => OR_KW,
             "this" | "этот" => THIS_KW,
             "throw" | "вызватьисключение" => THROW_KW,
             "try" | "попытка" => TRY_KW,

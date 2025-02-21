@@ -434,11 +434,9 @@ fn parse_binary_or_logical_expression_recursive(
                 // test logical_expressions
                 // a || b
                 // a && b
-                //
-                // test_err logical_expressions_err
-                // !foo && bar;
-                // foo(foo ||)
-                T![||] | T![&&] => M_LOGICAL_EXPRESSION,
+                // a or b
+                // a and b
+                T![||] | T![&&] | T![and] | T![or] => M_LOGICAL_EXPRESSION,
                 T![in] => M_IN_EXPRESSION,
                 _ => M_BINARY_EXPRESSION,
             }

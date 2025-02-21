@@ -707,6 +707,7 @@ impl<'src> MLexer<'src> {
 
         match std::str::from_utf8(&buf[..count + len]) {
             Ok(s) => match s.to_lowercase().as_str() {
+                "and" | "и" => return AND_KW,
                 "break" | "прервать" => return BREAK_KW,
                 "case" | "выбор" => return CASE_KW,
                 "catch" | "исключение" | "перехват" => return CATCH_KW,
@@ -731,6 +732,7 @@ impl<'src> MLexer<'src> {
                 "super" | "базовый" => return SUPER_KW,
                 "switch" | "выборпо" => return SWITCH_KW,
                 "set" | "установить" => return SET_KW,
+                "or" | "или" => return OR_KW,
                 "this" | "этот" => return THIS_KW,
                 "throw" | "вызватьисключение" => return THROW_KW,
                 "try" | "попытка" => return TRY_KW,
