@@ -1,15 +1,14 @@
+use m_lang::syntax::TextRange;
 use ropey::Rope;
 use tower_lsp::lsp_types::{Position, Range};
 
-pub mod cst;
 pub mod def;
 pub mod fmt;
-pub mod lexer;
-pub mod parser;
+pub mod nodes;
 
-pub fn position(rope: &Rope, span: std::ops::Range<usize>) -> Option<Range> {
-    let start = get_position_from_offset(&rope, span.start)?;
-    let end = get_position_from_offset(&rope, span.end)?;
+pub fn position(rope: &Rope, span: TextRange) -> Option<Range> {
+    let start = get_position_from_offset(&rope, span.start().into())?;
+    let end = get_position_from_offset(&rope, span.end().into())?;
     Some(Range { start, end })
 }
 
