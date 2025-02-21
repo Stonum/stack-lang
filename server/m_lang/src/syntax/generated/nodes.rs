@@ -697,8 +697,8 @@ impl MComputedMemberAssignment {
             r_brack_token: self.r_brack_token(),
         }
     }
-    pub fn object(&self) -> SyntaxResult<AnyMExpression> {
-        support::required_node(&self.syntax, 0usize)
+    pub fn object(&self) -> Option<AnyMExpression> {
+        support::node(&self.syntax, 0usize)
     }
     pub fn l_brack_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 1usize)
@@ -720,7 +720,7 @@ impl Serialize for MComputedMemberAssignment {
 }
 #[derive(Serialize)]
 pub struct MComputedMemberAssignmentFields {
-    pub object: SyntaxResult<AnyMExpression>,
+    pub object: Option<AnyMExpression>,
     pub l_brack_token: SyntaxResult<SyntaxToken>,
     pub member: SyntaxResult<AnyMExpression>,
     pub r_brack_token: SyntaxResult<SyntaxToken>,
@@ -747,8 +747,8 @@ impl MComputedMemberExpression {
             r_brack_token: self.r_brack_token(),
         }
     }
-    pub fn object(&self) -> SyntaxResult<AnyMExpression> {
-        support::required_node(&self.syntax, 0usize)
+    pub fn object(&self) -> Option<AnyMExpression> {
+        support::node(&self.syntax, 0usize)
     }
     pub fn l_brack_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 1usize)
@@ -770,7 +770,7 @@ impl Serialize for MComputedMemberExpression {
 }
 #[derive(Serialize)]
 pub struct MComputedMemberExpressionFields {
-    pub object: SyntaxResult<AnyMExpression>,
+    pub object: Option<AnyMExpression>,
     pub l_brack_token: SyntaxResult<SyntaxToken>,
     pub member: SyntaxResult<AnyMExpression>,
     pub r_brack_token: SyntaxResult<SyntaxToken>,
@@ -4317,7 +4317,6 @@ pub enum AnyMExpression {
     MBogusExpression(MBogusExpression),
     MCallExpression(MCallExpression),
     MComputedMemberExpression(MComputedMemberExpression),
-    MComputedMemberName(MComputedMemberName),
     MConditionalExpression(MConditionalExpression),
     MFunctionExpression(MFunctionExpression),
     MHashMapExpression(MHashMapExpression),
@@ -4375,12 +4374,6 @@ impl AnyMExpression {
     pub fn as_m_computed_member_expression(&self) -> Option<&MComputedMemberExpression> {
         match &self {
             AnyMExpression::MComputedMemberExpression(item) => Some(item),
-            _ => None,
-        }
-    }
-    pub fn as_m_computed_member_name(&self) -> Option<&MComputedMemberName> {
-        match &self {
-            AnyMExpression::MComputedMemberName(item) => Some(item),
             _ => None,
         }
     }
@@ -5590,7 +5583,7 @@ impl AstNode for MComputedMemberAssignment {
 impl std::fmt::Debug for MComputedMemberAssignment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MComputedMemberAssignment")
-            .field("object", &support::DebugSyntaxResult(self.object()))
+            .field("object", &support::DebugOptionalElement(self.object()))
             .field(
                 "l_brack_token",
                 &support::DebugSyntaxResult(self.l_brack_token()),
@@ -5637,7 +5630,7 @@ impl AstNode for MComputedMemberExpression {
 impl std::fmt::Debug for MComputedMemberExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MComputedMemberExpression")
-            .field("object", &support::DebugSyntaxResult(self.object()))
+            .field("object", &support::DebugOptionalElement(self.object()))
             .field(
                 "l_brack_token",
                 &support::DebugSyntaxResult(self.l_brack_token()),
@@ -9753,11 +9746,6 @@ impl From<MComputedMemberExpression> for AnyMExpression {
         AnyMExpression::MComputedMemberExpression(node)
     }
 }
-impl From<MComputedMemberName> for AnyMExpression {
-    fn from(node: MComputedMemberName) -> AnyMExpression {
-        AnyMExpression::MComputedMemberName(node)
-    }
-}
 impl From<MConditionalExpression> for AnyMExpression {
     fn from(node: MConditionalExpression) -> AnyMExpression {
         AnyMExpression::MConditionalExpression(node)
@@ -9847,7 +9835,6 @@ impl AstNode for AnyMExpression {
         .union(MBogusExpression::KIND_SET)
         .union(MCallExpression::KIND_SET)
         .union(MComputedMemberExpression::KIND_SET)
-        .union(MComputedMemberName::KIND_SET)
         .union(MConditionalExpression::KIND_SET)
         .union(MFunctionExpression::KIND_SET)
         .union(MHashMapExpression::KIND_SET)
@@ -9872,7 +9859,6 @@ impl AstNode for AnyMExpression {
             | M_BOGUS_EXPRESSION
             | M_CALL_EXPRESSION
             | M_COMPUTED_MEMBER_EXPRESSION
-            | M_COMPUTED_MEMBER_NAME
             | M_CONDITIONAL_EXPRESSION
             | M_FUNCTION_EXPRESSION
             | M_HASH_MAP_EXPRESSION
@@ -9904,9 +9890,6 @@ impl AstNode for AnyMExpression {
             M_CALL_EXPRESSION => AnyMExpression::MCallExpression(MCallExpression { syntax }),
             M_COMPUTED_MEMBER_EXPRESSION => {
                 AnyMExpression::MComputedMemberExpression(MComputedMemberExpression { syntax })
-            }
-            M_COMPUTED_MEMBER_NAME => {
-                AnyMExpression::MComputedMemberName(MComputedMemberName { syntax })
             }
             M_CONDITIONAL_EXPRESSION => {
                 AnyMExpression::MConditionalExpression(MConditionalExpression { syntax })
@@ -9963,7 +9946,6 @@ impl AstNode for AnyMExpression {
             AnyMExpression::MBogusExpression(it) => &it.syntax,
             AnyMExpression::MCallExpression(it) => &it.syntax,
             AnyMExpression::MComputedMemberExpression(it) => &it.syntax,
-            AnyMExpression::MComputedMemberName(it) => &it.syntax,
             AnyMExpression::MConditionalExpression(it) => &it.syntax,
             AnyMExpression::MFunctionExpression(it) => &it.syntax,
             AnyMExpression::MHashMapExpression(it) => &it.syntax,
@@ -9991,7 +9973,6 @@ impl AstNode for AnyMExpression {
             AnyMExpression::MBogusExpression(it) => it.syntax,
             AnyMExpression::MCallExpression(it) => it.syntax,
             AnyMExpression::MComputedMemberExpression(it) => it.syntax,
-            AnyMExpression::MComputedMemberName(it) => it.syntax,
             AnyMExpression::MConditionalExpression(it) => it.syntax,
             AnyMExpression::MFunctionExpression(it) => it.syntax,
             AnyMExpression::MHashMapExpression(it) => it.syntax,
@@ -10022,7 +10003,6 @@ impl std::fmt::Debug for AnyMExpression {
             AnyMExpression::MBogusExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MCallExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MComputedMemberExpression(it) => std::fmt::Debug::fmt(it, f),
-            AnyMExpression::MComputedMemberName(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MConditionalExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MFunctionExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MHashMapExpression(it) => std::fmt::Debug::fmt(it, f),
@@ -10052,7 +10032,6 @@ impl From<AnyMExpression> for SyntaxNode {
             AnyMExpression::MBogusExpression(it) => it.into(),
             AnyMExpression::MCallExpression(it) => it.into(),
             AnyMExpression::MComputedMemberExpression(it) => it.into(),
-            AnyMExpression::MComputedMemberName(it) => it.into(),
             AnyMExpression::MConditionalExpression(it) => it.into(),
             AnyMExpression::MFunctionExpression(it) => it.into(),
             AnyMExpression::MHashMapExpression(it) => it.into(),

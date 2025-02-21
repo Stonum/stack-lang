@@ -181,7 +181,8 @@ fn test_computed_call() {
             var name = "function_name";
             var z = typeof([name]);
             var y = ["function_name"]();
-            var ob = new ["class_name"]();
+            ["object name"] = new ["class_name"]();
+            ["object name"]["method name"]('.');
         "#,
         MFileSource::script(),
     );

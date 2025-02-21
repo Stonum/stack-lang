@@ -5,7 +5,6 @@ use std::ops::{BitOr, BitOrAssign, Sub};
 
 use crate::lexer::MReLexContext;
 
-use super::object::parse_computed_member_name;
 use super::rewrite::rewrite_events;
 use super::rewrite::RewriteParseEvents;
 use super::rewrite_parser::{RewriteMarker, RewriteParser};
@@ -480,7 +479,7 @@ fn parse_member_expression_rest(
             T![.] => parse_static_member_expression(p, lhs, T![.]).unwrap(),
             // Don't parse out `[` as a member expression because it may as well be the start of a computed class member
             T!['['] if !context.is_in_decorator() => {
-                parse_computed_member_expression(p, lhs).unwrap()
+                parse_computed_member_expression(p, Some(lhs)).unwrap()
             }
             _ => {
                 break;
@@ -582,11 +581,18 @@ pub(crate) fn parse_any_name(p: &mut MParser) -> ParsedSyntax {
 // foo[5 + 5]
 // foo["bar"]
 // foo[bar][baz]
-fn parse_computed_member_expression(p: &mut MParser, lhs: CompletedMarker) -> ParsedSyntax {
+pub(crate) fn parse_computed_member_expression(
+    p: &mut MParser,
+    lhs: Option<CompletedMarker>,
+) -> ParsedSyntax {
     // test_err bracket_expr_err
     // foo[]
     // foo[
-    let m = lhs.precede(p);
+    let m = if let Some(lhs) = lhs {
+        lhs.precede(p)
+    } else {
+        p.start()
+    };
 
     p.expect(T!['[']);
     // test  computed_member_in
@@ -843,8 +849,8 @@ fn parse_primary_expression(p: &mut MParser, context: ExpressionContext) -> Pars
         // (foo)
         T!['('] => parse_parenthesized_expression(p).unwrap(),
 
-        // [name]
-        T!['['] => parse_computed_member_name(p).unwrap(),
+        // [name] or ["name"]
+        T!['['] => parse_computed_member_expression(p, None).unwrap(),
 
         T![@] => match p.nth(1) {
             T!['['] => parse_array_expr(p).unwrap(),

@@ -247,36 +247,76 @@ impl MClassDeclarationBuilder {
     }
 }
 pub fn m_computed_member_assignment(
-    object: AnyMExpression,
     l_brack_token: SyntaxToken,
     member: AnyMExpression,
     r_brack_token: SyntaxToken,
-) -> MComputedMemberAssignment {
-    MComputedMemberAssignment::unwrap_cast(SyntaxNode::new_detached(
-        MSyntaxKind::M_COMPUTED_MEMBER_ASSIGNMENT,
-        [
-            Some(SyntaxElement::Node(object.into_syntax())),
-            Some(SyntaxElement::Token(l_brack_token)),
-            Some(SyntaxElement::Node(member.into_syntax())),
-            Some(SyntaxElement::Token(r_brack_token)),
-        ],
-    ))
+) -> MComputedMemberAssignmentBuilder {
+    MComputedMemberAssignmentBuilder {
+        l_brack_token,
+        member,
+        r_brack_token,
+        object: None,
+    }
+}
+pub struct MComputedMemberAssignmentBuilder {
+    l_brack_token: SyntaxToken,
+    member: AnyMExpression,
+    r_brack_token: SyntaxToken,
+    object: Option<AnyMExpression>,
+}
+impl MComputedMemberAssignmentBuilder {
+    pub fn with_object(mut self, object: AnyMExpression) -> Self {
+        self.object = Some(object);
+        self
+    }
+    pub fn build(self) -> MComputedMemberAssignment {
+        MComputedMemberAssignment::unwrap_cast(SyntaxNode::new_detached(
+            MSyntaxKind::M_COMPUTED_MEMBER_ASSIGNMENT,
+            [
+                self.object
+                    .map(|token| SyntaxElement::Node(token.into_syntax())),
+                Some(SyntaxElement::Token(self.l_brack_token)),
+                Some(SyntaxElement::Node(self.member.into_syntax())),
+                Some(SyntaxElement::Token(self.r_brack_token)),
+            ],
+        ))
+    }
 }
 pub fn m_computed_member_expression(
-    object: AnyMExpression,
     l_brack_token: SyntaxToken,
     member: AnyMExpression,
     r_brack_token: SyntaxToken,
-) -> MComputedMemberExpression {
-    MComputedMemberExpression::unwrap_cast(SyntaxNode::new_detached(
-        MSyntaxKind::M_COMPUTED_MEMBER_EXPRESSION,
-        [
-            Some(SyntaxElement::Node(object.into_syntax())),
-            Some(SyntaxElement::Token(l_brack_token)),
-            Some(SyntaxElement::Node(member.into_syntax())),
-            Some(SyntaxElement::Token(r_brack_token)),
-        ],
-    ))
+) -> MComputedMemberExpressionBuilder {
+    MComputedMemberExpressionBuilder {
+        l_brack_token,
+        member,
+        r_brack_token,
+        object: None,
+    }
+}
+pub struct MComputedMemberExpressionBuilder {
+    l_brack_token: SyntaxToken,
+    member: AnyMExpression,
+    r_brack_token: SyntaxToken,
+    object: Option<AnyMExpression>,
+}
+impl MComputedMemberExpressionBuilder {
+    pub fn with_object(mut self, object: AnyMExpression) -> Self {
+        self.object = Some(object);
+        self
+    }
+    pub fn build(self) -> MComputedMemberExpression {
+        MComputedMemberExpression::unwrap_cast(SyntaxNode::new_detached(
+            MSyntaxKind::M_COMPUTED_MEMBER_EXPRESSION,
+            [
+                self.object
+                    .map(|token| SyntaxElement::Node(token.into_syntax())),
+                Some(SyntaxElement::Token(self.l_brack_token)),
+                Some(SyntaxElement::Node(self.member.into_syntax())),
+                Some(SyntaxElement::Token(self.r_brack_token)),
+            ],
+        ))
+    }
 }
 pub fn m_computed_member_name(
     l_brack_token: SyntaxToken,

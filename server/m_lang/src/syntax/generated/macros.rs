@@ -259,8 +259,8 @@ macro_rules! map_syntax_node {
                         unsafe { crate::syntax::MMethodClassMember::new_unchecked(node) };
                     $body
                 }
-                $crate::syntax::MSyntaxKind::M_MODULE => {
-                    let $pattern = unsafe { $crate::syntax::MModule::new_unchecked(node) };
+                crate::syntax::MSyntaxKind::M_MODULE => {
+                    let $pattern = unsafe { crate::syntax::MModule::new_unchecked(node) };
                     $body
                 }
                 crate::syntax::MSyntaxKind::M_NAME => {
