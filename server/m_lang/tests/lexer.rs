@@ -103,6 +103,10 @@ fn identifier_with_single_quotes() {
         "'Список лицевых'",
         IDENT:29
     }
+    assert_lex! {
+        "'Тип-Договор'",
+        IDENT:23
+    }
 }
 
 #[test]
