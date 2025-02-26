@@ -578,10 +578,10 @@ impl<'src> MLexer<'src> {
     /// This method will stop writing into the buffer if the buffer is too small to
     /// fit the whole identifier.
     #[inline]
-    fn consume_and_get_ident(&mut self, buf: &mut [u8], start_with_quote: bool) -> usize {
+    fn consume_and_get_ident(&mut self, buf: &mut [u8]) -> usize {
         let mut idx = 0;
         while self.next_byte_bounded().is_some() {
-            if let Some(c) = self.cur_ident_part(start_with_quote) {
+            if let Some(c) = self.cur_ident_part(false) {
                 if let Some(buf) = buf.get_mut(idx..idx + 4) {
                     let res = c.encode_utf8(buf);
                     idx += res.len();
@@ -650,7 +650,7 @@ impl<'src> MLexer<'src> {
 
         match lookup_byte(b) {
             IDT | DOL | DIG | ZER | AT_ => Some(b as char),
-            WHS | QOT | PRD | BSL | MIN if start_with_quote => Some(b as char),
+            WHS | PRD | BSL | MIN if start_with_quote => Some(b as char),
             UNI => {
                 let chr = self.current_char_unchecked();
                 let res = is_id_continue(chr);
@@ -678,22 +678,8 @@ impl<'src> MLexer<'src> {
         // the lexer can return
         let mut buf = [0u8; 36];
         let len = first.encode_utf8(&mut buf).len();
-        let start = self.position;
+        let count = self.consume_and_get_ident(&mut buf[len..]);
 
-        let start_with_quote = first == '\'';
-
-        let count = self.consume_and_get_ident(&mut buf[len..], start_with_quote);
-
-        let last = buf[count + len - 1];
-        // check unterminated quote
-        if start_with_quote && last as char != first {
-            let unterminated =
-                ParseDiagnostic::new("unterminated identifier", self.position..self.position)
-                    .with_detail(self.position..self.position, "input ends here")
-                    .with_detail(start..start + 1, "identifier starts here");
-            self.push_diagnostic(unterminated);
-            return ERROR_TOKEN;
-        }
         if self.current_byte() == Some(b'\\') {
             let backslash = ParseDiagnostic::new("syntax error", self.position..self.position)
                 .with_detail(
@@ -743,6 +729,32 @@ impl<'src> MLexer<'src> {
             },
             Err(_) => return ERROR_TOKEN,
         }
+    }
+
+    #[inline]
+    fn resolve_long_identifier(&mut self) -> MSyntaxKind {
+        use MSyntaxKind::*;
+
+        let start = self.position;
+
+        loop {
+            if self.next_byte_bounded().is_none() || self.cur_ident_part(true).is_none() {
+                break;
+            }
+        }
+
+        // check unterminated quote
+        if self.current_byte() != Some(b'\'') {
+            let unterminated =
+                ParseDiagnostic::new("unterminated identifier", self.position..self.position)
+                    .with_detail(self.position..self.position, "input ends here")
+                    .with_detail(start..start + 1, "identifier starts here");
+            self.push_diagnostic(unterminated);
+            return ERROR_TOKEN;
+        }
+        self.next_byte_bounded();
+
+        T![ident]
     }
 
     #[inline]
@@ -1195,7 +1207,7 @@ impl<'src> MLexer<'src> {
                 // }
             }
             QOT => match byte {
-                b'\'' => self.resolve_identifier(byte as char),
+                b'\'' => self.resolve_long_identifier(),
                 _ => {
                     if self.consume_str_literal() {
                         M_STRING_LITERAL
