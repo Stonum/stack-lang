@@ -668,7 +668,7 @@ impl<'src> MLexer<'src> {
 
         match lookup_byte(b) {
             IDT | DOL | DIG | ZER | AT_ => Some(b as char),
-            WHS | PRD | BSL | MIN if start_with_quote => Some(b as char),
+            WHS | PRD | BSL | SLH | LSS | MOR | MIN if start_with_quote => Some(b as char),
             UNI => {
                 let chr = self.current_char_unchecked();
                 let res = is_id_continue(chr);
