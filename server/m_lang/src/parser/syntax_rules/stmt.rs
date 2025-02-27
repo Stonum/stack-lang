@@ -1,4 +1,5 @@
 //! Statements, these include `if`, `while`, `for`, `;`, and more.
+use crate::lexer::MReLexContext;
 use crate::parser::syntax_rules::expr::parse_assignment_expression_or_higher;
 
 use super::binding::*;
@@ -139,6 +140,8 @@ pub(crate) fn parse_statement(p: &mut MParser, context: StatementContext) -> Par
 
         // class
         T![class] => parse_class_declaration(p, context),
+
+        T![.] => parse_global_statement(p),
 
         _ if is_at_expression(p) => parse_expression_statement(p),
         _ => Absent,
@@ -1168,4 +1171,17 @@ pub(crate) fn parse_try_statement(p: &mut MParser) -> ParsedSyntax {
         catch.or_add_diagnostic(p, m_parse_error::expected_catch_clause);
         Present(m.complete(p, M_TRY_STATEMENT))
     }
+}
+
+fn parse_global_statement(p: &mut MParser) -> ParsedSyntax {
+    if !p.at(T![.]) {
+        return Absent;
+    }
+
+    let kind = p.re_lex(MReLexContext::GlobalIdentifier);
+    if kind == T![ident] {
+        return parse_expression_statement(p);
+    }
+
+    Absent
 }

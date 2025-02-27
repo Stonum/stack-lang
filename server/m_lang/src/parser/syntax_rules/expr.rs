@@ -873,6 +873,8 @@ fn parse_primary_expression(p: &mut MParser, context: ExpressionContext) -> Pars
 
         T![in] => parse_identifier_expression(p).unwrap(),
 
+        T![.] => parse_global_identifier_expression(p).unwrap(),
+
         _ => {
             return Absent;
         }
@@ -1259,4 +1261,17 @@ pub(crate) fn parse_doc_string_expression(p: &mut MParser) -> ParsedSyntax {
 
 pub(crate) fn eat_doc_string_expression(p: &mut MParser) {
     let _ = parse_doc_string_expression(p);
+}
+
+fn parse_global_identifier_expression(p: &mut MParser) -> ParsedSyntax {
+    if !p.at(T![.]) {
+        return Absent;
+    }
+
+    let kind = p.re_lex(MReLexContext::GlobalIdentifier);
+    if kind == T![ident] {
+        return parse_identifier_expression(p);
+    }
+
+    Absent
 }

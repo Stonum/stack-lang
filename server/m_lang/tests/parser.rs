@@ -214,7 +214,22 @@ fn test_keyword_as_identifier() {
         r#"
             в = 1;
             перем в = 2;
-            в.поле = 1;
+            в.поле = в;
+        "#,
+        MFileSource::script(),
+    );
+    assert_parser!(res);
+}
+
+#[test]
+fn test_global_identifier() {
+    let res = parse(
+        r#"
+            Выполнить( . );
+            Выполнить( .в );
+            .в = 1;
+            перем в = .x;
+            .в.поле = x;
         "#,
         MFileSource::script(),
     );

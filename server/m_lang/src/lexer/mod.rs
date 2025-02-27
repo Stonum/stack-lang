@@ -60,6 +60,9 @@ pub enum MReLexContext {
     /// * `> > =` as '>>='
     /// * `> > > =` as `>>>=`
     BinaryOperator,
+
+    /// Re-lexes . name to .name
+    GlobalIdentifier,
 }
 
 /// An extremely fast, lookup table based, lossless ECMAScript lexer
@@ -207,11 +210,14 @@ impl<'src> Lexer<'src> for MLexer<'src> {
 }
 
 impl<'src> ReLexer<'src> for MLexer<'src> {
-    fn re_lex(&mut self, _context: Self::ReLexContext) -> Self::Kind {
+    fn re_lex(&mut self, context: Self::ReLexContext) -> Self::Kind {
         let old_position = self.position;
         self.position = u32::from(self.current_start) as usize;
 
-        let re_lexed_kind = self.re_lex_binary_operator();
+        let re_lexed_kind = match context {
+            MReLexContext::BinaryOperator => self.re_lex_binary_operator(),
+            MReLexContext::GlobalIdentifier => self.re_lex_global_identifier(),
+        };
 
         if self.current() == re_lexed_kind {
             // Didn't re-lex anything. Return existing token again
@@ -262,6 +268,18 @@ impl<'src> MLexer<'src> {
         } else {
             self.current_kind
         }
+    }
+
+    fn re_lex_global_identifier(&mut self) -> MSyntaxKind {
+        if self.current_byte() == Some(b'.') {
+            self.next_byte();
+            if self.cur_ident_part(false).is_some() {
+                self.consume_ident();
+                return T![ident];
+            }
+            return T![ident];
+        }
+        self.current_kind
     }
 
     /// Bumps the current byte and creates a lexed token of the passed in kind
