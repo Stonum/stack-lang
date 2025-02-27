@@ -801,6 +801,7 @@ pub(crate) fn is_nth_at_expression(p: &mut MParser, n: usize) -> bool {
         | T![new]
         | T![delete]
         | T![ident]
+        | T![in]
         | T![...]
         | T![this]
         | T![function]
@@ -870,6 +871,8 @@ fn parse_primary_expression(p: &mut MParser, context: ExpressionContext) -> Pars
         }
         T![ident] => parse_identifier_expression(p).unwrap(),
 
+        T![in] => parse_identifier_expression(p).unwrap(),
+
         _ => {
             return Absent;
         }
@@ -917,7 +920,7 @@ pub(crate) fn is_at_identifier(p: &mut MParser) -> bool {
 
 #[inline]
 pub(crate) fn is_nth_at_identifier(p: &mut MParser, n: usize) -> bool {
-    p.nth_at(n, T![ident])
+    p.nth_at(n, T![ident]) || p.nth_at(n, T![in])
 }
 
 struct ArrayElementsList;
