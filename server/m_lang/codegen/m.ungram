@@ -1,0 +1,773 @@
+// Javascript Un-Grammar.
+//
+// This grammar specifies the structure of Rust's concrete syntax tree.
+// It does not specify parsing rules (ambiguities, precedence, etc are out of scope).
+// Tokens are processed -- contextual keywords are recognised, compound operators glued.
+//
+// Legend:
+//
+//   //          				-- comment
+//   Name =      				-- non-terminal definition
+//   'ident'     				-- token (terminal)
+//   A B         				-- sequence
+//   A | B       				-- alternation
+//   A*          				-- zero or more repetition
+//   (A (',' A)* ','?)	        -- repetition of node A separated by ',' and allowing a trailing comma
+//   (A (',' A)*)	            -- repetition of node A separated by ',' without a trailing comma
+//   A?          				-- zero or one repetition
+//   (A)         				-- same as A
+//   label:A     				-- suggested name for field of AST node
+
+// NOTES
+//
+// - SyntaxNode, SyntaxToken and SyntaxElement will be stripped from the codegen
+// - Bogus nodes are special nodes used to keep track of broken code; they are
+//   not part of the grammar but they will appear inside the green tree
+//
+
+
+///////////////
+// Bogus NODES
+///////////////
+// SyntaxElement is a generic data structure that is meant to track nodes and tokens
+// in cases where we care about both types
+//
+// As Bogus* node will need to yield both tokens and nodes without discrimination,
+// and their children will need to yield nodes and tokens as well.
+// For this reason, SyntaxElement = SyntaxElement
+SyntaxElement = SyntaxElement
+
+MBogus = SyntaxElement*
+MBogusStatement = SyntaxElement*
+MBogusExpression = SyntaxElement*
+MBogusMember = SyntaxElement*
+MBogusBinding = SyntaxElement*
+MBogusAssignment = SyntaxElement*
+MBogusParameter = SyntaxElement*
+
+AnyMRoot =
+	MScript | MModule | MExpressionSnipped
+
+MScript =
+	directives: MDirectiveList
+	statements: MStatementList
+	eof: 'EOF'
+
+MModule =
+	directives: MDirectiveList
+	items: MModuleItemList
+	eof: 'EOF'
+
+MExpressionSnipped =
+	expression: AnyMExpression
+	eof: 'EOF'
+
+
+MDirective =
+	value: 'M_string_literal'
+	';'?
+
+MDirectiveList = MDirective*
+
+///////////////
+// STATEMENTS
+///////////////
+
+AnyMStatement =
+	MBlockStatement
+	| MBreakStatement
+	| MClassDeclaration
+	| MContinueStatement
+	| MDebugStatement
+	| MEmptyStatement
+	| MExpressionStatement
+	| MForAllInStatement
+	| MForAllStatement
+	| MForStatement
+	| MIfStatement
+	| MReturnStatement
+	| MSwitchStatement
+	| MThrowStatement
+	| MTryFinallyStatement
+	| MTryStatement
+	| MBogusStatement
+	| MVariableStatement
+	| MWhileStatement
+	| MFunctionDeclaration
+
+MBlockStatement =
+	'{'
+	statements: MStatementList
+	'}'
+
+MStatementList = AnyMStatement*
+
+MEmptyStatement =
+    ';'
+
+MExpressionStatement =
+    expression: AnyMExpression ';'?
+
+
+MWhileStatement =
+    'while' '(' test: AnyMExpression ')'
+    body: AnyMStatement
+
+
+
+// if statement
+MIfStatement =
+	'if' '(' test: AnyMExpression ')'
+	consequent: AnyMStatement
+	else_clause: MElseClause?
+
+MElseClause =
+	'else'
+	alternate: AnyMStatement
+
+
+// for..in statement
+MForStatement =
+	'for'
+	'('
+	initializer: AnyMForInitializer?
+	first_semi: ';'
+	test: AnyMExpression?
+	second_semi: ';'
+	update: AnyMExpression?
+	')'
+	body: AnyMStatement
+
+AnyMForInitializer = MVariableDeclaration | AnyMExpression
+
+// forall..in statement
+MForAllInStatement =
+	'forall'
+	'('
+	initializer: AnyMForInInitializer
+	'in'
+	expression: AnyMExpression
+	')'
+	body: AnyMStatement
+
+AnyMForInInitializer =
+	AnyMAssignment
+	| MForVariableDeclaration
+
+MForVariableDeclaration =
+	'var' ?
+	declarator: MVariableDeclarator
+
+// forall statement
+MForAllStatement =
+	'forall'
+	'('
+	iter: MForIteratorFactory
+	')'
+	body: AnyMStatement
+
+MForIteratorFactory = 
+   name: MIdentifierExpression
+   '('
+   expression: AnyMExpression
+   ','
+   initializer: MVariableDeclarator
+   ')'
+
+MBreakStatement =
+    'break'
+    ';'?
+
+MContinueStatement =
+    'continue'
+    ';'?
+
+
+MReturnStatement =
+    'return'
+    argument: AnyMExpression?
+    ';'?
+
+
+MSwitchStatement =
+    'switch' '(' discriminant: AnyMExpression ')'
+    '{'
+    cases: MSwitchCaseList
+    '}'
+
+MSwitchCaseList = AnyMSwitchClause*
+
+AnyMSwitchClause = MCaseClause | MDefaultClause
+MCaseClause = 'case' test: AnyMExpression ':' consequent: MStatementList
+MDefaultClause = 'default' ':' consequent: MStatementList
+
+
+MThrowStatement =
+    'throw'
+    argument: AnyMExpression
+    ';'?
+
+// try..catch..finally statement
+MTryStatement =
+    'try'
+    body: MBlockStatement
+    catch_clause: MCatchClause
+
+MTryFinallyStatement =
+    'try'
+    body: MBlockStatement
+    catch_clause: MCatchClause?
+    finally_clause: MFinallyClause
+
+MCatchClause =
+    'catch'
+    declaration: MCatchDeclaration?
+    body: MBlockStatement
+
+MCatchDeclaration =
+    '('
+    binding: AnyMBinding
+    ')'
+
+MFinallyClause =
+    'finally'
+    body: MBlockStatement
+
+
+// debugger statement
+MDebugStatement =
+	'debug' ';'?
+
+
+
+///////////////
+// EXPRESSIONS
+///////////////
+
+// Expression
+AnyMExpression =
+	AnyMLiteralExpression
+	| MArrayExpression
+	| MAssignmentExpression
+	| MBinaryExpression
+	| MCallExpression
+	| MComputedMemberExpression
+	| MConditionalExpression
+	| MFunctionExpression
+	| MIdentifierExpression
+	| MInExpression
+	| MLogicalExpression
+	| MNewExpression
+	| MObjectExpression
+	| MHashMapExpression
+	| MParenthesizedExpression
+	| MPostUpdateExpression
+	| MPreUpdateExpression
+	| MSequenceExpression
+	| MStaticMemberExpression
+	| MSuperExpression
+	| MThisExpression
+	| MUnaryExpression
+	| MBogusExpression
+
+
+MTemplateElementList = MTemplateElement*
+
+MTemplateElement =
+	'{'
+	expression: AnyMExpression
+	'}'
+
+MThisExpression = 'this'
+
+MSuperExpression = 'super'
+
+// new expression
+MNewExpression =
+	'new'
+	callee: AnyMExpression
+	arguments: MCallArguments?
+
+// call expression
+MCallExpression =
+	callee: AnyMExpression
+	arguments: MCallArguments
+
+
+
+MConditionalExpression =
+	test: AnyMExpression
+	'?'
+	consequent: AnyMExpression
+	':'
+	alternate: AnyMExpression
+
+
+MFunctionExpression =
+	'function'
+	parameters: MParameters
+	body: MFunctionBody
+
+AnyMFunctionBody = AnyMExpression | MFunctionBody
+
+// Array expression
+MArrayExpression =
+	'@''['
+	elements: MArrayElementList
+	']'
+
+MArrayElementList = (AnyMArrayElement (',' AnyMArrayElement)* ','?)
+
+AnyMArrayElement =
+	AnyMExpression
+	| MSpread
+	| MArrayHole
+
+MArrayHole = hole: ''?
+
+MAssignmentExpression =
+  left: AnyMAssignment
+  operator_token: ('=' |'+=' | '-=' | '*=' | '/=' | '%=')
+  right: AnyMExpression
+
+
+MSequenceExpression =
+	left: AnyMExpression
+	comma: ','
+	right: AnyMExpression
+
+
+MParenthesizedExpression =
+	'(' expression: AnyMExpression ')'
+
+
+MIdentifierExpression = name: MReferenceIdentifier
+
+// a.b
+// a.#b
+MStaticMemberExpression =
+	object: AnyMExpression
+	operator_token: '.'
+	member: MName
+
+// a[b] or [b]
+MComputedMemberExpression =
+	object: AnyMExpression?
+	'['
+	member: AnyMExpression
+	']'
+
+MBinaryExpression =
+    left: AnyMExpression
+    operator_token: (
+    	'<' | '>' | '<=' | '>=' | '==' | '!='
+    	| '+' | '-' | '*' | '/' | '%'
+    	| '&' | '|'
+		)
+    right: AnyMExpression
+
+MInExpression =
+	property: MInProperty
+	'in'
+	object: AnyMExpression
+
+MInProperty =
+	AnyMExpression
+
+MLogicalExpression =
+	left: AnyMExpression
+	operator_token: ('and' | 'or' | '||' | '&&')
+	right: AnyMExpression
+
+// unary expression
+MUnaryExpression =
+  operator_token: ('delete' | '+' | '-' | '~' | '!')
+  argument: AnyMExpression
+
+MPreUpdateExpression =
+    operator_token: ('++' | '--')
+    operand: AnyMAssignment
+
+MPostUpdateExpression =
+    operand: AnyMAssignment
+    operator_token: ('++' | '--')
+
+
+///////////////
+// OBJECTS
+///////////////
+AnyMObjectMemberName =
+	MLiteralMemberName
+	| MComputedMemberName
+
+MObjectExpression =
+	'@''{'
+	members: MObjectMemberList
+	'}'
+
+MObjectMemberList = (AnyMObjectMember (',' AnyMObjectMember)* ','?)
+
+AnyMObjectMember =
+	MPropertyObjectMember
+	| MShorthandPropertyObjectMember
+	| MSpread
+	| MBogusMember
+
+
+// { a: 5, b: () => {} }
+//   ^^^^  ^^^^^^^^^^^
+MPropertyObjectMember =
+	name: AnyMObjectMemberName
+	':'
+	value: AnyMExpression
+
+// { a }
+//   ^
+MShorthandPropertyObjectMember = name: MReferenceIdentifier
+
+///////////////
+// HASHMAPS
+///////////////
+AnyMHashMapMemberName =
+	MLiteralMemberName
+	| MComputedMemberName
+
+MHashMapExpression =
+	'@''('
+	members: MHashMapMemberList
+	')'
+
+MHashMapMemberList = (AnyMObjectMember (',' AnyMObjectMember)* ','?)
+
+
+///////////////
+// CLASSES
+///////////////
+
+MClassDeclaration =
+	'class'
+	id: AnyMBinding
+	extends_clause: MExtendsClause?
+   doc_string: AnyMDocString?
+	'{'
+	members: MClassMemberList
+	'}'
+
+
+MClassMemberList = AnyMClassMember*
+
+MClass =
+	MClassDeclaration
+
+// class Test extends A {}
+//            ^^^^^^^^^
+MExtendsClause =
+	'extends'
+	super_class: AnyMExpression
+
+
+// class Test { #test; }
+//              ^^^^^
+MPrivateClassMemberName = id: 'ident'
+
+AnyMClassMemberName =
+	MLiteralMemberName
+	| MComputedMemberName
+	| MPrivateClassMemberName
+
+AnyMClassMember =
+	MConstructorClassMember
+	| MMethodClassMember
+	| MGetterClassMember
+	| MSetterClassMember
+	| MEmptyClassMember
+	| MBogusMember
+
+// class Test { constructor() {} }
+//              ^^^^^^^^^^^^^^^^
+// class Test { "constructor"() {} }
+//              ^^^^^^^^^^^^^^^^^^
+// class Test { 'constructor'() {} }
+//              ^^^^^^^^^^^^^^^^^^
+MConstructorClassMember =
+	name: MLiteralMemberName
+	parameters: MConstructorParameters
+   doc_string: AnyMDocString?
+	body: MFunctionBody
+
+MConstructorParameters =
+	'('
+	parameters: MConstructorParameterList
+	')'
+
+MConstructorParameterList = (AnyMConstructorParameter (',' AnyMConstructorParameter)* ','?)
+
+AnyMConstructorParameter =
+	AnyMFormalParameter
+	| MRestParameter
+
+
+
+// class Test { a() {} }
+//              ^^^^^^
+MMethodClassMember =
+	name: AnyMClassMemberName
+	parameters: MParameters
+   doc_string: AnyMDocString?
+	body: MFunctionBody
+
+// class Test { get a() {} }
+//              ^^^^^^^^^^
+MGetterClassMember =
+	'get'
+	name: AnyMClassMemberName
+	'(' ')'
+   doc_string: AnyMDocString?
+	body: MFunctionBody
+
+
+// class Test { set a(v) {} }
+//              ^^^^^^^^^^^
+MSetterClassMember =
+	'set'
+	name: AnyMClassMemberName
+	'('
+	parameter: AnyMFormalParameter','?
+	')'
+   doc_string: AnyMDocString?
+	body: MFunctionBody
+
+
+MEmptyClassMember = ';'
+
+///////////////
+// ASSIGNMENT TARGETS
+///////////////
+
+AnyMAssignment =
+	MIdentifierAssignment
+	| MStaticMemberAssignment
+	| MParenthesizedAssignment
+	| MComputedMemberAssignment
+	| MBogusAssignment
+
+// (a) = "test"
+// ^^^
+MParenthesizedAssignment =
+	'('
+	assignment: AnyMAssignment
+	')'
+
+// Assignment to an identifier from the lexical scope
+// b = "test"
+// ^
+MIdentifierAssignment = name: 'ident'
+
+// a.b = a.#b = "test"
+// ^^^   ^^^^
+MStaticMemberAssignment =
+	object: AnyMExpression
+	'.'
+	member: MName
+
+// a['b'] = a[expr] = "test"
+// ^^^^^^   ^^^^^^^
+MComputedMemberAssignment =
+	object: AnyMExpression?
+	'['
+	member: AnyMExpression
+	']'
+
+///////////////
+// BINDINGS
+///////////////
+
+AnyMBinding =
+	MIdentifierBinding
+	| MBogusBinding
+
+// Binds a value to an identifier.
+// let x = OR function(test) {}
+//     ^               ^^^^
+MIdentifierBinding =
+	name: 'ident'
+
+
+///////////////
+// LITERALS
+///////////////
+
+AnyMLiteralExpression =
+	MStringLiteralExpression
+	| MNumberLiteralExpression
+	| MBigintLiteralExpression
+	| MBooleanLiteralExpression
+	| MNullLiteralExpression
+	| MLongStringLiteralExpression
+
+// "abcd" | 'abcd'
+MStringLiteralExpression = value: 'M_string_literal'
+
+// 4, 5.5, 0x00, ...
+MNumberLiteralExpression = value: 'M_number_literal'
+
+// 45_i64
+MBigintLiteralExpression =  value: 'M_bigint_literal'
+
+// true, false
+MBooleanLiteralExpression = value_token: ('true' | 'false')
+
+// null
+MNullLiteralExpression = value: 'null'
+
+MLongStringLiteralExpression = value: 'M_long_string_literal'
+
+
+///////////////
+// DECLARATIONS
+///////////////
+
+AnyMDeclaration =
+	MClassDeclaration
+	| MFunctionDeclaration
+	| MVariableDeclaration
+
+// Used when declarations appear in a non-statement position.
+// declare let a, b;
+//         ^^^^^^^^^
+AnyMDeclarationClause =
+	MClassDeclaration
+	| MFunctionDeclaration
+	| MVariableDeclarationClause
+
+MVariableDeclarationClause =
+	declaration: MVariableDeclaration
+	';'?
+
+
+MFunctionDeclaration =
+	'function'
+	id: AnyMBinding
+	parameters: MParameters
+   doc_string: AnyMDocString?
+	body: MFunctionBody
+
+// let a, b = c;
+MVariableStatement =
+	declaration: MVariableDeclaration
+	 ';'?
+
+// Declaration of multiple variables
+// let a, b = c;
+// ^^^^^^^^
+MVariableDeclaration =
+		kind: ('var')
+		declarators: MVariableDeclaratorList
+
+MVariableDeclaratorList = (MVariableDeclarator (',' MVariableDeclarator)*)
+
+// let b = c;
+//     ^^^^^
+MVariableDeclarator =
+    id: AnyMBinding
+    initializer: MInitializerClause?
+
+
+///////////////
+// AUXILIARY
+///////////////
+
+// { ...a }
+//   ^^^^
+// [ ...a ]
+//   ^^^^
+MSpread =
+	'...'
+	argument: AnyMExpression
+
+
+// Reference to an identifier from the lexical scope
+MReferenceIdentifier = value: 'ident'
+
+// A js identifier that is neither a binding, assignment, nor a reference.
+// For example a member name
+MName = value: 'ident'
+
+AnyMFunction =
+	MFunctionExpression
+	| MFunctionDeclaration
+
+
+// { a: ..., "b": ..., 4: ... }
+//   ^       ^^^       ^
+MLiteralMemberName = value: ('ident' | 'M_string_literal' | 'M_number_literal')
+
+// { [call()]: ... }
+//   ^^^^^^^^
+MComputedMemberName =
+	'['
+	expression: AnyMExpression
+	']'
+
+MParameters =
+	'('
+	items: MParameterList
+	')'
+
+MParameterList = (AnyMParameter (',' AnyMParameter)* ','?)
+
+AnyMFormalParameter =
+	MFormalParameter
+	| MBogusParameter
+
+AnyMParameter =
+	AnyMFormalParameter
+	| MRestParameter
+
+// (a?: string) => {}
+//  ^^^^^^^^^^
+MFormalParameter =
+	binding: AnyMBinding
+	initializer: MInitializerClause?
+
+// (...a) => {}
+//  ^^^^
+MRestParameter =
+	'...'
+	binding: AnyMBinding?
+
+
+MCallArguments = '(' args: MCallArgumentList ')'
+
+MCallArgumentList = (AnyMCallArgument (',' AnyMCallArgument)* ','?)
+
+AnyMCallArgument =
+	AnyMExpression
+	| MSpread
+
+
+// let a = 10;
+//       ^^^^
+// class { a = 10; }
+//           ^^^^
+MInitializerClause =
+	'='
+	expression: AnyMExpression
+
+MFunctionBody =
+	'{'
+	directives: MDirectiveList
+	statements: MStatementList
+	'}'
+
+///////////////
+// MODULE SYNTAX
+///////////////
+
+MModuleItemList = AnyMStatement*   
+
+MDocStringExpression = AnyMDocString*
+
+AnyMDocString = 
+   MStringLiteralExpression
+   | MLongStringLiteralExpression
