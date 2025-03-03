@@ -236,3 +236,19 @@ fn test_global_identifier() {
 
     assert_parser!(res);
 }
+
+#[test]
+fn test_static_member_expression() {
+    let res = parse(
+        r#"
+            x = таблица.поле;
+            y = таблица.1;
+            z = таблица.1.поле;
+            таблица.поле = z;
+            таблица.3 = z;
+        "#,
+        MFileSource::script(),
+    );
+
+    assert_parser!(res);
+}

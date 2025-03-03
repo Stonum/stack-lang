@@ -1107,6 +1107,24 @@ fn numbers() {
 }
 
 #[test]
+fn chaining() {
+    assert_lex! {
+        "table.field",
+        IDENT:5,
+        DOT:1,
+        IDENT:5
+    }
+    assert_lex! {
+        "table.1.field",
+        IDENT:5,
+        DOT:1,
+        M_NUMBER_LITERAL:1,
+        DOT:1,
+        IDENT:5
+    }
+}
+
+#[test]
 fn keywords() {
     #[rustfmt::skip]
     let keywords = vec![

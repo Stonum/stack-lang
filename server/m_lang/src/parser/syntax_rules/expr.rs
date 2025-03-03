@@ -191,8 +191,7 @@ pub(crate) fn parse_expression_or_recover_to_next_statement(
 pub(crate) fn parse_literal_expression(p: &mut MParser) -> ParsedSyntax {
     let literal_kind = match p.cur() {
         MSyntaxKind::M_NUMBER_LITERAL => {
-            return parse_number_literal_expression(p)
-                .or_else(|| parse_big_int_literal_expression(p));
+            return parse_number_literal_expression(p);
         }
         MSyntaxKind::M_STRING_LITERAL => MSyntaxKind::M_STRING_LITERAL_EXPRESSION,
         MSyntaxKind::M_LONG_STRING_LITERAL => MSyntaxKind::M_LONG_STRING_LITERAL_EXPRESSION,
@@ -206,19 +205,8 @@ pub(crate) fn parse_literal_expression(p: &mut MParser) -> ParsedSyntax {
     Present(m.complete(p, literal_kind))
 }
 
-pub(crate) fn parse_big_int_literal_expression(p: &mut MParser) -> ParsedSyntax {
-    if !p.at(M_NUMBER_LITERAL) || !p.cur_text().ends_with('n') {
-        return Absent;
-    }
-
-    let m = p.start();
-    p.bump_remap(MSyntaxKind::M_BIGINT_LITERAL);
-    Present(m.complete(p, M_BIGINT_LITERAL_EXPRESSION))
-}
-
 pub(crate) fn parse_number_literal_expression(p: &mut MParser) -> ParsedSyntax {
-    let cur_src = p.cur_text();
-    if !p.at(M_NUMBER_LITERAL) || cur_src.ends_with('n') {
+    if !p.at(M_NUMBER_LITERAL) {
         return Absent;
     }
 
@@ -1245,7 +1233,7 @@ pub(crate) fn is_at_name(p: &mut MParser) -> bool {
 }
 
 pub(crate) fn is_nth_at_name(p: &mut MParser, offset: usize) -> bool {
-    p.nth_at(offset, T![ident]) || p.nth(offset).is_keyword()
+    p.nth_at(offset, T![ident]) || p.nth(offset).is_keyword() || p.nth_at(offset, M_NUMBER_LITERAL)
 }
 
 pub(crate) fn parse_doc_string_expression(p: &mut MParser) -> ParsedSyntax {

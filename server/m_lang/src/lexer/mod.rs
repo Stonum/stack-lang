@@ -786,52 +786,6 @@ impl<'src> MLexer<'src> {
     }
 
     #[inline]
-    fn maybe_bigint(&mut self) {
-        if let Some(b'n') = self.current_byte() {
-            self.next_byte();
-        }
-    }
-
-    #[inline]
-    fn read_zero(&mut self) {
-        match self.peek_byte() {
-            Some(b'x' | b'X') => {
-                if self.special_number_start(|c| c.is_ascii_hexdigit()) {
-                    self.read_hexnumber();
-                    self.maybe_bigint();
-                } else {
-                    self.next_byte();
-                }
-            }
-            Some(b'.') => {
-                self.advance(1);
-                self.read_float()
-            }
-            Some(b'e' | b'E') => {
-                // At least one digit is required
-                match self.byte_at(2) {
-                    Some(b'-' | b'+') => {
-                        if let Some(b'0'..=b'9') = self.byte_at(3) {
-                            self.next_byte();
-                            self.read_exponent();
-                        } else {
-                            self.next_byte();
-                        }
-                    }
-                    Some(b'0'..=b'9') => {
-                        self.next_byte();
-                        self.read_exponent();
-                    }
-                    _ => {
-                        self.next_byte();
-                    }
-                }
-            }
-            _ => self.read_number(true),
-        }
-    }
-
-    #[inline]
     fn read_hexnumber(&mut self) {
         while let Some(byte) = self.next_byte() {
             match byte {
@@ -882,21 +836,31 @@ impl<'src> MLexer<'src> {
     }
 
     #[inline]
-    fn read_number(&mut self, leading_zero: bool) {
-        let start = self.position;
+    fn resolve_number(&mut self) -> MSyntaxKind {
+        let leading_zero = self.peek_byte() == Some(b'0');
+        let mut checkpoint_to_dot = None;
         loop {
+            // if self.peek_byte() == Some(b'.') {
+            //     checkpoint_before_dot = Some(self.checkpoint());
+            // }
+
             match self.next_byte_bounded() {
+                Some(b'0') if leading_zero => match self.peek_byte() {
+                    Some(b'x' | b'X') => {
+                        if self.special_number_start(|c| c.is_ascii_hexdigit()) {
+                            self.read_hexnumber();
+                        } else {
+                            self.next_byte();
+                        }
+                    }
+                    _ => (),
+                },
                 Some(b'0'..=b'9') => {}
                 Some(b'.') => {
-                    if leading_zero {
-                        self.push_diagnostic(ParseDiagnostic::new(
-                            "unexpected number",
-                            start..self.position + 1,
-                        ));
-                    }
-                    return self.read_float();
+                    checkpoint_to_dot = Some(self.checkpoint());
+                    self.read_float();
+                    break;
                 }
-                // TODO: merge this, and read_float's implementation into one so we dont duplicate exponent code
                 Some(b'e' | b'E') => {
                     // At least one digit is required
                     match self.peek_byte() {
@@ -904,17 +868,17 @@ impl<'src> MLexer<'src> {
                             if let Some(b'0'..=b'9') = self.byte_at(2) {
                                 self.next_byte();
                                 self.read_exponent();
-                                return;
+                                break;
                             } else {
-                                return;
+                                break;
                             }
                         }
                         Some(b'0'..=b'9') => {
                             self.read_exponent();
-                            return;
+                            break;
                         }
                         _ => {
-                            return;
+                            break;
                         }
                     }
                 }
@@ -924,28 +888,57 @@ impl<'src> MLexer<'src> {
                         // 1_i64
                         if Some(b'6') == self.peek_byte() && Some(b'4') == self.byte_at(2) {
                             self.advance(3);
-                            return;
+                            break;
                         }
                         // 1_i32
                         if Some(b'3') == self.peek_byte() && Some(b'2') == self.byte_at(2) {
                             self.advance(3);
-                            return;
+                            break;
                         }
-                        return;
+                        break;
                     }
-                    return;
+                    break;
                 }
                 Some(b'i' | b'I') => {
                     self.next_byte();
                     if self.cur_is_ws() {
-                        return;
+                        break;
                     }
-                    return;
+                    break;
                 }
                 _ => {
-                    return;
+                    break;
                 }
             }
+        }
+
+        if self.is_eof() || self.cur_is_ws() {
+            return M_NUMBER_LITERAL;
+        }
+
+        if self.current_byte() == Some(b'\\') {
+            let err_start = self.position;
+            self.consume_ident();
+            let err = ParseDiagnostic::new(
+                "numbers cannot be followed by backslash",
+                err_start..self.position,
+            );
+
+            self.push_diagnostic(err);
+            return MSyntaxKind::ERROR_TOKEN;
+        }
+
+        if self.cur_ident_part(false).is_some() {
+            // We have identifier chaining after number
+            if let Some(checkpoint_to_dot) = checkpoint_to_dot {
+                self.rewind(checkpoint_to_dot);
+                return M_NUMBER_LITERAL;
+            }
+
+            self.consume_ident();
+            T![ident]
+        } else {
+            M_NUMBER_LITERAL
         }
     }
 
@@ -1005,31 +998,6 @@ impl<'src> MLexer<'src> {
         match self.current_byte() {
             Some(b'\t' | b'\n' | b'\r' | b' ') => true,
             _ => false,
-        }
-    }
-
-    #[inline]
-    fn verify_number_end(&mut self) -> MSyntaxKind {
-        if self.is_eof() || self.cur_is_ws() {
-            return M_NUMBER_LITERAL;
-        }
-        if self.current_byte() == Some(b'\\') {
-            let err_start = self.position;
-            self.consume_ident();
-            let err = ParseDiagnostic::new(
-                "numbers cannot be followed by backslash",
-                err_start..self.position,
-            );
-
-            self.push_diagnostic(err);
-            return MSyntaxKind::ERROR_TOKEN;
-        }
-
-        if self.cur_ident_part(false).is_some() {
-            self.consume_ident();
-            T![ident]
-        } else {
-            M_NUMBER_LITERAL
         }
     }
 
@@ -1158,14 +1126,6 @@ impl<'src> MLexer<'src> {
         }
     }
 
-    // Dont ask it to resolve the question of life's meaning because you'll be disappointed
-    #[inline]
-    fn resolve_question(&mut self) -> MSyntaxKind {
-        match self.next_byte() {
-            _ => T![?],
-        }
-    }
-
     #[inline]
     fn resolve_star(&mut self) -> MSyntaxKind {
         match self.next_byte() {
@@ -1207,22 +1167,12 @@ impl<'src> MLexer<'src> {
             MIN => self.resolve_minus(),
             SLH => self.read_slash(),
             HAS => self.read_hash(),
-            ZER => {
-                self.read_zero();
-                self.verify_number_end()
-            }
             PRD => {
                 if self.peek_byte() == Some(b'.') && self.byte_at(2) == Some(b'.') {
                     self.advance(3);
                     return DOT3;
                 }
-                // TODO - remove this to parser
-                // if let Some('0'..='9' | 'a'..='z' | 'A'..='Z') = self.peek_byte().map(|c| c as char)
-                // {
-                //     self.resolve_identifier(byte as char)
-                // } else {
                 self.eat_byte(T![.])
-                // }
             }
             QOT => match byte {
                 b'\'' => self.resolve_long_identifier(),
@@ -1242,17 +1192,14 @@ impl<'src> MLexer<'src> {
                 }
             }
             IDT | DOL => self.resolve_identifier(byte as char),
-            DIG => {
-                self.read_number(false);
-                self.verify_number_end()
-            }
+            DIG | ZER => self.resolve_number(),
             COL => self.eat_byte(T![:]),
             SEM => self.eat_byte(T![;]),
             LSS => self.resolve_less_than(),
             EQL => self.resolve_eq(),
             // `>>`, `>=` etc handled by `ReLex::BinaryOperator`
             MOR => self.eat_byte(T![>]),
-            QST => self.resolve_question(),
+            QST => self.eat_byte(T![?]),
             BTO => self.eat_byte(T!('[')),
             BTC => self.eat_byte(T![']']),
             CRT => self.eat_byte(T![^]),
