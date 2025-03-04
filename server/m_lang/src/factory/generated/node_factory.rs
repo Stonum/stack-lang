@@ -452,16 +452,11 @@ impl MDebugStatementBuilder {
         ))
     }
 }
-pub fn m_default_clause(
-    default_token: SyntaxToken,
-    colon_token: SyntaxToken,
-    consequent: MStatementList,
-) -> MDefaultClause {
+pub fn m_default_clause(else_token: SyntaxToken, consequent: MStatementList) -> MDefaultClause {
     MDefaultClause::unwrap_cast(SyntaxNode::new_detached(
         MSyntaxKind::M_DEFAULT_CLAUSE,
         [
-            Some(SyntaxElement::Token(default_token)),
-            Some(SyntaxElement::Token(colon_token)),
+            Some(SyntaxElement::Token(else_token)),
             Some(SyntaxElement::Node(consequent.into_syntax())),
         ],
     ))

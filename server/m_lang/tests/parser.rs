@@ -135,6 +135,33 @@ fn test_parse_condition() {
 }
 
 #[test]
+fn test_parse_switch_condition() {
+    let res = parse(
+        r#"
+            switch (x) {
+                case 1: println(x);
+                case 2: println(x);
+                else println(x);
+            }
+        "#,
+        MFileSource::script(),
+    );
+    assert_parser!(res);
+
+    let res = parse(
+        r#"
+            ВыборПо(x) {
+                выбор 1: Сообщить(x);
+                выбор 2: Сообщить(x);
+                иначе Сообщить(x);
+            }
+        "#,
+        MFileSource::script(),
+    );
+    assert_parser!(res);
+}
+
+#[test]
 fn test_parse_strings_with_keyword() {
     let res = parse(
         r#"

@@ -947,7 +947,7 @@ impl ParseNodeList for SwitchCaseStatementList {
     }
 
     fn is_at_list_end(&self, p: &mut MParser) -> bool {
-        p.at_ts(token_set![T![default], T![case], T!['}']])
+        p.at_ts(token_set![T![else], T![case], T!['}']])
     }
 
     fn recover(&mut self, p: &mut MParser, parsed_element: ParsedSyntax) -> RecoveryResult {
@@ -963,20 +963,19 @@ impl ParseNodeList for SwitchCaseStatementList {
 fn parse_switch_clause(p: &mut MParser, first_default: &mut Option<TextRange>) -> ParsedSyntax {
     let m = p.start();
     match p.cur() {
-        T![default] => {
-            // in case we have two `default` expression, we mark the second one
-            // as `M_CASE_CLAUSE` where the "default" keyword is an bogus node
+        T![else] => {
+            // in case we have two `else` expression, we mark the second one
+            // as `M_CASE_CLAUSE` where the "else" keyword is an bogus node
             let syntax_kind = if first_default.is_some() {
                 let discriminant = p.start();
-                p.bump_any(); // interpret `default` as the test of the case
+                p.bump_any(); // interpret `else` as the test of the case
                 discriminant.complete(p, M_BOGUS_EXPRESSION);
                 M_CASE_CLAUSE
             } else {
-                p.expect(T![default]);
+                p.expect(T![else]);
                 M_DEFAULT_CLAUSE
             };
 
-            p.expect(T![:]);
             SwitchCaseStatementList.parse_list(p);
             let default = m.complete(p, syntax_kind);
             if let Some(first_default_range) = first_default {
@@ -1049,7 +1048,7 @@ impl ParseNodeList for SwitchCasesList {
                 p,
                 &ParseRecoveryTokenSet::new(
                     M_BOGUS_STATEMENT,
-                    token_set![T![default], T![case], T!['}']],
+                    token_set![T![else], T![case], T!['}']],
                 )
                 .enable_recovery_on_line_break(),
                 m_parse_error::expected_case_or_default,

@@ -1066,19 +1066,15 @@ impl MDefaultClause {
     }
     pub fn as_fields(&self) -> MDefaultClauseFields {
         MDefaultClauseFields {
-            default_token: self.default_token(),
-            colon_token: self.colon_token(),
+            else_token: self.else_token(),
             consequent: self.consequent(),
         }
     }
-    pub fn default_token(&self) -> SyntaxResult<SyntaxToken> {
+    pub fn else_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 0usize)
     }
-    pub fn colon_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 1usize)
-    }
     pub fn consequent(&self) -> MStatementList {
-        support::list(&self.syntax, 2usize)
+        support::list(&self.syntax, 1usize)
     }
 }
 impl Serialize for MDefaultClause {
@@ -1091,8 +1087,7 @@ impl Serialize for MDefaultClause {
 }
 #[derive(Serialize)]
 pub struct MDefaultClauseFields {
-    pub default_token: SyntaxResult<SyntaxToken>,
-    pub colon_token: SyntaxResult<SyntaxToken>,
+    pub else_token: SyntaxResult<SyntaxToken>,
     pub consequent: MStatementList,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -5951,14 +5946,7 @@ impl AstNode for MDefaultClause {
 impl std::fmt::Debug for MDefaultClause {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MDefaultClause")
-            .field(
-                "default_token",
-                &support::DebugSyntaxResult(self.default_token()),
-            )
-            .field(
-                "colon_token",
-                &support::DebugSyntaxResult(self.colon_token()),
-            )
+            .field("else_token", &support::DebugSyntaxResult(self.else_token()))
             .field("consequent", &self.consequent())
             .finish()
     }
