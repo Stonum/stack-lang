@@ -17,6 +17,8 @@ fn test_parse_function_declaration() {
         r#"
             func b() {}
             func z(a, b, c = 10) {}
+            func z(a, b, ... ) {}
+            func z(a, b, ...param ) {}
         "#,
         MFileSource::module(),
     );

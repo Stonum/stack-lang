@@ -3,12 +3,8 @@ use super::expr::parse_identifier;
 use super::syntax::MSyntaxKind::*;
 use super::{MParser, ParsedSyntax};
 
-use biome_parser::prelude::*;
-
 pub(crate) fn parse_binding_pattern(p: &mut MParser) -> ParsedSyntax {
-    match p.cur() {
-        _ => parse_identifier_binding(p),
-    }
+    parse_identifier_binding(p)
 }
 
 #[inline]

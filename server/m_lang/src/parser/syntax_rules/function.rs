@@ -165,7 +165,7 @@ pub(crate) fn parse_rest_parameter(p: &mut MParser) -> ParsedSyntax {
 
     let m = p.start();
     p.bump(T![...]);
-    parse_binding_pattern(p).or_add_diagnostic(p, expected_binding);
+    let _parsed = parse_binding_pattern(p);
 
     let mut valid = true;
 
