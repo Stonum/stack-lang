@@ -119,6 +119,10 @@ fn identifier_with_single_quotes() {
         "'оВыборка.Тип>Договор'",
         IDENT:40
     }
+    assert_lex! {
+        "'Договоры(ОО)'",
+        IDENT:24
+    }
 }
 
 #[test]
