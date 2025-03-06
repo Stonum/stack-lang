@@ -871,6 +871,22 @@ pub fn m_hash_map_expression(
         ],
     ))
 }
+pub fn m_hash_set_expression(
+    set_token: SyntaxToken,
+    l_paren_token: SyntaxToken,
+    members: MHashSetMemberList,
+    r_paren_token: SyntaxToken,
+) -> MHashSetExpression {
+    MHashSetExpression::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_HASH_SET_EXPRESSION,
+        [
+            Some(SyntaxElement::Token(set_token)),
+            Some(SyntaxElement::Token(l_paren_token)),
+            Some(SyntaxElement::Node(members.into_syntax())),
+            Some(SyntaxElement::Token(r_paren_token)),
+        ],
+    ))
+}
 pub fn m_identifier_assignment(name_token: SyntaxToken) -> MIdentifierAssignment {
     MIdentifierAssignment::unwrap_cast(SyntaxNode::new_detached(
         MSyntaxKind::M_IDENTIFIER_ASSIGNMENT,
@@ -1753,6 +1769,27 @@ where
     let length = items.len() + separators.len();
     MHashMapMemberList::unwrap_cast(SyntaxNode::new_detached(
         MSyntaxKind::M_HASH_MAP_MEMBER_LIST,
+        (0..length).map(|index| {
+            if index % 2 == 0 {
+                Some(items.next()?.into_syntax().into())
+            } else {
+                Some(separators.next()?.into())
+            }
+        }),
+    ))
+}
+pub fn m_hash_set_member_list<I, S>(items: I, separators: S) -> MHashSetMemberList
+where
+    I: IntoIterator<Item = AnyMArrayElement>,
+    I::IntoIter: ExactSizeIterator,
+    S: IntoIterator<Item = MSyntaxToken>,
+    S::IntoIter: ExactSizeIterator,
+{
+    let mut items = items.into_iter();
+    let mut separators = separators.into_iter();
+    let length = items.len() + separators.len();
+    MHashSetMemberList::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_HASH_SET_MEMBER_LIST,
         (0..length).map(|index| {
             if index % 2 == 0 {
                 Some(items.next()?.into_syntax().into())

@@ -790,6 +790,8 @@ pub(crate) fn is_nth_at_expression(p: &mut MParser, n: usize) -> bool {
         | T![delete]
         | T![ident]
         | T![in]
+        | T![set]
+        | T![get]
         | T![...]
         | T![this]
         | T![function]
@@ -849,6 +851,7 @@ fn parse_primary_expression(p: &mut MParser, context: ExpressionContext) -> Pars
                 m.complete(p, M_BOGUS)
             }
         },
+        T![set] => parse_hashset_expr(p).unwrap(),
 
         T![new] => parse_new_expr(p, context).unwrap(),
 
@@ -859,7 +862,7 @@ fn parse_primary_expression(p: &mut MParser, context: ExpressionContext) -> Pars
         }
         T![ident] => parse_identifier_expression(p).unwrap(),
 
-        T![in] => parse_identifier_expression(p).unwrap(),
+        T![in] | T![set] | T![get] => parse_identifier_expression(p).unwrap(),
 
         T![.] => parse_global_identifier_expression(p).unwrap(),
 
@@ -910,7 +913,7 @@ pub(crate) fn is_at_identifier(p: &mut MParser) -> bool {
 
 #[inline]
 pub(crate) fn is_nth_at_identifier(p: &mut MParser, n: usize) -> bool {
-    p.nth_at(n, T![ident]) || p.nth_at(n, T![in])
+    p.nth_at(n, T![ident]) || p.nth_at(n, T![in]) || p.nth_at(n, T![set]) || p.nth_at(n, T![get])
 }
 
 struct ArrayElementsList;
@@ -977,6 +980,59 @@ fn parse_array_expr(p: &mut MParser) -> ParsedSyntax {
 
     p.expect(T![']']);
     Present(m.complete(p, M_ARRAY_EXPRESSION))
+}
+
+struct HashSetElementList;
+
+impl ParseSeparatedList for HashSetElementList {
+    type Kind = MSyntaxKind;
+    type Parser<'a> = MParser<'a>;
+    const LIST_KIND: MSyntaxKind = M_HASH_SET_MEMBER_LIST;
+
+    fn parse_element(&mut self, p: &mut MParser) -> ParsedSyntax {
+        match p.cur() {
+            T![...] => parse_spread_element(p, ExpressionContext::default()),
+            T![,] => Present(p.start().complete(p, M_ARRAY_HOLE)),
+            _ => parse_assignment_expression_or_higher(p, ExpressionContext::default()),
+        }
+    }
+
+    fn is_at_list_end(&self, p: &mut MParser) -> bool {
+        p.at(T![')'])
+    }
+
+    fn recover(&mut self, p: &mut MParser, parsed_element: ParsedSyntax) -> RecoveryResult {
+        parsed_element.or_recover_with_token_set(
+            p,
+            &ParseRecoveryTokenSet::new(
+                M_BOGUS_EXPRESSION,
+                EXPR_RECOVERY_SET.union(token_set!(T![')'])),
+            ),
+            m_parse_error::expected_array_element,
+        )
+    }
+
+    fn separating_element_kind(&mut self) -> MSyntaxKind {
+        T![,]
+    }
+
+    fn allow_trailing_separating_element(&self) -> bool {
+        true
+    }
+}
+
+fn parse_hashset_expr(p: &mut MParser) -> ParsedSyntax {
+    if !p.at(T![set]) && !p.nth_at(1, T!['(']) {
+        return Absent;
+    }
+    let m = p.start();
+    p.bump(T![set]);
+    p.bump(T!['(']);
+
+    HashSetElementList.parse_list(p);
+
+    p.expect(T![')']);
+    Present(m.complete(p, M_HASH_SET_EXPRESSION))
 }
 
 // test_err spread

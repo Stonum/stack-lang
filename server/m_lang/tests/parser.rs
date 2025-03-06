@@ -61,8 +61,9 @@ fn test_parse_expressions() {
             x++ - y++;
             -x + (y - 5) * 6;
             var arr = @[1, null, "hello", 5.55, true, x];
-            # TODO var set = @(1, null, "hello", 5.55, true, x); # need parse sets
+            var set = set(1, null, "hello", 5.55, true, x);
             var obj = @{a: 1, b: null, c: "hello", d: 5.55, "e": true};
+            var map = @(a: 1, b: null, c: "hello", d: 5.55, "e": true);
             var binary = 1 + 2.3 + "x";
             x == 5 && y == 10;
             params[10, 10];

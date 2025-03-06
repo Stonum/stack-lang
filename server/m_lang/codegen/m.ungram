@@ -199,7 +199,7 @@ MSwitchCaseList = AnyMSwitchClause*
 
 AnyMSwitchClause = MCaseClause | MDefaultClause
 MCaseClause = 'case' test: AnyMExpression ':' consequent: MStatementList
-MDefaultClause = 'default' ':' consequent: MStatementList
+MDefaultClause = 'else' consequent: MStatementList
 
 
 MThrowStatement =
@@ -260,6 +260,7 @@ AnyMExpression =
 	| MNewExpression
 	| MObjectExpression
 	| MHashMapExpression
+	| MHashSetExpression
 	| MParenthesizedExpression
 	| MPostUpdateExpression
 	| MPreUpdateExpression
@@ -428,16 +429,22 @@ MShorthandPropertyObjectMember = name: MReferenceIdentifier
 ///////////////
 // HASHMAPS
 ///////////////
-AnyMHashMapMemberName =
-	MLiteralMemberName
-	| MComputedMemberName
-
 MHashMapExpression =
 	'@''('
 	members: MHashMapMemberList
 	')'
 
 MHashMapMemberList = (AnyMObjectMember (',' AnyMObjectMember)* ','?)
+
+///////////////
+// HASHSETS
+///////////////
+MHashSetExpression =
+	'set''('
+	members: MHashSetMemberList
+	')'
+
+MHashSetMemberList = (AnyMArrayElement (',' AnyMArrayElement)* ','?)
 
 
 ///////////////

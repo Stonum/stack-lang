@@ -1996,6 +1996,56 @@ pub struct MHashMapExpressionFields {
     pub r_paren_token: SyntaxResult<SyntaxToken>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
+pub struct MHashSetExpression {
+    pub(crate) syntax: SyntaxNode,
+}
+impl MHashSetExpression {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> MHashSetExpressionFields {
+        MHashSetExpressionFields {
+            set_token: self.set_token(),
+            l_paren_token: self.l_paren_token(),
+            members: self.members(),
+            r_paren_token: self.r_paren_token(),
+        }
+    }
+    pub fn set_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 0usize)
+    }
+    pub fn l_paren_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 1usize)
+    }
+    pub fn members(&self) -> MHashSetMemberList {
+        support::list(&self.syntax, 2usize)
+    }
+    pub fn r_paren_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 3usize)
+    }
+}
+impl Serialize for MHashSetExpression {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct MHashSetExpressionFields {
+    pub set_token: SyntaxResult<SyntaxToken>,
+    pub l_paren_token: SyntaxResult<SyntaxToken>,
+    pub members: MHashSetMemberList,
+    pub r_paren_token: SyntaxResult<SyntaxToken>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MIdentifierAssignment {
     pub(crate) syntax: SyntaxNode,
 }
@@ -4315,6 +4365,7 @@ pub enum AnyMExpression {
     MConditionalExpression(MConditionalExpression),
     MFunctionExpression(MFunctionExpression),
     MHashMapExpression(MHashMapExpression),
+    MHashSetExpression(MHashSetExpression),
     MIdentifierExpression(MIdentifierExpression),
     MInExpression(MInExpression),
     MLogicalExpression(MLogicalExpression),
@@ -4387,6 +4438,12 @@ impl AnyMExpression {
     pub fn as_m_hash_map_expression(&self) -> Option<&MHashMapExpression> {
         match &self {
             AnyMExpression::MHashMapExpression(item) => Some(item),
+            _ => None,
+        }
+    }
+    pub fn as_m_hash_set_expression(&self) -> Option<&MHashSetExpression> {
+        match &self {
+            AnyMExpression::MHashSetExpression(item) => Some(item),
             _ => None,
         }
     }
@@ -4560,25 +4617,6 @@ impl AnyMFunctionBody {
     pub fn as_m_function_body(&self) -> Option<&MFunctionBody> {
         match &self {
             AnyMFunctionBody::MFunctionBody(item) => Some(item),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, PartialEq, Eq, Hash, Serialize)]
-pub enum AnyMHashMapMemberName {
-    MComputedMemberName(MComputedMemberName),
-    MLiteralMemberName(MLiteralMemberName),
-}
-impl AnyMHashMapMemberName {
-    pub fn as_m_computed_member_name(&self) -> Option<&MComputedMemberName> {
-        match &self {
-            AnyMHashMapMemberName::MComputedMemberName(item) => Some(item),
-            _ => None,
-        }
-    }
-    pub fn as_m_literal_member_name(&self) -> Option<&MLiteralMemberName> {
-        match &self {
-            AnyMHashMapMemberName::MLiteralMemberName(item) => Some(item),
             _ => None,
         }
     }
@@ -6836,6 +6874,53 @@ impl From<MHashMapExpression> for SyntaxNode {
 }
 impl From<MHashMapExpression> for SyntaxElement {
     fn from(n: MHashMapExpression) -> SyntaxElement {
+        n.syntax.into()
+    }
+}
+impl AstNode for MHashSetExpression {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_HASH_SET_EXPRESSION as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_HASH_SET_EXPRESSION
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for MHashSetExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MHashSetExpression")
+            .field("set_token", &support::DebugSyntaxResult(self.set_token()))
+            .field(
+                "l_paren_token",
+                &support::DebugSyntaxResult(self.l_paren_token()),
+            )
+            .field("members", &self.members())
+            .field(
+                "r_paren_token",
+                &support::DebugSyntaxResult(self.r_paren_token()),
+            )
+            .finish()
+    }
+}
+impl From<MHashSetExpression> for SyntaxNode {
+    fn from(n: MHashSetExpression) -> SyntaxNode {
+        n.syntax
+    }
+}
+impl From<MHashSetExpression> for SyntaxElement {
+    fn from(n: MHashSetExpression) -> SyntaxElement {
         n.syntax.into()
     }
 }
@@ -9749,6 +9834,11 @@ impl From<MHashMapExpression> for AnyMExpression {
         AnyMExpression::MHashMapExpression(node)
     }
 }
+impl From<MHashSetExpression> for AnyMExpression {
+    fn from(node: MHashSetExpression) -> AnyMExpression {
+        AnyMExpression::MHashSetExpression(node)
+    }
+}
 impl From<MIdentifierExpression> for AnyMExpression {
     fn from(node: MIdentifierExpression) -> AnyMExpression {
         AnyMExpression::MIdentifierExpression(node)
@@ -9826,6 +9916,7 @@ impl AstNode for AnyMExpression {
         .union(MConditionalExpression::KIND_SET)
         .union(MFunctionExpression::KIND_SET)
         .union(MHashMapExpression::KIND_SET)
+        .union(MHashSetExpression::KIND_SET)
         .union(MIdentifierExpression::KIND_SET)
         .union(MInExpression::KIND_SET)
         .union(MLogicalExpression::KIND_SET)
@@ -9850,6 +9941,7 @@ impl AstNode for AnyMExpression {
             | M_CONDITIONAL_EXPRESSION
             | M_FUNCTION_EXPRESSION
             | M_HASH_MAP_EXPRESSION
+            | M_HASH_SET_EXPRESSION
             | M_IDENTIFIER_EXPRESSION
             | M_IN_EXPRESSION
             | M_LOGICAL_EXPRESSION
@@ -9887,6 +9979,9 @@ impl AstNode for AnyMExpression {
             }
             M_HASH_MAP_EXPRESSION => {
                 AnyMExpression::MHashMapExpression(MHashMapExpression { syntax })
+            }
+            M_HASH_SET_EXPRESSION => {
+                AnyMExpression::MHashSetExpression(MHashSetExpression { syntax })
             }
             M_IDENTIFIER_EXPRESSION => {
                 AnyMExpression::MIdentifierExpression(MIdentifierExpression { syntax })
@@ -9937,6 +10032,7 @@ impl AstNode for AnyMExpression {
             AnyMExpression::MConditionalExpression(it) => &it.syntax,
             AnyMExpression::MFunctionExpression(it) => &it.syntax,
             AnyMExpression::MHashMapExpression(it) => &it.syntax,
+            AnyMExpression::MHashSetExpression(it) => &it.syntax,
             AnyMExpression::MIdentifierExpression(it) => &it.syntax,
             AnyMExpression::MInExpression(it) => &it.syntax,
             AnyMExpression::MLogicalExpression(it) => &it.syntax,
@@ -9964,6 +10060,7 @@ impl AstNode for AnyMExpression {
             AnyMExpression::MConditionalExpression(it) => it.syntax,
             AnyMExpression::MFunctionExpression(it) => it.syntax,
             AnyMExpression::MHashMapExpression(it) => it.syntax,
+            AnyMExpression::MHashSetExpression(it) => it.syntax,
             AnyMExpression::MIdentifierExpression(it) => it.syntax,
             AnyMExpression::MInExpression(it) => it.syntax,
             AnyMExpression::MLogicalExpression(it) => it.syntax,
@@ -9994,6 +10091,7 @@ impl std::fmt::Debug for AnyMExpression {
             AnyMExpression::MConditionalExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MFunctionExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MHashMapExpression(it) => std::fmt::Debug::fmt(it, f),
+            AnyMExpression::MHashSetExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MIdentifierExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MInExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MLogicalExpression(it) => std::fmt::Debug::fmt(it, f),
@@ -10023,6 +10121,7 @@ impl From<AnyMExpression> for SyntaxNode {
             AnyMExpression::MConditionalExpression(it) => it.into(),
             AnyMExpression::MFunctionExpression(it) => it.into(),
             AnyMExpression::MHashMapExpression(it) => it.into(),
+            AnyMExpression::MHashSetExpression(it) => it.into(),
             AnyMExpression::MIdentifierExpression(it) => it.into(),
             AnyMExpression::MInExpression(it) => it.into(),
             AnyMExpression::MLogicalExpression(it) => it.into(),
@@ -10360,70 +10459,6 @@ impl From<AnyMFunctionBody> for SyntaxNode {
 }
 impl From<AnyMFunctionBody> for SyntaxElement {
     fn from(n: AnyMFunctionBody) -> SyntaxElement {
-        let node: SyntaxNode = n.into();
-        node.into()
-    }
-}
-impl From<MComputedMemberName> for AnyMHashMapMemberName {
-    fn from(node: MComputedMemberName) -> AnyMHashMapMemberName {
-        AnyMHashMapMemberName::MComputedMemberName(node)
-    }
-}
-impl From<MLiteralMemberName> for AnyMHashMapMemberName {
-    fn from(node: MLiteralMemberName) -> AnyMHashMapMemberName {
-        AnyMHashMapMemberName::MLiteralMemberName(node)
-    }
-}
-impl AstNode for AnyMHashMapMemberName {
-    type Language = Language;
-    const KIND_SET: SyntaxKindSet<Language> =
-        MComputedMemberName::KIND_SET.union(MLiteralMemberName::KIND_SET);
-    fn can_cast(kind: SyntaxKind) -> bool {
-        matches!(kind, M_COMPUTED_MEMBER_NAME | M_LITERAL_MEMBER_NAME)
-    }
-    fn cast(syntax: SyntaxNode) -> Option<Self> {
-        let res = match syntax.kind() {
-            M_COMPUTED_MEMBER_NAME => {
-                AnyMHashMapMemberName::MComputedMemberName(MComputedMemberName { syntax })
-            }
-            M_LITERAL_MEMBER_NAME => {
-                AnyMHashMapMemberName::MLiteralMemberName(MLiteralMemberName { syntax })
-            }
-            _ => return None,
-        };
-        Some(res)
-    }
-    fn syntax(&self) -> &SyntaxNode {
-        match self {
-            AnyMHashMapMemberName::MComputedMemberName(it) => &it.syntax,
-            AnyMHashMapMemberName::MLiteralMemberName(it) => &it.syntax,
-        }
-    }
-    fn into_syntax(self) -> SyntaxNode {
-        match self {
-            AnyMHashMapMemberName::MComputedMemberName(it) => it.syntax,
-            AnyMHashMapMemberName::MLiteralMemberName(it) => it.syntax,
-        }
-    }
-}
-impl std::fmt::Debug for AnyMHashMapMemberName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AnyMHashMapMemberName::MComputedMemberName(it) => std::fmt::Debug::fmt(it, f),
-            AnyMHashMapMemberName::MLiteralMemberName(it) => std::fmt::Debug::fmt(it, f),
-        }
-    }
-}
-impl From<AnyMHashMapMemberName> for SyntaxNode {
-    fn from(n: AnyMHashMapMemberName) -> SyntaxNode {
-        match n {
-            AnyMHashMapMemberName::MComputedMemberName(it) => it.into(),
-            AnyMHashMapMemberName::MLiteralMemberName(it) => it.into(),
-        }
-    }
-}
-impl From<AnyMHashMapMemberName> for SyntaxElement {
-    fn from(n: AnyMHashMapMemberName) -> SyntaxElement {
         let node: SyntaxNode = n.into();
         node.into()
     }
@@ -11278,11 +11313,6 @@ impl std::fmt::Display for AnyMFunctionBody {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
-impl std::fmt::Display for AnyMHashMapMemberName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(self.syntax(), f)
-    }
-}
 impl std::fmt::Display for AnyMLiteralExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
@@ -11529,6 +11559,11 @@ impl std::fmt::Display for MGetterClassMember {
     }
 }
 impl std::fmt::Display for MHashMapExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for MHashSetExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
@@ -12735,6 +12770,88 @@ impl IntoIterator for MHashMapMemberList {
 impl IntoIterator for &MHashMapMemberList {
     type Item = SyntaxResult<AnyMObjectMember>;
     type IntoIter = AstSeparatedListNodesIterator<Language, AnyMObjectMember>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+#[derive(Clone, Eq, PartialEq, Hash)]
+pub struct MHashSetMemberList {
+    syntax_list: SyntaxList,
+}
+impl MHashSetMemberList {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self {
+            syntax_list: syntax.into_list(),
+        }
+    }
+}
+impl AstNode for MHashSetMemberList {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_HASH_SET_MEMBER_LIST as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_HASH_SET_MEMBER_LIST
+    }
+    fn cast(syntax: SyntaxNode) -> Option<MHashSetMemberList> {
+        if Self::can_cast(syntax.kind()) {
+            Some(MHashSetMemberList {
+                syntax_list: syntax.into_list(),
+            })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        self.syntax_list.node()
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax_list.into_node()
+    }
+}
+impl Serialize for MHashSetMemberList {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.len()))?;
+        for e in self.iter() {
+            seq.serialize_element(&e)?;
+        }
+        seq.end()
+    }
+}
+impl AstSeparatedList for MHashSetMemberList {
+    type Language = Language;
+    type Node = AnyMArrayElement;
+    fn syntax_list(&self) -> &SyntaxList {
+        &self.syntax_list
+    }
+    fn into_syntax_list(self) -> SyntaxList {
+        self.syntax_list
+    }
+}
+impl Debug for MHashSetMemberList {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("MHashSetMemberList ")?;
+        f.debug_list().entries(self.elements()).finish()
+    }
+}
+impl IntoIterator for MHashSetMemberList {
+    type Item = SyntaxResult<AnyMArrayElement>;
+    type IntoIter = AstSeparatedListNodesIterator<Language, AnyMArrayElement>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+impl IntoIterator for &MHashSetMemberList {
+    type Item = SyntaxResult<AnyMArrayElement>;
+    type IntoIter = AstSeparatedListNodesIterator<Language, AnyMArrayElement>;
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }
