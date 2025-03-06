@@ -123,6 +123,10 @@ fn identifier_with_single_quotes() {
         "'Договоры(ОО)'",
         IDENT:24
     }
+    assert_lex! {
+        "'%_Потерь'",
+        IDENT:16
+    }
 }
 
 #[test]
