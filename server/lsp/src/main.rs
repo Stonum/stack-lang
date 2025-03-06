@@ -275,22 +275,19 @@ impl LanguageServer for Backend {
                 .fold(0, |acc, (_, char)| acc + char.len_utf8());
 
             let identifier = identifier_for_offset(syntax, byte_offset as u32)?.to_lowercase();
-            dbg!(&identifier);
+
             let mut loc: Vec<Location> = vec![];
             for m in self.definitions_map.iter() {
                 let (path, v) = m.pair();
                 let uri = Url::from_file_path(path).unwrap_or(Url::parse("file:///").unwrap());
-                dbg!(&uri);
                 let mut locations = v
                     .module_definitions
                     .iter()
                     .filter_map(|def| {
                         dbg!(&def.id());
                         if def.id().to_lowercase() == identifier {
-                            dbg!(uri.as_str());
                             let rope = self.document_map.get(path)?;
                             let position = position(&rope, def.range())?;
-                            dbg!(&position);
                             return Some(Location::new(uri.clone(), position));
                         }
                         None
@@ -433,30 +430,24 @@ impl Backend {
         let uri = params.uri;
         let text = params.text;
 
-        let mut diagnostics = vec![];
+        let diagnostics;
         {
             let parsed = parse(&text, MFileSource::module());
             let semantics = semantics(parsed.syntax());
             let rope = Rope::from_str(&text);
 
-            #[cfg(debug_assertions)]
-            {
-                diagnostics = parsed
-                    .diagnostics()
-                    .into_iter()
-                    .map(|error| {
-                        let range = error
-                            .location()
-                            .span
-                            .map(|range| position(&rope, range).unwrap_or_default());
+            diagnostics = parsed
+                .diagnostics()
+                .into_iter()
+                .map(|error| {
+                    let range = error
+                        .location()
+                        .span
+                        .map(|range| position(&rope, range).unwrap_or_default());
 
-                        Diagnostic::new_simple(
-                            range.unwrap_or_default(),
-                            format!("{}", error.message),
-                        )
-                    })
-                    .collect();
-            }
+                    Diagnostic::new_simple(range.unwrap_or_default(), format!("{}", error.message))
+                })
+                .collect();
 
             self.document_map
                 .insert(uri.to_file_path().unwrap_or_default(), rope);
