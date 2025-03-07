@@ -64,6 +64,9 @@ pub enum MReLexContext {
 
     /// Re-lexes . name to .name
     GlobalIdentifier,
+
+    /// Relexed 10:55 to  10 : 55
+    KeyValue,
 }
 
 /// An extremely fast, lookup table based, lossless ECMAScript lexer
@@ -218,6 +221,7 @@ impl<'src> ReLexer<'src> for MLexer<'src> {
         let re_lexed_kind = match context {
             MReLexContext::BinaryOperator => self.re_lex_binary_operator(),
             MReLexContext::GlobalIdentifier => self.re_lex_global_identifier(),
+            MReLexContext::KeyValue => self.re_lex_key_value(),
         };
 
         if self.current() == re_lexed_kind {
@@ -279,6 +283,19 @@ impl<'src> MLexer<'src> {
                 return T![ident];
             }
             return T![ident];
+        }
+        self.current_kind
+    }
+
+    fn re_lex_key_value(&mut self) -> MSyntaxKind {
+        if self.byte_at(2) == Some(b':') {
+            match (self.current_byte(), self.peek_byte()) {
+                (Some(b'0'..=b'9'), Some(b'0'..=b'9')) => {
+                    self.advance(2);
+                    return M_NUMBER_LITERAL;
+                }
+                _ => (),
+            }
         }
         self.current_kind
     }
@@ -1056,9 +1073,11 @@ impl<'src> MLexer<'src> {
         let (mut s1, mut s2) = (b'0', b'0');
 
         let mut size = 3;
-        if let Some(seconds) = self.byte_at(4).zip(self.byte_at(5)) {
-            (s1, s2) = seconds;
-            size = 6;
+        if self.byte_at(3) == Some(b':') {
+            if let Some(seconds) = self.byte_at(4).zip(self.byte_at(5)) {
+                (s1, s2) = seconds;
+                size = 6;
+            }
         }
 
         // check - all are digits

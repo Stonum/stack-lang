@@ -972,6 +972,12 @@ fn time_literal() {
         DOT:1,
         M_NUMBER_LITERAL:2
     }
+    assert_lex! {
+        "22:33,55",
+        M_TIME_LITERAL:5
+        COMMA: 1,
+        M_NUMBER_LITERAL: 2
+    }
 }
 
 #[test]

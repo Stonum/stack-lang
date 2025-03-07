@@ -1,3 +1,5 @@
+use crate::lexer::MReLexContext;
+
 use super::{Absent, MParser, ParseRecoveryTokenSet, ParsedSyntax, Present, RecoveryResult};
 
 use super::expr::{
@@ -214,11 +216,15 @@ fn parse_object_member(p: &mut MParser) -> ParsedSyntax {
 }
 
 // test object_member_name
-// let a = {"foo": foo, [6 + 6]: foo, bar: foo, 7: foo}
+// let a = {"foo": foo, [6 + 6]: foo, bar: foo, 7: foo, 10:15}
 /// Parses a `MAnyObjectMemberName` and returns its completion marker
 pub fn parse_object_member_name(p: &mut MParser) -> ParsedSyntax {
     match p.cur() {
         T!['['] => parse_computed_member_name(p),
+        M_TIME_LITERAL => {
+            p.re_lex(MReLexContext::KeyValue);
+            parse_literal_member_name(p)
+        }
         _ => parse_literal_member_name(p),
     }
 }
