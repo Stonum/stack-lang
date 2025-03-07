@@ -852,6 +852,7 @@ impl<'src> MLexer<'src> {
     #[inline]
     fn resolve_number(&mut self) -> MSyntaxKind {
         let leading_zero = self.peek_byte() == Some(b'0');
+        let start = self.position;
         let mut checkpoint = None;
         loop {
             match self.next_byte_bounded() {
@@ -868,7 +869,7 @@ impl<'src> MLexer<'src> {
                 Some(b'0'..=b'9') => {}
                 Some(b'.') => {
                     checkpoint = Some(self.checkpoint());
-                    if self.byte_at(3) == Some(b'.') {
+                    if self.position - start == 2 && self.byte_at(3) == Some(b'.') {
                         // try parse date - or return number
                         if self.read_date().is_none() {
                             self.rewind(checkpoint.unwrap());
@@ -882,6 +883,10 @@ impl<'src> MLexer<'src> {
                     break;
                 }
                 Some(b':') => {
+                    if self.position - start != 2 {
+                        break;
+                    }
+
                     if self.read_time().is_none() {
                         return M_NUMBER_LITERAL;
                     } else {
@@ -1008,40 +1013,34 @@ impl<'src> MLexer<'src> {
     fn read_date(&mut self) -> Option<()> {
         let (d1, d2) = self.prev_byte(2).zip(self.prev_byte(1))?;
         let (m1, m2) = self.byte_at(1).zip(self.byte_at(2))?;
-        let (y1, y2) = self.byte_at(4).zip(self.byte_at(5))?;
 
-        let (d1, d2) = (d1 as char, d2 as char);
-        let (m1, m2) = (m1 as char, m2 as char);
-        let (y1, y2) = (y1 as char, y2 as char);
+        let (mut y1, mut y2) = (b'0', b'0');
+        let (y3, y4) = self.byte_at(4).zip(self.byte_at(5))?;
 
-        let size = if let Some((y3, y4)) = self.byte_at(6).zip(self.byte_at(7)) {
-            let (y3, y4) = (y3 as char, y4 as char);
-            let size = 8;
+        let mut size = 6;
+        if let Some(years) = self.byte_at(6).zip(self.byte_at(7)) {
+            (y1, y2) = years;
+            size = 8;
+        }
 
+        // check - all are digits
+        let bytes = [d1, d2, m1, m2, y1, y2, y3, y4];
+        if !bytes.iter().all(|b| b.is_ascii_digit()) {
+            return None;
+        }
+
+        // all are zeroes
+        let chars = bytes.map(|b| b as char);
+        if chars.iter().all(|c| *c == '0') {
+            self.advance(size);
+            return Some(()); // null date literal
+        }
+
+        let [d1, d2, m1, m2, y1, y2, y3, y4] = chars;
+        let size =
             NaiveDate::parse_from_str(&format!("{d1}{d2}.{m1}{m2}.{y1}{y2}{y3}{y4}"), "%d.%m.%Y")
                 .and(Ok(size))
-                .or_else(|e| {
-                    if [d1, d2, m1, m2, y1, y2, y3, y4].iter().all(|c| *c == '0') {
-                        Ok(size) // null date literal
-                    } else {
-                        Err(e)
-                    }
-                })
-                .ok()
-        } else {
-            let size = 6;
-
-            NaiveDate::parse_from_str(&format!("{d1}{d2}.{m1}{m2}.{y1}{y2}"), "%d.%m.%y")
-                .and(Ok(size))
-                .or_else(|e| {
-                    if [d1, d2, m1, m2, y1, y2].iter().all(|c| *c == '0') {
-                        Ok(size) // null date literal
-                    } else {
-                        Err(e)
-                    }
-                })
-                .ok()
-        };
+                .ok();
 
         if let Some(size) = size {
             self.advance(size);
@@ -1054,40 +1053,40 @@ impl<'src> MLexer<'src> {
     fn read_time(&mut self) -> Option<()> {
         let (h1, h2) = self.prev_byte(2).zip(self.prev_byte(1))?;
         let (m1, m2) = self.byte_at(1).zip(self.byte_at(2))?;
+        let (mut s1, mut s2) = (b'0', b'0');
 
-        let (h1, h2) = (h1 as char, h2 as char);
-        let (m1, m2) = (m1 as char, m2 as char);
+        let mut size = 3;
+        if let Some(seconds) = self.byte_at(4).zip(self.byte_at(5)) {
+            (s1, s2) = seconds;
+            size = 6;
+        }
 
-        let size = if let Some((s1, s2)) = self.byte_at(4).zip(self.byte_at(5)) {
-            let (s1, s2) = (s1 as char, s2 as char);
-            let size = 6;
+        // check - all are digits
+        let bytes = [h1, h2, m1, m2, s1, s2];
+        if !bytes.iter().all(|b| b.is_ascii_digit()) {
+            return None;
+        }
 
-            NaiveTime::parse_from_str(&format!("{h1}{h2}:{m1}{m2}:{s1}{s2}"), "%H:%M:%S")
-                .and(Ok(size))
-                .or_else(|_| {
-                    if [h1, h2, m1, m2, s1, s2].iter().all(|c| *c == '0') {
-                        Ok(size) // null date literal
-                    } else {
-                        // try parse without seconds
-                        NaiveTime::parse_from_str(&format!("{h1}{h2}:{m1}{m2}"), "%H:%M")
-                            .and(Ok(size - 3))
-                    }
-                })
-                .ok()
-        } else {
-            let size = 3;
+        // all are zeroes
+        let chars = bytes.map(|b| b as char);
+        if chars.iter().all(|c| *c == '0') {
+            self.advance(size);
+            return Some(()); // null time literal
+        }
 
-            NaiveTime::parse_from_str(&format!("{h1}{h2}:{m1}{m2}"), "%H:%M")
-                .and(Ok(size))
-                .or_else(|e| {
-                    if [h1, h2, m1, m2].iter().all(|c| *c == '0') {
-                        Ok(size) // null date literal
-                    } else {
-                        Err(e)
-                    }
-                })
-                .ok()
-        };
+        let [h1, h2, m1, m2, s1, s2] = chars;
+        let size = NaiveTime::parse_from_str(&format!("{h1}{h2}:{m1}{m2}:{s1}{s2}"), "%H:%M:%S")
+            .and(Ok(size))
+            .or_else(|_| {
+                if [h1, h2, m1, m2, s1, s2].iter().all(|c| *c == '0') {
+                    Ok(size) // null time literal
+                } else {
+                    // try parse without seconds
+                    NaiveTime::parse_from_str(&format!("{h1}{h2}:{m1}{m2}"), "%H:%M")
+                        .and(Ok(size - 3))
+                }
+            })
+            .ok();
 
         if let Some(size) = size {
             self.advance(size);

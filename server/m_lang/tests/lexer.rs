@@ -930,9 +930,9 @@ fn date_literal() {
     }
     assert_lex! {
         "0.01.02",
-        M_NUMBER_LITERAL:1,
+        M_NUMBER_LITERAL:4,
         DOT:1,
-        M_NUMBER_LITERAL:5,
+        M_NUMBER_LITERAL:2,
     }
 }
 
