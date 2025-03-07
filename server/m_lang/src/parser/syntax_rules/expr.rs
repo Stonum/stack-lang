@@ -856,7 +856,7 @@ fn parse_primary_expression(p: &mut MParser, context: ExpressionContext) -> Pars
                 m.complete(p, M_BOGUS)
             }
         },
-        T![set] => parse_hashset_expr(p).unwrap(),
+        T![set] if p.nth_at(1, T!['(']) => parse_hashset_expr(p).unwrap(),
 
         T![new] => parse_new_expr(p, context).unwrap(),
 
@@ -1027,7 +1027,7 @@ impl ParseSeparatedList for HashSetElementList {
 }
 
 fn parse_hashset_expr(p: &mut MParser) -> ParsedSyntax {
-    if !p.at(T![set]) && !p.nth_at(1, T!['(']) {
+    if !p.at(T![set]) || !p.nth_at(1, T!['(']) {
         return Absent;
     }
     let m = p.start();
