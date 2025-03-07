@@ -611,8 +611,10 @@ AnyMLiteralExpression =
 	| MBooleanLiteralExpression
 	| MNullLiteralExpression
 	| MLongStringLiteralExpression
+	| MDateLiteralExpression
+	| MTimeLiteralExpression
 
-// "abcd" | 'abcd'
+// "abcd"
 MStringLiteralExpression = value: 'M_string_literal'
 
 // 4, 5.5, 0x00, ...
@@ -627,8 +629,14 @@ MBooleanLiteralExpression = value_token: ('true' | 'false')
 // null
 MNullLiteralExpression = value: 'null'
 
+// `abcd`
 MLongStringLiteralExpression = value: 'M_long_string_literal'
 
+// 01.01.2000 | 00.00.0000
+MDateLiteralExpression = value: 'M_date_literal_expression'
+
+// 01:05:20
+MTimeLiteralExpression = value: 'M_time_literal_expression'
 
 ///////////////
 // DECLARATIONS

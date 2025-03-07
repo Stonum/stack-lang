@@ -282,3 +282,22 @@ fn test_static_member_expression() {
 
     assert_parser!(res);
 }
+
+#[test]
+fn test_date_and_time_literals() {
+    let res = parse(
+        r#"
+            var date = 01.01.2001;
+            if( date < 09.05.2045 ) {
+                println(date);
+            }
+            var time = 10:55:55;
+            if( time > 00:00:00 ) {
+                println(time);
+            }
+        "#,
+        MFileSource::script(),
+    );
+
+    assert_parser!(res);
+}

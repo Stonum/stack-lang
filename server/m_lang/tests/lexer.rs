@@ -907,6 +907,74 @@ fn division() {
 }
 
 #[test]
+fn date_literal() {
+    assert_lex! {
+        "00.00.0000",
+        M_DATE_LITERAL:10
+    }
+    assert_lex! {
+        "00.00.00",
+        M_DATE_LITERAL:8
+    }
+    assert_lex! {
+        "30.12.18",
+        M_DATE_LITERAL:8
+    }
+    assert_lex! {
+        "30.12.2018",
+        M_DATE_LITERAL:10
+    }
+    assert_lex! {
+        "00.00.00",
+        M_DATE_LITERAL:8
+    }
+    assert_lex! {
+        "0.01.02",
+        M_NUMBER_LITERAL:1,
+        DOT:1,
+        M_NUMBER_LITERAL:5,
+    }
+}
+
+#[test]
+fn time_literal() {
+    assert_lex! {
+        "00:00:00",
+        M_TIME_LITERAL:8
+    }
+    assert_lex! {
+        "00:00",
+        M_TIME_LITERAL:5
+    }
+    assert_lex! {
+        "22:33",
+        M_TIME_LITERAL:5
+    }
+    assert_lex! {
+        "22:33:55",
+        M_TIME_LITERAL:8
+    }
+    assert_lex! {
+        "22:77",
+        M_NUMBER_LITERAL:2,
+        COLON:1,
+        M_NUMBER_LITERAL:2
+    }
+    assert_lex! {
+        "22:33:77",
+        M_TIME_LITERAL:5,
+        COLON:1,
+        M_NUMBER_LITERAL:2
+    }
+    assert_lex! {
+        "22:33:01.01",
+        M_TIME_LITERAL:8,
+        DOT:1,
+        M_NUMBER_LITERAL:2
+    }
+}
+
+#[test]
 fn fuzz_fail_1() {
     assert_lex! {
         "$\\u",

@@ -197,6 +197,8 @@ pub(crate) fn parse_literal_expression(p: &mut MParser) -> ParsedSyntax {
         MSyntaxKind::M_LONG_STRING_LITERAL => MSyntaxKind::M_LONG_STRING_LITERAL_EXPRESSION,
         MSyntaxKind::NULL_KW => MSyntaxKind::M_NULL_LITERAL_EXPRESSION,
         MSyntaxKind::TRUE_KW | MSyntaxKind::FALSE_KW => MSyntaxKind::M_BOOLEAN_LITERAL_EXPRESSION,
+        MSyntaxKind::M_DATE_LITERAL => MSyntaxKind::M_DATE_LITERAL_EXPRESSION,
+        MSyntaxKind::M_TIME_LITERAL => MSyntaxKind::M_TIME_LITERAL_EXPRESSION,
         _ => return Absent,
     };
 
@@ -803,8 +805,11 @@ pub(crate) fn is_nth_at_expression(p: &mut MParser, n: usize) -> bool {
         | TRUE_KW
         | FALSE_KW
         | M_NUMBER_LITERAL
+        | M_DATE_LITERAL
         | M_BIGINT_LITERAL
+        | M_LONG_STRING_LITERAL
         | M_STRING_LITERAL
+        | M_TIME_LITERAL
         | NULL_KW => true,
         _ => false,
     }

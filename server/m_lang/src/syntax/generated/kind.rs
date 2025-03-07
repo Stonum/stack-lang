@@ -91,6 +91,8 @@ pub enum MSyntaxKind {
     M_BIGINT_LITERAL,
     M_STRING_LITERAL,
     M_LONG_STRING_LITERAL,
+    M_DATE_LITERAL,
+    M_TIME_LITERAL,
     ERROR_TOKEN,
     IDENT,
     NEWLINE,
@@ -185,6 +187,8 @@ pub enum MSyntaxKind {
     M_BOOLEAN_LITERAL_EXPRESSION,
     M_NULL_LITERAL_EXPRESSION,
     M_LONG_STRING_LITERAL_EXPRESSION,
+    M_DATE_LITERAL_EXPRESSION,
+    M_TIME_LITERAL_EXPRESSION,
     M_TEMPLATE_EXPRESSION,
     M_TEMPLATE_ELEMENT,
     M_TEMPLATE_CHUNK_ELEMENT,
@@ -236,7 +240,12 @@ impl MSyntaxKind {
     }
     pub const fn is_literal(self) -> bool {
         match self {
-            M_NUMBER_LITERAL | M_BIGINT_LITERAL | M_STRING_LITERAL | M_LONG_STRING_LITERAL => true,
+            M_NUMBER_LITERAL
+            | M_BIGINT_LITERAL
+            | M_STRING_LITERAL
+            | M_LONG_STRING_LITERAL
+            | M_DATE_LITERAL
+            | M_TIME_LITERAL => true,
             _ => false,
         }
     }

@@ -114,6 +114,11 @@ macro_rules! map_syntax_node {
                         unsafe { crate::syntax::MContinueStatement::new_unchecked(node) };
                     $body
                 }
+                crate::syntax::MSyntaxKind::M_DATE_LITERAL_EXPRESSION => {
+                    let $pattern =
+                        unsafe { crate::syntax::MDateLiteralExpression::new_unchecked(node) };
+                    $body
+                }
                 crate::syntax::MSyntaxKind::M_DEBUG_STATEMENT => {
                     let $pattern = unsafe { crate::syntax::MDebugStatement::new_unchecked(node) };
                     $body
@@ -394,6 +399,11 @@ macro_rules! map_syntax_node {
                 }
                 crate::syntax::MSyntaxKind::M_THROW_STATEMENT => {
                     let $pattern = unsafe { crate::syntax::MThrowStatement::new_unchecked(node) };
+                    $body
+                }
+                crate::syntax::MSyntaxKind::M_TIME_LITERAL_EXPRESSION => {
+                    let $pattern =
+                        unsafe { crate::syntax::MTimeLiteralExpression::new_unchecked(node) };
                     $body
                 }
                 crate::syntax::MSyntaxKind::M_TRY_FINALLY_STATEMENT => {

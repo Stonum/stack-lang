@@ -1011,6 +1011,41 @@ pub struct MContinueStatementFields {
     pub semicolon_token: Option<SyntaxToken>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
+pub struct MDateLiteralExpression {
+    pub(crate) syntax: SyntaxNode,
+}
+impl MDateLiteralExpression {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> MDateLiteralExpressionFields {
+        MDateLiteralExpressionFields {
+            value_token: self.value_token(),
+        }
+    }
+    pub fn value_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 0usize)
+    }
+}
+impl Serialize for MDateLiteralExpression {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct MDateLiteralExpressionFields {
+    pub value_token: SyntaxResult<SyntaxToken>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MDebugStatement {
     pub(crate) syntax: SyntaxNode,
 }
@@ -3737,6 +3772,41 @@ pub struct MThrowStatementFields {
     pub semicolon_token: Option<SyntaxToken>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
+pub struct MTimeLiteralExpression {
+    pub(crate) syntax: SyntaxNode,
+}
+impl MTimeLiteralExpression {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> MTimeLiteralExpressionFields {
+        MTimeLiteralExpressionFields {
+            value_token: self.value_token(),
+        }
+    }
+    pub fn value_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 0usize)
+    }
+}
+impl Serialize for MTimeLiteralExpression {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct MTimeLiteralExpressionFields {
+    pub value_token: SyntaxResult<SyntaxToken>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MTryFinallyStatement {
     pub(crate) syntax: SyntaxNode,
 }
@@ -4625,10 +4695,12 @@ impl AnyMFunctionBody {
 pub enum AnyMLiteralExpression {
     MBigintLiteralExpression(MBigintLiteralExpression),
     MBooleanLiteralExpression(MBooleanLiteralExpression),
+    MDateLiteralExpression(MDateLiteralExpression),
     MLongStringLiteralExpression(MLongStringLiteralExpression),
     MNullLiteralExpression(MNullLiteralExpression),
     MNumberLiteralExpression(MNumberLiteralExpression),
     MStringLiteralExpression(MStringLiteralExpression),
+    MTimeLiteralExpression(MTimeLiteralExpression),
 }
 impl AnyMLiteralExpression {
     pub fn as_m_bigint_literal_expression(&self) -> Option<&MBigintLiteralExpression> {
@@ -4640,6 +4712,12 @@ impl AnyMLiteralExpression {
     pub fn as_m_boolean_literal_expression(&self) -> Option<&MBooleanLiteralExpression> {
         match &self {
             AnyMLiteralExpression::MBooleanLiteralExpression(item) => Some(item),
+            _ => None,
+        }
+    }
+    pub fn as_m_date_literal_expression(&self) -> Option<&MDateLiteralExpression> {
+        match &self {
+            AnyMLiteralExpression::MDateLiteralExpression(item) => Some(item),
             _ => None,
         }
     }
@@ -4664,6 +4742,12 @@ impl AnyMLiteralExpression {
     pub fn as_m_string_literal_expression(&self) -> Option<&MStringLiteralExpression> {
         match &self {
             AnyMLiteralExpression::MStringLiteralExpression(item) => Some(item),
+            _ => None,
+        }
+    }
+    pub fn as_m_time_literal_expression(&self) -> Option<&MTimeLiteralExpression> {
+        match &self {
+            AnyMLiteralExpression::MTimeLiteralExpression(item) => Some(item),
             _ => None,
         }
     }
@@ -5912,6 +5996,47 @@ impl From<MContinueStatement> for SyntaxNode {
 }
 impl From<MContinueStatement> for SyntaxElement {
     fn from(n: MContinueStatement) -> SyntaxElement {
+        n.syntax.into()
+    }
+}
+impl AstNode for MDateLiteralExpression {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_DATE_LITERAL_EXPRESSION as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_DATE_LITERAL_EXPRESSION
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for MDateLiteralExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MDateLiteralExpression")
+            .field(
+                "value_token",
+                &support::DebugSyntaxResult(self.value_token()),
+            )
+            .finish()
+    }
+}
+impl From<MDateLiteralExpression> for SyntaxNode {
+    fn from(n: MDateLiteralExpression) -> SyntaxNode {
+        n.syntax
+    }
+}
+impl From<MDateLiteralExpression> for SyntaxElement {
+    fn from(n: MDateLiteralExpression) -> SyntaxElement {
         n.syntax.into()
     }
 }
@@ -8637,6 +8762,47 @@ impl From<MThrowStatement> for SyntaxElement {
         n.syntax.into()
     }
 }
+impl AstNode for MTimeLiteralExpression {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_TIME_LITERAL_EXPRESSION as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_TIME_LITERAL_EXPRESSION
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for MTimeLiteralExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MTimeLiteralExpression")
+            .field(
+                "value_token",
+                &support::DebugSyntaxResult(self.value_token()),
+            )
+            .finish()
+    }
+}
+impl From<MTimeLiteralExpression> for SyntaxNode {
+    fn from(n: MTimeLiteralExpression) -> SyntaxNode {
+        n.syntax
+    }
+}
+impl From<MTimeLiteralExpression> for SyntaxElement {
+    fn from(n: MTimeLiteralExpression) -> SyntaxElement {
+        n.syntax.into()
+    }
+}
 impl AstNode for MTryFinallyStatement {
     type Language = Language;
     const KIND_SET: SyntaxKindSet<Language> =
@@ -10468,6 +10634,11 @@ impl From<MBigintLiteralExpression> for AnyMLiteralExpression {
         AnyMLiteralExpression::MBigintLiteralExpression(node)
     }
 }
+impl From<MDateLiteralExpression> for AnyMLiteralExpression {
+    fn from(node: MDateLiteralExpression) -> AnyMLiteralExpression {
+        AnyMLiteralExpression::MDateLiteralExpression(node)
+    }
+}
 impl From<MBooleanLiteralExpression> for AnyMLiteralExpression {
     fn from(node: MBooleanLiteralExpression) -> AnyMLiteralExpression {
         AnyMLiteralExpression::MBooleanLiteralExpression(node)
@@ -10493,22 +10664,31 @@ impl From<MStringLiteralExpression> for AnyMLiteralExpression {
         AnyMLiteralExpression::MStringLiteralExpression(node)
     }
 }
+impl From<MTimeLiteralExpression> for AnyMLiteralExpression {
+    fn from(node: MTimeLiteralExpression) -> AnyMLiteralExpression {
+        AnyMLiteralExpression::MTimeLiteralExpression(node)
+    }
+}
 impl AstNode for AnyMLiteralExpression {
     type Language = Language;
     const KIND_SET: SyntaxKindSet<Language> = MBigintLiteralExpression::KIND_SET
         .union(MBooleanLiteralExpression::KIND_SET)
+        .union(MDateLiteralExpression::KIND_SET)
         .union(MNullLiteralExpression::KIND_SET)
         .union(MNumberLiteralExpression::KIND_SET)
-        .union(MStringLiteralExpression::KIND_SET);
+        .union(MStringLiteralExpression::KIND_SET)
+        .union(MTimeLiteralExpression::KIND_SET);
     fn can_cast(kind: SyntaxKind) -> bool {
         matches!(
             kind,
             M_BIGINT_LITERAL_EXPRESSION
                 | M_BOOLEAN_LITERAL_EXPRESSION
+                | M_DATE_LITERAL_EXPRESSION
                 | M_LONG_STRING_LITERAL_EXPRESSION
                 | M_NULL_LITERAL_EXPRESSION
                 | M_NUMBER_LITERAL_EXPRESSION
                 | M_STRING_LITERAL_EXPRESSION
+                | M_TIME_LITERAL_EXPRESSION
         )
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
@@ -10520,6 +10700,9 @@ impl AstNode for AnyMLiteralExpression {
                 AnyMLiteralExpression::MBooleanLiteralExpression(MBooleanLiteralExpression {
                     syntax,
                 })
+            }
+            M_DATE_LITERAL_EXPRESSION => {
+                AnyMLiteralExpression::MDateLiteralExpression(MDateLiteralExpression { syntax })
             }
             M_NULL_LITERAL_EXPRESSION => {
                 AnyMLiteralExpression::MNullLiteralExpression(MNullLiteralExpression { syntax })
@@ -10535,6 +10718,9 @@ impl AstNode for AnyMLiteralExpression {
                     syntax,
                 })
             }
+            M_TIME_LITERAL_EXPRESSION => {
+                AnyMLiteralExpression::MTimeLiteralExpression(MTimeLiteralExpression { syntax })
+            }
             _ => return None,
         };
         Some(res)
@@ -10543,20 +10729,24 @@ impl AstNode for AnyMLiteralExpression {
         match self {
             AnyMLiteralExpression::MBigintLiteralExpression(it) => &it.syntax,
             AnyMLiteralExpression::MBooleanLiteralExpression(it) => &it.syntax,
+            AnyMLiteralExpression::MDateLiteralExpression(it) => &it.syntax,
             AnyMLiteralExpression::MNullLiteralExpression(it) => &it.syntax,
             AnyMLiteralExpression::MNumberLiteralExpression(it) => &it.syntax,
             AnyMLiteralExpression::MStringLiteralExpression(it) => &it.syntax,
             AnyMLiteralExpression::MLongStringLiteralExpression(it) => &it.syntax,
+            AnyMLiteralExpression::MTimeLiteralExpression(it) => &it.syntax,
         }
     }
     fn into_syntax(self) -> SyntaxNode {
         match self {
             AnyMLiteralExpression::MBigintLiteralExpression(it) => it.syntax,
             AnyMLiteralExpression::MBooleanLiteralExpression(it) => it.syntax,
+            AnyMLiteralExpression::MDateLiteralExpression(it) => it.syntax,
             AnyMLiteralExpression::MNullLiteralExpression(it) => it.syntax,
             AnyMLiteralExpression::MNumberLiteralExpression(it) => it.syntax,
             AnyMLiteralExpression::MStringLiteralExpression(it) => it.syntax,
             AnyMLiteralExpression::MLongStringLiteralExpression(it) => it.syntax,
+            AnyMLiteralExpression::MTimeLiteralExpression(it) => it.syntax,
         }
     }
 }
@@ -10565,10 +10755,12 @@ impl std::fmt::Debug for AnyMLiteralExpression {
         match self {
             AnyMLiteralExpression::MBigintLiteralExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMLiteralExpression::MBooleanLiteralExpression(it) => std::fmt::Debug::fmt(it, f),
+            AnyMLiteralExpression::MDateLiteralExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMLiteralExpression::MNullLiteralExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMLiteralExpression::MNumberLiteralExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMLiteralExpression::MStringLiteralExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMLiteralExpression::MLongStringLiteralExpression(it) => std::fmt::Debug::fmt(it, f),
+            AnyMLiteralExpression::MTimeLiteralExpression(it) => std::fmt::Debug::fmt(it, f),
         }
     }
 }
@@ -10577,10 +10769,12 @@ impl From<AnyMLiteralExpression> for SyntaxNode {
         match n {
             AnyMLiteralExpression::MBigintLiteralExpression(it) => it.into(),
             AnyMLiteralExpression::MBooleanLiteralExpression(it) => it.into(),
+            AnyMLiteralExpression::MDateLiteralExpression(it) => it.into(),
             AnyMLiteralExpression::MNullLiteralExpression(it) => it.into(),
             AnyMLiteralExpression::MNumberLiteralExpression(it) => it.into(),
             AnyMLiteralExpression::MStringLiteralExpression(it) => it.into(),
             AnyMLiteralExpression::MLongStringLiteralExpression(it) => it.into(),
+            AnyMLiteralExpression::MTimeLiteralExpression(it) => it.into(),
         }
     }
 }
@@ -11458,6 +11652,11 @@ impl std::fmt::Display for MContinueStatement {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
+impl std::fmt::Display for MDateLiteralExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
 impl std::fmt::Display for MDebugStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
@@ -11764,6 +11963,11 @@ impl std::fmt::Display for MThisExpression {
     }
 }
 impl std::fmt::Display for MThrowStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for MTimeLiteralExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

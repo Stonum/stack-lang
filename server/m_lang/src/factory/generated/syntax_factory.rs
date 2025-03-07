@@ -753,6 +753,25 @@ impl SyntaxFactory for MSyntaxFactory {
                 }
                 slots.into_node(M_CONTINUE_STATEMENT, children)
             }
+            M_DATE_LITERAL_EXPRESSION => {
+                let mut elements = (&children).into_iter();
+                let mut slots: RawNodeSlots<1usize> = RawNodeSlots::default();
+                let mut current_element = elements.next();
+                if let Some(element) = &current_element {
+                    if element.kind() == M_DATE_LITERAL {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if current_element.is_some() {
+                    return RawSyntaxNode::new(
+                        M_DATE_LITERAL_EXPRESSION.to_bogus(),
+                        children.into_iter().map(Some),
+                    );
+                }
+                slots.into_node(M_DATE_LITERAL_EXPRESSION, children)
+            }
             M_DEBUG_STATEMENT => {
                 let mut elements = (&children).into_iter();
                 let mut slots: RawNodeSlots<2usize> = RawNodeSlots::default();
@@ -2742,6 +2761,25 @@ impl SyntaxFactory for MSyntaxFactory {
                     );
                 }
                 slots.into_node(M_TRY_FINALLY_STATEMENT, children)
+            }
+            M_TIME_LITERAL_EXPRESSION => {
+                let mut elements = (&children).into_iter();
+                let mut slots: RawNodeSlots<1usize> = RawNodeSlots::default();
+                let mut current_element = elements.next();
+                if let Some(element) = &current_element {
+                    if element.kind() == M_TIME_LITERAL {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if current_element.is_some() {
+                    return RawSyntaxNode::new(
+                        M_TIME_LITERAL_EXPRESSION.to_bogus(),
+                        children.into_iter().map(Some),
+                    );
+                }
+                slots.into_node(M_TIME_LITERAL_EXPRESSION, children)
             }
             M_TRY_STATEMENT => {
                 let mut elements = (&children).into_iter();

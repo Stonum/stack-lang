@@ -426,6 +426,12 @@ impl MContinueStatementBuilder {
         ))
     }
 }
+pub fn m_date_literal_expression(value_token: SyntaxToken) -> MDateLiteralExpression {
+    MDateLiteralExpression::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_DATE_LITERAL_EXPRESSION,
+        [Some(SyntaxElement::Token(value_token))],
+    ))
+}
 pub fn m_debug_statement(debug_token: SyntaxToken) -> MDebugStatementBuilder {
     MDebugStatementBuilder {
         debug_token,
@@ -1485,6 +1491,12 @@ impl MThrowStatementBuilder {
             ],
         ))
     }
+}
+pub fn m_time_literal_expression(value_token: SyntaxToken) -> MTimeLiteralExpression {
+    MTimeLiteralExpression::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_TIME_LITERAL_EXPRESSION,
+        [Some(SyntaxElement::Token(value_token))],
+    ))
 }
 pub fn m_try_finally_statement(
     try_token: SyntaxToken,

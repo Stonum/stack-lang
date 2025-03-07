@@ -15,6 +15,7 @@ use biome_unicode_table::{
     is_js_id_continue, is_js_id_start, lookup_byte,
     Dispatch::{self, *},
 };
+use chrono::{NaiveDate, NaiveTime};
 
 use self::errors::invalid_digits_after_unicode_escape_sequence;
 
@@ -286,6 +287,14 @@ impl<'src> MLexer<'src> {
     fn eat_byte(&mut self, tok: MSyntaxKind) -> MSyntaxKind {
         self.next_byte();
         tok
+    }
+
+    fn prev_byte(&self, offset: usize) -> Option<u8> {
+        if offset > self.position {
+            return None;
+        }
+
+        self.source.as_bytes().get(self.position - offset).copied()
     }
 
     /// Consume just one newline/line break.
@@ -843,12 +852,8 @@ impl<'src> MLexer<'src> {
     #[inline]
     fn resolve_number(&mut self) -> MSyntaxKind {
         let leading_zero = self.peek_byte() == Some(b'0');
-        let mut checkpoint_to_dot = None;
+        let mut checkpoint = None;
         loop {
-            // if self.peek_byte() == Some(b'.') {
-            //     checkpoint_before_dot = Some(self.checkpoint());
-            // }
-
             match self.next_byte_bounded() {
                 Some(b'0') if leading_zero => match self.peek_byte() {
                     Some(b'x' | b'X') => {
@@ -862,9 +867,26 @@ impl<'src> MLexer<'src> {
                 },
                 Some(b'0'..=b'9') => {}
                 Some(b'.') => {
-                    checkpoint_to_dot = Some(self.checkpoint());
-                    self.read_float();
+                    checkpoint = Some(self.checkpoint());
+                    if self.byte_at(3) == Some(b'.') {
+                        // try parse date - or return number
+                        if self.read_date().is_none() {
+                            self.rewind(checkpoint.unwrap());
+                            return M_NUMBER_LITERAL;
+                        } else {
+                            return M_DATE_LITERAL;
+                        }
+                    } else {
+                        self.read_float();
+                    }
                     break;
+                }
+                Some(b':') => {
+                    if self.read_time().is_none() {
+                        return M_NUMBER_LITERAL;
+                    } else {
+                        return M_TIME_LITERAL;
+                    }
                 }
                 Some(b'e' | b'E') => {
                     // At least one digit is required
@@ -935,8 +957,8 @@ impl<'src> MLexer<'src> {
 
         if self.cur_ident_part(false).is_some() {
             // We have identifier chaining after number
-            if let Some(checkpoint_to_dot) = checkpoint_to_dot {
-                self.rewind(checkpoint_to_dot);
+            if let Some(checkpoint) = checkpoint {
+                self.rewind(checkpoint);
                 return M_NUMBER_LITERAL;
             }
 
@@ -979,6 +1001,99 @@ impl<'src> MLexer<'src> {
                     return;
                 }
             }
+        }
+    }
+
+    #[inline]
+    fn read_date(&mut self) -> Option<()> {
+        let (d1, d2) = self.prev_byte(2).zip(self.prev_byte(1))?;
+        let (m1, m2) = self.byte_at(1).zip(self.byte_at(2))?;
+        let (y1, y2) = self.byte_at(4).zip(self.byte_at(5))?;
+
+        let (d1, d2) = (d1 as char, d2 as char);
+        let (m1, m2) = (m1 as char, m2 as char);
+        let (y1, y2) = (y1 as char, y2 as char);
+
+        let size = if let Some((y3, y4)) = self.byte_at(6).zip(self.byte_at(7)) {
+            let (y3, y4) = (y3 as char, y4 as char);
+            let size = 8;
+
+            NaiveDate::parse_from_str(&format!("{d1}{d2}.{m1}{m2}.{y1}{y2}{y3}{y4}"), "%d.%m.%Y")
+                .and(Ok(size))
+                .or_else(|e| {
+                    if [d1, d2, m1, m2, y1, y2, y3, y4].iter().all(|c| *c == '0') {
+                        Ok(size) // null date literal
+                    } else {
+                        Err(e)
+                    }
+                })
+                .ok()
+        } else {
+            let size = 6;
+
+            NaiveDate::parse_from_str(&format!("{d1}{d2}.{m1}{m2}.{y1}{y2}"), "%d.%m.%y")
+                .and(Ok(size))
+                .or_else(|e| {
+                    if [d1, d2, m1, m2, y1, y2].iter().all(|c| *c == '0') {
+                        Ok(size) // null date literal
+                    } else {
+                        Err(e)
+                    }
+                })
+                .ok()
+        };
+
+        if let Some(size) = size {
+            self.advance(size);
+            Some(())
+        } else {
+            None
+        }
+    }
+
+    fn read_time(&mut self) -> Option<()> {
+        let (h1, h2) = self.prev_byte(2).zip(self.prev_byte(1))?;
+        let (m1, m2) = self.byte_at(1).zip(self.byte_at(2))?;
+
+        let (h1, h2) = (h1 as char, h2 as char);
+        let (m1, m2) = (m1 as char, m2 as char);
+
+        let size = if let Some((s1, s2)) = self.byte_at(4).zip(self.byte_at(5)) {
+            let (s1, s2) = (s1 as char, s2 as char);
+            let size = 6;
+
+            NaiveTime::parse_from_str(&format!("{h1}{h2}:{m1}{m2}:{s1}{s2}"), "%H:%M:%S")
+                .and(Ok(size))
+                .or_else(|_| {
+                    if [h1, h2, m1, m2, s1, s2].iter().all(|c| *c == '0') {
+                        Ok(size) // null date literal
+                    } else {
+                        // try parse without seconds
+                        NaiveTime::parse_from_str(&format!("{h1}{h2}:{m1}{m2}"), "%H:%M")
+                            .and(Ok(size - 3))
+                    }
+                })
+                .ok()
+        } else {
+            let size = 3;
+
+            NaiveTime::parse_from_str(&format!("{h1}{h2}:{m1}{m2}"), "%H:%M")
+                .and(Ok(size))
+                .or_else(|e| {
+                    if [h1, h2, m1, m2].iter().all(|c| *c == '0') {
+                        Ok(size) // null date literal
+                    } else {
+                        Err(e)
+                    }
+                })
+                .ok()
+        };
+
+        if let Some(size) = size {
+            self.advance(size);
+            Some(())
+        } else {
+            None
         }
     }
 
