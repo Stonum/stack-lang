@@ -37,6 +37,8 @@ use enumflags2::{bitflags, make_bitflags, BitFlags};
 pub const EXPR_RECOVERY_SET: TokenSet<MSyntaxKind> =
     token_set![VAR_KW, R_PAREN, L_PAREN, L_BRACK, R_BRACK];
 
+const STRING_TOKEN_SET: TokenSet<MSyntaxKind> = token_set![M_STRING_LITERAL, M_LONG_STRING_LITERAL];
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub(crate) struct ExpressionContext(ExpressionContextFlags);
 
@@ -858,6 +860,8 @@ fn parse_primary_expression(p: &mut MParser, context: ExpressionContext) -> Pars
         },
         T![set] if p.nth_at(1, T!['(']) => parse_hashset_expr(p).unwrap(),
 
+        T![k] if p.nth_at_ts(1, STRING_TOKEN_SET) => parse_constant_expr(p).unwrap(),
+
         T![new] => parse_new_expr(p, context).unwrap(),
 
         ERROR_TOKEN => {
@@ -867,7 +871,7 @@ fn parse_primary_expression(p: &mut MParser, context: ExpressionContext) -> Pars
         }
         T![ident] => parse_identifier_expression(p).unwrap(),
 
-        T![in] | T![set] | T![get] => parse_identifier_expression(p).unwrap(),
+        T![in] | T![set] | T![get] | T![k] => parse_identifier_expression(p).unwrap(),
 
         T![.] => parse_global_identifier_expression(p).unwrap(),
 
@@ -918,7 +922,11 @@ pub(crate) fn is_at_identifier(p: &mut MParser) -> bool {
 
 #[inline]
 pub(crate) fn is_nth_at_identifier(p: &mut MParser, n: usize) -> bool {
-    p.nth_at(n, T![ident]) || p.nth_at(n, T![in]) || p.nth_at(n, T![set]) || p.nth_at(n, T![get])
+    p.nth_at(n, T![ident])
+        || p.nth_at(n, T![in])
+        || p.nth_at(n, T![set])
+        || p.nth_at(n, T![get])
+        || p.nth_at(n, T![k])
 }
 
 struct ArrayElementsList;
@@ -1323,4 +1331,15 @@ fn parse_global_identifier_expression(p: &mut MParser) -> ParsedSyntax {
     }
 
     Absent
+}
+
+fn parse_constant_expr(p: &mut MParser) -> ParsedSyntax {
+    if !p.at(T![k]) || !p.nth_at_ts(1, STRING_TOKEN_SET) {
+        return Absent;
+    }
+
+    let m = p.start();
+    p.bump_any();
+    parse_literal_expression(p).unwrap();
+    Present(m.complete(p, M_CONSTANT_EXPRESSION))
 }

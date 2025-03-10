@@ -314,3 +314,17 @@ fn test_date_and_time_literals() {
 
     assert_parser!(res);
 }
+
+#[test]
+fn test_constant_expression() {
+    let res = parse(
+        r#"
+            перем стр = к"Строка";
+            перем к = 1;
+            перем стр = к;
+        "#,
+        MFileSource::script(),
+    );
+
+    assert_parser!(res);
+}

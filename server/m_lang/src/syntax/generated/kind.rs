@@ -57,7 +57,6 @@ pub enum MSyntaxKind {
     CASE_KW,
     CATCH_KW,
     CLASS_KW,
-    CONST_KW,
     CONTINUE_KW,
     DEBUG_KW,
     DELETE_KW,
@@ -82,6 +81,7 @@ pub enum MSyntaxKind {
     TRUE_KW,
     VAR_KW,
     WHILE_KW,
+    K_KW,
     AND_KW,
     OR_KW,
     CONSTRUCTOR_KW,
@@ -168,6 +168,7 @@ pub enum MSyntaxKind {
     M_FUNCTION_EXPRESSION,
     M_STATIC_MEMBER_EXPRESSION,
     M_COMPUTED_MEMBER_EXPRESSION,
+    M_CONSTANT_EXPRESSION,
     M_CALL_EXPRESSION,
     M_UNARY_EXPRESSION,
     M_PRE_UPDATE_EXPRESSION,
@@ -303,6 +304,7 @@ impl MSyntaxKind {
             "true" | "истина" => TRUE_KW,
             "while" | "пока" => WHILE_KW,
             "var" | "перем" => VAR_KW,
+            "к" => K_KW,
             _ => return None,
         };
         Some(kw)
@@ -353,7 +355,6 @@ impl MSyntaxKind {
             CASE_KW => "case",
             CATCH_KW => "catch",
             CLASS_KW => "class",
-            CONST_KW => "const",
             CONTINUE_KW => "continue",
             DEBUG_KW => "debug",
             DELETE_KW => "delete",
@@ -383,7 +384,9 @@ impl MSyntaxKind {
             CONSTRUCTOR_KW => "constructor",
             GET_KW => "get",
             SET_KW => "set",
+            K_KW => "к",
             M_STRING_LITERAL => "string literal",
+            M_LONG_STRING_LITERAL => "long string literal",
             _ => return None,
         };
         Some(tok)
@@ -391,4 +394,4 @@ impl MSyntaxKind {
 }
 #[doc = r" Utility macro for creating a SyntaxKind through simple macro syntax"]
 #[macro_export]
-macro_rules ! T { [;] => { $crate :: syntax :: MSyntaxKind :: SEMICOLON } ; [,] => { $crate :: syntax :: MSyntaxKind :: COMMA } ; ['('] => { $crate :: syntax :: MSyntaxKind :: L_PAREN } ; [')'] => { $crate :: syntax :: MSyntaxKind :: R_PAREN } ; ['{'] => { $crate :: syntax :: MSyntaxKind :: L_CURLY } ; ['}'] => { $crate :: syntax :: MSyntaxKind :: R_CURLY } ; ['['] => { $crate :: syntax :: MSyntaxKind :: L_BRACK } ; [']'] => { $crate :: syntax :: MSyntaxKind :: R_BRACK } ; [<] => { $crate :: syntax :: MSyntaxKind :: L_ANGLE } ; [>] => { $crate :: syntax :: MSyntaxKind :: R_ANGLE } ; [~] => { $crate :: syntax :: MSyntaxKind :: TILDE } ; [?] => { $crate :: syntax :: MSyntaxKind :: QUESTION } ; [&] => { $crate :: syntax :: MSyntaxKind :: AMP } ; [|] => { $crate :: syntax :: MSyntaxKind :: PIPE } ; [+] => { $crate :: syntax :: MSyntaxKind :: PLUS } ; [++] => { $crate :: syntax :: MSyntaxKind :: PLUS2 } ; [*] => { $crate :: syntax :: MSyntaxKind :: STAR } ; [/] => { $crate :: syntax :: MSyntaxKind :: SLASH } ; [^] => { $crate :: syntax :: MSyntaxKind :: CARET } ; [%] => { $crate :: syntax :: MSyntaxKind :: PERCENT } ; [.] => { $crate :: syntax :: MSyntaxKind :: DOT } ; [...] => { $crate :: syntax :: MSyntaxKind :: DOT3 } ; [:] => { $crate :: syntax :: MSyntaxKind :: COLON } ; [=] => { $crate :: syntax :: MSyntaxKind :: EQ } ; [==] => { $crate :: syntax :: MSyntaxKind :: EQ2 } ; [!] => { $crate :: syntax :: MSyntaxKind :: BANG } ; [!=] => { $crate :: syntax :: MSyntaxKind :: NEQ } ; [-] => { $crate :: syntax :: MSyntaxKind :: MINUS } ; [--] => { $crate :: syntax :: MSyntaxKind :: MINUS2 } ; [<=] => { $crate :: syntax :: MSyntaxKind :: LTEQ } ; [>=] => { $crate :: syntax :: MSyntaxKind :: GTEQ } ; [+=] => { $crate :: syntax :: MSyntaxKind :: PLUSEQ } ; [-=] => { $crate :: syntax :: MSyntaxKind :: MINUSEQ } ; [/=] => { $crate :: syntax :: MSyntaxKind :: SLASHEQ } ; [*=] => { $crate :: syntax :: MSyntaxKind :: STAREQ } ; [%=] => { $crate :: syntax :: MSyntaxKind :: PERCENTEQ } ; [&&] => { $crate :: syntax :: MSyntaxKind :: AMP2 } ; [||] => { $crate :: syntax :: MSyntaxKind :: PIPE2 } ; [@] => { $crate :: syntax :: MSyntaxKind :: AT } ; ['`'] => { $crate :: syntax :: MSyntaxKind :: BACKTICK } ; [break] => { $crate :: syntax :: MSyntaxKind :: BREAK_KW } ; [case] => { $crate :: syntax :: MSyntaxKind :: CASE_KW } ; [catch] => { $crate :: syntax :: MSyntaxKind :: CATCH_KW } ; [class] => { $crate :: syntax :: MSyntaxKind :: CLASS_KW } ; [const] => { $crate :: syntax :: MSyntaxKind :: CONST_KW } ; [continue] => { $crate :: syntax :: MSyntaxKind :: CONTINUE_KW } ; [debug] => { $crate :: syntax :: MSyntaxKind :: DEBUG_KW } ;  [delete] => { $crate :: syntax :: MSyntaxKind :: DELETE_KW } ; [do] => { $crate :: syntax :: MSyntaxKind :: DO_KW } ; [else] => { $crate :: syntax :: MSyntaxKind :: ELSE_KW } ; [extends] => { $crate :: syntax :: MSyntaxKind :: EXTENDS_KW } ; [false] => { $crate :: syntax :: MSyntaxKind :: FALSE_KW } ; [finally] => { $crate :: syntax :: MSyntaxKind :: FINALLY_KW } ; [for] => { $crate :: syntax :: MSyntaxKind :: FOR_KW } ; [forall] => { $crate :: syntax :: MSyntaxKind :: FORALL_KW } ; [function] => { $crate :: syntax :: MSyntaxKind :: FUNCTION_KW } ; [if] => { $crate :: syntax :: MSyntaxKind :: IF_KW } ; [in] => { $crate :: syntax :: MSyntaxKind :: IN_KW } ; [new] => { $crate :: syntax :: MSyntaxKind :: NEW_KW } ; [null] => { $crate :: syntax :: MSyntaxKind :: NULL_KW } ; [return] => { $crate :: syntax :: MSyntaxKind :: RETURN_KW } ; [super] => { $crate :: syntax :: MSyntaxKind :: SUPER_KW } ; [switch] => { $crate :: syntax :: MSyntaxKind :: SWITCH_KW } ; [this] => { $crate :: syntax :: MSyntaxKind :: THIS_KW } ; [throw] => { $crate :: syntax :: MSyntaxKind :: THROW_KW } ; [try] => { $crate :: syntax :: MSyntaxKind :: TRY_KW } ; [true] => { $crate :: syntax :: MSyntaxKind :: TRUE_KW } ; [var] => { $crate :: syntax :: MSyntaxKind :: VAR_KW } ; [while] => { $crate :: syntax :: MSyntaxKind :: WHILE_KW } ; [and] => { $crate :: syntax :: MSyntaxKind :: AND_KW } ; [or] => { $crate :: syntax :: MSyntaxKind :: OR_KW } ; [constructor] => { $crate :: syntax :: MSyntaxKind :: CONSTRUCTOR_KW } ; [get] => { $crate :: syntax :: MSyntaxKind :: GET_KW } ; [set] => { $crate :: syntax :: MSyntaxKind :: SET_KW } ; [ident] => { $crate :: syntax :: MSyntaxKind :: IDENT } ; [EOF] => { $crate :: syntax :: MSyntaxKind :: EOF } ; [UNICODE_BOM] => { $crate :: syntax :: MSyntaxKind :: UNICODE_BOM } ; [#] => { $crate :: syntax :: MSyntaxKind :: HASH } ; }
+macro_rules ! T { [;] => { $crate :: syntax :: MSyntaxKind :: SEMICOLON } ; [,] => { $crate :: syntax :: MSyntaxKind :: COMMA } ; ['('] => { $crate :: syntax :: MSyntaxKind :: L_PAREN } ; [')'] => { $crate :: syntax :: MSyntaxKind :: R_PAREN } ; ['{'] => { $crate :: syntax :: MSyntaxKind :: L_CURLY } ; ['}'] => { $crate :: syntax :: MSyntaxKind :: R_CURLY } ; ['['] => { $crate :: syntax :: MSyntaxKind :: L_BRACK } ; [']'] => { $crate :: syntax :: MSyntaxKind :: R_BRACK } ; [<] => { $crate :: syntax :: MSyntaxKind :: L_ANGLE } ; [>] => { $crate :: syntax :: MSyntaxKind :: R_ANGLE } ; [~] => { $crate :: syntax :: MSyntaxKind :: TILDE } ; [?] => { $crate :: syntax :: MSyntaxKind :: QUESTION } ; [&] => { $crate :: syntax :: MSyntaxKind :: AMP } ; [|] => { $crate :: syntax :: MSyntaxKind :: PIPE } ; [+] => { $crate :: syntax :: MSyntaxKind :: PLUS } ; [++] => { $crate :: syntax :: MSyntaxKind :: PLUS2 } ; [*] => { $crate :: syntax :: MSyntaxKind :: STAR } ; [/] => { $crate :: syntax :: MSyntaxKind :: SLASH } ; [^] => { $crate :: syntax :: MSyntaxKind :: CARET } ; [%] => { $crate :: syntax :: MSyntaxKind :: PERCENT } ; [.] => { $crate :: syntax :: MSyntaxKind :: DOT } ; [...] => { $crate :: syntax :: MSyntaxKind :: DOT3 } ; [:] => { $crate :: syntax :: MSyntaxKind :: COLON } ; [=] => { $crate :: syntax :: MSyntaxKind :: EQ } ; [==] => { $crate :: syntax :: MSyntaxKind :: EQ2 } ; [!] => { $crate :: syntax :: MSyntaxKind :: BANG } ; [!=] => { $crate :: syntax :: MSyntaxKind :: NEQ } ; [-] => { $crate :: syntax :: MSyntaxKind :: MINUS } ; [--] => { $crate :: syntax :: MSyntaxKind :: MINUS2 } ; [<=] => { $crate :: syntax :: MSyntaxKind :: LTEQ } ; [>=] => { $crate :: syntax :: MSyntaxKind :: GTEQ } ; [+=] => { $crate :: syntax :: MSyntaxKind :: PLUSEQ } ; [-=] => { $crate :: syntax :: MSyntaxKind :: MINUSEQ } ; [/=] => { $crate :: syntax :: MSyntaxKind :: SLASHEQ } ; [*=] => { $crate :: syntax :: MSyntaxKind :: STAREQ } ; [%=] => { $crate :: syntax :: MSyntaxKind :: PERCENTEQ } ; [&&] => { $crate :: syntax :: MSyntaxKind :: AMP2 } ; [||] => { $crate :: syntax :: MSyntaxKind :: PIPE2 } ; [@] => { $crate :: syntax :: MSyntaxKind :: AT } ; ['`'] => { $crate :: syntax :: MSyntaxKind :: BACKTICK } ; [break] => { $crate :: syntax :: MSyntaxKind :: BREAK_KW } ; [case] => { $crate :: syntax :: MSyntaxKind :: CASE_KW } ; [catch] => { $crate :: syntax :: MSyntaxKind :: CATCH_KW } ; [class] => { $crate :: syntax :: MSyntaxKind :: CLASS_KW } ; [k] => { $crate :: syntax :: MSyntaxKind :: K_KW } ; [continue] => { $crate :: syntax :: MSyntaxKind :: CONTINUE_KW } ; [debug] => { $crate :: syntax :: MSyntaxKind :: DEBUG_KW } ;  [delete] => { $crate :: syntax :: MSyntaxKind :: DELETE_KW } ; [do] => { $crate :: syntax :: MSyntaxKind :: DO_KW } ; [else] => { $crate :: syntax :: MSyntaxKind :: ELSE_KW } ; [extends] => { $crate :: syntax :: MSyntaxKind :: EXTENDS_KW } ; [false] => { $crate :: syntax :: MSyntaxKind :: FALSE_KW } ; [finally] => { $crate :: syntax :: MSyntaxKind :: FINALLY_KW } ; [for] => { $crate :: syntax :: MSyntaxKind :: FOR_KW } ; [forall] => { $crate :: syntax :: MSyntaxKind :: FORALL_KW } ; [function] => { $crate :: syntax :: MSyntaxKind :: FUNCTION_KW } ; [if] => { $crate :: syntax :: MSyntaxKind :: IF_KW } ; [in] => { $crate :: syntax :: MSyntaxKind :: IN_KW } ; [new] => { $crate :: syntax :: MSyntaxKind :: NEW_KW } ; [null] => { $crate :: syntax :: MSyntaxKind :: NULL_KW } ; [return] => { $crate :: syntax :: MSyntaxKind :: RETURN_KW } ; [super] => { $crate :: syntax :: MSyntaxKind :: SUPER_KW } ; [switch] => { $crate :: syntax :: MSyntaxKind :: SWITCH_KW } ; [this] => { $crate :: syntax :: MSyntaxKind :: THIS_KW } ; [throw] => { $crate :: syntax :: MSyntaxKind :: THROW_KW } ; [try] => { $crate :: syntax :: MSyntaxKind :: TRY_KW } ; [true] => { $crate :: syntax :: MSyntaxKind :: TRUE_KW } ; [var] => { $crate :: syntax :: MSyntaxKind :: VAR_KW } ; [while] => { $crate :: syntax :: MSyntaxKind :: WHILE_KW } ; [and] => { $crate :: syntax :: MSyntaxKind :: AND_KW } ; [or] => { $crate :: syntax :: MSyntaxKind :: OR_KW } ; [constructor] => { $crate :: syntax :: MSyntaxKind :: CONSTRUCTOR_KW } ; [get] => { $crate :: syntax :: MSyntaxKind :: GET_KW } ; [set] => { $crate :: syntax :: MSyntaxKind :: SET_KW } ; [ident] => { $crate :: syntax :: MSyntaxKind :: IDENT } ; [EOF] => { $crate :: syntax :: MSyntaxKind :: EOF } ; [UNICODE_BOM] => { $crate :: syntax :: MSyntaxKind :: UNICODE_BOM } ; [#] => { $crate :: syntax :: MSyntaxKind :: HASH } ; }

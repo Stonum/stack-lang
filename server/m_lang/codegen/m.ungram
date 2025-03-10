@@ -253,6 +253,7 @@ AnyMExpression =
 	| MCallExpression
 	| MComputedMemberExpression
 	| MConditionalExpression
+   | MConstantExpression
 	| MFunctionExpression
 	| MIdentifierExpression
 	| MInExpression
@@ -393,6 +394,9 @@ MPostUpdateExpression =
     operand: AnyMAssignment
     operator_token: ('++' | '--')
 
+MConstantExpression =
+   'к'
+   constant: MStringLiteralExpression | MLongStringLiteralExpression
 
 ///////////////
 // OBJECTS

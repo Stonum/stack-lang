@@ -1243,6 +1243,7 @@ fn keywords() {
         "constructor", 
         "get", "получить",
         "set", "установить",
+        "к"
     ];
 
     for keyword in keywords {

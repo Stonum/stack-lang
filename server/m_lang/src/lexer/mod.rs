@@ -774,6 +774,7 @@ impl<'src> MLexer<'src> {
                 "true" | "истина" => return TRUE_KW,
                 "while" | "пока" => return WHILE_KW,
                 "var" | "перем" => return VAR_KW,
+                "к" => return K_KW,
                 _ => return T![ident],
             },
             Err(_) => return ERROR_TOKEN,

@@ -876,6 +876,51 @@ pub struct MConditionalExpressionFields {
     pub alternate: SyntaxResult<AnyMExpression>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
+pub struct MConstantExpression {
+    pub(crate) syntax: SyntaxNode,
+}
+impl MConstantExpression {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> MConstantExpressionFields {
+        MConstantExpressionFields {
+            к_token: self.к_token(),
+            constant: self.constant(),
+            m_long_string_literal_expression: self.m_long_string_literal_expression(),
+        }
+    }
+    pub fn к_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 0usize)
+    }
+    pub fn constant(&self) -> SyntaxResult<MStringLiteralExpression> {
+        support::required_node(&self.syntax, 1usize)
+    }
+    pub fn m_long_string_literal_expression(&self) -> SyntaxResult<MLongStringLiteralExpression> {
+        support::required_node(&self.syntax, 2usize)
+    }
+}
+impl Serialize for MConstantExpression {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct MConstantExpressionFields {
+    pub к_token: SyntaxResult<SyntaxToken>,
+    pub constant: SyntaxResult<MStringLiteralExpression>,
+    pub m_long_string_literal_expression: SyntaxResult<MLongStringLiteralExpression>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MConstructorClassMember {
     pub(crate) syntax: SyntaxNode,
 }
@@ -4433,6 +4478,7 @@ pub enum AnyMExpression {
     MCallExpression(MCallExpression),
     MComputedMemberExpression(MComputedMemberExpression),
     MConditionalExpression(MConditionalExpression),
+    MConstantExpression(MConstantExpression),
     MFunctionExpression(MFunctionExpression),
     MHashMapExpression(MHashMapExpression),
     MHashSetExpression(MHashSetExpression),
@@ -4496,6 +4542,12 @@ impl AnyMExpression {
     pub fn as_m_conditional_expression(&self) -> Option<&MConditionalExpression> {
         match &self {
             AnyMExpression::MConditionalExpression(item) => Some(item),
+            _ => None,
+        }
+    }
+    pub fn as_m_constant_expression(&self) -> Option<&MConstantExpression> {
+        match &self {
+            AnyMExpression::MConstantExpression(item) => Some(item),
             _ => None,
         }
     }
@@ -5861,6 +5913,49 @@ impl From<MConditionalExpression> for SyntaxNode {
 }
 impl From<MConditionalExpression> for SyntaxElement {
     fn from(n: MConditionalExpression) -> SyntaxElement {
+        n.syntax.into()
+    }
+}
+impl AstNode for MConstantExpression {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_CONSTANT_EXPRESSION as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_CONSTANT_EXPRESSION
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for MConstantExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MConstantExpression")
+            .field("к_token", &support::DebugSyntaxResult(self.к_token()))
+            .field("constant", &support::DebugSyntaxResult(self.constant()))
+            .field(
+                "m_long_string_literal_expression",
+                &support::DebugSyntaxResult(self.m_long_string_literal_expression()),
+            )
+            .finish()
+    }
+}
+impl From<MConstantExpression> for SyntaxNode {
+    fn from(n: MConstantExpression) -> SyntaxNode {
+        n.syntax
+    }
+}
+impl From<MConstantExpression> for SyntaxElement {
+    fn from(n: MConstantExpression) -> SyntaxElement {
         n.syntax.into()
     }
 }
@@ -9990,6 +10085,11 @@ impl From<MConditionalExpression> for AnyMExpression {
         AnyMExpression::MConditionalExpression(node)
     }
 }
+impl From<MConstantExpression> for AnyMExpression {
+    fn from(node: MConstantExpression) -> AnyMExpression {
+        AnyMExpression::MConstantExpression(node)
+    }
+}
 impl From<MFunctionExpression> for AnyMExpression {
     fn from(node: MFunctionExpression) -> AnyMExpression {
         AnyMExpression::MFunctionExpression(node)
@@ -10080,6 +10180,7 @@ impl AstNode for AnyMExpression {
         .union(MCallExpression::KIND_SET)
         .union(MComputedMemberExpression::KIND_SET)
         .union(MConditionalExpression::KIND_SET)
+        .union(MConstantExpression::KIND_SET)
         .union(MFunctionExpression::KIND_SET)
         .union(MHashMapExpression::KIND_SET)
         .union(MHashSetExpression::KIND_SET)
@@ -10104,6 +10205,7 @@ impl AstNode for AnyMExpression {
             | M_BOGUS_EXPRESSION
             | M_CALL_EXPRESSION
             | M_COMPUTED_MEMBER_EXPRESSION
+            | M_CONSTANT_EXPRESSION
             | M_CONDITIONAL_EXPRESSION
             | M_FUNCTION_EXPRESSION
             | M_HASH_MAP_EXPRESSION
@@ -10139,6 +10241,9 @@ impl AstNode for AnyMExpression {
             }
             M_CONDITIONAL_EXPRESSION => {
                 AnyMExpression::MConditionalExpression(MConditionalExpression { syntax })
+            }
+            M_CONSTANT_EXPRESSION => {
+                AnyMExpression::MConstantExpression(MConstantExpression { syntax })
             }
             M_FUNCTION_EXPRESSION => {
                 AnyMExpression::MFunctionExpression(MFunctionExpression { syntax })
@@ -10196,6 +10301,7 @@ impl AstNode for AnyMExpression {
             AnyMExpression::MCallExpression(it) => &it.syntax,
             AnyMExpression::MComputedMemberExpression(it) => &it.syntax,
             AnyMExpression::MConditionalExpression(it) => &it.syntax,
+            AnyMExpression::MConstantExpression(it) => &it.syntax,
             AnyMExpression::MFunctionExpression(it) => &it.syntax,
             AnyMExpression::MHashMapExpression(it) => &it.syntax,
             AnyMExpression::MHashSetExpression(it) => &it.syntax,
@@ -10224,6 +10330,7 @@ impl AstNode for AnyMExpression {
             AnyMExpression::MCallExpression(it) => it.syntax,
             AnyMExpression::MComputedMemberExpression(it) => it.syntax,
             AnyMExpression::MConditionalExpression(it) => it.syntax,
+            AnyMExpression::MConstantExpression(it) => it.syntax,
             AnyMExpression::MFunctionExpression(it) => it.syntax,
             AnyMExpression::MHashMapExpression(it) => it.syntax,
             AnyMExpression::MHashSetExpression(it) => it.syntax,
@@ -10255,6 +10362,7 @@ impl std::fmt::Debug for AnyMExpression {
             AnyMExpression::MCallExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MComputedMemberExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MConditionalExpression(it) => std::fmt::Debug::fmt(it, f),
+            AnyMExpression::MConstantExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MFunctionExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MHashMapExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MHashSetExpression(it) => std::fmt::Debug::fmt(it, f),
@@ -10285,6 +10393,7 @@ impl From<AnyMExpression> for SyntaxNode {
             AnyMExpression::MCallExpression(it) => it.into(),
             AnyMExpression::MComputedMemberExpression(it) => it.into(),
             AnyMExpression::MConditionalExpression(it) => it.into(),
+            AnyMExpression::MConstantExpression(it) => it.into(),
             AnyMExpression::MFunctionExpression(it) => it.into(),
             AnyMExpression::MHashMapExpression(it) => it.into(),
             AnyMExpression::MHashSetExpression(it) => it.into(),
@@ -11633,6 +11742,11 @@ impl std::fmt::Display for MComputedMemberName {
     }
 }
 impl std::fmt::Display for MConditionalExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for MConstantExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

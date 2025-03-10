@@ -99,6 +99,11 @@ macro_rules! map_syntax_node {
                         unsafe { crate::syntax::MConditionalExpression::new_unchecked(node) };
                     $body
                 }
+                crate::syntax::MSyntaxKind::M_CONSTANT_EXPRESSION => {
+                    let $pattern =
+                        unsafe { crate::syntax::MConstantExpression::new_unchecked(node) };
+                    $body
+                }
                 crate::syntax::MSyntaxKind::M_CONSTRUCTOR_CLASS_MEMBER => {
                     let $pattern =
                         unsafe { crate::syntax::MConstructorClassMember::new_unchecked(node) };

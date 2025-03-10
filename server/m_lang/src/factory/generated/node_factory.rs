@@ -350,6 +350,22 @@ pub fn m_conditional_expression(
         ],
     ))
 }
+pub fn m_constant_expression(
+    token: SyntaxToken,
+    constant: MStringLiteralExpression,
+    m_long_string_literal_expression: MLongStringLiteralExpression,
+) -> MConstantExpression {
+    MConstantExpression::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_CONSTANT_EXPRESSION,
+        [
+            Some(SyntaxElement::Token(token)),
+            Some(SyntaxElement::Node(constant.into_syntax())),
+            Some(SyntaxElement::Node(
+                m_long_string_literal_expression.into_syntax(),
+            )),
+        ],
+    ))
+}
 pub fn m_constructor_class_member(
     name: MLiteralMemberName,
     parameters: MConstructorParameters,
