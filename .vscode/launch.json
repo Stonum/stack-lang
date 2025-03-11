@@ -16,6 +16,7 @@
          "preLaunchTask": "Build",
          "env": {
             "SERVER_PATH": "${workspaceRoot}/server/target/debug/stack-lang-server",
+            "RUST_BACKTRACE": "full"
          }
       },
       {

@@ -49,7 +49,6 @@ AnyMRoot =
 	MScript | MModule | MExpressionSnipped
 
 MScript =
-	directives: MDirectiveList
 	statements: MStatementList
 	eof: 'EOF'
 
@@ -64,8 +63,8 @@ MExpressionSnipped =
 
 
 MDirective =
-	value: 'M_string_literal'
-	';'?
+	'version'
+	value: 'M_number_literal'
 
 MDirectiveList = MDirective*
 

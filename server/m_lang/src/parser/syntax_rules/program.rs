@@ -1,7 +1,7 @@
 //! Top level functions for parsing a script or module, also includes module specific items.
 
 use super::module::parse_module_body;
-use super::stmt::parse_statements;
+use super::stmt::{parse_directives, parse_statements};
 use super::syntax::MSyntaxKind::*;
 use super::syntax::ModuleKind;
 
@@ -13,9 +13,9 @@ pub(crate) fn parse(p: &mut MParser) -> CompletedMarker {
     let m = p.start();
     p.eat(UNICODE_BOM);
 
-    // !TODO - parse directives
-    let directives = p.start();
-    directives.complete(p, M_DIRECTIVE_LIST);
+    if p.source_type().module_kind().is_module() {
+        parse_directives(p);
+    }
 
     let statement_list = p.start();
 

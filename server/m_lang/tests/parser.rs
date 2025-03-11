@@ -328,3 +328,20 @@ fn test_constant_expression() {
 
     assert_parser!(res);
 }
+
+#[test]
+fn test_directives() {
+    let res = parse(
+        r#"
+           version 2
+
+           func b() {
+              var version = 123;
+              return version && 2;
+           }
+        "#,
+        MFileSource::module(),
+    );
+
+    assert_parser!(res);
+}

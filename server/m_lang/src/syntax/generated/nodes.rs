@@ -1186,15 +1186,15 @@ impl MDirective {
     }
     pub fn as_fields(&self) -> MDirectiveFields {
         MDirectiveFields {
+            version_token: self.version_token(),
             value_token: self.value_token(),
-            semicolon_token: self.semicolon_token(),
         }
     }
-    pub fn value_token(&self) -> SyntaxResult<SyntaxToken> {
+    pub fn version_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 0usize)
     }
-    pub fn semicolon_token(&self) -> Option<SyntaxToken> {
-        support::token(&self.syntax, 1usize)
+    pub fn value_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 1usize)
     }
 }
 impl Serialize for MDirective {
@@ -1207,8 +1207,8 @@ impl Serialize for MDirective {
 }
 #[derive(Serialize)]
 pub struct MDirectiveFields {
+    pub version_token: SyntaxResult<SyntaxToken>,
     pub value_token: SyntaxResult<SyntaxToken>,
-    pub semicolon_token: Option<SyntaxToken>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MElseClause {
@@ -3249,19 +3249,15 @@ impl MScript {
     }
     pub fn as_fields(&self) -> MScriptFields {
         MScriptFields {
-            directives: self.directives(),
             statements: self.statements(),
             eof_token: self.eof_token(),
         }
     }
-    pub fn directives(&self) -> MDirectiveList {
+    pub fn statements(&self) -> MStatementList {
         support::list(&self.syntax, 0usize)
     }
-    pub fn statements(&self) -> MStatementList {
-        support::list(&self.syntax, 1usize)
-    }
     pub fn eof_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 2usize)
+        support::required_token(&self.syntax, 1usize)
     }
 }
 impl Serialize for MScript {
@@ -3274,7 +3270,6 @@ impl Serialize for MScript {
 }
 #[derive(Serialize)]
 pub struct MScriptFields {
-    pub directives: MDirectiveList,
     pub statements: MStatementList,
     pub eof_token: SyntaxResult<SyntaxToken>,
 }
@@ -6244,12 +6239,12 @@ impl std::fmt::Debug for MDirective {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MDirective")
             .field(
-                "value_token",
-                &support::DebugSyntaxResult(self.value_token()),
+                "version_token",
+                &support::DebugSyntaxResult(self.version_token()),
             )
             .field(
-                "semicolon_token",
-                &support::DebugOptionalElement(self.semicolon_token()),
+                "value_token",
+                &support::DebugSyntaxResult(self.value_token()),
             )
             .finish()
     }
@@ -8304,7 +8299,6 @@ impl AstNode for MScript {
 impl std::fmt::Debug for MScript {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MScript")
-            .field("directives", &self.directives())
             .field("statements", &self.statements())
             .field("eof_token", &support::DebugSyntaxResult(self.eof_token()))
             .finish()

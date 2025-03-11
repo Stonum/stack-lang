@@ -1184,3 +1184,18 @@ fn parse_global_statement(p: &mut MParser) -> ParsedSyntax {
 
     Absent
 }
+
+pub(crate) fn parse_directives(p: &mut MParser) {
+    if !p.at(T![ident]) && !p.cur_text().eq_ignore_ascii_case("version") {
+        return;
+    }
+
+    let directives = p.start();
+
+    let directive = p.start();
+    p.bump_remap(T![version]);
+    p.expect(M_NUMBER_LITERAL);
+    directive.complete(p, M_DIRECTIVE);
+
+    directives.complete(p, M_DIRECTIVE_LIST);
+}

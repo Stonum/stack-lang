@@ -483,11 +483,14 @@ pub fn m_default_clause(else_token: SyntaxToken, consequent: MStatementList) -> 
         ],
     ))
 }
-pub fn m_directive(value_token: SyntaxToken) -> MDirectiveBuilder {
-    MDirectiveBuilder {
-        value_token,
-        semicolon_token: None,
-    }
+pub fn m_directive(version_token: SyntaxToken, value_token: SyntaxToken) -> MDirective {
+    MDirective::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_DIRECTIVE,
+        [
+            Some(SyntaxElement::Token(version_token)),
+            Some(SyntaxElement::Token(value_token)),
+        ],
+    ))
 }
 pub struct MDirectiveBuilder {
     value_token: SyntaxToken,
@@ -1294,15 +1297,10 @@ impl MReturnStatementBuilder {
         ))
     }
 }
-pub fn m_script(
-    directives: MDirectiveList,
-    statements: MStatementList,
-    eof_token: SyntaxToken,
-) -> MScript {
+pub fn m_script(statements: MStatementList, eof_token: SyntaxToken) -> MScript {
     MScript::unwrap_cast(SyntaxNode::new_detached(
         MSyntaxKind::M_SCRIPT,
         [
-            Some(SyntaxElement::Node(directives.into_syntax())),
             Some(SyntaxElement::Node(statements.into_syntax())),
             Some(SyntaxElement::Token(eof_token)),
         ],
