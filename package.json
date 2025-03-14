@@ -1,7 +1,7 @@
 {
    "name": "stack-lang",
    "description": "stack language server",
-   "version": "0.1.0",
+   "version": "0.1.1",
    "repository": "https://github.com/stonum/stack-lang",
    "publisher": "stonum",
    "categories": ["Programming Languages", "Formatters", "Linters"],
@@ -67,7 +67,7 @@
    },
    "scripts": {
       "postinstall": "cd client && npm i",
-      "vscode:prepublish": "prepublish.sh",
+      "vscode:prepublish1": "prepublish.sh",
       "client:compile": "tsc -b",
       "watch": "rm -rf client/out && tsc -b -w",
       "package": "vsce package",
