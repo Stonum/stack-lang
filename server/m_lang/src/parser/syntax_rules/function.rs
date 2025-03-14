@@ -34,12 +34,18 @@ use biome_parser::ParserProgress;
 pub(crate) fn parse_function_declaration(
     p: &mut MParser,
     context: StatementContext,
+    annotation: Option<CompletedMarker>,
 ) -> ParsedSyntax {
     if !is_at_function(p) {
         return Absent;
     }
 
-    let m = p.start();
+    let m = if let Some(a) = annotation {
+        a.precede(p)
+    } else {
+        p.start()
+    };
+
     let function = parse_function(
         p,
         m,

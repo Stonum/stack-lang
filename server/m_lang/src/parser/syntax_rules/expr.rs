@@ -980,7 +980,7 @@ impl ParseSeparatedList for ArrayElementsList {
 // test_err array_expr_incomplete
 // let a = [
 fn parse_array_expr(p: &mut MParser) -> ParsedSyntax {
-    if !p.at(T![@]) && !p.nth_at(1, T!['[']) {
+    if !p.at(T![@]) || !p.nth_at(1, T!['[']) {
         return Absent;
     }
     let m = p.start();

@@ -1,3 +1,4 @@
+mod annotation;
 mod assignment;
 mod binding;
 mod class;

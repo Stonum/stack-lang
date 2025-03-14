@@ -237,6 +237,37 @@ MFinallyClause =
 MDebugStatement =
 	'debug' ';'?
 
+// annotations statement 
+MAnnotationGroupList = 
+   MAnnotationGroup*
+
+// :[test, report(key=value),]
+MAnnotationGroup = 
+   ':' '[' 
+   elements: MAnnotationList 
+   ']'
+
+MAnnotationList = (AnyMAnnotationElement (',' AnyMAnnotationElement)* ','?)
+
+AnyMAnnotationElement = 
+   MAnnotationBinding
+   | MAnnotationElement
+
+MAnnotationBinding = 
+   name: AnyMBinding
+
+MAnnotationElement =
+   name: AnyMBinding
+   '(' 
+   attributes: MAnnotationAttributeList
+   ')'
+
+MAnnotationAttributeList = (MAnnotationAttribute (',' MAnnotationAttribute)* ','?)
+
+MAnnotationAttribute = 
+   name: AnyMBinding
+   '='
+   value: AnyMLiteralExpression
 
 
 ///////////////
@@ -455,6 +486,7 @@ MHashSetMemberList = (AnyMArrayElement (',' AnyMArrayElement)* ','?)
 ///////////////
 
 MClassDeclaration =
+   annotation: MAnnotationGroupList
 	'class'
 	id: AnyMBinding
 	extends_clause: MExtendsClause?
@@ -500,6 +532,7 @@ AnyMClassMember =
 // class Test { 'constructor'() {} }
 //              ^^^^^^^^^^^^^^^^^^
 MConstructorClassMember =
+   annotation: MAnnotationGroupList
 	name: MLiteralMemberName
 	parameters: MConstructorParameters
    doc_string: AnyMDocString?
@@ -521,6 +554,7 @@ AnyMConstructorParameter =
 // class Test { a() {} }
 //              ^^^^^^
 MMethodClassMember =
+   annotation: MAnnotationGroupList
 	name: AnyMClassMemberName
 	parameters: MParameters
    doc_string: AnyMDocString?
@@ -529,6 +563,7 @@ MMethodClassMember =
 // class Test { get a() {} }
 //              ^^^^^^^^^^
 MGetterClassMember =
+   annotation: MAnnotationGroupList
 	'get'
 	name: AnyMClassMemberName
 	'(' ')'
@@ -539,6 +574,7 @@ MGetterClassMember =
 // class Test { set a(v) {} }
 //              ^^^^^^^^^^^
 MSetterClassMember =
+   annotation: MAnnotationGroupList
 	'set'
 	name: AnyMClassMemberName
 	'('
@@ -664,6 +700,7 @@ MVariableDeclarationClause =
 
 
 MFunctionDeclaration =
+   annotation: MAnnotationGroupList
 	'function'
 	id: AnyMBinding
 	parameters: MParameters

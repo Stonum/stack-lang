@@ -225,6 +225,13 @@ pub enum MSyntaxKind {
     M_BOGUS_BINDING,
     M_BOGUS_PARAMETER,
     M_BOGUS_ASSIGNMENT,
+    M_ANNOTATION_GROUP_LIST,
+    M_ANNOTATION_GROUP,
+    M_ANNOTATION_LIST,
+    M_ANNOTATION_BINDING,
+    M_ANNOTATION_ELEMENT,
+    M_ANNOTATION_ATTRIBUTE_LIST,
+    M_ANNOTATION_ATTRIBUTE,
     #[doc(hidden)]
     __LAST,
 }
@@ -267,7 +274,10 @@ impl MSyntaxKind {
             | M_CONSTRUCTOR_MODIFIER_LIST
             | M_CONSTRUCTOR_PARAMETER_LIST
             | M_PROPERTY_MODIFIER_LIST
-            | M_METHOD_MODIFIER_LIST => true,
+            | M_METHOD_MODIFIER_LIST
+            | M_ANNOTATION_GROUP_LIST
+            | M_ANNOTATION_LIST
+            | M_ANNOTATION_ATTRIBUTE_LIST => true,
             _ => false,
         }
     }

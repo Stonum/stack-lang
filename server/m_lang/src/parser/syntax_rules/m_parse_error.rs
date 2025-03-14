@@ -26,6 +26,10 @@ pub fn expected_block_statement(p: &MParser, range: TextRange) -> ParseDiagnosti
     expected_node("block statement", range, p)
 }
 
+pub fn expected_annotation_statement(p: &MParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("annotation statement", range, p)
+}
+
 pub fn expected_catch_clause(p: &MParser, range: TextRange) -> ParseDiagnostic {
     expected_node("catch clause", range, p)
 }
@@ -80,6 +84,10 @@ pub fn expected_class_method_body(p: &MParser, range: TextRange) -> ParseDiagnos
 
 pub fn expected_expression(p: &MParser, range: TextRange) -> ParseDiagnostic {
     expected_node("expression", range, p)
+}
+
+pub fn expected_literal_expression(p: &MParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("literal expression", range, p)
 }
 
 pub fn expected_expression_assignment(p: &MParser, range: TextRange) -> ParseDiagnostic {

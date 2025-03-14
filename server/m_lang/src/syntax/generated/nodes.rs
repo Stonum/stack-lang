@@ -23,9 +23,183 @@ use std::fmt::{Debug, Formatter};
 #[doc = r" the slots are not statically known."]
 #[allow(dead_code)]
 pub(crate) const SLOT_MAP_EMPTY_VALUE: u8 = u8::MAX;
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct MAnnotationAttribute {
+    pub(crate) syntax: SyntaxNode,
+}
+impl MAnnotationAttribute {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> MAnnotationAttributeFields {
+        MAnnotationAttributeFields {
+            name: self.name(),
+            eq_token: self.eq_token(),
+            value: self.value(),
+        }
+    }
+    pub fn name(&self) -> SyntaxResult<AnyMBinding> {
+        support::required_node(&self.syntax, 0usize)
+    }
+    pub fn eq_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 1usize)
+    }
+    pub fn value(&self) -> SyntaxResult<AnyMLiteralExpression> {
+        support::required_node(&self.syntax, 2usize)
+    }
+}
+impl Serialize for MAnnotationAttribute {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
 #[derive(Serialize)]
-pub struct AnyMModuleItemFields {
-    pub any_m_statement: SyntaxResult<AnyMStatement>,
+pub struct MAnnotationAttributeFields {
+    pub name: SyntaxResult<AnyMBinding>,
+    pub eq_token: SyntaxResult<SyntaxToken>,
+    pub value: SyntaxResult<AnyMLiteralExpression>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct MAnnotationBinding {
+    pub(crate) syntax: SyntaxNode,
+}
+impl MAnnotationBinding {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> MAnnotationBindingFields {
+        MAnnotationBindingFields { name: self.name() }
+    }
+    pub fn name(&self) -> SyntaxResult<AnyMBinding> {
+        support::required_node(&self.syntax, 0usize)
+    }
+}
+impl Serialize for MAnnotationBinding {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct MAnnotationBindingFields {
+    pub name: SyntaxResult<AnyMBinding>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct MAnnotationElement {
+    pub(crate) syntax: SyntaxNode,
+}
+impl MAnnotationElement {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> MAnnotationElementFields {
+        MAnnotationElementFields {
+            name: self.name(),
+            l_paren_token: self.l_paren_token(),
+            attributes: self.attributes(),
+            r_paren_token: self.r_paren_token(),
+        }
+    }
+    pub fn name(&self) -> SyntaxResult<AnyMBinding> {
+        support::required_node(&self.syntax, 0usize)
+    }
+    pub fn l_paren_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 1usize)
+    }
+    pub fn attributes(&self) -> MAnnotationAttributeList {
+        support::list(&self.syntax, 2usize)
+    }
+    pub fn r_paren_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 3usize)
+    }
+}
+impl Serialize for MAnnotationElement {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct MAnnotationElementFields {
+    pub name: SyntaxResult<AnyMBinding>,
+    pub l_paren_token: SyntaxResult<SyntaxToken>,
+    pub attributes: MAnnotationAttributeList,
+    pub r_paren_token: SyntaxResult<SyntaxToken>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct MAnnotationGroup {
+    pub(crate) syntax: SyntaxNode,
+}
+impl MAnnotationGroup {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> MAnnotationGroupFields {
+        MAnnotationGroupFields {
+            colon_token: self.colon_token(),
+            l_brack_token: self.l_brack_token(),
+            elements: self.elements(),
+            r_brack_token: self.r_brack_token(),
+        }
+    }
+    pub fn colon_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 0usize)
+    }
+    pub fn l_brack_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 1usize)
+    }
+    pub fn elements(&self) -> MAnnotationList {
+        support::list(&self.syntax, 2usize)
+    }
+    pub fn r_brack_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 3usize)
+    }
+}
+impl Serialize for MAnnotationGroup {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct MAnnotationGroupFields {
+    pub colon_token: SyntaxResult<SyntaxToken>,
+    pub l_brack_token: SyntaxResult<SyntaxToken>,
+    pub elements: MAnnotationList,
+    pub r_brack_token: SyntaxResult<SyntaxToken>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MArrayExpression {
@@ -626,6 +800,7 @@ impl MClassDeclaration {
     }
     pub fn as_fields(&self) -> MClassDeclarationFields {
         MClassDeclarationFields {
+            annotation: self.annotation(),
             class_token: self.class_token(),
             id: self.id(),
             extends_clause: self.extends_clause(),
@@ -635,26 +810,29 @@ impl MClassDeclaration {
             r_curly_token: self.r_curly_token(),
         }
     }
+    pub fn annotation(&self) -> MAnnotationGroupList {
+        support::list(&self.syntax, 0usize)
+    }
     pub fn class_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 0usize)
+        support::required_token(&self.syntax, 1usize)
     }
     pub fn id(&self) -> SyntaxResult<AnyMBinding> {
-        support::required_node(&self.syntax, 1usize)
+        support::required_node(&self.syntax, 2usize)
     }
     pub fn extends_clause(&self) -> Option<MExtendsClause> {
-        support::node(&self.syntax, 2usize)
-    }
-    pub fn doc_string(&self) -> Option<AnyMDocString> {
         support::node(&self.syntax, 3usize)
     }
+    pub fn doc_string(&self) -> Option<AnyMDocString> {
+        support::node(&self.syntax, 4usize)
+    }
     pub fn l_curly_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 4usize)
+        support::required_token(&self.syntax, 5usize)
     }
     pub fn members(&self) -> MClassMemberList {
-        support::list(&self.syntax, 5usize)
+        support::list(&self.syntax, 6usize)
     }
     pub fn r_curly_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 6usize)
+        support::required_token(&self.syntax, 7usize)
     }
 }
 impl Serialize for MClassDeclaration {
@@ -667,6 +845,7 @@ impl Serialize for MClassDeclaration {
 }
 #[derive(Serialize)]
 pub struct MClassDeclarationFields {
+    pub annotation: MAnnotationGroupList,
     pub class_token: SyntaxResult<SyntaxToken>,
     pub id: SyntaxResult<AnyMBinding>,
     pub extends_clause: Option<MExtendsClause>,
@@ -936,23 +1115,27 @@ impl MConstructorClassMember {
     }
     pub fn as_fields(&self) -> MConstructorClassMemberFields {
         MConstructorClassMemberFields {
+            annotation: self.annotation(),
             name: self.name(),
             parameters: self.parameters(),
             doc_string: self.doc_string(),
             body: self.body(),
         }
     }
-    pub fn name(&self) -> SyntaxResult<MLiteralMemberName> {
-        support::required_node(&self.syntax, 0usize)
+    pub fn annotation(&self) -> MAnnotationGroupList {
+        support::list(&self.syntax, 0usize)
     }
-    pub fn parameters(&self) -> SyntaxResult<MConstructorParameters> {
+    pub fn name(&self) -> SyntaxResult<MLiteralMemberName> {
         support::required_node(&self.syntax, 1usize)
     }
+    pub fn parameters(&self) -> SyntaxResult<MConstructorParameters> {
+        support::required_node(&self.syntax, 2usize)
+    }
     pub fn doc_string(&self) -> Option<AnyMDocString> {
-        support::node(&self.syntax, 2usize)
+        support::node(&self.syntax, 3usize)
     }
     pub fn body(&self) -> SyntaxResult<MFunctionBody> {
-        support::required_node(&self.syntax, 3usize)
+        support::required_node(&self.syntax, 4usize)
     }
 }
 impl Serialize for MConstructorClassMember {
@@ -965,6 +1148,7 @@ impl Serialize for MConstructorClassMember {
 }
 #[derive(Serialize)]
 pub struct MConstructorClassMemberFields {
+    pub annotation: MAnnotationGroupList,
     pub name: SyntaxResult<MLiteralMemberName>,
     pub parameters: SyntaxResult<MConstructorParameters>,
     pub doc_string: Option<AnyMDocString>,
@@ -1881,6 +2065,7 @@ impl MFunctionDeclaration {
     }
     pub fn as_fields(&self) -> MFunctionDeclarationFields {
         MFunctionDeclarationFields {
+            annotation: self.annotation(),
             function_token: self.function_token(),
             id: self.id(),
             parameters: self.parameters(),
@@ -1888,20 +2073,23 @@ impl MFunctionDeclaration {
             body: self.body(),
         }
     }
+    pub fn annotation(&self) -> MAnnotationGroupList {
+        support::list(&self.syntax, 0usize)
+    }
     pub fn function_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 0usize)
+        support::required_token(&self.syntax, 1usize)
     }
     pub fn id(&self) -> SyntaxResult<AnyMBinding> {
-        support::required_node(&self.syntax, 1usize)
-    }
-    pub fn parameters(&self) -> SyntaxResult<MParameters> {
         support::required_node(&self.syntax, 2usize)
     }
+    pub fn parameters(&self) -> SyntaxResult<MParameters> {
+        support::required_node(&self.syntax, 3usize)
+    }
     pub fn doc_string(&self) -> Option<AnyMDocString> {
-        support::node(&self.syntax, 3usize)
+        support::node(&self.syntax, 4usize)
     }
     pub fn body(&self) -> SyntaxResult<MFunctionBody> {
-        support::required_node(&self.syntax, 4usize)
+        support::required_node(&self.syntax, 5usize)
     }
 }
 impl Serialize for MFunctionDeclaration {
@@ -1914,6 +2102,7 @@ impl Serialize for MFunctionDeclaration {
 }
 #[derive(Serialize)]
 pub struct MFunctionDeclarationFields {
+    pub annotation: MAnnotationGroupList,
     pub function_token: SyntaxResult<SyntaxToken>,
     pub id: SyntaxResult<AnyMBinding>,
     pub parameters: SyntaxResult<MParameters>,
@@ -1981,6 +2170,7 @@ impl MGetterClassMember {
     }
     pub fn as_fields(&self) -> MGetterClassMemberFields {
         MGetterClassMemberFields {
+            annotation: self.annotation(),
             get_token: self.get_token(),
             name: self.name(),
             l_paren_token: self.l_paren_token(),
@@ -1989,23 +2179,26 @@ impl MGetterClassMember {
             body: self.body(),
         }
     }
+    pub fn annotation(&self) -> MAnnotationGroupList {
+        support::list(&self.syntax, 0usize)
+    }
     pub fn get_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 0usize)
+        support::required_token(&self.syntax, 1usize)
     }
     pub fn name(&self) -> SyntaxResult<AnyMClassMemberName> {
-        support::required_node(&self.syntax, 1usize)
+        support::required_node(&self.syntax, 2usize)
     }
     pub fn l_paren_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 2usize)
-    }
-    pub fn r_paren_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 3usize)
     }
+    pub fn r_paren_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 4usize)
+    }
     pub fn doc_string(&self) -> Option<AnyMDocString> {
-        support::node(&self.syntax, 4usize)
+        support::node(&self.syntax, 5usize)
     }
     pub fn body(&self) -> SyntaxResult<MFunctionBody> {
-        support::required_node(&self.syntax, 5usize)
+        support::required_node(&self.syntax, 6usize)
     }
 }
 impl Serialize for MGetterClassMember {
@@ -2018,6 +2211,7 @@ impl Serialize for MGetterClassMember {
 }
 #[derive(Serialize)]
 pub struct MGetterClassMemberFields {
+    pub annotation: MAnnotationGroupList,
     pub get_token: SyntaxResult<SyntaxToken>,
     pub name: SyntaxResult<AnyMClassMemberName>,
     pub l_paren_token: SyntaxResult<SyntaxToken>,
@@ -2539,23 +2733,27 @@ impl MMethodClassMember {
     }
     pub fn as_fields(&self) -> MMethodClassMemberFields {
         MMethodClassMemberFields {
+            annotation: self.annotation(),
             name: self.name(),
             parameters: self.parameters(),
             doc_string: self.doc_string(),
             body: self.body(),
         }
     }
-    pub fn name(&self) -> SyntaxResult<AnyMClassMemberName> {
-        support::required_node(&self.syntax, 0usize)
+    pub fn annotation(&self) -> MAnnotationGroupList {
+        support::list(&self.syntax, 0usize)
     }
-    pub fn parameters(&self) -> SyntaxResult<MParameters> {
+    pub fn name(&self) -> SyntaxResult<AnyMClassMemberName> {
         support::required_node(&self.syntax, 1usize)
     }
+    pub fn parameters(&self) -> SyntaxResult<MParameters> {
+        support::required_node(&self.syntax, 2usize)
+    }
     pub fn doc_string(&self) -> Option<AnyMDocString> {
-        support::node(&self.syntax, 2usize)
+        support::node(&self.syntax, 3usize)
     }
     pub fn body(&self) -> SyntaxResult<MFunctionBody> {
-        support::required_node(&self.syntax, 3usize)
+        support::required_node(&self.syntax, 4usize)
     }
 }
 impl Serialize for MMethodClassMember {
@@ -2568,6 +2766,7 @@ impl Serialize for MMethodClassMember {
 }
 #[derive(Serialize)]
 pub struct MMethodClassMemberFields {
+    pub annotation: MAnnotationGroupList,
     pub name: SyntaxResult<AnyMClassMemberName>,
     pub parameters: SyntaxResult<MParameters>,
     pub doc_string: Option<AnyMDocString>,
@@ -3334,6 +3533,7 @@ impl MSetterClassMember {
     }
     pub fn as_fields(&self) -> MSetterClassMemberFields {
         MSetterClassMemberFields {
+            annotation: self.annotation(),
             set_token: self.set_token(),
             name: self.name(),
             l_paren_token: self.l_paren_token(),
@@ -3344,29 +3544,32 @@ impl MSetterClassMember {
             body: self.body(),
         }
     }
+    pub fn annotation(&self) -> MAnnotationGroupList {
+        support::list(&self.syntax, 0usize)
+    }
     pub fn set_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 0usize)
+        support::required_token(&self.syntax, 1usize)
     }
     pub fn name(&self) -> SyntaxResult<AnyMClassMemberName> {
-        support::required_node(&self.syntax, 1usize)
+        support::required_node(&self.syntax, 2usize)
     }
     pub fn l_paren_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 2usize)
+        support::required_token(&self.syntax, 3usize)
     }
     pub fn parameter(&self) -> SyntaxResult<AnyMFormalParameter> {
-        support::required_node(&self.syntax, 3usize)
+        support::required_node(&self.syntax, 4usize)
     }
     pub fn comma_token(&self) -> Option<SyntaxToken> {
-        support::token(&self.syntax, 4usize)
+        support::token(&self.syntax, 5usize)
     }
     pub fn r_paren_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 5usize)
+        support::required_token(&self.syntax, 6usize)
     }
     pub fn doc_string(&self) -> Option<AnyMDocString> {
-        support::node(&self.syntax, 6usize)
+        support::node(&self.syntax, 7usize)
     }
     pub fn body(&self) -> SyntaxResult<MFunctionBody> {
-        support::required_node(&self.syntax, 7usize)
+        support::required_node(&self.syntax, 8usize)
     }
 }
 impl Serialize for MSetterClassMember {
@@ -3379,6 +3582,7 @@ impl Serialize for MSetterClassMember {
 }
 #[derive(Serialize)]
 pub struct MSetterClassMemberFields {
+    pub annotation: MAnnotationGroupList,
     pub set_token: SyntaxResult<SyntaxToken>,
     pub name: SyntaxResult<AnyMClassMemberName>,
     pub l_paren_token: SyntaxResult<SyntaxToken>,
@@ -4195,6 +4399,25 @@ pub struct MWhileStatementFields {
     pub test: SyntaxResult<AnyMExpression>,
     pub r_paren_token: SyntaxResult<SyntaxToken>,
     pub body: SyntaxResult<AnyMStatement>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, Serialize)]
+pub enum AnyMAnnotationElement {
+    MAnnotationBinding(MAnnotationBinding),
+    MAnnotationElement(MAnnotationElement),
+}
+impl AnyMAnnotationElement {
+    pub fn as_m_annotation_binding(&self) -> Option<&MAnnotationBinding> {
+        match &self {
+            AnyMAnnotationElement::MAnnotationBinding(item) => Some(item),
+            _ => None,
+        }
+    }
+    pub fn as_m_annotation_element(&self) -> Option<&MAnnotationElement> {
+        match &self {
+            AnyMAnnotationElement::MAnnotationElement(item) => Some(item),
+            _ => None,
+        }
+    }
 }
 #[derive(Clone, PartialEq, Eq, Hash, Serialize)]
 pub enum AnyMArrayElement {
@@ -5060,6 +5283,181 @@ impl AnyMSwitchClause {
         }
     }
 }
+impl AstNode for MAnnotationAttribute {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_ANNOTATION_ATTRIBUTE as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_ANNOTATION_ATTRIBUTE
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for MAnnotationAttribute {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MAnnotationAttribute")
+            .field("name", &support::DebugSyntaxResult(self.name()))
+            .field("eq_token", &support::DebugSyntaxResult(self.eq_token()))
+            .field("value", &support::DebugSyntaxResult(self.value()))
+            .finish()
+    }
+}
+impl From<MAnnotationAttribute> for SyntaxNode {
+    fn from(n: MAnnotationAttribute) -> SyntaxNode {
+        n.syntax
+    }
+}
+impl From<MAnnotationAttribute> for SyntaxElement {
+    fn from(n: MAnnotationAttribute) -> SyntaxElement {
+        n.syntax.into()
+    }
+}
+impl AstNode for MAnnotationBinding {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_ANNOTATION_BINDING as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_ANNOTATION_BINDING
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for MAnnotationBinding {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MAnnotationBinding")
+            .field("name", &support::DebugSyntaxResult(self.name()))
+            .finish()
+    }
+}
+impl From<MAnnotationBinding> for SyntaxNode {
+    fn from(n: MAnnotationBinding) -> SyntaxNode {
+        n.syntax
+    }
+}
+impl From<MAnnotationBinding> for SyntaxElement {
+    fn from(n: MAnnotationBinding) -> SyntaxElement {
+        n.syntax.into()
+    }
+}
+impl AstNode for MAnnotationElement {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_ANNOTATION_ELEMENT as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_ANNOTATION_ELEMENT
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for MAnnotationElement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MAnnotationElement")
+            .field("name", &support::DebugSyntaxResult(self.name()))
+            .field(
+                "l_paren_token",
+                &support::DebugSyntaxResult(self.l_paren_token()),
+            )
+            .field("attributes", &self.attributes())
+            .field(
+                "r_paren_token",
+                &support::DebugSyntaxResult(self.r_paren_token()),
+            )
+            .finish()
+    }
+}
+impl From<MAnnotationElement> for SyntaxNode {
+    fn from(n: MAnnotationElement) -> SyntaxNode {
+        n.syntax
+    }
+}
+impl From<MAnnotationElement> for SyntaxElement {
+    fn from(n: MAnnotationElement) -> SyntaxElement {
+        n.syntax.into()
+    }
+}
+impl AstNode for MAnnotationGroup {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_ANNOTATION_GROUP as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_ANNOTATION_GROUP
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for MAnnotationGroup {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MAnnotationGroup")
+            .field(
+                "colon_token",
+                &support::DebugSyntaxResult(self.colon_token()),
+            )
+            .field(
+                "l_brack_token",
+                &support::DebugSyntaxResult(self.l_brack_token()),
+            )
+            .field("elements", &self.elements())
+            .field(
+                "r_brack_token",
+                &support::DebugSyntaxResult(self.r_brack_token()),
+            )
+            .finish()
+    }
+}
+impl From<MAnnotationGroup> for SyntaxNode {
+    fn from(n: MAnnotationGroup) -> SyntaxNode {
+        n.syntax
+    }
+}
+impl From<MAnnotationGroup> for SyntaxElement {
+    fn from(n: MAnnotationGroup) -> SyntaxElement {
+        n.syntax.into()
+    }
+}
 impl AstNode for MArrayExpression {
     type Language = Language;
     const KIND_SET: SyntaxKindSet<Language> =
@@ -5688,6 +6086,7 @@ impl AstNode for MClassDeclaration {
 impl std::fmt::Debug for MClassDeclaration {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MClassDeclaration")
+            .field("annotation", &self.annotation())
             .field(
                 "class_token",
                 &support::DebugSyntaxResult(self.class_token()),
@@ -5978,6 +6377,7 @@ impl AstNode for MConstructorClassMember {
 impl std::fmt::Debug for MConstructorClassMember {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MConstructorClassMember")
+            .field("annotation", &self.annotation())
             .field("name", &support::DebugSyntaxResult(self.name()))
             .field("parameters", &support::DebugSyntaxResult(self.parameters()))
             .field(
@@ -6926,6 +7326,7 @@ impl AstNode for MFunctionDeclaration {
 impl std::fmt::Debug for MFunctionDeclaration {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MFunctionDeclaration")
+            .field("annotation", &self.annotation())
             .field(
                 "function_token",
                 &support::DebugSyntaxResult(self.function_token()),
@@ -7017,6 +7418,7 @@ impl AstNode for MGetterClassMember {
 impl std::fmt::Debug for MGetterClassMember {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MGetterClassMember")
+            .field("annotation", &self.annotation())
             .field("get_token", &support::DebugSyntaxResult(self.get_token()))
             .field("name", &support::DebugSyntaxResult(self.name()))
             .field(
@@ -7571,6 +7973,7 @@ impl AstNode for MMethodClassMember {
 impl std::fmt::Debug for MMethodClassMember {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MMethodClassMember")
+            .field("annotation", &self.annotation())
             .field("name", &support::DebugSyntaxResult(self.name()))
             .field("parameters", &support::DebugSyntaxResult(self.parameters()))
             .field(
@@ -8381,6 +8784,7 @@ impl AstNode for MSetterClassMember {
 impl std::fmt::Debug for MSetterClassMember {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MSetterClassMember")
+            .field("annotation", &self.annotation())
             .field("set_token", &support::DebugSyntaxResult(self.set_token()))
             .field("name", &support::DebugSyntaxResult(self.name()))
             .field(
@@ -9244,6 +9648,70 @@ impl From<MWhileStatement> for SyntaxNode {
 impl From<MWhileStatement> for SyntaxElement {
     fn from(n: MWhileStatement) -> SyntaxElement {
         n.syntax.into()
+    }
+}
+impl From<MAnnotationBinding> for AnyMAnnotationElement {
+    fn from(node: MAnnotationBinding) -> AnyMAnnotationElement {
+        AnyMAnnotationElement::MAnnotationBinding(node)
+    }
+}
+impl From<MAnnotationElement> for AnyMAnnotationElement {
+    fn from(node: MAnnotationElement) -> AnyMAnnotationElement {
+        AnyMAnnotationElement::MAnnotationElement(node)
+    }
+}
+impl AstNode for AnyMAnnotationElement {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        MAnnotationBinding::KIND_SET.union(MAnnotationElement::KIND_SET);
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, M_ANNOTATION_BINDING | M_ANNOTATION_ELEMENT)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        let res = match syntax.kind() {
+            M_ANNOTATION_BINDING => {
+                AnyMAnnotationElement::MAnnotationBinding(MAnnotationBinding { syntax })
+            }
+            M_ANNOTATION_ELEMENT => {
+                AnyMAnnotationElement::MAnnotationElement(MAnnotationElement { syntax })
+            }
+            _ => return None,
+        };
+        Some(res)
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        match self {
+            AnyMAnnotationElement::MAnnotationBinding(it) => &it.syntax,
+            AnyMAnnotationElement::MAnnotationElement(it) => &it.syntax,
+        }
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        match self {
+            AnyMAnnotationElement::MAnnotationBinding(it) => it.syntax,
+            AnyMAnnotationElement::MAnnotationElement(it) => it.syntax,
+        }
+    }
+}
+impl std::fmt::Debug for AnyMAnnotationElement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AnyMAnnotationElement::MAnnotationBinding(it) => std::fmt::Debug::fmt(it, f),
+            AnyMAnnotationElement::MAnnotationElement(it) => std::fmt::Debug::fmt(it, f),
+        }
+    }
+}
+impl From<AnyMAnnotationElement> for SyntaxNode {
+    fn from(n: AnyMAnnotationElement) -> SyntaxNode {
+        match n {
+            AnyMAnnotationElement::MAnnotationBinding(it) => it.into(),
+            AnyMAnnotationElement::MAnnotationElement(it) => it.into(),
+        }
+    }
+}
+impl From<AnyMAnnotationElement> for SyntaxElement {
+    fn from(n: AnyMAnnotationElement) -> SyntaxElement {
+        let node: SyntaxNode = n.into();
+        node.into()
     }
 }
 impl From<MArrayHole> for AnyMArrayElement {
@@ -11530,6 +11998,11 @@ impl From<AnyMSwitchClause> for SyntaxElement {
         node.into()
     }
 }
+impl std::fmt::Display for AnyMAnnotationElement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
 impl std::fmt::Display for AnyMArrayElement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
@@ -11641,6 +12114,26 @@ impl std::fmt::Display for AnyMStatement {
     }
 }
 impl std::fmt::Display for AnyMSwitchClause {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for MAnnotationAttribute {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for MAnnotationBinding {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for MAnnotationElement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for MAnnotationGroup {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
@@ -12510,6 +13003,252 @@ impl From<MBogusStatement> for SyntaxNode {
 impl From<MBogusStatement> for SyntaxElement {
     fn from(n: MBogusStatement) -> SyntaxElement {
         n.syntax.into()
+    }
+}
+#[derive(Clone, Eq, PartialEq, Hash)]
+pub struct MAnnotationAttributeList {
+    syntax_list: SyntaxList,
+}
+impl MAnnotationAttributeList {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self {
+            syntax_list: syntax.into_list(),
+        }
+    }
+}
+impl AstNode for MAnnotationAttributeList {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_ANNOTATION_ATTRIBUTE_LIST as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_ANNOTATION_ATTRIBUTE_LIST
+    }
+    fn cast(syntax: SyntaxNode) -> Option<MAnnotationAttributeList> {
+        if Self::can_cast(syntax.kind()) {
+            Some(MAnnotationAttributeList {
+                syntax_list: syntax.into_list(),
+            })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        self.syntax_list.node()
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax_list.into_node()
+    }
+}
+impl Serialize for MAnnotationAttributeList {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.len()))?;
+        for e in self.iter() {
+            seq.serialize_element(&e)?;
+        }
+        seq.end()
+    }
+}
+impl AstSeparatedList for MAnnotationAttributeList {
+    type Language = Language;
+    type Node = MAnnotationAttribute;
+    fn syntax_list(&self) -> &SyntaxList {
+        &self.syntax_list
+    }
+    fn into_syntax_list(self) -> SyntaxList {
+        self.syntax_list
+    }
+}
+impl Debug for MAnnotationAttributeList {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("MAnnotationAttributeList ")?;
+        f.debug_list().entries(self.elements()).finish()
+    }
+}
+impl IntoIterator for MAnnotationAttributeList {
+    type Item = SyntaxResult<MAnnotationAttribute>;
+    type IntoIter = AstSeparatedListNodesIterator<Language, MAnnotationAttribute>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+impl IntoIterator for &MAnnotationAttributeList {
+    type Item = SyntaxResult<MAnnotationAttribute>;
+    type IntoIter = AstSeparatedListNodesIterator<Language, MAnnotationAttribute>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+#[derive(Clone, Eq, PartialEq, Hash)]
+pub struct MAnnotationGroupList {
+    syntax_list: SyntaxList,
+}
+impl MAnnotationGroupList {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self {
+            syntax_list: syntax.into_list(),
+        }
+    }
+}
+impl AstNode for MAnnotationGroupList {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_ANNOTATION_GROUP_LIST as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_ANNOTATION_GROUP_LIST
+    }
+    fn cast(syntax: SyntaxNode) -> Option<MAnnotationGroupList> {
+        if Self::can_cast(syntax.kind()) {
+            Some(MAnnotationGroupList {
+                syntax_list: syntax.into_list(),
+            })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        self.syntax_list.node()
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax_list.into_node()
+    }
+}
+impl Serialize for MAnnotationGroupList {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.len()))?;
+        for e in self.iter() {
+            seq.serialize_element(&e)?;
+        }
+        seq.end()
+    }
+}
+impl AstNodeList for MAnnotationGroupList {
+    type Language = Language;
+    type Node = MAnnotationGroup;
+    fn syntax_list(&self) -> &SyntaxList {
+        &self.syntax_list
+    }
+    fn into_syntax_list(self) -> SyntaxList {
+        self.syntax_list
+    }
+}
+impl Debug for MAnnotationGroupList {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("MAnnotationGroupList ")?;
+        f.debug_list().entries(self.iter()).finish()
+    }
+}
+impl IntoIterator for &MAnnotationGroupList {
+    type Item = MAnnotationGroup;
+    type IntoIter = AstNodeListIterator<Language, MAnnotationGroup>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+impl IntoIterator for MAnnotationGroupList {
+    type Item = MAnnotationGroup;
+    type IntoIter = AstNodeListIterator<Language, MAnnotationGroup>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+#[derive(Clone, Eq, PartialEq, Hash)]
+pub struct MAnnotationList {
+    syntax_list: SyntaxList,
+}
+impl MAnnotationList {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self {
+            syntax_list: syntax.into_list(),
+        }
+    }
+}
+impl AstNode for MAnnotationList {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_ANNOTATION_LIST as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_ANNOTATION_LIST
+    }
+    fn cast(syntax: SyntaxNode) -> Option<MAnnotationList> {
+        if Self::can_cast(syntax.kind()) {
+            Some(MAnnotationList {
+                syntax_list: syntax.into_list(),
+            })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        self.syntax_list.node()
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax_list.into_node()
+    }
+}
+impl Serialize for MAnnotationList {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.len()))?;
+        for e in self.iter() {
+            seq.serialize_element(&e)?;
+        }
+        seq.end()
+    }
+}
+impl AstSeparatedList for MAnnotationList {
+    type Language = Language;
+    type Node = AnyMAnnotationElement;
+    fn syntax_list(&self) -> &SyntaxList {
+        &self.syntax_list
+    }
+    fn into_syntax_list(self) -> SyntaxList {
+        self.syntax_list
+    }
+}
+impl Debug for MAnnotationList {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("MAnnotationList ")?;
+        f.debug_list().entries(self.elements()).finish()
+    }
+}
+impl IntoIterator for MAnnotationList {
+    type Item = SyntaxResult<AnyMAnnotationElement>;
+    type IntoIter = AstSeparatedListNodesIterator<Language, AnyMAnnotationElement>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+impl IntoIterator for &MAnnotationList {
+    type Item = SyntaxResult<AnyMAnnotationElement>;
+    type IntoIter = AstSeparatedListNodesIterator<Language, AnyMAnnotationElement>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
     }
 }
 #[derive(Clone, Eq, PartialEq, Hash)]

@@ -60,7 +60,7 @@ impl ParseSeparatedList for ObjectMembersList {
 
 /// An object literal such as `{ a: b, "b": 5 + 5 }`.
 pub(crate) fn parse_object_expression(p: &mut MParser) -> ParsedSyntax {
-    if !p.at(T![@]) && !p.nth_at(1, T!['{']) {
+    if !p.at(T![@]) || !p.nth_at(1, T!['{']) {
         return Absent;
     }
     let m = p.start();
@@ -108,7 +108,7 @@ impl ParseSeparatedList for HashMapMembersList {
 }
 
 pub(crate) fn parse_hashmap_expression(p: &mut MParser) -> ParsedSyntax {
-    if !p.at(T![@]) && !p.nth_at(1, T!['(']) {
+    if !p.at(T![@]) || !p.nth_at(1, T!['(']) {
         return Absent;
     }
     let m = p.start();

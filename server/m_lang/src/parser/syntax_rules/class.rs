@@ -1,3 +1,4 @@
+use super::annotation::parse_annotation_list;
 use super::ParsedSyntax::{Absent, Present};
 use super::{MParser, ParsedSyntax, RecoveryResult};
 
@@ -42,12 +43,16 @@ use biome_rowan::{SyntaxKind, TextRange};
 ///
 /// A class can be invalid if
 /// * It uses an illegal identifier name
-pub(crate) fn parse_class_declaration(p: &mut MParser, context: StatementContext) -> ParsedSyntax {
+pub(crate) fn parse_class_declaration(
+    p: &mut MParser,
+    context: StatementContext,
+    annotation: Option<CompletedMarker>,
+) -> ParsedSyntax {
     if !matches!(p.cur(), T![class]) {
         return Absent;
     }
 
-    let mut class = parse_class(p, ClassKind::Declaration);
+    let mut class = parse_class(p, ClassKind::Declaration, annotation);
 
     if !class.kind(p).is_bogus() && context.is_single_statement() {
         // test_err class_in_single_statement_context
@@ -87,8 +92,16 @@ impl From<ClassKind> for MSyntaxKind {
 }
 
 #[inline]
-fn parse_class(p: &mut MParser, kind: ClassKind) -> CompletedMarker {
-    let m = p.start();
+fn parse_class(
+    p: &mut MParser,
+    kind: ClassKind,
+    annotation: Option<CompletedMarker>,
+) -> CompletedMarker {
+    let m = if let Some(a) = annotation {
+        a.precede(p)
+    } else {
+        p.start()
+    };
 
     let class_token_range = p.cur_range();
     p.expect(T![class]);
@@ -239,7 +252,11 @@ impl ParseNodeList for ClassMembersList {
 // class B { declare = foo }
 
 fn parse_class_member(p: &mut MParser) -> ParsedSyntax {
-    let member_marker = p.start();
+    let member_marker = if p.at(T![:]) && p.nth_at(1, T!['[']) {
+        parse_annotation_list(p).precede(p)
+    } else {
+        p.start()
+    };
     // test class_empty_element
     // class foo { ;;;;;;;;;; get foo() {};;;;}
     if p.eat(T![;]) {

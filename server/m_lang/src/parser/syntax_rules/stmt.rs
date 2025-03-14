@@ -6,6 +6,7 @@ use super::binding::*;
 
 use super::expr::{parse_expression, parse_identifier_expression};
 
+use super::annotation::parse_annotation_statement;
 use super::assignment::expression_to_assignment_pattern;
 use super::class::{parse_class_declaration, parse_initializer_clause};
 use super::expr::{
@@ -119,6 +120,7 @@ impl StatementContext {
 /// If not passed, [STMT_RECOVERY_SET] will be used as recovery set
 pub(crate) fn parse_statement(p: &mut MParser, context: StatementContext) -> ParsedSyntax {
     match p.cur() {
+        T![:] => parse_annotation_statement(p, context),
         T![;] => parse_empty_statement(p),
         T!['{'] => parse_block_stmt(p),
         T![if] => parse_if_statement(p),
@@ -136,10 +138,10 @@ pub(crate) fn parse_statement(p: &mut MParser, context: StatementContext) -> Par
         T![throw] => parse_throw_statement(p),
         T![debug] => parse_debugger_statement(p),
         // function
-        T![function] => parse_function_declaration(p, context),
+        T![function] => parse_function_declaration(p, context, None),
 
         // class
-        T![class] => parse_class_declaration(p, context),
+        T![class] => parse_class_declaration(p, context, None),
 
         T![.] => parse_global_statement(p),
 

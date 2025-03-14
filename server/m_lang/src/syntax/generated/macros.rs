@@ -16,6 +16,25 @@ macro_rules! map_syntax_node {
     ($ node : expr , $ pattern : pat => $ body : expr) => {
         match $node {
             node => match crate::syntax::MSyntaxNode::kind(&node) {
+                crate::syntax::MSyntaxKind::M_ANNOTATION_ATTRIBUTE => {
+                    let $pattern =
+                        unsafe { crate::syntax::MAnnotationAttribute::new_unchecked(node) };
+                    $body
+                }
+                crate::syntax::MSyntaxKind::M_ANNOTATION_BINDING => {
+                    let $pattern =
+                        unsafe { crate::syntax::MAnnotationBinding::new_unchecked(node) };
+                    $body
+                }
+                crate::syntax::MSyntaxKind::M_ANNOTATION_ELEMENT => {
+                    let $pattern =
+                        unsafe { crate::syntax::MAnnotationElement::new_unchecked(node) };
+                    $body
+                }
+                crate::syntax::MSyntaxKind::M_ANNOTATION_GROUP => {
+                    let $pattern = unsafe { crate::syntax::MAnnotationGroup::new_unchecked(node) };
+                    $body
+                }
                 crate::syntax::MSyntaxKind::M_ARRAY_EXPRESSION => {
                     let $pattern = unsafe { crate::syntax::MArrayExpression::new_unchecked(node) };
                     $body
@@ -474,6 +493,20 @@ macro_rules! map_syntax_node {
                 }
                 crate::syntax::MSyntaxKind::M_BOGUS_STATEMENT => {
                     let $pattern = unsafe { crate::syntax::MBogusStatement::new_unchecked(node) };
+                    $body
+                }
+                crate::syntax::MSyntaxKind::M_ANNOTATION_ATTRIBUTE_LIST => {
+                    let $pattern =
+                        unsafe { crate::syntax::MAnnotationAttributeList::new_unchecked(node) };
+                    $body
+                }
+                crate::syntax::MSyntaxKind::M_ANNOTATION_GROUP_LIST => {
+                    let $pattern =
+                        unsafe { crate::syntax::MAnnotationGroupList::new_unchecked(node) };
+                    $body
+                }
+                crate::syntax::MSyntaxKind::M_ANNOTATION_LIST => {
+                    let $pattern = unsafe { crate::syntax::MAnnotationList::new_unchecked(node) };
                     $body
                 }
                 crate::syntax::MSyntaxKind::M_ARRAY_ELEMENT_LIST => {

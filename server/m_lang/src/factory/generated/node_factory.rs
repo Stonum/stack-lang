@@ -7,6 +7,58 @@ use crate::syntax::{
     MSyntaxElement as SyntaxElement, MSyntaxNode as SyntaxNode, MSyntaxToken as SyntaxToken, *,
 };
 use biome_rowan::AstNode;
+pub fn m_annotation_attribute(
+    name: AnyMBinding,
+    eq_token: SyntaxToken,
+    value: AnyMLiteralExpression,
+) -> MAnnotationAttribute {
+    MAnnotationAttribute::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_ANNOTATION_ATTRIBUTE,
+        [
+            Some(SyntaxElement::Node(name.into_syntax())),
+            Some(SyntaxElement::Token(eq_token)),
+            Some(SyntaxElement::Node(value.into_syntax())),
+        ],
+    ))
+}
+pub fn m_annotation_binding(name: AnyMBinding) -> MAnnotationBinding {
+    MAnnotationBinding::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_ANNOTATION_BINDING,
+        [Some(SyntaxElement::Node(name.into_syntax()))],
+    ))
+}
+pub fn m_annotation_element(
+    name: AnyMBinding,
+    l_paren_token: SyntaxToken,
+    attributes: MAnnotationAttributeList,
+    r_paren_token: SyntaxToken,
+) -> MAnnotationElement {
+    MAnnotationElement::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_ANNOTATION_ELEMENT,
+        [
+            Some(SyntaxElement::Node(name.into_syntax())),
+            Some(SyntaxElement::Token(l_paren_token)),
+            Some(SyntaxElement::Node(attributes.into_syntax())),
+            Some(SyntaxElement::Token(r_paren_token)),
+        ],
+    ))
+}
+pub fn m_annotation_group(
+    colon_token: SyntaxToken,
+    l_brack_token: SyntaxToken,
+    elements: MAnnotationList,
+    r_brack_token: SyntaxToken,
+) -> MAnnotationGroup {
+    MAnnotationGroup::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_ANNOTATION_GROUP,
+        [
+            Some(SyntaxElement::Token(colon_token)),
+            Some(SyntaxElement::Token(l_brack_token)),
+            Some(SyntaxElement::Node(elements.into_syntax())),
+            Some(SyntaxElement::Token(r_brack_token)),
+        ],
+    ))
+}
 pub fn m_array_expression(
     at_token: SyntaxToken,
     l_brack_token: SyntaxToken,
@@ -195,6 +247,7 @@ pub fn m_class(m_class_declaration: MClassDeclaration) -> MClass {
     ))
 }
 pub fn m_class_declaration(
+    annotation: MAnnotationGroupList,
     class_token: SyntaxToken,
     id: AnyMBinding,
     l_curly_token: SyntaxToken,
@@ -202,6 +255,7 @@ pub fn m_class_declaration(
     r_curly_token: SyntaxToken,
 ) -> MClassDeclarationBuilder {
     MClassDeclarationBuilder {
+        annotation,
         class_token,
         id,
         l_curly_token,
@@ -212,6 +266,7 @@ pub fn m_class_declaration(
     }
 }
 pub struct MClassDeclarationBuilder {
+    annotation: MAnnotationGroupList,
     class_token: SyntaxToken,
     id: AnyMBinding,
     l_curly_token: SyntaxToken,
@@ -233,6 +288,7 @@ impl MClassDeclarationBuilder {
         MClassDeclaration::unwrap_cast(SyntaxNode::new_detached(
             MSyntaxKind::M_CLASS_DECLARATION,
             [
+                Some(SyntaxElement::Node(self.annotation.into_syntax())),
                 Some(SyntaxElement::Token(self.class_token)),
                 Some(SyntaxElement::Node(self.id.into_syntax())),
                 self.extends_clause
@@ -367,11 +423,13 @@ pub fn m_constant_expression(
     ))
 }
 pub fn m_constructor_class_member(
+    annotation: MAnnotationGroupList,
     name: MLiteralMemberName,
     parameters: MConstructorParameters,
     body: MFunctionBody,
 ) -> MConstructorClassMemberBuilder {
     MConstructorClassMemberBuilder {
+        annotation,
         name,
         parameters,
         body,
@@ -379,6 +437,7 @@ pub fn m_constructor_class_member(
     }
 }
 pub struct MConstructorClassMemberBuilder {
+    annotation: MAnnotationGroupList,
     name: MLiteralMemberName,
     parameters: MConstructorParameters,
     body: MFunctionBody,
@@ -393,6 +452,7 @@ impl MConstructorClassMemberBuilder {
         MConstructorClassMember::unwrap_cast(SyntaxNode::new_detached(
             MSyntaxKind::M_CONSTRUCTOR_CLASS_MEMBER,
             [
+                Some(SyntaxElement::Node(self.annotation.into_syntax())),
                 Some(SyntaxElement::Node(self.name.into_syntax())),
                 Some(SyntaxElement::Node(self.parameters.into_syntax())),
                 self.doc_string
@@ -783,12 +843,14 @@ pub fn m_function_body(
     ))
 }
 pub fn m_function_declaration(
+    annotation: MAnnotationGroupList,
     function_token: SyntaxToken,
     id: AnyMBinding,
     parameters: MParameters,
     body: MFunctionBody,
 ) -> MFunctionDeclarationBuilder {
     MFunctionDeclarationBuilder {
+        annotation,
         function_token,
         id,
         parameters,
@@ -797,6 +859,7 @@ pub fn m_function_declaration(
     }
 }
 pub struct MFunctionDeclarationBuilder {
+    annotation: MAnnotationGroupList,
     function_token: SyntaxToken,
     id: AnyMBinding,
     parameters: MParameters,
@@ -812,6 +875,7 @@ impl MFunctionDeclarationBuilder {
         MFunctionDeclaration::unwrap_cast(SyntaxNode::new_detached(
             MSyntaxKind::M_FUNCTION_DECLARATION,
             [
+                Some(SyntaxElement::Node(self.annotation.into_syntax())),
                 Some(SyntaxElement::Token(self.function_token)),
                 Some(SyntaxElement::Node(self.id.into_syntax())),
                 Some(SyntaxElement::Node(self.parameters.into_syntax())),
@@ -837,6 +901,7 @@ pub fn m_function_expression(
     ))
 }
 pub fn m_getter_class_member(
+    annotation: MAnnotationGroupList,
     get_token: SyntaxToken,
     name: AnyMClassMemberName,
     l_paren_token: SyntaxToken,
@@ -844,6 +909,7 @@ pub fn m_getter_class_member(
     body: MFunctionBody,
 ) -> MGetterClassMemberBuilder {
     MGetterClassMemberBuilder {
+        annotation,
         get_token,
         name,
         l_paren_token,
@@ -853,6 +919,7 @@ pub fn m_getter_class_member(
     }
 }
 pub struct MGetterClassMemberBuilder {
+    annotation: MAnnotationGroupList,
     get_token: SyntaxToken,
     name: AnyMClassMemberName,
     l_paren_token: SyntaxToken,
@@ -869,6 +936,7 @@ impl MGetterClassMemberBuilder {
         MGetterClassMember::unwrap_cast(SyntaxNode::new_detached(
             MSyntaxKind::M_GETTER_CLASS_MEMBER,
             [
+                Some(SyntaxElement::Node(self.annotation.into_syntax())),
                 Some(SyntaxElement::Token(self.get_token)),
                 Some(SyntaxElement::Node(self.name.into_syntax())),
                 Some(SyntaxElement::Token(self.l_paren_token)),
@@ -1033,11 +1101,13 @@ pub fn m_long_string_literal_expression(value_token: SyntaxToken) -> MLongString
     ))
 }
 pub fn m_method_class_member(
+    annotation: MAnnotationGroupList,
     name: AnyMClassMemberName,
     parameters: MParameters,
     body: MFunctionBody,
 ) -> MMethodClassMemberBuilder {
     MMethodClassMemberBuilder {
+        annotation,
         name,
         parameters,
         body,
@@ -1045,6 +1115,7 @@ pub fn m_method_class_member(
     }
 }
 pub struct MMethodClassMemberBuilder {
+    annotation: MAnnotationGroupList,
     name: AnyMClassMemberName,
     parameters: MParameters,
     body: MFunctionBody,
@@ -1059,6 +1130,7 @@ impl MMethodClassMemberBuilder {
         MMethodClassMember::unwrap_cast(SyntaxNode::new_detached(
             MSyntaxKind::M_METHOD_CLASS_MEMBER,
             [
+                Some(SyntaxElement::Node(self.annotation.into_syntax())),
                 Some(SyntaxElement::Node(self.name.into_syntax())),
                 Some(SyntaxElement::Node(self.parameters.into_syntax())),
                 self.doc_string
@@ -1321,6 +1393,7 @@ pub fn m_sequence_expression(
     ))
 }
 pub fn m_setter_class_member(
+    annotation: MAnnotationGroupList,
     set_token: SyntaxToken,
     name: AnyMClassMemberName,
     l_paren_token: SyntaxToken,
@@ -1329,6 +1402,7 @@ pub fn m_setter_class_member(
     body: MFunctionBody,
 ) -> MSetterClassMemberBuilder {
     MSetterClassMemberBuilder {
+        annotation,
         set_token,
         name,
         l_paren_token,
@@ -1340,6 +1414,7 @@ pub fn m_setter_class_member(
     }
 }
 pub struct MSetterClassMemberBuilder {
+    annotation: MAnnotationGroupList,
     set_token: SyntaxToken,
     name: AnyMClassMemberName,
     l_paren_token: SyntaxToken,
@@ -1362,6 +1437,7 @@ impl MSetterClassMemberBuilder {
         MSetterClassMember::unwrap_cast(SyntaxNode::new_detached(
             MSyntaxKind::M_SETTER_CLASS_MEMBER,
             [
+                Some(SyntaxElement::Node(self.annotation.into_syntax())),
                 Some(SyntaxElement::Token(self.set_token)),
                 Some(SyntaxElement::Node(self.name.into_syntax())),
                 Some(SyntaxElement::Token(self.l_paren_token)),
@@ -1682,6 +1758,60 @@ pub fn m_while_statement(
             Some(SyntaxElement::Token(r_paren_token)),
             Some(SyntaxElement::Node(body.into_syntax())),
         ],
+    ))
+}
+pub fn m_annotation_attribute_list<I, S>(items: I, separators: S) -> MAnnotationAttributeList
+where
+    I: IntoIterator<Item = MAnnotationAttribute>,
+    I::IntoIter: ExactSizeIterator,
+    S: IntoIterator<Item = MSyntaxToken>,
+    S::IntoIter: ExactSizeIterator,
+{
+    let mut items = items.into_iter();
+    let mut separators = separators.into_iter();
+    let length = items.len() + separators.len();
+    MAnnotationAttributeList::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_ANNOTATION_ATTRIBUTE_LIST,
+        (0..length).map(|index| {
+            if index % 2 == 0 {
+                Some(items.next()?.into_syntax().into())
+            } else {
+                Some(separators.next()?.into())
+            }
+        }),
+    ))
+}
+pub fn m_annotation_group_list<I>(items: I) -> MAnnotationGroupList
+where
+    I: IntoIterator<Item = MAnnotationGroup>,
+    I::IntoIter: ExactSizeIterator,
+{
+    MAnnotationGroupList::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_ANNOTATION_GROUP_LIST,
+        items
+            .into_iter()
+            .map(|item| Some(item.into_syntax().into())),
+    ))
+}
+pub fn m_annotation_list<I, S>(items: I, separators: S) -> MAnnotationList
+where
+    I: IntoIterator<Item = AnyMAnnotationElement>,
+    I::IntoIter: ExactSizeIterator,
+    S: IntoIterator<Item = MSyntaxToken>,
+    S::IntoIter: ExactSizeIterator,
+{
+    let mut items = items.into_iter();
+    let mut separators = separators.into_iter();
+    let length = items.len() + separators.len();
+    MAnnotationList::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_ANNOTATION_LIST,
+        (0..length).map(|index| {
+            if index % 2 == 0 {
+                Some(items.next()?.into_syntax().into())
+            } else {
+                Some(separators.next()?.into())
+            }
+        }),
     ))
 }
 pub fn m_array_element_list<I, S>(items: I, separators: S) -> MArrayElementList

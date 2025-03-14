@@ -345,3 +345,44 @@ fn test_directives() {
 
     assert_parser!(res);
 }
+
+#[test]
+fn test_annotations() {
+    let res = parse(
+        r#"
+            :[test]
+            func f() {}
+
+            :[test(order = 7, description = "some test", disabled = true)]
+            class C {}
+
+            :[test()]
+            func f() {}
+
+            :[test(disabled = true,)]
+            func f() {}
+
+            :[test, disabled]
+            func f() {}
+
+            :[test]
+            :[disabled]
+            func f() {}
+
+            class C
+            {
+                :[ctor]
+                constructor () { }
+                :[getter]
+                get x() { return 0 }
+                :[setter]
+                set x(v) { }
+                :[method]
+                method() { }
+            }
+        "#,
+        MFileSource::script(),
+    );
+
+    assert_parser!(res);
+}
