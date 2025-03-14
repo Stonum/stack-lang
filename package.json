@@ -67,7 +67,7 @@
    },
    "scripts": {
       "postinstall": "cd client && npm i",
-      "1vscode:prepublish": "concurrently  \"npm run client:compile\" \"npm run server:build_win\" \"npm run server:build_linux\"",
+      "vscode:prepublish": "concurrently  \"npm run client:compile\" \"npm run server:build_win\" \"npm run server:build_linux\"",
       "server:build_win": "cd server && cargo build --release --bins && cp ./target/release/*.exe ./ && cd ..",
       "server:build_linux": "cd server && cross build --target x86_64-unknown-linux-gnu --release --bins && cp ./target/x86_64-unknown-linux-gnu/release/stack-lang-server ./ && cd ..",
       "client:compile": "tsc -b",
