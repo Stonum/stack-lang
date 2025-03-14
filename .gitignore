@@ -1,6 +1,6 @@
 /server/target
 /server/m_lang/examples
-/server/stack-lang-server*
+/server/bin
 node_modules
 /client/out
 

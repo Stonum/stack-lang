@@ -32,7 +32,8 @@ export async function activate(context: ExtensionContext) {
       process.env.SERVER_PATH ||
       path.join(
          context.extensionPath,
-         "server",
+         "server", "bin",
+         process.platform,
          process.platform === "linux" ? "stack-lang-server" : "stack-lang-server.exe"
       );
 

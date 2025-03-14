@@ -67,9 +67,7 @@
    },
    "scripts": {
       "postinstall": "cd client && npm i",
-      "vscode:prepublish": "concurrently  \"npm run client:compile\" \"npm run server:build_win\" \"npm run server:build_linux\"",
-      "server:build_win": "cd server && cargo build --release --bins && cp ./target/release/*.exe ./ && cd ..",
-      "server:build_linux": "cd server && cross build --target x86_64-unknown-linux-gnu --release --bins && cp ./target/x86_64-unknown-linux-gnu/release/stack-lang-server ./ && cd ..",
+      "vscode:prepublish": "prepublish.sh",
       "client:compile": "tsc -b",
       "watch": "rm -rf client/out && tsc -b -w",
       "package": "vsce package",
@@ -91,8 +89,7 @@
       "vscode-test": "^1.4.0",
       "vscode-uri": "^3.0.2",
       "webpack": "^5.82.1",
-      "webpack-cli": "^5.1.4",
-      "concurrently": "^8.2.2"
+      "webpack-cli": "^5.1.4"
    },
    "dependencies": {
       "vscode-languageclient": "8.0.1"
