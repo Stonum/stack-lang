@@ -1,6 +1,12 @@
 **Changelog**
 ===============
 
+**v0.1.0 - 2025-03-14**
+* **Improved**: 
+   + improve parsing performance
+* **Added**: 
+   + displaying all diagnostics
+
 **v0.0.6 - 2024-10-30**
 ------------------------------------
 
