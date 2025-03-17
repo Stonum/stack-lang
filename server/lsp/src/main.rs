@@ -259,7 +259,6 @@ impl LanguageServer for Backend {
             let uri = params.text_document_position_params.text_document.uri;
 
             let Position { character, line } = params.text_document_position_params.position;
-
             let rope = self
                 .document_map
                 .get(&uri.to_file_path().unwrap_or_default())?;

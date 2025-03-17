@@ -20,15 +20,25 @@ pub fn semantics(root: SyntaxNode<MLanguage>) -> SemanticModel {
 }
 
 pub fn identifier_for_offset(root: SyntaxNode<MLanguage>, offset: u32) -> Option<String> {
-    let token = root
-        .covering_element(TextRange::new(
-            TextSize::from(offset),
-            TextSize::from(offset),
-        ))
-        .into_token()?;
+    // checking the boundaries if cursor is at the start or end token
+    let offsets = [offset, offset.saturating_add(1), offset.saturating_sub(1)];
 
-    if token.kind() == MSyntaxKind::IDENT {
-        return Some(token.text().to_string());
+    for offset in offsets {
+        let token = root
+            .covering_element(TextRange::new(
+                TextSize::from(offset),
+                TextSize::from(offset),
+            ))
+            .into_token();
+
+        if token.is_none() {
+            continue;
+        }
+
+        let token = token.unwrap();
+        if token.kind() == MSyntaxKind::IDENT {
+            return Some(token.text().to_string());
+        }
     }
 
     None
