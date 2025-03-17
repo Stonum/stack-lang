@@ -284,7 +284,6 @@ impl LanguageServer for Backend {
                     .module_definitions
                     .iter()
                     .filter_map(|def| {
-                        dbg!(&def.id());
                         if def.id().to_lowercase() == identifier {
                             let rope = self.document_map.get(path)?;
                             let position = position(&rope, def.range())?;
