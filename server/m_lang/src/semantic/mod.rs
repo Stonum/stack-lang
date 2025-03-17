@@ -85,15 +85,19 @@ pub struct MClassMethodDefinition {
 pub trait Definition {
     fn range(&self) -> TextRange;
     fn id(&self) -> String;
+    fn params(&self) -> String;
     fn description(&self) -> Option<String>;
     fn doc_string(&self) -> Option<String>;
 
     fn to_markdown(&self) -> String {
         format!(
-            "**{}**  {}  {}",
+            "**{}**{}\n{}\n{}",
             self.id(),
+            self.params(),
             self.description().unwrap_or_default().replace("#", "\\#"),
-            self.doc_string().unwrap_or_default().replace("#", "\\#")
+            self.doc_string()
+                .map(|s| s[1..s.len() - 1].to_string())
+                .unwrap_or_default()
         )
     }
 }
@@ -109,6 +113,12 @@ impl Definition for AnyMDefinition {
         match self {
             AnyMDefinition::MFunctionDefinition(def) => def.id(),
             AnyMDefinition::MClassDefinition(def) => def.id(),
+        }
+    }
+    fn params(&self) -> String {
+        match self {
+            AnyMDefinition::MFunctionDefinition(def) => def.params(),
+            AnyMDefinition::MClassDefinition(def) => def.params(),
         }
     }
     fn description(&self) -> Option<String> {
@@ -132,6 +142,9 @@ impl Definition for MFunctionDefinition {
     fn id(&self) -> String {
         self.id.clone()
     }
+    fn params(&self) -> String {
+        self.params.clone()
+    }
     fn description(&self) -> Option<String> {
         self.description.clone()
     }
@@ -153,6 +166,9 @@ impl Definition for MClassDefinition {
     fn id(&self) -> String {
         self.id.clone()
     }
+    fn params(&self) -> String {
+        String::from("")
+    }
     fn description(&self) -> Option<String> {
         self.description.clone()
     }
@@ -167,6 +183,9 @@ impl Definition for MClassMethodDefinition {
     }
     fn id(&self) -> String {
         self.id.clone()
+    }
+    fn params(&self) -> String {
+        self.params.clone()
     }
     fn description(&self) -> Option<String> {
         self.description.clone()
@@ -186,8 +205,8 @@ impl SemanticModel {
                         id: name.text(),
                         params: Self::parameters_to_string(func.parameters()),
                         description: Self::trivia_to_string(func.syntax().first_leading_trivia()),
+                        doc_string: func.doc_string().map(|s| s.text()),
                         range: func.range(),
-                        ..Default::default()
                     }));
             }
         }
@@ -206,8 +225,8 @@ impl SemanticModel {
                 id,
                 methods: Vec::new(),
                 description: Self::trivia_to_string(class.syntax().first_leading_trivia()),
+                doc_string: class.doc_string().map(|s| s.text()),
                 range: class.range(),
-                ..Default::default()
             };
 
             for member in members {
@@ -220,8 +239,8 @@ impl SemanticModel {
                             description: Self::trivia_to_string(
                                 constructor.syntax().first_leading_trivia(),
                             ),
+                            doc_string: constructor.doc_string().map(|s| s.text()),
                             range: constructor.range(),
-                            ..Default::default()
                         });
                     }
                     MMethodClassMember(method) if method.name().is_ok() => {
@@ -231,8 +250,8 @@ impl SemanticModel {
                             description: Self::trivia_to_string(
                                 method.syntax().first_leading_trivia(),
                             ),
+                            doc_string: method.doc_string().map(|s| s.text()),
                             range: method.range(),
-                            ..Default::default()
                         });
                     }
                     MGetterClassMember(getter) if getter.name().is_ok() => {
@@ -242,8 +261,8 @@ impl SemanticModel {
                             description: Self::trivia_to_string(
                                 getter.syntax().first_leading_trivia(),
                             ),
+                            doc_string: getter.doc_string().map(|s| s.text()),
                             range: getter.range(),
-                            ..Default::default()
                         });
                     }
                     MSetterClassMember(setter) if setter.name().is_ok() => {
@@ -253,8 +272,8 @@ impl SemanticModel {
                             description: Self::trivia_to_string(
                                 setter.syntax().first_leading_trivia(),
                             ),
+                            doc_string: setter.doc_string().map(|s| s.text()),
                             range: setter.range(),
-                            ..Default::default()
                         });
                     }
                     _ => continue,
