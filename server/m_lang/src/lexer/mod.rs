@@ -289,12 +289,10 @@ impl<'src> MLexer<'src> {
 
     fn re_lex_key_value(&mut self) -> MSyntaxKind {
         if self.byte_at(2) == Some(b':') {
-            match (self.current_byte(), self.peek_byte()) {
-                (Some(b'0'..=b'9'), Some(b'0'..=b'9')) => {
-                    self.advance(2);
-                    return M_NUMBER_LITERAL;
-                }
-                _ => (),
+            if let (Some(b'0'..=b'9'), Some(b'0'..=b'9')) = (self.current_byte(), self.peek_byte())
+            {
+                self.advance(2);
+                return M_NUMBER_LITERAL;
             }
         }
         self.current_kind
@@ -742,42 +740,42 @@ impl<'src> MLexer<'src> {
 
         match std::str::from_utf8(&buf[..count + len]) {
             Ok(s) => match s.to_lowercase().as_str() {
-                "and" | "и" => return AND_KW,
-                "break" | "прервать" => return BREAK_KW,
-                "case" | "выбор" => return CASE_KW,
-                "catch" | "исключение" | "перехват" => return CATCH_KW,
-                "class" | "класс" => return CLASS_KW,
-                "constructor" => return CONSTRUCTOR_KW,
-                "continue" | "продолжить" => return CONTINUE_KW,
-                "debug" | "отладить" => return DEBUG_KW,
-                "delete" | "удалить" => return DELETE_KW,
-                "else" | "иначе" => return ELSE_KW,
-                "extends" | "расширяет" => return EXTENDS_KW,
-                "false" | "ложь" => return FALSE_KW,
-                "finally" | "заключение" => return FINALLY_KW,
-                "for" | "для" => return FOR_KW,
-                "forall" | "длявсех" => return FORALL_KW,
-                "func" | "функция" => return FUNCTION_KW,
-                "get" | "получить" => return GET_KW,
-                "if" | "если" => return IF_KW,
-                "in" | "в" => return IN_KW,
-                "new" | "новый" => return NEW_KW,
-                "null" | "nil" | "нуль" => return NULL_KW,
-                "return" | "вернуть" => return RETURN_KW,
-                "super" | "базовый" => return SUPER_KW,
-                "switch" | "выборпо" => return SWITCH_KW,
-                "set" | "установить" => return SET_KW,
-                "or" | "или" => return OR_KW,
-                "this" | "этот" => return THIS_KW,
-                "throw" | "вызватьисключение" => return THROW_KW,
-                "try" | "попытка" => return TRY_KW,
-                "true" | "истина" => return TRUE_KW,
-                "while" | "пока" => return WHILE_KW,
-                "var" | "перем" => return VAR_KW,
-                "к" => return K_KW,
-                _ => return T![ident],
+                "and" | "и" => AND_KW,
+                "break" | "прервать" => BREAK_KW,
+                "case" | "выбор" => CASE_KW,
+                "catch" | "исключение" | "перехват" => CATCH_KW,
+                "class" | "класс" => CLASS_KW,
+                "constructor" => CONSTRUCTOR_KW,
+                "continue" | "продолжить" => CONTINUE_KW,
+                "debug" | "отладить" => DEBUG_KW,
+                "delete" | "удалить" => DELETE_KW,
+                "else" | "иначе" => ELSE_KW,
+                "extends" | "расширяет" => EXTENDS_KW,
+                "false" | "ложь" => FALSE_KW,
+                "finally" | "заключение" => FINALLY_KW,
+                "for" | "для" => FOR_KW,
+                "forall" | "длявсех" => FORALL_KW,
+                "func" | "функция" => FUNCTION_KW,
+                "get" | "получить" => GET_KW,
+                "if" | "если" => IF_KW,
+                "in" | "в" => IN_KW,
+                "new" | "новый" => NEW_KW,
+                "null" | "nil" | "нуль" => NULL_KW,
+                "return" | "вернуть" => RETURN_KW,
+                "super" | "базовый" => SUPER_KW,
+                "switch" | "выборпо" => SWITCH_KW,
+                "set" | "установить" => SET_KW,
+                "or" | "или" => OR_KW,
+                "this" | "этот" => THIS_KW,
+                "throw" | "вызватьисключение" => THROW_KW,
+                "try" | "попытка" => TRY_KW,
+                "true" | "истина" => TRUE_KW,
+                "while" | "пока" => WHILE_KW,
+                "var" | "перем" => VAR_KW,
+                "к" => K_KW,
+                _ => T![ident],
             },
-            Err(_) => return ERROR_TOKEN,
+            Err(_) => ERROR_TOKEN,
         }
     }
 
@@ -809,7 +807,7 @@ impl<'src> MLexer<'src> {
 
     #[inline]
     fn special_number_start<F: Fn(char) -> bool>(&mut self, func: F) -> bool {
-        if self.byte_at(2).map_or(false, |b| func(b as char)) {
+        if self.byte_at(2).is_some_and(|b| func(b as char)) {
             self.advance(1);
             true
         } else {
@@ -874,16 +872,15 @@ impl<'src> MLexer<'src> {
         let mut checkpoint = None;
         loop {
             match self.next_byte_bounded() {
-                Some(b'0') if leading_zero => match self.peek_byte() {
-                    Some(b'x' | b'X') => {
+                Some(b'0') if leading_zero => {
+                    if let Some(b'x' | b'X') = self.peek_byte() {
                         if self.special_number_start(|c| c.is_ascii_hexdigit()) {
                             self.read_hexnumber();
                         } else {
                             self.next_byte();
                         }
                     }
-                    _ => (),
-                },
+                }
                 Some(b'0'..=b'9') => {}
                 Some(b'.') => {
                     checkpoint = Some(self.checkpoint());
@@ -1134,10 +1131,7 @@ impl<'src> MLexer<'src> {
 
     #[inline]
     fn cur_is_ws(&mut self) -> bool {
-        match self.current_byte() {
-            Some(b'\t' | b'\n' | b'\r' | b' ') => true,
-            _ => false,
-        }
+        matches!(self.current_byte(), Some(b'\t' | b'\n' | b'\r' | b' '))
     }
 
     #[inline]

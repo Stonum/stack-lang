@@ -108,12 +108,6 @@ impl ExpressionContext {
         self.and(ExpressionContextFlags::ALLOW_OBJECT_EXPRESSION, allowed)
     }
 
-    /// Returns true if object expressions or object patterns are valid in this context
-    pub(crate) fn is_object_expression_allowed(&self) -> bool {
-        self.0
-            .contains(ExpressionContextFlags::ALLOW_OBJECT_EXPRESSION)
-    }
-
     /// Returns `true` if the expression parsing includes binary in expressions.
     pub(crate) fn is_in_included(&self) -> bool {
         self.0.contains(ExpressionContextFlags::INCLUDE_IN)
@@ -779,42 +773,42 @@ pub(crate) fn is_at_expression(p: &mut MParser) -> bool {
 }
 
 pub(crate) fn is_nth_at_expression(p: &mut MParser, n: usize) -> bool {
-    match p.nth(n) {
+    matches!(
+        p.nth(n),
         T![!]
-        | T!['(']
-        | T!['[']
-        | T!['{']
-        | T![++]
-        | T![--]
-        | T![~]
-        | T![+]
-        | T![-]
-        | T![throw]
-        | T![new]
-        | T![delete]
-        | T![ident]
-        | T![in]
-        | T![set]
-        | T![get]
-        | T![...]
-        | T![this]
-        | T![function]
-        | T![class]
-        | T![super]
-        | T![<]
-        | T![/]
-        | T![/=]
-        | TRUE_KW
-        | FALSE_KW
-        | M_NUMBER_LITERAL
-        | M_DATE_LITERAL
-        | M_BIGINT_LITERAL
-        | M_LONG_STRING_LITERAL
-        | M_STRING_LITERAL
-        | M_TIME_LITERAL
-        | NULL_KW => true,
-        _ => false,
-    }
+            | T!['(']
+            | T!['[']
+            | T!['{']
+            | T![++]
+            | T![--]
+            | T![~]
+            | T![+]
+            | T![-]
+            | T![throw]
+            | T![new]
+            | T![delete]
+            | T![ident]
+            | T![in]
+            | T![set]
+            | T![get]
+            | T![...]
+            | T![this]
+            | T![function]
+            | T![class]
+            | T![super]
+            | T![<]
+            | T![/]
+            | T![/=]
+            | TRUE_KW
+            | FALSE_KW
+            | M_NUMBER_LITERAL
+            | M_DATE_LITERAL
+            | M_BIGINT_LITERAL
+            | M_LONG_STRING_LITERAL
+            | M_STRING_LITERAL
+            | M_TIME_LITERAL
+            | NULL_KW
+    )
 }
 
 /// A primary expression such as a literal, an object, an array, or `this`.

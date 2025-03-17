@@ -1247,10 +1247,7 @@ fn keywords() {
     ];
 
     for keyword in keywords {
-        let kind = MSyntaxKind::from_keyword(keyword).expect(
-            format!("Expected `MSyntaxKind::from_keyword` to return a kind for keyword {keyword}.")
-                .as_str(),
-        );
+        let kind = MSyntaxKind::from_keyword(keyword).unwrap_or_else(|| panic!("Expected `MSyntaxKind::from_keyword` to return a kind for keyword {keyword}."));
 
         let mut lexer = MLexer::from_str(keyword);
         lexer.next_token(MLexContext::default());

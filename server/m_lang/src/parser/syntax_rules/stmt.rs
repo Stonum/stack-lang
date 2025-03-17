@@ -505,10 +505,7 @@ fn parse_while_statement(p: &mut MParser) -> ParsedSyntax {
 }
 
 pub(crate) fn is_nth_at_variable_declarations(p: &mut MParser, n: usize) -> bool {
-    match p.nth(n) {
-        T![var] => true,
-        _ => false,
-    }
+    matches!(p.nth(n), T![var])
 }
 
 /// A var, const, using or let declaration statement such as `var a = 5, b;`
@@ -535,9 +532,7 @@ pub(crate) fn parse_variable_statement(p: &mut MParser) -> ParsedSyntax {
         let m = declaration.precede(p);
         semi(p, TextRange::new(start, p.cur_range().start()));
 
-        let statement = m.complete(p, M_VARIABLE_STATEMENT);
-
-        statement
+        m.complete(p, M_VARIABLE_STATEMENT)
     })
 }
 

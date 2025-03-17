@@ -32,17 +32,7 @@ pub fn expression_to_assignment_pattern(
     target: CompletedMarker,
     checkpoint: MParserCheckpoint,
 ) -> CompletedMarker {
-    match target.kind(p) {
-        // M_OBJECT_EXPRESSION => {
-        //     p.rewind(checkpoint);
-        //     ObjectAssignmentPattern.parse_object_pattern(p).unwrap()
-        // }
-        // M_ARRAY_EXPRESSION => {
-        //     p.rewind(checkpoint);
-        //     ArrayAssignmentPattern.parse_array_pattern(p).unwrap()
-        // }
-        _ => expression_to_assignment(p, target, checkpoint),
-    }
+    expression_to_assignment(p, target, checkpoint)
 }
 
 /// Re-parses an expression as an assignment.

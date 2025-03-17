@@ -1070,12 +1070,12 @@ impl MConstantExpression {
     }
     pub fn as_fields(&self) -> MConstantExpressionFields {
         MConstantExpressionFields {
-            к_token: self.к_token(),
+            token: self.token(),
             constant: self.constant(),
             m_long_string_literal_expression: self.m_long_string_literal_expression(),
         }
     }
-    pub fn к_token(&self) -> SyntaxResult<SyntaxToken> {
+    pub fn token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 0usize)
     }
     pub fn constant(&self) -> SyntaxResult<MStringLiteralExpression> {
@@ -1095,7 +1095,7 @@ impl Serialize for MConstantExpression {
 }
 #[derive(Serialize)]
 pub struct MConstantExpressionFields {
-    pub к_token: SyntaxResult<SyntaxToken>,
+    pub token: SyntaxResult<SyntaxToken>,
     pub constant: SyntaxResult<MStringLiteralExpression>,
     pub m_long_string_literal_expression: SyntaxResult<MLongStringLiteralExpression>,
 }
@@ -6334,7 +6334,7 @@ impl AstNode for MConstantExpression {
 impl std::fmt::Debug for MConstantExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MConstantExpression")
-            .field("к_token", &support::DebugSyntaxResult(self.к_token()))
+            .field("token", &support::DebugSyntaxResult(self.token()))
             .field("constant", &support::DebugSyntaxResult(self.constant()))
             .field(
                 "m_long_string_literal_expression",

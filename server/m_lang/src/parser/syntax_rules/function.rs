@@ -2,7 +2,7 @@ use super::binding::{parse_binding, parse_binding_pattern};
 use super::class::parse_initializer_clause;
 use super::expr::{parse_doc_string_expression, ExpressionContext};
 use super::m_parse_error;
-use super::m_parse_error::{expected_binding, expected_parameter};
+use super::m_parse_error::expected_parameter;
 use super::state::{EnterFunction, EnterParameters, SignatureFlags};
 use super::stmt::{parse_block_impl, StatementContext};
 use super::ParsedSyntax::{Absent, Present};
@@ -111,14 +111,11 @@ fn parse_function(p: &mut MParser, m: Marker, kind: FunctionKind) -> CompletedMa
     parse_parameter_list(p, flags).or_add_diagnostic(p, m_parse_error::expected_parameters);
 
     if let Present(expr) = parse_doc_string_expression(p) {
-        match kind {
-            FunctionKind::Expression { .. } => {
-                p.error(p.err_builder(
-                    "expected function body, but found string expression",
-                    expr.range(p),
-                ));
-            }
-            _ => (),
+        if let FunctionKind::Expression { .. } = kind {
+            p.error(p.err_builder(
+                "expected function body, but found string expression",
+                expr.range(p),
+            ));
         }
     }
 
@@ -127,9 +124,9 @@ fn parse_function(p: &mut MParser, m: Marker, kind: FunctionKind) -> CompletedMa
     {
         body.or_add_diagnostic(p, m_parse_error::expected_function_body);
 
-        let function = m.complete(p, kind.into());
+        
 
-        function
+        m.complete(p, kind.into())
     }
 }
 
@@ -156,12 +153,12 @@ pub(crate) fn parse_any_parameter(
     p: &mut MParser,
     expression_context: ExpressionContext,
 ) -> ParsedSyntax {
-    let parameter = match p.cur() {
+    
+
+    match p.cur() {
         T![...] => parse_rest_parameter(p),
         _ => parse_formal_parameter(p, expression_context),
-    };
-
-    parameter
+    }
 }
 
 pub(crate) fn parse_rest_parameter(p: &mut MParser) -> ParsedSyntax {
@@ -239,7 +236,7 @@ pub(crate) fn parse_parameter_list(p: &mut MParser, flags: SignatureFlags) -> Pa
     parse_parameters_list(
         p,
         flags,
-        |p, expression_context| parse_any_parameter(p, expression_context),
+        parse_any_parameter,
         M_PARAMETER_LIST,
     );
 

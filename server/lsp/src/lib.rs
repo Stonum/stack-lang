@@ -7,8 +7,8 @@ pub mod fmt;
 pub mod nodes;
 
 pub fn position(rope: &Rope, span: TextRange) -> Option<Range> {
-    let start = get_position_from_offset(&rope, span.start().into())?;
-    let end = get_position_from_offset(&rope, span.end().into())?;
+    let start = get_position_from_offset(rope, span.start().into())?;
+    let end = get_position_from_offset(rope, span.end().into())?;
     Some(Range { start, end })
 }
 

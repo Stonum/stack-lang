@@ -142,7 +142,7 @@ impl<'source> TokenSource for MTokenSource<'source> {
     }
 }
 
-impl<'source> BumpWithContext for MTokenSource<'source> {
+impl BumpWithContext for MTokenSource<'_> {
     type Context = MLexContext;
 
     #[inline(always)]

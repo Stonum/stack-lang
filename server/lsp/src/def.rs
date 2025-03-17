@@ -17,6 +17,7 @@ pub fn from_mlang(
         Location::new(file.clone(), position(rope, range).unwrap_or_default())
     };
 
+    #[allow(deprecated)]
     for def in definitions {
         match def {
             AnyMDefinition::MFunctionDefinition(function) => {

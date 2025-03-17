@@ -26,10 +26,6 @@ pub fn expected_block_statement(p: &MParser, range: TextRange) -> ParseDiagnosti
     expected_node("block statement", range, p)
 }
 
-pub fn expected_annotation_statement(p: &MParser, range: TextRange) -> ParseDiagnostic {
-    expected_node("annotation statement", range, p)
-}
-
 pub fn expected_catch_clause(p: &MParser, range: TextRange) -> ParseDiagnostic {
     expected_node("catch clause", range, p)
 }

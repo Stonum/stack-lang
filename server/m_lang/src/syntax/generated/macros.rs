@@ -15,7 +15,7 @@
 macro_rules! map_syntax_node {
     ($ node : expr , $ pattern : pat => $ body : expr) => {
         match $node {
-            node => match crate::syntax::MSyntaxNode::kind(&node) {
+            node => match $crate::syntax::MSyntaxNode::kind(&node) {
                 crate::syntax::MSyntaxKind::M_ANNOTATION_ATTRIBUTE => {
                     let $pattern =
                         unsafe { crate::syntax::MAnnotationAttribute::new_unchecked(node) };

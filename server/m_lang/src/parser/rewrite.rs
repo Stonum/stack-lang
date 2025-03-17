@@ -13,7 +13,7 @@ struct RewriteParseEventsTreeSink<'r, 'p, T> {
     parser: RewriteParser<'r, 'p>,
 }
 
-impl<'r, 'p, T: RewriteParseEvents> TreeSink for RewriteParseEventsTreeSink<'r, 'p, T> {
+impl<T: RewriteParseEvents> TreeSink for RewriteParseEventsTreeSink<'_, '_, T> {
     type Kind = MSyntaxKind;
 
     fn token(&mut self, kind: MSyntaxKind, end: TextSize) {

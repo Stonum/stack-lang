@@ -83,7 +83,7 @@ impl LanguageServer for Backend {
                 section: Some("stack.iniPath".to_owned()),
             }];
             let cfg = self.client.configuration(params).await.ok()?;
-            match cfg.get(0).map(|s| s.to_owned()) {
+            match cfg.first().map(|s| s.to_owned()) {
                 Some(Value::String(s)) => Some(s),
                 _ => None,
             }
@@ -116,7 +116,7 @@ impl LanguageServer for Backend {
             self.client
                 .log_message(
                     MessageType::INFO,
-                    format!("parse definitions from workspace folder!"),
+                    "parse definitions from workspace folder!".to_string(),
                 )
                 .await;
 
@@ -436,7 +436,7 @@ impl Backend {
 
             diagnostics = parsed
                 .diagnostics()
-                .into_iter()
+                .iter()
                 .map(|error| {
                     let range = error
                         .location()
@@ -499,12 +499,10 @@ async fn get_files(dir: Url, files: &mut Vec<String>) -> std::io::Result<()> {
 
                 if path.is_dir() {
                     to_visit.push(Url::from_file_path(path).unwrap());
-                } else {
-                    if let Some(ext) = path.extension() {
-                        match ext.to_str().unwrap() {
-                            "prg" | "hdl" => files.push(path.to_str().unwrap().to_string()),
-                            _ => (),
-                        }
+                } else if let Some(ext) = path.extension() {
+                    match ext.to_str().unwrap() {
+                        "prg" | "hdl" => files.push(path.to_str().unwrap().to_string()),
+                        _ => (),
                     }
                 }
             }

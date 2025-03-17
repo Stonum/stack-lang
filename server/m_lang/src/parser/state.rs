@@ -29,14 +29,14 @@ pub struct MParserState {
 
 impl MParserState {
     pub fn new() -> Self {
-        let state = MParserState {
+        
+
+        MParserState {
             parsing_context: ParsingContextFlags::TOP_LEVEL,
             // name_map: IndexMap::new(),
             duplicate_binding_parent: None,
             speculative_parsing: false,
-        };
-
-        state
+        }
     }
 
     pub fn in_function(&self) -> bool {
@@ -145,7 +145,7 @@ where
     inner: &'parser mut MParser<'t>,
 }
 
-impl<'parser, 't, C: ChangeParserState> Drop for ParserStateGuard<'parser, 't, C> {
+impl<C: ChangeParserState> Drop for ParserStateGuard<'_, '_, C> {
     fn drop(&mut self) {
         let snapshot = std::mem::take(&mut self.snapshot);
 
@@ -153,7 +153,7 @@ impl<'parser, 't, C: ChangeParserState> Drop for ParserStateGuard<'parser, 't, C
     }
 }
 
-impl<'parser, 't, C: ChangeParserState> Deref for ParserStateGuard<'parser, 't, C> {
+impl<'t, C: ChangeParserState> Deref for ParserStateGuard<'_, 't, C> {
     type Target = MParser<'t>;
 
     fn deref(&self) -> &Self::Target {
@@ -161,7 +161,7 @@ impl<'parser, 't, C: ChangeParserState> Deref for ParserStateGuard<'parser, 't, 
     }
 }
 
-impl<'parser, 't, C: ChangeParserState> DerefMut for ParserStateGuard<'parser, 't, C> {
+impl<C: ChangeParserState> DerefMut for ParserStateGuard<'_, '_, C> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.inner
     }

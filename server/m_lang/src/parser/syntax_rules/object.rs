@@ -192,6 +192,7 @@ fn parse_object_member(p: &mut MParser) -> ParsedSyntax {
                 // test_err object_expr_non_ident_literal_prop
                 // let d = {5}
 
+                #[allow(deprecated)]
                 super::single_token_parse_recovery::SingleTokenParseRecovery::new(
                     token_set![T![:], T![,]],
                     M_BOGUS,

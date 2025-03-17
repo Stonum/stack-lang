@@ -73,21 +73,11 @@ pub(crate) fn parse_class_declaration(
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 enum ClassKind {
     Declaration,
-    Expression,
-}
-
-impl ClassKind {
-    fn is_id_optional(&self) -> bool {
-        matches!(self, ClassKind::Expression)
-    }
 }
 
 impl From<ClassKind> for MSyntaxKind {
-    fn from(kind: ClassKind) -> Self {
-        match kind {
-            ClassKind::Declaration => M_CLASS_DECLARATION,
-            ClassKind::Expression => M_CLASS_EXPRESSION,
-        }
+    fn from(_kind: ClassKind) -> Self {
+        M_CLASS_DECLARATION
     }
 }
 
@@ -112,18 +102,13 @@ fn parse_class(
     let id = parse_binding(p);
 
     // parse class id
-    match id {
-        Absent => {
-            if !kind.is_id_optional() {
-                let err = p.err_builder(
-                    "class declarations must have a name",
-                    class_token_range.start()..p.cur_range().start(),
-                );
+    if id == Absent {
+        let err = p.err_builder(
+            "class declarations must have a name",
+            class_token_range.start()..p.cur_range().start(),
+        );
 
-                p.error(err);
-            }
-        }
-        _ => (),
+        p.error(err);
     }
 
     eat_class_heritage_clause(p);
@@ -263,9 +248,7 @@ fn parse_class_member(p: &mut MParser) -> ParsedSyntax {
         return Present(member_marker.complete(p, M_EMPTY_CLASS_MEMBER));
     }
 
-    let member = parse_class_member_impl(p, member_marker);
-
-    member
+    parse_class_member_impl(p, member_marker)
 }
 
 fn parse_class_member_impl(p: &mut MParser, member_marker: Marker) -> ParsedSyntax {
@@ -438,11 +421,6 @@ pub(crate) fn parse_initializer_clause(
     } else {
         Absent
     }
-}
-
-fn parse_method_class_member(p: &mut MParser, m: Marker, flags: SignatureFlags) -> CompletedMarker {
-    parse_class_member_name(p).or_add_diagnostic(p, m_parse_error::expected_class_member_name);
-    parse_method_class_member_rest(p, m, flags)
 }
 
 // test_err class_member_method_parameters
