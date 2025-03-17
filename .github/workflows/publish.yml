@@ -1,4 +1,4 @@
-name: Publish VS Code Extension with Rust Server
+name: Publish VS Code Extension
 
 on: 
   push:
