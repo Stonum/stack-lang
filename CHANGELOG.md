@@ -1,11 +1,22 @@
 **Changelog**
 ===============
 
+**v0.1.2 - 2025-03-17**
+------------------------------------
+
+* **Fixed**: 
+   + moving on to definitions
+   + hover description 
+
 **v0.1.1 - 2025-03-14**
+------------------------------------
+
 * **Fixed**: 
    + fix server
 
 **v0.1.0 - 2025-03-14**
+------------------------------------
+
 * **Improved**: 
    + improve parsing performance
 * **Added**: 
