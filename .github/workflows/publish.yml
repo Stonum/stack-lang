@@ -2,7 +2,6 @@ name: Publish VS Code Extension
 
 on: 
   push:
-    branches: [ "test/cicd" ]
 
 jobs:
   build:
