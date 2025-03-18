@@ -378,7 +378,7 @@ class x {
             AnyMDefinition::MFunctionDefinition(MFunctionDefinition {
                 id: String::from("a"),
                 params: String::from("(x, y, z = 5, ...)"),
-                description: Some(String::from("\n# something else\n# about function a")),
+                description: Some(String::from("\r\n# something else\r\n# about function a")),
                 doc_string: None,
                 range: TextRange::new(55.into(), 99.into()),
             })
@@ -389,7 +389,7 @@ class x {
             AnyMDefinition::MFunctionDefinition(MFunctionDefinition {
                 id: String::from("b"),
                 params: String::from("()"),
-                description: Some(String::from("\n# about function b")),
+                description: Some(String::from("\r\n# about function b")),
                 doc_string: None,
                 range: TextRange::new(120.into(), 150.into()),
             })
@@ -413,7 +413,7 @@ class x {
                     MClassMethodDefinition {
                         id: String::from("x"),
                         params: String::from("()"),
-                        description: Some(String::from("\n# getter description")),
+                        description: Some(String::from("\r\n# getter description")),
                         doc_string: None,
                         range: TextRange::new(213.into(), 247.into()),
                     },
