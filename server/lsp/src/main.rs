@@ -273,7 +273,8 @@ impl LanguageServer for Backend {
                 .take_while(|(index, _)| *index as u32 <= character)
                 .fold(0, |acc, (_, char)| acc + char.len_utf8());
 
-            let identifier = identifier_for_offset(syntax, byte_offset as u32)?.to_lowercase();
+            let identifier = identifier_for_offset(syntax, byte_offset as u32)?;
+            let identifier = identifier.trim();
 
             let mut loc: Vec<Location> = vec![];
             for m in self.definitions_map.iter() {
@@ -283,7 +284,7 @@ impl LanguageServer for Backend {
                     .module_definitions
                     .iter()
                     .filter_map(|def| {
-                        if def.id().to_lowercase() == identifier {
+                        if def.id().eq_ignore_ascii_case(identifier) {
                             let rope = self.document_map.get(path)?;
                             let position = position(&rope, def.range())?;
                             return Some(Location::new(uri.clone(), position));
@@ -345,7 +346,8 @@ impl LanguageServer for Backend {
                 .take_while(|(index, _)| *index as u32 <= character)
                 .fold(0, |acc, (_, char)| acc + char.len_utf8());
 
-            let identifier = identifier_for_offset(syntax, byte_offset as u32)?.to_lowercase();
+            let identifier = identifier_for_offset(syntax, byte_offset as u32)?;
+            let identifier = identifier.trim();
 
             let mut loc: Vec<String> = vec![];
             for m in self.definitions_map.iter() {
@@ -354,7 +356,7 @@ impl LanguageServer for Backend {
                     .module_definitions
                     .iter()
                     .filter_map(|def| {
-                        if def.id().to_lowercase() == identifier {
+                        if def.id().eq_ignore_ascii_case(identifier) {
                             return Some(def.to_markdown());
                         }
                         None
