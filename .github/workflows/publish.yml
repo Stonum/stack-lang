@@ -1,7 +1,9 @@
 name: Publish VS Code Extension
 
 on: 
-  workflow_dispatch:
+  # workflow_dispatch:
+  push:
+    branches: [ "test/cicd" ]
 
 jobs:
   build:
@@ -73,10 +75,17 @@ jobs:
         path: server/bin
 
     - name: Build the extension
-      run: npm run compile
+      run: npm run client:compile
 
     - name: Package the extension
       run: vsce package
+
+    - name: Upload vsix
+      uses: actions/upload-artifact@v4
+      with:
+        name: stack-lang
+        path: |
+          stack-lang*
 
     - name: Publish to Visual Studio Code Marketplace
       run: |
