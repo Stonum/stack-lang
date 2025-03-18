@@ -705,7 +705,7 @@ fn parse_variable_declarator(p: &mut MParser, context: &VariableDeclaratorContex
         // Heuristic to determine if we're in a for of or for in loop. This may be off if
         // the user uses a for of/in with multiple declarations but this isn't allowed anyway.
         let is_in_for_loop = context.parent == VariableDeclarationParent::For && context.is_first;
-        let is_in_for_in = is_in_for_loop && p.at(T![in]);
+        let is_in_for_in = is_in_for_loop && p.at_ts(token_set!(T![in], T![in2]));
 
         if is_in_for_in {
             if let Some(initializer) = initializer {
@@ -789,13 +789,15 @@ fn parse_normal_for_head(p: &mut MParser) {
 fn parse_forall_head(p: &mut MParser, has_l_paren: bool) -> MSyntaxKind {
     // `forall (var x in ...)` | `forall (factory(obj, index)) `
 
+    let ts_in = token_set!(T![in], T![in2]);
+
     if is_nth_at_variable_declarations(p, 0) {
         let m = p.start();
 
         let (declarations, additional_declarations) =
             eat_variable_declaration(p, VariableDeclarationParent::For).unwrap();
 
-        let is_in = p.at(T![in]);
+        let is_in = p.at_ts(ts_in);
 
         if is_in {
             // remove the intermediate list node created by parse variable declarations that is not needed
@@ -860,7 +862,7 @@ fn parse_forall_head(p: &mut MParser, has_l_paren: bool) -> MSyntaxKind {
                 .and_include_in(false)
                 .and_object_expression_allowed(has_l_paren),
         );
-        if p.at(T![in]) {
+        if p.at_ts(ts_in) {
             // forall (assignment_pattern in ...
             if let Present(assignment_expr) = init_expr {
                 expression_to_assignment_pattern(p, assignment_expr, checkpoint);

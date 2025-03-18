@@ -371,7 +371,7 @@ fn parse_binary_or_logical_expression_recursive(
         // 1 >> /* a comment */ > 2;
         let op = p.re_lex(MReLexContext::BinaryOperator);
 
-        if op == T![in] && !context.is_in_included() {
+        if (op == T![in] || op == T![include]) && !context.is_in_included() {
             break;
         }
 
@@ -423,7 +423,7 @@ fn parse_binary_or_logical_expression_recursive(
                 // a or b
                 // a and b
                 T![||] | T![&&] | T![and] | T![or] => M_LOGICAL_EXPRESSION,
-                T![in] => M_IN_EXPRESSION,
+                T![in] | T![include] => M_IN_EXPRESSION,
                 _ => M_BINARY_EXPRESSION,
             }
         };
@@ -789,6 +789,8 @@ pub(crate) fn is_nth_at_expression(p: &mut MParser, n: usize) -> bool {
             | T![delete]
             | T![ident]
             | T![in]
+            | T![in2]
+            | T![include]
             | T![set]
             | T![get]
             | T![...]
@@ -865,7 +867,7 @@ fn parse_primary_expression(p: &mut MParser, context: ExpressionContext) -> Pars
         }
         T![ident] => parse_identifier_expression(p).unwrap(),
 
-        T![in] | T![set] | T![get] | T![k] => parse_identifier_expression(p).unwrap(),
+        T![in2] | T![set] | T![get] | T![k] => parse_identifier_expression(p).unwrap(),
 
         T![.] => parse_global_identifier_expression(p).unwrap(),
 
@@ -917,7 +919,7 @@ pub(crate) fn is_at_identifier(p: &mut MParser) -> bool {
 #[inline]
 pub(crate) fn is_nth_at_identifier(p: &mut MParser, n: usize) -> bool {
     p.nth_at(n, T![ident])
-        || p.nth_at(n, T![in])
+        || p.nth_at(n, T![in2])
         || p.nth_at(n, T![set])
         || p.nth_at(n, T![get])
         || p.nth_at(n, T![k])

@@ -1223,7 +1223,7 @@ impl SyntaxFactory for MSyntaxFactory {
                 }
                 slots.next_slot();
                 if let Some(element) = &current_element {
-                    if element.kind() == T![in] {
+                    if element.kind() == T![in] || element.kind() == T![in2] {
                         slots.mark_present();
                         current_element = elements.next();
                     }
@@ -1877,7 +1877,7 @@ impl SyntaxFactory for MSyntaxFactory {
                 }
                 slots.next_slot();
                 if let Some(element) = &current_element {
-                    if element.kind() == T![in] {
+                    if element.kind() == T![in] || element.kind() == T![include] {
                         slots.mark_present();
                         current_element = elements.next();
                     }

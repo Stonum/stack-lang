@@ -173,7 +173,9 @@ impl OperatorPrecedence {
             T![^] => OperatorPrecedence::BitwiseXor,
             T![&] => OperatorPrecedence::BitwiseAnd,
             T![==] | T![!=] => OperatorPrecedence::Equality,
-            T![<] | T![>] | T![<=] | T![>=] | T![in] => OperatorPrecedence::Relational,
+            T![<] | T![>] | T![<=] | T![>=] | T![in] | T![include] => {
+                OperatorPrecedence::Relational
+            }
             T![+] | T![-] => OperatorPrecedence::Additive,
             T![*] | T![/] | T![%] => OperatorPrecedence::Multiplicative,
             _ => return None,

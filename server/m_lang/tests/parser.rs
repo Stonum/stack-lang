@@ -1,7 +1,4 @@
-use m_lang::{
-    parser::parse,
-    syntax::MFileSource,
-};
+use m_lang::{parser::parse, syntax::MFileSource};
 
 macro_rules! assert_parser {
     ($res:expr) => {
@@ -86,6 +83,9 @@ fn test_parse_loop() {
             forall (var x in @[1,2,3]) {
                 println(x);
             }
+            forall (var x в @[1,2,3]) {
+                println(x);
+            }
             while(x < 10) {
                 println(x);
                 x++;
@@ -129,6 +129,17 @@ fn test_parse_condition() {
     let res = parse(
         r#"
             if (x == 1 or x == 2)
+                println(x);
+        "#,
+        MFileSource::script(),
+    );
+    assert_parser!(res);
+
+    let res = parse(
+        r#"
+            if (x входитв @[1,2,3])
+                println(x);
+            if (x in @[1,2,3])
                 println(x);
         "#,
         MFileSource::script(),
