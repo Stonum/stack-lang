@@ -44,6 +44,11 @@ jobs:
       run: cargo build --release
       working-directory: ./server
 
+    - name: Set executable permissions
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        chmod +x server/target/release/stack-lang-server
+
     - name: Upload Rust binary
       uses: actions/upload-artifact@v4
       with:
