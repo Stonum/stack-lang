@@ -91,12 +91,15 @@ pub trait Definition {
 
     fn to_markdown(&self) -> String {
         format!(
-            "**{}**{}\n{}\n{}",
+            "```{}{}```\n{}\n{}",
             self.id(),
             self.params(),
-            self.description().unwrap_or_default().replace("#", "\\#"),
+            self.description()
+                .unwrap_or_default()
+                .replace("#", "\\#")
+                .replace("\r\n", "  \n"),
             self.doc_string()
-                .map(|s| s[1..s.len() - 1].to_string())
+                .map(|s| s[1..s.len() - 1].replace("\r\n", "  \n"))
                 .unwrap_or_default()
         )
     }
@@ -310,7 +313,7 @@ impl SemanticModel {
                     match piece.kind() {
                         TriviaPieceKind::SingleLineComment => {
                             pieces.push(piece.text().to_string());
-                            pieces.push(String::from("\n"));
+                            pieces.push(String::from("\r\n"));
                             newline_count = 0;
                         }
                         TriviaPieceKind::Newline => {
