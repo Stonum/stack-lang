@@ -67,7 +67,7 @@
    },
    "scripts": {
       "postinstall": "cd client && npm i",
-      "prepublish": "prepublish.sh",
+      "server:build": "prepublish.sh",
       "client:compile": "tsc -b",
       "watch": "rm -rf client/out && tsc -b -w",
       "package": "vsce package",
