@@ -6,7 +6,7 @@
       {
          "label": "Client compile",
          "type": "npm",
-         "script": "compile",
+         "script": "client:compile",
          "group": "build",
          "presentation": {
             "panel": "dedicated",

@@ -1,7 +1,5 @@
 #!/bin/bash
 
-npm run client:compile
-
 cd server
 
 mkdir -p ./bin/win32
