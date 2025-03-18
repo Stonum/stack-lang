@@ -45,7 +45,7 @@ jobs:
     - name: Upload Rust binary
       uses: actions/upload-artifact@v4
       with:
-        name: stack-lang-server-${{ matrix.os }}
+        name: ${{ matrix.os }}
         path: |
           server/target/release/stack-lang-server
           server/target/release/stack-lang-server.exe
@@ -87,8 +87,8 @@ jobs:
         path: |
           stack-lang*
 
-    - name: Publish to Visual Studio Code Marketplace
-      run: |
-        vsce publish --pat ${{ secrets.VSCE_PAT }}
-      env:
-        VSCE_PAT: ${{ secrets.VSCE_PAT }}
+    # - name: Publish to Visual Studio Code Marketplace
+      # run: |
+        # vsce publish --pat ${{ secrets.VSCE_PAT }}
+      # env:
+        # VSCE_PAT: ${{ secrets.VSCE_PAT }}
