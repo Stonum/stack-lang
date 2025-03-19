@@ -209,7 +209,7 @@ impl SemanticModel {
                         params: Self::parameters_to_string(func.parameters()),
                         description: Self::trivia_to_string(func.syntax().first_leading_trivia()),
                         doc_string: func.doc_string().map(|s| s.text()),
-                        range: func.range(),
+                        range: name.range(),
                     }));
             }
         }
@@ -229,7 +229,7 @@ impl SemanticModel {
                 methods: Vec::new(),
                 description: Self::trivia_to_string(class.syntax().first_leading_trivia()),
                 doc_string: class.doc_string().map(|s| s.text()),
-                range: class.range(),
+                range: class.id().map(|id| id.range()).unwrap_or(class.range()),
             };
 
             for member in members {
@@ -243,7 +243,7 @@ impl SemanticModel {
                                 constructor.syntax().first_leading_trivia(),
                             ),
                             doc_string: constructor.doc_string().map(|s| s.text()),
-                            range: constructor.range(),
+                            range: constructor.name().unwrap().range(),
                         });
                     }
                     MMethodClassMember(method) if method.name().is_ok() => {
@@ -254,7 +254,7 @@ impl SemanticModel {
                                 method.syntax().first_leading_trivia(),
                             ),
                             doc_string: method.doc_string().map(|s| s.text()),
-                            range: method.range(),
+                            range: method.name().unwrap().range(),
                         });
                     }
                     MGetterClassMember(getter) if getter.name().is_ok() => {
@@ -265,7 +265,7 @@ impl SemanticModel {
                                 getter.syntax().first_leading_trivia(),
                             ),
                             doc_string: getter.doc_string().map(|s| s.text()),
-                            range: getter.range(),
+                            range: getter.name().unwrap().range(),
                         });
                     }
                     MSetterClassMember(setter) if setter.name().is_ok() => {
@@ -276,7 +276,7 @@ impl SemanticModel {
                                 setter.syntax().first_leading_trivia(),
                             ),
                             doc_string: setter.doc_string().map(|s| s.text()),
-                            range: setter.range(),
+                            range: setter.name().unwrap().range(),
                         });
                     }
                     _ => continue,
@@ -380,7 +380,7 @@ class x {
                 params: String::from("(x, y, z = 5, ...)"),
                 description: Some(String::from("\r\n# something else\r\n# about function a")),
                 doc_string: None,
-                range: TextRange::new(55.into(), 99.into()),
+                range: TextRange::new(60.into(), 61.into()),
             })
         );
 
@@ -391,7 +391,7 @@ class x {
                 params: String::from("()"),
                 description: Some(String::from("\r\n# about function b")),
                 doc_string: None,
-                range: TextRange::new(120.into(), 150.into()),
+                range: TextRange::new(125.into(), 126.into()),
             })
         );
 
@@ -401,28 +401,28 @@ class x {
                 id: String::from("x"),
                 description: None,
                 doc_string: None,
-                range: TextRange::new(152.into(), 299.into()),
+                range: TextRange::new(158.into(), 159.into()),
                 methods: vec![
                     MClassMethodDefinition {
                         id: String::from("constructor"),
                         params: String::from("()"),
                         description: None,
                         doc_string: None,
-                        range: TextRange::new(166.into(), 182.into()),
+                        range: TextRange::new(166.into(), 177.into()),
                     },
                     MClassMethodDefinition {
                         id: String::from("x"),
                         params: String::from("()"),
                         description: Some(String::from("\r\n# getter description")),
                         doc_string: None,
-                        range: TextRange::new(213.into(), 247.into()),
+                        range: TextRange::new(217.into(), 218.into()),
                     },
                     MClassMethodDefinition {
                         id: String::from("calc"),
                         params: String::from("()"),
                         description: None,
                         doc_string: None,
-                        range: TextRange::new(253.into(), 297.into()),
+                        range: TextRange::new(253.into(), 257.into()),
                     }
                 ]
             })
