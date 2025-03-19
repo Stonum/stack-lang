@@ -13,6 +13,7 @@ import {
 } from "vscode";
 
 import * as path from "path";
+import { exec } from "child_process";
 
 import {
    Executable,
@@ -36,6 +37,11 @@ export async function activate(context: ExtensionContext) {
          process.platform,
          process.platform === "linux" ? "stack-lang-server" : "stack-lang-server.exe"
       );
+   
+   // Make the server executable
+   if (process.platform == "linux") {
+      await execAsync('chmod +x ' + command);
+   }
 
    const run: Executable = {
       command,
@@ -108,3 +114,14 @@ export function deactivate(): Thenable<void> | undefined {
    }
    return client.stop();
 }
+
+function execAsync (cmd: string) {
+   return new Promise((resolve, reject) => {
+      exec(cmd, (error, stdout, stderr) => {
+         if (error) {
+            reject(error);
+         }
+         resolve(stdout);
+      });
+   });
+};
