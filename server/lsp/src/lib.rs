@@ -2,9 +2,8 @@ use m_lang::syntax::TextRange;
 use ropey::Rope;
 use tower_lsp::lsp_types::{Position, Range};
 
-pub mod def;
+pub mod document;
 pub mod fmt;
-pub mod nodes;
 
 pub fn position(rope: &Rope, span: TextRange) -> Option<Range> {
     let start = get_position_from_offset(rope, span.start().into())?;

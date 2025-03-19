@@ -1,4 +1,5 @@
 #![allow(deprecated)]
+use std::ops::Deref;
 use std::path::PathBuf;
 
 use log::error;
@@ -18,7 +19,7 @@ use m_lang::{
     syntax::MFileSource,
 };
 
-use stack_lang_server::{def, position};
+use stack_lang_server::{document::Document, position};
 use tokio::runtime::Handle;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::notification::Notification;
@@ -29,8 +30,7 @@ use std::time::Instant;
 
 struct Backend {
     client: Client,
-    document_map: DashMap<PathBuf, Rope>,
-    definitions_map: DashMap<PathBuf, SemanticModel>,
+    document_map: DashMap<PathBuf, Document<SemanticModel>>,
 }
 
 #[tower_lsp::async_trait]
@@ -164,10 +164,8 @@ impl LanguageServer for Backend {
 
         for (uri, handle) in handles {
             let (rope, semantics) = handle.await.unwrap();
-            self.document_map
-                .insert(uri.to_file_path().unwrap_or_default(), rope);
-            self.definitions_map
-                .insert(uri.to_file_path().unwrap_or_default(), semantics);
+            let document = Document::new(uri, rope, semantics);
+            self.document_map.insert(document.path(), document);
         }
 
         self.client
@@ -259,10 +257,10 @@ impl LanguageServer for Backend {
             let uri = params.text_document_position_params.text_document.uri;
 
             let Position { character, line } = params.text_document_position_params.position;
-            let rope = self
+            let document = self
                 .document_map
                 .get(&uri.to_file_path().unwrap_or_default())?;
-            let source = rope.line(line as usize).to_string();
+            let source = document.text().line(line as usize).to_string();
 
             let parsed = parse(&source, MFileSource::script());
             let syntax = parsed.syntax();
@@ -277,16 +275,15 @@ impl LanguageServer for Backend {
             let identifier = identifier.trim();
 
             let mut loc: Vec<Location> = vec![];
-            for m in self.definitions_map.iter() {
-                let (path, v) = m.pair();
-                let uri = Url::from_file_path(path).unwrap_or(Url::parse("file:///").unwrap());
-                let mut locations = v
-                    .module_definitions
+            for m in self.document_map.iter() {
+                let (_path, document) = m.pair();
+                let uri = document.uri();
+                let definitions = &document.definitions();
+                let mut locations = definitions
                     .iter()
                     .filter_map(|def| {
                         if def.id().eq_ignore_ascii_case(identifier) {
-                            let rope = self.document_map.get(path)?;
-                            let position = position(&rope, def.range())?;
+                            let position = position(document.text(), def.range())?;
                             return Some(Location::new(uri.clone(), position));
                         }
                         None
@@ -308,19 +305,12 @@ impl LanguageServer for Backend {
         let file_uri = params.text_document.uri;
 
         let document_symbol = || -> Option<DocumentSymbolResponse> {
-            let semantics = self
-                .definitions_map
-                .get(&file_uri.to_file_path().unwrap_or_default())?;
-
-            let rope = self
+            let document = self
                 .document_map
                 .get(&file_uri.to_file_path().unwrap_or_default())?;
 
-            Some(def::from_mlang(
-                file_uri,
-                &semantics.module_definitions,
-                &rope,
-            ))
+            let document = document.deref();
+            Some(document.into())
         }();
 
         Ok(document_symbol)
@@ -332,10 +322,10 @@ impl LanguageServer for Backend {
 
             let Position { character, line } = params.text_document_position_params.position;
 
-            let rope = self
+            let document = self
                 .document_map
                 .get(&uri.to_file_path().unwrap_or_default())?;
-            let source = rope.line(line as usize).to_string();
+            let source = document.text().line(line as usize).to_string();
 
             let parsed = parse(&source, MFileSource::script());
             let syntax = parsed.syntax();
@@ -350,10 +340,10 @@ impl LanguageServer for Backend {
             let identifier = identifier.trim();
 
             let mut loc: Vec<String> = vec![];
-            for m in self.definitions_map.iter() {
-                let (_path, v) = m.pair();
-                let mut locations = v
-                    .module_definitions
+            for m in self.document_map.iter() {
+                let (_path, document) = m.pair();
+                let definitions = &document.definitions();
+                let mut locations = definitions
                     .iter()
                     .filter_map(|def| {
                         if def.id().eq_ignore_ascii_case(identifier) {
@@ -449,14 +439,12 @@ impl Backend {
                 })
                 .collect();
 
-            self.document_map
-                .insert(uri.to_file_path().unwrap_or_default(), rope);
-            self.definitions_map
-                .insert(uri.to_file_path().unwrap_or_default(), semantics);
+            let document = Document::new(uri.clone(), rope, semantics);
+            self.document_map.insert(document.path(), document);
         }
 
         self.client
-            .publish_diagnostics(uri.clone(), diagnostics, None)
+            .publish_diagnostics(uri, diagnostics, None)
             .await;
     }
 
@@ -480,7 +468,6 @@ async fn main() {
     let (service, socket) = LspService::build(|client| Backend {
         client,
         document_map: DashMap::new(),
-        definitions_map: DashMap::new(),
     })
     .finish();
 
