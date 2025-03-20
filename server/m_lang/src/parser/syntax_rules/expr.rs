@@ -367,7 +367,7 @@ fn parse_binary_or_logical_expression_recursive(
     // current operator has the same or a lower precedence than the left-hand side expression. Thus,
     // the algorithm goes at most `count(OperatorPrecedence)` levels deep.
     loop {
-        // test_err js_right_shift_comments
+        // test_err M_right_shift_comments
         // 1 >> /* a comment */ > 2;
         let op = p.re_lex(MReLexContext::BinaryOperator);
 

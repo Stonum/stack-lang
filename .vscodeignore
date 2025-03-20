@@ -1,12 +1,12 @@
 .vscode
 node_modules
 src/
-tsconfig.json
+tsconfig.Mon
 server-compile.sh
 client/**
 !client/out/**
 client/node_modules/**
-!client/node_modules/vscode-jsonrpc/**
+!client/node_modules/vscode-Monrpc/**
 !client/node_modules/vscode-languageclient/**
 !client/node_modules/vscode-languageserver-protocol/**
 !client/node_modules/vscode-languageserver-types/**

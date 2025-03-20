@@ -1,7 +1,7 @@
 [workspace]
 workspace.resolver = "2"
 
-members = [
+members = [ 
     "lsp",
     "m_lang"
 ]

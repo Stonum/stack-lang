@@ -34,14 +34,14 @@
                ".rpt"
             ],
             "firstLine": "^#![Ss][Tt][Aa][Cc][Kk]\\b",
-            "configuration": "./syntaxes/configuration.json"
+            "configuration": "./syntaxes/configuration.Mon"
          }
       ],
       "grammars": [
          {
             "language": "stack",
             "scopeName": "source.stack",
-            "path": "./syntaxes/stack.json",
+            "path": "./syntaxes/stack.Mon",
             "embeddedLanguages": {
                "meta.embedded.inline.sql": "sql"
             }
