@@ -1,10 +1,14 @@
 {
    "name": "stack-lang",
    "description": "stack language server",
-   "version": "0.1.4",
+   "version": "0.1.5",
    "repository": "https://github.com/stonum/stack-lang",
    "publisher": "stonum",
-   "categories": ["Programming Languages", "Formatters", "Linters"],
+   "categories": [
+      "Programming Languages",
+      "Formatters",
+      "Linters"
+   ],
    "license": "MIT",
    "keywords": [
       "language-server",
@@ -61,8 +65,7 @@
       "configuration": {
          "type": "object",
          "title": "stack-lang-server",
-         "properties": {
-         }
+         "properties": {}
       }
    },
    "scripts": {
