@@ -420,6 +420,14 @@ impl Backend {
         let uri = params.uri;
         let text = params.text;
 
+        // skip the reports for now
+        let path = uri.to_file_path().unwrap_or_default();
+        if let Some(ext) = path.extension() {
+            if ext != "prg" && ext != "hdl" {
+                return;
+            }
+        }
+
         let diagnostics;
         {
             let parsed = parse(&text, MFileSource::module());
