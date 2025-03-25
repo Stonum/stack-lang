@@ -92,12 +92,6 @@ pub fn m_assignment_expression(
         ],
     ))
 }
-pub fn m_bigint_literal_expression(value_token: SyntaxToken) -> MBigintLiteralExpression {
-    MBigintLiteralExpression::unwrap_cast(SyntaxNode::new_detached(
-        MSyntaxKind::M_BIGINT_LITERAL_EXPRESSION,
-        [Some(SyntaxElement::Token(value_token))],
-    ))
-}
 pub fn m_binary_expression(
     left: AnyMExpression,
     operator_token_token: SyntaxToken,

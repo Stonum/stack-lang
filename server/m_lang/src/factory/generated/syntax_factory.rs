@@ -239,25 +239,6 @@ impl SyntaxFactory for MSyntaxFactory {
                 }
                 slots.into_node(M_ASSIGNMENT_EXPRESSION, children)
             }
-            M_BIGINT_LITERAL_EXPRESSION => {
-                let mut elements = (&children).into_iter();
-                let mut slots: RawNodeSlots<1usize> = RawNodeSlots::default();
-                let mut current_element = elements.next();
-                if let Some(element) = &current_element {
-                    if element.kind() == M_BIGINT_LITERAL {
-                        slots.mark_present();
-                        current_element = elements.next();
-                    }
-                }
-                slots.next_slot();
-                if current_element.is_some() {
-                    return RawSyntaxNode::new(
-                        M_BIGINT_LITERAL_EXPRESSION.to_bogus(),
-                        children.into_iter().map(Some),
-                    );
-                }
-                slots.into_node(M_BIGINT_LITERAL_EXPRESSION, children)
-            }
             M_BINARY_EXPRESSION => {
                 let mut elements = (&children).into_iter();
                 let mut slots: RawNodeSlots<3usize> = RawNodeSlots::default();

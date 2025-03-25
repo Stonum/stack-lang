@@ -325,41 +325,6 @@ pub struct MAssignmentExpressionFields {
     pub right: SyntaxResult<AnyMExpression>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct MBigintLiteralExpression {
-    pub(crate) syntax: SyntaxNode,
-}
-impl MBigintLiteralExpression {
-    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
-    #[doc = r""]
-    #[doc = r" # Safety"]
-    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
-    #[doc = r" or a match on [SyntaxNode::kind]"]
-    #[inline]
-    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
-        Self { syntax }
-    }
-    pub fn as_fields(&self) -> MBigintLiteralExpressionFields {
-        MBigintLiteralExpressionFields {
-            value_token: self.value_token(),
-        }
-    }
-    pub fn value_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 0usize)
-    }
-}
-impl Serialize for MBigintLiteralExpression {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.as_fields().serialize(serializer)
-    }
-}
-#[derive(Serialize)]
-pub struct MBigintLiteralExpressionFields {
-    pub value_token: SyntaxResult<SyntaxToken>,
-}
-#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MBinaryExpression {
     pub(crate) syntax: SyntaxNode,
 }
@@ -4963,7 +4928,6 @@ impl AnyMFunctionBody {
 }
 #[derive(Clone, PartialEq, Eq, Hash, Serialize)]
 pub enum AnyMLiteralExpression {
-    MBigintLiteralExpression(MBigintLiteralExpression),
     MBooleanLiteralExpression(MBooleanLiteralExpression),
     MDateLiteralExpression(MDateLiteralExpression),
     MLongStringLiteralExpression(MLongStringLiteralExpression),
@@ -4973,12 +4937,6 @@ pub enum AnyMLiteralExpression {
     MTimeLiteralExpression(MTimeLiteralExpression),
 }
 impl AnyMLiteralExpression {
-    pub fn as_m_bigint_literal_expression(&self) -> Option<&MBigintLiteralExpression> {
-        match &self {
-            AnyMLiteralExpression::MBigintLiteralExpression(item) => Some(item),
-            _ => None,
-        }
-    }
     pub fn as_m_boolean_literal_expression(&self) -> Option<&MBooleanLiteralExpression> {
         match &self {
             AnyMLiteralExpression::MBooleanLiteralExpression(item) => Some(item),
@@ -5581,47 +5539,6 @@ impl From<MAssignmentExpression> for SyntaxNode {
 }
 impl From<MAssignmentExpression> for SyntaxElement {
     fn from(n: MAssignmentExpression) -> SyntaxElement {
-        n.syntax.into()
-    }
-}
-impl AstNode for MBigintLiteralExpression {
-    type Language = Language;
-    const KIND_SET: SyntaxKindSet<Language> =
-        SyntaxKindSet::from_raw(RawSyntaxKind(M_BIGINT_LITERAL_EXPRESSION as u16));
-    fn can_cast(kind: SyntaxKind) -> bool {
-        kind == M_BIGINT_LITERAL_EXPRESSION
-    }
-    fn cast(syntax: SyntaxNode) -> Option<Self> {
-        if Self::can_cast(syntax.kind()) {
-            Some(Self { syntax })
-        } else {
-            None
-        }
-    }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.syntax
-    }
-    fn into_syntax(self) -> SyntaxNode {
-        self.syntax
-    }
-}
-impl std::fmt::Debug for MBigintLiteralExpression {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("MBigintLiteralExpression")
-            .field(
-                "value_token",
-                &support::DebugSyntaxResult(self.value_token()),
-            )
-            .finish()
-    }
-}
-impl From<MBigintLiteralExpression> for SyntaxNode {
-    fn from(n: MBigintLiteralExpression) -> SyntaxNode {
-        n.syntax
-    }
-}
-impl From<MBigintLiteralExpression> for SyntaxElement {
-    fn from(n: MBigintLiteralExpression) -> SyntaxElement {
         n.syntax.into()
     }
 }
@@ -11200,11 +11117,6 @@ impl From<AnyMFunctionBody> for SyntaxElement {
         node.into()
     }
 }
-impl From<MBigintLiteralExpression> for AnyMLiteralExpression {
-    fn from(node: MBigintLiteralExpression) -> AnyMLiteralExpression {
-        AnyMLiteralExpression::MBigintLiteralExpression(node)
-    }
-}
 impl From<MDateLiteralExpression> for AnyMLiteralExpression {
     fn from(node: MDateLiteralExpression) -> AnyMLiteralExpression {
         AnyMLiteralExpression::MDateLiteralExpression(node)
@@ -11242,8 +11154,7 @@ impl From<MTimeLiteralExpression> for AnyMLiteralExpression {
 }
 impl AstNode for AnyMLiteralExpression {
     type Language = Language;
-    const KIND_SET: SyntaxKindSet<Language> = MBigintLiteralExpression::KIND_SET
-        .union(MBooleanLiteralExpression::KIND_SET)
+    const KIND_SET: SyntaxKindSet<Language> = MBooleanLiteralExpression::KIND_SET
         .union(MDateLiteralExpression::KIND_SET)
         .union(MNullLiteralExpression::KIND_SET)
         .union(MNumberLiteralExpression::KIND_SET)
@@ -11252,8 +11163,7 @@ impl AstNode for AnyMLiteralExpression {
     fn can_cast(kind: SyntaxKind) -> bool {
         matches!(
             kind,
-            M_BIGINT_LITERAL_EXPRESSION
-                | M_BOOLEAN_LITERAL_EXPRESSION
+            M_BOOLEAN_LITERAL_EXPRESSION
                 | M_DATE_LITERAL_EXPRESSION
                 | M_LONG_STRING_LITERAL_EXPRESSION
                 | M_NULL_LITERAL_EXPRESSION
@@ -11264,9 +11174,6 @@ impl AstNode for AnyMLiteralExpression {
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         let res = match syntax.kind() {
-            M_BIGINT_LITERAL_EXPRESSION => {
-                AnyMLiteralExpression::MBigintLiteralExpression(MBigintLiteralExpression { syntax })
-            }
             M_BOOLEAN_LITERAL_EXPRESSION => {
                 AnyMLiteralExpression::MBooleanLiteralExpression(MBooleanLiteralExpression {
                     syntax,
@@ -11298,7 +11205,6 @@ impl AstNode for AnyMLiteralExpression {
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            AnyMLiteralExpression::MBigintLiteralExpression(it) => &it.syntax,
             AnyMLiteralExpression::MBooleanLiteralExpression(it) => &it.syntax,
             AnyMLiteralExpression::MDateLiteralExpression(it) => &it.syntax,
             AnyMLiteralExpression::MNullLiteralExpression(it) => &it.syntax,
@@ -11310,7 +11216,6 @@ impl AstNode for AnyMLiteralExpression {
     }
     fn into_syntax(self) -> SyntaxNode {
         match self {
-            AnyMLiteralExpression::MBigintLiteralExpression(it) => it.syntax,
             AnyMLiteralExpression::MBooleanLiteralExpression(it) => it.syntax,
             AnyMLiteralExpression::MDateLiteralExpression(it) => it.syntax,
             AnyMLiteralExpression::MNullLiteralExpression(it) => it.syntax,
@@ -11324,7 +11229,6 @@ impl AstNode for AnyMLiteralExpression {
 impl std::fmt::Debug for AnyMLiteralExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AnyMLiteralExpression::MBigintLiteralExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMLiteralExpression::MBooleanLiteralExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMLiteralExpression::MDateLiteralExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMLiteralExpression::MNullLiteralExpression(it) => std::fmt::Debug::fmt(it, f),
@@ -11338,7 +11242,6 @@ impl std::fmt::Debug for AnyMLiteralExpression {
 impl From<AnyMLiteralExpression> for SyntaxNode {
     fn from(n: AnyMLiteralExpression) -> SyntaxNode {
         match n {
-            AnyMLiteralExpression::MBigintLiteralExpression(it) => it.into(),
             AnyMLiteralExpression::MBooleanLiteralExpression(it) => it.into(),
             AnyMLiteralExpression::MDateLiteralExpression(it) => it.into(),
             AnyMLiteralExpression::MNullLiteralExpression(it) => it.into(),
@@ -12149,11 +12052,6 @@ impl std::fmt::Display for MArrayHole {
     }
 }
 impl std::fmt::Display for MAssignmentExpression {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(self.syntax(), f)
-    }
-}
-impl std::fmt::Display for MBigintLiteralExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

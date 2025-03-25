@@ -805,7 +805,6 @@ pub(crate) fn is_nth_at_expression(p: &mut MParser, n: usize) -> bool {
             | FALSE_KW
             | M_NUMBER_LITERAL
             | M_DATE_LITERAL
-            | M_BIGINT_LITERAL
             | M_LONG_STRING_LITERAL
             | M_STRING_LITERAL
             | M_TIME_LITERAL

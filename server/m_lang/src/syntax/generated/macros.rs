@@ -48,11 +48,6 @@ macro_rules! map_syntax_node {
                         unsafe { crate::syntax::MAssignmentExpression::new_unchecked(node) };
                     $body
                 }
-                crate::syntax::MSyntaxKind::M_BIGINT_LITERAL_EXPRESSION => {
-                    let $pattern =
-                        unsafe { crate::syntax::MBigintLiteralExpression::new_unchecked(node) };
-                    $body
-                }
                 crate::syntax::MSyntaxKind::M_BINARY_EXPRESSION => {
                     let $pattern = unsafe { crate::syntax::MBinaryExpression::new_unchecked(node) };
                     $body

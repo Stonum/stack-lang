@@ -646,7 +646,6 @@ MIdentifierBinding =
 AnyMLiteralExpression =
 	MStringLiteralExpression
 	| MNumberLiteralExpression
-	| MBigintLiteralExpression
 	| MBooleanLiteralExpression
 	| MNullLiteralExpression
 	| MLongStringLiteralExpression
@@ -658,9 +657,6 @@ MStringLiteralExpression = value: 'M_string_literal'
 
 // 4, 5.5, 0x00, ...
 MNumberLiteralExpression = value: 'M_number_literal'
-
-// 45_i64
-MBigintLiteralExpression =  value: 'M_bigint_literal'
 
 // true, false
 MBooleanLiteralExpression = value_token: ('true' | 'false')
