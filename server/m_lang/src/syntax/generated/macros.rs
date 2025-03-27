@@ -338,11 +338,6 @@ macro_rules! map_syntax_node {
                         unsafe { crate::syntax::MPreUpdateExpression::new_unchecked(node) };
                     $body
                 }
-                crate::syntax::MSyntaxKind::M_PRIVATE_CLASS_MEMBER_NAME => {
-                    let $pattern =
-                        unsafe { crate::syntax::MPrivateClassMemberName::new_unchecked(node) };
-                    $body
-                }
                 crate::syntax::MSyntaxKind::M_PROPERTY_OBJECT_MEMBER => {
                     let $pattern =
                         unsafe { crate::syntax::MPropertyObjectMember::new_unchecked(node) };

@@ -508,14 +508,9 @@ MExtendsClause =
 	super_class: AnyMExpression
 
 
-// class Test { #test; }
-//              ^^^^^
-MPrivateClassMemberName = id: 'ident'
-
 AnyMClassMemberName =
 	MLiteralMemberName
 	| MComputedMemberName
-	| MPrivateClassMemberName
 
 AnyMClassMember =
 	MConstructorClassMember

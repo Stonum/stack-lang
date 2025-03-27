@@ -1194,20 +1194,6 @@ impl MPreUpdateExpression {
         )
     }
 }
-impl MPrivateClassMemberName {
-    pub fn with___token(self, element: SyntaxToken) -> Self {
-        Self::unwrap_cast(
-            self.syntax
-                .splice_slots(0usize..=0usize, once(Some(element.into()))),
-        )
-    }
-    pub fn with_id_token(self, element: SyntaxToken) -> Self {
-        Self::unwrap_cast(
-            self.syntax
-                .splice_slots(1usize..=1usize, once(Some(element.into()))),
-        )
-    }
-}
 impl MPropertyObjectMember {
     pub fn with_name(self, element: AnyMObjectMemberName) -> Self {
         Self::unwrap_cast(

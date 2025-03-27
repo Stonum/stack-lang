@@ -1675,6 +1675,9 @@ impl MForAllInStatement {
     pub fn body(&self) -> SyntaxResult<AnyMStatement> {
         support::required_node(&self.syntax, 6usize)
     }
+    pub fn test(&self) -> Option<AnyMExpression> {
+        support::node(&self.syntax, 4usize)
+    }
 }
 impl Serialize for MForAllInStatement {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -1731,6 +1734,9 @@ impl MForAllStatement {
     }
     pub fn body(&self) -> SyntaxResult<AnyMStatement> {
         support::required_node(&self.syntax, 4usize)
+    }
+    pub fn test(&self) -> Option<AnyMExpression> {
+        support::node(&self.syntax, 4usize)
     }
 }
 impl Serialize for MForAllStatement {
@@ -3198,41 +3204,6 @@ pub struct MPreUpdateExpressionFields {
     pub operand: SyntaxResult<AnyMAssignment>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct MPrivateClassMemberName {
-    pub(crate) syntax: SyntaxNode,
-}
-impl MPrivateClassMemberName {
-    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
-    #[doc = r""]
-    #[doc = r" # Safety"]
-    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
-    #[doc = r" or a match on [SyntaxNode::kind]"]
-    #[inline]
-    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
-        Self { syntax }
-    }
-    pub fn as_fields(&self) -> MPrivateClassMemberNameFields {
-        MPrivateClassMemberNameFields {
-            id_token: self.id_token(),
-        }
-    }
-    pub fn id_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 0usize)
-    }
-}
-impl Serialize for MPrivateClassMemberName {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.as_fields().serialize(serializer)
-    }
-}
-#[derive(Serialize)]
-pub struct MPrivateClassMemberNameFields {
-    pub id_token: SyntaxResult<SyntaxToken>,
-}
-#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MPropertyObjectMember {
     pub(crate) syntax: SyntaxNode,
 }
@@ -4539,7 +4510,6 @@ impl AnyMClassMember {
 pub enum AnyMClassMemberName {
     MComputedMemberName(MComputedMemberName),
     MLiteralMemberName(MLiteralMemberName),
-    MPrivateClassMemberName(MPrivateClassMemberName),
 }
 impl AnyMClassMemberName {
     pub fn as_m_computed_member_name(&self) -> Option<&MComputedMemberName> {
@@ -4551,12 +4521,6 @@ impl AnyMClassMemberName {
     pub fn as_m_literal_member_name(&self) -> Option<&MLiteralMemberName> {
         match &self {
             AnyMClassMemberName::MLiteralMemberName(item) => Some(item),
-            _ => None,
-        }
-    }
-    pub fn as_m_private_class_member_name(&self) -> Option<&MPrivateClassMemberName> {
-        match &self {
-            AnyMClassMemberName::MPrivateClassMemberName(item) => Some(item),
             _ => None,
         }
     }
@@ -8385,44 +8349,6 @@ impl From<MPreUpdateExpression> for SyntaxElement {
         n.syntax.into()
     }
 }
-impl AstNode for MPrivateClassMemberName {
-    type Language = Language;
-    const KIND_SET: SyntaxKindSet<Language> =
-        SyntaxKindSet::from_raw(RawSyntaxKind(M_PRIVATE_CLASS_MEMBER_NAME as u16));
-    fn can_cast(kind: SyntaxKind) -> bool {
-        kind == M_PRIVATE_CLASS_MEMBER_NAME
-    }
-    fn cast(syntax: SyntaxNode) -> Option<Self> {
-        if Self::can_cast(syntax.kind()) {
-            Some(Self { syntax })
-        } else {
-            None
-        }
-    }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.syntax
-    }
-    fn into_syntax(self) -> SyntaxNode {
-        self.syntax
-    }
-}
-impl std::fmt::Debug for MPrivateClassMemberName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("MPrivateClassMemberName")
-            .field("id_token", &support::DebugSyntaxResult(self.id_token()))
-            .finish()
-    }
-}
-impl From<MPrivateClassMemberName> for SyntaxNode {
-    fn from(n: MPrivateClassMemberName) -> SyntaxNode {
-        n.syntax
-    }
-}
-impl From<MPrivateClassMemberName> for SyntaxElement {
-    fn from(n: MPrivateClassMemberName) -> SyntaxElement {
-        n.syntax.into()
-    }
-}
 impl AstNode for MPropertyObjectMember {
     type Language = Language;
     const KIND_SET: SyntaxKindSet<Language> =
@@ -10067,21 +9993,12 @@ impl From<MLiteralMemberName> for AnyMClassMemberName {
         AnyMClassMemberName::MLiteralMemberName(node)
     }
 }
-impl From<MPrivateClassMemberName> for AnyMClassMemberName {
-    fn from(node: MPrivateClassMemberName) -> AnyMClassMemberName {
-        AnyMClassMemberName::MPrivateClassMemberName(node)
-    }
-}
 impl AstNode for AnyMClassMemberName {
     type Language = Language;
-    const KIND_SET: SyntaxKindSet<Language> = MComputedMemberName::KIND_SET
-        .union(MLiteralMemberName::KIND_SET)
-        .union(MPrivateClassMemberName::KIND_SET);
+    const KIND_SET: SyntaxKindSet<Language> =
+        MComputedMemberName::KIND_SET.union(MLiteralMemberName::KIND_SET);
     fn can_cast(kind: SyntaxKind) -> bool {
-        matches!(
-            kind,
-            M_COMPUTED_MEMBER_NAME | M_LITERAL_MEMBER_NAME | M_PRIVATE_CLASS_MEMBER_NAME
-        )
+        matches!(kind, M_COMPUTED_MEMBER_NAME | M_LITERAL_MEMBER_NAME)
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         let res = match syntax.kind() {
@@ -10091,9 +10008,6 @@ impl AstNode for AnyMClassMemberName {
             M_LITERAL_MEMBER_NAME => {
                 AnyMClassMemberName::MLiteralMemberName(MLiteralMemberName { syntax })
             }
-            M_PRIVATE_CLASS_MEMBER_NAME => {
-                AnyMClassMemberName::MPrivateClassMemberName(MPrivateClassMemberName { syntax })
-            }
             _ => return None,
         };
         Some(res)
@@ -10102,14 +10016,12 @@ impl AstNode for AnyMClassMemberName {
         match self {
             AnyMClassMemberName::MComputedMemberName(it) => &it.syntax,
             AnyMClassMemberName::MLiteralMemberName(it) => &it.syntax,
-            AnyMClassMemberName::MPrivateClassMemberName(it) => &it.syntax,
         }
     }
     fn into_syntax(self) -> SyntaxNode {
         match self {
             AnyMClassMemberName::MComputedMemberName(it) => it.syntax,
             AnyMClassMemberName::MLiteralMemberName(it) => it.syntax,
-            AnyMClassMemberName::MPrivateClassMemberName(it) => it.syntax,
         }
     }
 }
@@ -10118,7 +10030,6 @@ impl std::fmt::Debug for AnyMClassMemberName {
         match self {
             AnyMClassMemberName::MComputedMemberName(it) => std::fmt::Debug::fmt(it, f),
             AnyMClassMemberName::MLiteralMemberName(it) => std::fmt::Debug::fmt(it, f),
-            AnyMClassMemberName::MPrivateClassMemberName(it) => std::fmt::Debug::fmt(it, f),
         }
     }
 }
@@ -10127,7 +10038,6 @@ impl From<AnyMClassMemberName> for SyntaxNode {
         match n {
             AnyMClassMemberName::MComputedMemberName(it) => it.into(),
             AnyMClassMemberName::MLiteralMemberName(it) => it.into(),
-            AnyMClassMemberName::MPrivateClassMemberName(it) => it.into(),
         }
     }
 }
@@ -12372,11 +12282,6 @@ impl std::fmt::Display for MPostUpdateExpression {
     }
 }
 impl std::fmt::Display for MPreUpdateExpression {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(self.syntax(), f)
-    }
-}
-impl std::fmt::Display for MPrivateClassMemberName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

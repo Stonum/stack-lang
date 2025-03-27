@@ -1277,12 +1277,6 @@ pub fn m_pre_update_expression(
         ],
     ))
 }
-pub fn m_private_class_member_name(id_token: SyntaxToken) -> MPrivateClassMemberName {
-    MPrivateClassMemberName::unwrap_cast(SyntaxNode::new_detached(
-        MSyntaxKind::M_PRIVATE_CLASS_MEMBER_NAME,
-        [Some(SyntaxElement::Token(id_token))],
-    ))
-}
 pub fn m_property_object_member(
     name: AnyMObjectMemberName,
     colon_token: SyntaxToken,

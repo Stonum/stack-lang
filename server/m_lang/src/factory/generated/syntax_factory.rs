@@ -2350,25 +2350,6 @@ impl SyntaxFactory for MSyntaxFactory {
                 }
                 slots.into_node(M_PRE_UPDATE_EXPRESSION, children)
             }
-            M_PRIVATE_CLASS_MEMBER_NAME => {
-                let mut elements = (&children).into_iter();
-                let mut slots: RawNodeSlots<1usize> = RawNodeSlots::default();
-                let mut current_element = elements.next();
-                if let Some(element) = &current_element {
-                    if element.kind() == IDENT {
-                        slots.mark_present();
-                        current_element = elements.next();
-                    }
-                }
-                slots.next_slot();
-                if current_element.is_some() {
-                    return RawSyntaxNode::new(
-                        M_PRIVATE_CLASS_MEMBER_NAME.to_bogus(),
-                        children.into_iter().map(Some),
-                    );
-                }
-                slots.into_node(M_PRIVATE_CLASS_MEMBER_NAME, children)
-            }
             M_PROPERTY_OBJECT_MEMBER => {
                 let mut elements = (&children).into_iter();
                 let mut slots: RawNodeSlots<3usize> = RawNodeSlots::default();
