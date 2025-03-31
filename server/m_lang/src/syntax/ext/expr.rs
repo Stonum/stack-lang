@@ -249,7 +249,7 @@ impl MBinaryExpression {
     }
 
     /// Whether this is a comparison operation similar to the optional chain
-    /// ```
+    /// ```JavaScript
     /// foo != null;
     ///```
     pub fn is_optional_chain_like(&self) -> SyntaxResult<bool> {
