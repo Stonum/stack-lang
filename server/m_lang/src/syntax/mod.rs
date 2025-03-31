@@ -1,6 +1,11 @@
 #[macro_use]
 mod generated;
+mod binary_like_expression;
+mod expression_left_side;
+mod ext;
 mod file_source;
+mod parentheses;
+mod static_value;
 mod syntax_node;
 
 use biome_rowan::RawSyntaxKind;
@@ -8,9 +13,11 @@ pub use biome_rowan::{
     AstNode, TextLen, TextRange, TextSize, TokenAtOffset, TokenText, TriviaPieceKind, WalkEvent,
 };
 
+pub use self::ext::*;
 pub use self::file_source::*;
 use self::generated::kind::MSyntaxKind::*;
 pub use self::generated::*;
+pub use self::parentheses::*;
 pub use self::syntax_node::*;
 
 pub use crate::T;
