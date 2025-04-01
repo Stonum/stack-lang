@@ -84,7 +84,7 @@ export async function activate(context: ExtensionContext) {
    
    const myCommandId = 'custom/statusBar';
    // Create a status bar item
-   statusBarItem = window.createStatusBarItem(StatusBarAlignment.Right, 100);
+   statusBarItem = window.createStatusBarItem(StatusBarAlignment.Left, 0);
    context.subscriptions.push(statusBarItem);
 
 
