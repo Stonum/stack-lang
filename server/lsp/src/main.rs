@@ -70,9 +70,9 @@ impl LanguageServer for Backend {
 
         let start = Instant::now();
         self.client
-            .send_notification::<StatusBarNotification>(StatusBarParams {
-                text: "parse definitions".to_string(),
-            })
+            .send_notification::<StatusBarNotification>(StatusBarNotification::new(
+                "parse definitions - load settings",
+            ))
             .await;
 
         let mut folders: Option<Vec<Url>> = None;
@@ -145,9 +145,11 @@ impl LanguageServer for Backend {
         let current = Handle::current();
         for (i, file) in files.iter().enumerate() {
             self.client
-                .send_notification::<StatusBarNotification>(StatusBarParams {
-                    text: format!("parse definitions from files: {}/{}", i, files.len()),
-                })
+                .send_notification::<StatusBarNotification>(StatusBarNotification::new(&format!(
+                    "parse definitions from files: {}/{}",
+                    i,
+                    files.len()
+                )))
                 .await;
 
             if let Ok(text) = tokio::fs::read_to_string(&file).await {
@@ -169,9 +171,7 @@ impl LanguageServer for Backend {
         }
 
         self.client
-            .send_notification::<StatusBarNotification>(StatusBarParams {
-                text: "".to_string(),
-            })
+            .send_notification::<StatusBarNotification>(StatusBarNotification::clear())
             .await;
 
         self.client
@@ -410,6 +410,19 @@ struct StatusBarParams {
 }
 
 struct StatusBarNotification;
+impl StatusBarNotification {
+    fn new(text: &str) -> StatusBarParams {
+        StatusBarParams {
+            text: text.to_string(),
+        }
+    }
+    fn clear() -> StatusBarParams {
+        StatusBarParams {
+            text: String::new(),
+        }
+    }
+}
+
 impl Notification for StatusBarNotification {
     type Params = StatusBarParams;
     const METHOD: &'static str = "custom/statusBar";
