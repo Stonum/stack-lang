@@ -520,11 +520,6 @@ macro_rules! map_syntax_node {
                     let $pattern = unsafe { crate::syntax::MDirectiveList::new_unchecked(node) };
                     $body
                 }
-                crate::syntax::MSyntaxKind::M_DOC_STRING_EXPRESSION => {
-                    let $pattern =
-                        unsafe { crate::syntax::MDocStringExpression::new_unchecked(node) };
-                    $body
-                }
                 crate::syntax::MSyntaxKind::M_HASH_MAP_MEMBER_LIST => {
                     let $pattern =
                         unsafe { crate::syntax::MHashMapMemberList::new_unchecked(node) };

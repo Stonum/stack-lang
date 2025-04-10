@@ -3198,9 +3198,6 @@ impl SyntaxFactory for MSyntaxFactory {
                 true,
             ),
             M_DIRECTIVE_LIST => Self::make_node_list_syntax(kind, children, MDirective::can_cast),
-            M_DOC_STRING_EXPRESSION => {
-                Self::make_node_list_syntax(kind, children, AnyMDocString::can_cast)
-            }
             M_HASH_MAP_MEMBER_LIST => Self::make_separated_list_syntax(
                 kind,
                 children,

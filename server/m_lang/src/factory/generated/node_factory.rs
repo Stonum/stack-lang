@@ -1889,18 +1889,6 @@ where
             .map(|item| Some(item.into_syntax().into())),
     ))
 }
-pub fn m_doc_string_expression<I>(items: I) -> MDocStringExpression
-where
-    I: IntoIterator<Item = AnyMDocString>,
-    I::IntoIter: ExactSizeIterator,
-{
-    MDocStringExpression::unwrap_cast(SyntaxNode::new_detached(
-        MSyntaxKind::M_DOC_STRING_EXPRESSION,
-        items
-            .into_iter()
-            .map(|item| Some(item.into_syntax().into())),
-    ))
-}
 pub fn m_hash_map_member_list<I, S>(items: I, separators: S) -> MHashMapMemberList
 where
     I: IntoIterator<Item = AnyMObjectMember>,

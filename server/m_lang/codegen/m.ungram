@@ -812,8 +812,6 @@ MFunctionBody =
 
 MModuleItemList = AnyMStatement*   
 
-MDocStringExpression = AnyMDocString*
-
 AnyMDocString = 
    MStringLiteralExpression
    | MLongStringLiteralExpression
