@@ -787,7 +787,7 @@ impl MClassDeclaration {
     pub fn extends_clause(&self) -> Option<MExtendsClause> {
         support::node(&self.syntax, 3usize)
     }
-    pub fn doc_string(&self) -> Option<AnyMDocString> {
+    pub fn doc_string(&self) -> Option<AnyMStringLiteralExpression> {
         support::node(&self.syntax, 4usize)
     }
     pub fn l_curly_token(&self) -> SyntaxResult<SyntaxToken> {
@@ -814,7 +814,7 @@ pub struct MClassDeclarationFields {
     pub class_token: SyntaxResult<SyntaxToken>,
     pub id: SyntaxResult<AnyMBinding>,
     pub extends_clause: Option<MExtendsClause>,
-    pub doc_string: Option<AnyMDocString>,
+    pub doc_string: Option<AnyMStringLiteralExpression>,
     pub l_curly_token: SyntaxResult<SyntaxToken>,
     pub members: MClassMemberList,
     pub r_curly_token: SyntaxResult<SyntaxToken>,
@@ -1037,17 +1037,13 @@ impl MConstantExpression {
         MConstantExpressionFields {
             token: self.token(),
             constant: self.constant(),
-            m_long_string_literal_expression: self.m_long_string_literal_expression(),
         }
     }
     pub fn token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 0usize)
     }
-    pub fn constant(&self) -> SyntaxResult<MStringLiteralExpression> {
+    pub fn constant(&self) -> SyntaxResult<AnyMStringLiteralExpression> {
         support::required_node(&self.syntax, 1usize)
-    }
-    pub fn m_long_string_literal_expression(&self) -> SyntaxResult<MLongStringLiteralExpression> {
-        support::required_node(&self.syntax, 2usize)
     }
 }
 impl Serialize for MConstantExpression {
@@ -1061,8 +1057,7 @@ impl Serialize for MConstantExpression {
 #[derive(Serialize)]
 pub struct MConstantExpressionFields {
     pub token: SyntaxResult<SyntaxToken>,
-    pub constant: SyntaxResult<MStringLiteralExpression>,
-    pub m_long_string_literal_expression: SyntaxResult<MLongStringLiteralExpression>,
+    pub constant: SyntaxResult<AnyMStringLiteralExpression>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MConstructorClassMember {
@@ -1096,7 +1091,7 @@ impl MConstructorClassMember {
     pub fn parameters(&self) -> SyntaxResult<MConstructorParameters> {
         support::required_node(&self.syntax, 2usize)
     }
-    pub fn doc_string(&self) -> Option<AnyMDocString> {
+    pub fn doc_string(&self) -> Option<AnyMStringLiteralExpression> {
         support::node(&self.syntax, 3usize)
     }
     pub fn body(&self) -> SyntaxResult<MFunctionBody> {
@@ -1116,7 +1111,7 @@ pub struct MConstructorClassMemberFields {
     pub annotation: MAnnotationGroupList,
     pub name: SyntaxResult<MLiteralMemberName>,
     pub parameters: SyntaxResult<MConstructorParameters>,
-    pub doc_string: Option<AnyMDocString>,
+    pub doc_string: Option<AnyMStringLiteralExpression>,
     pub body: SyntaxResult<MFunctionBody>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -2056,7 +2051,7 @@ impl MFunctionDeclaration {
     pub fn parameters(&self) -> SyntaxResult<MParameters> {
         support::required_node(&self.syntax, 3usize)
     }
-    pub fn doc_string(&self) -> Option<AnyMDocString> {
+    pub fn doc_string(&self) -> Option<AnyMStringLiteralExpression> {
         support::node(&self.syntax, 4usize)
     }
     pub fn body(&self) -> SyntaxResult<MFunctionBody> {
@@ -2077,7 +2072,7 @@ pub struct MFunctionDeclarationFields {
     pub function_token: SyntaxResult<SyntaxToken>,
     pub id: SyntaxResult<AnyMBinding>,
     pub parameters: SyntaxResult<MParameters>,
-    pub doc_string: Option<AnyMDocString>,
+    pub doc_string: Option<AnyMStringLiteralExpression>,
     pub body: SyntaxResult<MFunctionBody>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -2165,7 +2160,7 @@ impl MGetterClassMember {
     pub fn r_paren_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 4usize)
     }
-    pub fn doc_string(&self) -> Option<AnyMDocString> {
+    pub fn doc_string(&self) -> Option<AnyMStringLiteralExpression> {
         support::node(&self.syntax, 5usize)
     }
     pub fn body(&self) -> SyntaxResult<MFunctionBody> {
@@ -2187,7 +2182,7 @@ pub struct MGetterClassMemberFields {
     pub name: SyntaxResult<AnyMClassMemberName>,
     pub l_paren_token: SyntaxResult<SyntaxToken>,
     pub r_paren_token: SyntaxResult<SyntaxToken>,
-    pub doc_string: Option<AnyMDocString>,
+    pub doc_string: Option<AnyMStringLiteralExpression>,
     pub body: SyntaxResult<MFunctionBody>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -2720,7 +2715,7 @@ impl MMethodClassMember {
     pub fn parameters(&self) -> SyntaxResult<MParameters> {
         support::required_node(&self.syntax, 2usize)
     }
-    pub fn doc_string(&self) -> Option<AnyMDocString> {
+    pub fn doc_string(&self) -> Option<AnyMStringLiteralExpression> {
         support::node(&self.syntax, 3usize)
     }
     pub fn body(&self) -> SyntaxResult<MFunctionBody> {
@@ -2740,7 +2735,7 @@ pub struct MMethodClassMemberFields {
     pub annotation: MAnnotationGroupList,
     pub name: SyntaxResult<AnyMClassMemberName>,
     pub parameters: SyntaxResult<MParameters>,
-    pub doc_string: Option<AnyMDocString>,
+    pub doc_string: Option<AnyMStringLiteralExpression>,
     pub body: SyntaxResult<MFunctionBody>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -3501,7 +3496,7 @@ impl MSetterClassMember {
     pub fn r_paren_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 6usize)
     }
-    pub fn doc_string(&self) -> Option<AnyMDocString> {
+    pub fn doc_string(&self) -> Option<AnyMStringLiteralExpression> {
         support::node(&self.syntax, 7usize)
     }
     pub fn body(&self) -> SyntaxResult<MFunctionBody> {
@@ -3525,7 +3520,7 @@ pub struct MSetterClassMemberFields {
     pub parameter: SyntaxResult<AnyMFormalParameter>,
     pub comma_token: Option<SyntaxToken>,
     pub r_paren_token: SyntaxResult<SyntaxToken>,
-    pub doc_string: Option<AnyMDocString>,
+    pub doc_string: Option<AnyMStringLiteralExpression>,
     pub body: SyntaxResult<MFunctionBody>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -3663,14 +3658,14 @@ impl MStaticMemberExpression {
     pub fn as_fields(&self) -> MStaticMemberExpressionFields {
         MStaticMemberExpressionFields {
             object: self.object(),
-            operator_token_token: self.operator_token_token(),
+            operator_token: self.operator_token(),
             member: self.member(),
         }
     }
     pub fn object(&self) -> SyntaxResult<AnyMExpression> {
         support::required_node(&self.syntax, 0usize)
     }
-    pub fn operator_token_token(&self) -> SyntaxResult<SyntaxToken> {
+    pub fn operator_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 1usize)
     }
     pub fn member(&self) -> SyntaxResult<MName> {
@@ -3688,7 +3683,7 @@ impl Serialize for MStaticMemberExpression {
 #[derive(Serialize)]
 pub struct MStaticMemberExpressionFields {
     pub object: SyntaxResult<AnyMExpression>,
-    pub operator_token_token: SyntaxResult<SyntaxToken>,
+    pub operator_token: SyntaxResult<SyntaxToken>,
     pub member: SyntaxResult<MName>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -4597,20 +4592,20 @@ impl AnyMDeclarationClause {
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, Serialize)]
-pub enum AnyMDocString {
+pub enum AnyMStringLiteralExpression {
     MLongStringLiteralExpression(MLongStringLiteralExpression),
     MStringLiteralExpression(MStringLiteralExpression),
 }
-impl AnyMDocString {
+impl AnyMStringLiteralExpression {
     pub fn as_m_long_string_literal_expression(&self) -> Option<&MLongStringLiteralExpression> {
         match &self {
-            AnyMDocString::MLongStringLiteralExpression(item) => Some(item),
+            AnyMStringLiteralExpression::MLongStringLiteralExpression(item) => Some(item),
             _ => None,
         }
     }
     pub fn as_m_string_literal_expression(&self) -> Option<&MStringLiteralExpression> {
         match &self {
-            AnyMDocString::MStringLiteralExpression(item) => Some(item),
+            AnyMStringLiteralExpression::MStringLiteralExpression(item) => Some(item),
             _ => None,
         }
     }
@@ -6217,10 +6212,6 @@ impl std::fmt::Debug for MConstantExpression {
         f.debug_struct("MConstantExpression")
             .field("token", &support::DebugSyntaxResult(self.token()))
             .field("constant", &support::DebugSyntaxResult(self.constant()))
-            .field(
-                "m_long_string_literal_expression",
-                &support::DebugSyntaxResult(self.m_long_string_literal_expression()),
-            )
             .finish()
     }
 }
@@ -8807,8 +8798,8 @@ impl std::fmt::Debug for MStaticMemberExpression {
         f.debug_struct("MStaticMemberExpression")
             .field("object", &support::DebugSyntaxResult(self.object()))
             .field(
-                "operator_token_token",
-                &support::DebugSyntaxResult(self.operator_token_token()),
+                "operator_token",
+                &support::DebugSyntaxResult(self.operator_token()),
             )
             .field("member", &support::DebugSyntaxResult(self.member()))
             .finish()
@@ -10272,17 +10263,17 @@ impl From<AnyMDeclarationClause> for SyntaxElement {
         node.into()
     }
 }
-impl From<MLongStringLiteralExpression> for AnyMDocString {
-    fn from(node: MLongStringLiteralExpression) -> AnyMDocString {
-        AnyMDocString::MLongStringLiteralExpression(node)
+impl From<MLongStringLiteralExpression> for AnyMStringLiteralExpression {
+    fn from(node: MLongStringLiteralExpression) -> AnyMStringLiteralExpression {
+        AnyMStringLiteralExpression::MLongStringLiteralExpression(node)
     }
 }
-impl From<MStringLiteralExpression> for AnyMDocString {
-    fn from(node: MStringLiteralExpression) -> AnyMDocString {
-        AnyMDocString::MStringLiteralExpression(node)
+impl From<MStringLiteralExpression> for AnyMStringLiteralExpression {
+    fn from(node: MStringLiteralExpression) -> AnyMStringLiteralExpression {
+        AnyMStringLiteralExpression::MStringLiteralExpression(node)
     }
 }
-impl AstNode for AnyMDocString {
+impl AstNode for AnyMStringLiteralExpression {
     type Language = Language;
     const KIND_SET: SyntaxKindSet<Language> =
         MLongStringLiteralExpression::KIND_SET.union(MStringLiteralExpression::KIND_SET);
@@ -10295,10 +10286,14 @@ impl AstNode for AnyMDocString {
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         let res = match syntax.kind() {
             M_LONG_STRING_LITERAL_EXPRESSION => {
-                AnyMDocString::MLongStringLiteralExpression(MLongStringLiteralExpression { syntax })
+                AnyMStringLiteralExpression::MLongStringLiteralExpression(
+                    MLongStringLiteralExpression { syntax },
+                )
             }
             M_STRING_LITERAL_EXPRESSION => {
-                AnyMDocString::MStringLiteralExpression(MStringLiteralExpression { syntax })
+                AnyMStringLiteralExpression::MStringLiteralExpression(MStringLiteralExpression {
+                    syntax,
+                })
             }
             _ => return None,
         };
@@ -10306,35 +10301,39 @@ impl AstNode for AnyMDocString {
     }
     fn syntax(&self) -> &SyntaxNode {
         match self {
-            AnyMDocString::MLongStringLiteralExpression(it) => &it.syntax,
-            AnyMDocString::MStringLiteralExpression(it) => &it.syntax,
+            AnyMStringLiteralExpression::MLongStringLiteralExpression(it) => &it.syntax,
+            AnyMStringLiteralExpression::MStringLiteralExpression(it) => &it.syntax,
         }
     }
     fn into_syntax(self) -> SyntaxNode {
         match self {
-            AnyMDocString::MLongStringLiteralExpression(it) => it.syntax,
-            AnyMDocString::MStringLiteralExpression(it) => it.syntax,
+            AnyMStringLiteralExpression::MLongStringLiteralExpression(it) => it.syntax,
+            AnyMStringLiteralExpression::MStringLiteralExpression(it) => it.syntax,
         }
     }
 }
-impl std::fmt::Debug for AnyMDocString {
+impl std::fmt::Debug for AnyMStringLiteralExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AnyMDocString::MLongStringLiteralExpression(it) => std::fmt::Debug::fmt(it, f),
-            AnyMDocString::MStringLiteralExpression(it) => std::fmt::Debug::fmt(it, f),
+            AnyMStringLiteralExpression::MLongStringLiteralExpression(it) => {
+                std::fmt::Debug::fmt(it, f)
+            }
+            AnyMStringLiteralExpression::MStringLiteralExpression(it) => {
+                std::fmt::Debug::fmt(it, f)
+            }
         }
     }
 }
-impl From<AnyMDocString> for SyntaxNode {
-    fn from(n: AnyMDocString) -> SyntaxNode {
+impl From<AnyMStringLiteralExpression> for SyntaxNode {
+    fn from(n: AnyMStringLiteralExpression) -> SyntaxNode {
         match n {
-            AnyMDocString::MLongStringLiteralExpression(it) => it.into(),
-            AnyMDocString::MStringLiteralExpression(it) => it.into(),
+            AnyMStringLiteralExpression::MLongStringLiteralExpression(it) => it.into(),
+            AnyMStringLiteralExpression::MStringLiteralExpression(it) => it.into(),
         }
     }
 }
-impl From<AnyMDocString> for SyntaxElement {
-    fn from(n: AnyMDocString) -> SyntaxElement {
+impl From<AnyMStringLiteralExpression> for SyntaxElement {
+    fn from(n: AnyMStringLiteralExpression) -> SyntaxElement {
         let node: SyntaxNode = n.into();
         node.into()
     }
@@ -11861,7 +11860,7 @@ impl std::fmt::Display for AnyMDeclarationClause {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
-impl std::fmt::Display for AnyMDocString {
+impl std::fmt::Display for AnyMStringLiteralExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

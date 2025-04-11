@@ -426,7 +426,7 @@ MPostUpdateExpression =
 
 MConstantExpression =
    'к'
-   constant: MStringLiteralExpression | MLongStringLiteralExpression
+   constant: AnyMStringLiteralExpression
 
 ///////////////
 // OBJECTS
@@ -490,7 +490,7 @@ MClassDeclaration =
 	'class'
 	id: AnyMBinding
 	extends_clause: MExtendsClause?
-   doc_string: AnyMDocString?
+   doc_string: AnyMStringLiteralExpression?
 	'{'
 	members: MClassMemberList
 	'}'
@@ -530,7 +530,7 @@ MConstructorClassMember =
    annotation: MAnnotationGroupList
 	name: MLiteralMemberName
 	parameters: MConstructorParameters
-   doc_string: AnyMDocString?
+   doc_string: AnyMStringLiteralExpression?
 	body: MFunctionBody
 
 MConstructorParameters =
@@ -552,7 +552,7 @@ MMethodClassMember =
    annotation: MAnnotationGroupList
 	name: AnyMClassMemberName
 	parameters: MParameters
-   doc_string: AnyMDocString?
+   doc_string: AnyMStringLiteralExpression?
 	body: MFunctionBody
 
 // class Test { get a() {} }
@@ -562,7 +562,7 @@ MGetterClassMember =
 	'get'
 	name: AnyMClassMemberName
 	'(' ')'
-   doc_string: AnyMDocString?
+   doc_string: AnyMStringLiteralExpression?
 	body: MFunctionBody
 
 
@@ -575,7 +575,7 @@ MSetterClassMember =
 	'('
 	parameter: AnyMFormalParameter','?
 	')'
-   doc_string: AnyMDocString?
+   doc_string: AnyMStringLiteralExpression?
 	body: MFunctionBody
 
 
@@ -647,6 +647,11 @@ AnyMLiteralExpression =
 	| MDateLiteralExpression
 	| MTimeLiteralExpression
 
+AnyMStringLiteralExpression = 
+	MStringLiteralExpression
+	| MLongStringLiteralExpression
+
+
 // "abcd"
 MStringLiteralExpression = value: 'M_string_literal'
 
@@ -695,7 +700,7 @@ MFunctionDeclaration =
 	'function'
 	id: AnyMBinding
 	parameters: MParameters
-   doc_string: AnyMDocString?
+   doc_string: AnyMStringLiteralExpression?
 	body: MFunctionBody
 
 // let a, b = c;
@@ -811,7 +816,3 @@ MFunctionBody =
 ///////////////
 
 MModuleItemList = AnyMStatement*   
-
-AnyMDocString = 
-   MStringLiteralExpression
-   | MLongStringLiteralExpression

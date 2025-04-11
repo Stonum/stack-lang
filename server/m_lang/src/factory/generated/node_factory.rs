@@ -267,14 +267,14 @@ pub struct MClassDeclarationBuilder {
     members: MClassMemberList,
     r_curly_token: SyntaxToken,
     extends_clause: Option<MExtendsClause>,
-    doc_string: Option<AnyMDocString>,
+    doc_string: Option<AnyMStringLiteralExpression>,
 }
 impl MClassDeclarationBuilder {
     pub fn with_extends_clause(mut self, extends_clause: MExtendsClause) -> Self {
         self.extends_clause = Some(extends_clause);
         self
     }
-    pub fn with_doc_string(mut self, doc_string: AnyMDocString) -> Self {
+    pub fn with_doc_string(mut self, doc_string: AnyMStringLiteralExpression) -> Self {
         self.doc_string = Some(doc_string);
         self
     }
@@ -402,17 +402,13 @@ pub fn m_conditional_expression(
 }
 pub fn m_constant_expression(
     token: SyntaxToken,
-    constant: MStringLiteralExpression,
-    m_long_string_literal_expression: MLongStringLiteralExpression,
+    constant: AnyMStringLiteralExpression,
 ) -> MConstantExpression {
     MConstantExpression::unwrap_cast(SyntaxNode::new_detached(
         MSyntaxKind::M_CONSTANT_EXPRESSION,
         [
             Some(SyntaxElement::Token(token)),
             Some(SyntaxElement::Node(constant.into_syntax())),
-            Some(SyntaxElement::Node(
-                m_long_string_literal_expression.into_syntax(),
-            )),
         ],
     ))
 }
@@ -435,10 +431,10 @@ pub struct MConstructorClassMemberBuilder {
     name: MLiteralMemberName,
     parameters: MConstructorParameters,
     body: MFunctionBody,
-    doc_string: Option<AnyMDocString>,
+    doc_string: Option<AnyMStringLiteralExpression>,
 }
 impl MConstructorClassMemberBuilder {
-    pub fn with_doc_string(mut self, doc_string: AnyMDocString) -> Self {
+    pub fn with_doc_string(mut self, doc_string: AnyMStringLiteralExpression) -> Self {
         self.doc_string = Some(doc_string);
         self
     }
@@ -858,10 +854,10 @@ pub struct MFunctionDeclarationBuilder {
     id: AnyMBinding,
     parameters: MParameters,
     body: MFunctionBody,
-    doc_string: Option<AnyMDocString>,
+    doc_string: Option<AnyMStringLiteralExpression>,
 }
 impl MFunctionDeclarationBuilder {
-    pub fn with_doc_string(mut self, doc_string: AnyMDocString) -> Self {
+    pub fn with_doc_string(mut self, doc_string: AnyMStringLiteralExpression) -> Self {
         self.doc_string = Some(doc_string);
         self
     }
@@ -919,10 +915,10 @@ pub struct MGetterClassMemberBuilder {
     l_paren_token: SyntaxToken,
     r_paren_token: SyntaxToken,
     body: MFunctionBody,
-    doc_string: Option<AnyMDocString>,
+    doc_string: Option<AnyMStringLiteralExpression>,
 }
 impl MGetterClassMemberBuilder {
-    pub fn with_doc_string(mut self, doc_string: AnyMDocString) -> Self {
+    pub fn with_doc_string(mut self, doc_string: AnyMStringLiteralExpression) -> Self {
         self.doc_string = Some(doc_string);
         self
     }
@@ -1113,10 +1109,10 @@ pub struct MMethodClassMemberBuilder {
     name: AnyMClassMemberName,
     parameters: MParameters,
     body: MFunctionBody,
-    doc_string: Option<AnyMDocString>,
+    doc_string: Option<AnyMStringLiteralExpression>,
 }
 impl MMethodClassMemberBuilder {
-    pub fn with_doc_string(mut self, doc_string: AnyMDocString) -> Self {
+    pub fn with_doc_string(mut self, doc_string: AnyMStringLiteralExpression) -> Self {
         self.doc_string = Some(doc_string);
         self
     }
@@ -1410,14 +1406,14 @@ pub struct MSetterClassMemberBuilder {
     r_paren_token: SyntaxToken,
     body: MFunctionBody,
     comma_token: Option<SyntaxToken>,
-    doc_string: Option<AnyMDocString>,
+    doc_string: Option<AnyMStringLiteralExpression>,
 }
 impl MSetterClassMemberBuilder {
     pub fn with_comma_token(mut self, comma_token: SyntaxToken) -> Self {
         self.comma_token = Some(comma_token);
         self
     }
-    pub fn with_doc_string(mut self, doc_string: AnyMDocString) -> Self {
+    pub fn with_doc_string(mut self, doc_string: AnyMStringLiteralExpression) -> Self {
         self.doc_string = Some(doc_string);
         self
     }
