@@ -47,7 +47,6 @@ impl FormatNodeRule<MForStatement> for FormatMForStatement {
                 f,
                 [group(&format_args![
                     for_token.format(),
-                    space(),
                     l_paren_token.format(),
                     first_semi_token.format(),
                     second_semi_token.format(),
@@ -62,7 +61,6 @@ impl FormatNodeRule<MForStatement> for FormatMForStatement {
                 f,
                 [
                     for_token.format(),
-                    space(),
                     l_paren_token.format(),
                     group(&soft_block_indent(&format_args![
                         initializer.format(),

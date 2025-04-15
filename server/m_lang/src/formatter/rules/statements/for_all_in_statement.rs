@@ -30,7 +30,6 @@ impl FormatNodeRule<MForAllInStatement> for FormatMForAllInStatement {
             f,
             [group(&format_args!(
                 forall_token,
-                space(),
                 l_paren_token.format(),
                 initializer,
                 space(),

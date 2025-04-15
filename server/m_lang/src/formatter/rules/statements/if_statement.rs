@@ -30,7 +30,6 @@ impl FormatNodeRule<MIfStatement> for FormatMIfStatement {
             f,
             [group(&format_args![
                 if_token.format(),
-                space(),
                 l_paren_token.format(),
                 group(&soft_block_indent(&test.format())),
                 r_paren_token.format(),

@@ -23,7 +23,6 @@ impl FormatNodeRule<MWhileStatement> for FormatMWhileStatement {
             f,
             [group(&format_args![
                 while_token.format(),
-                space(),
                 l_paren_token.format(),
                 group(&soft_block_indent(&test.format())),
                 r_paren_token.format(),

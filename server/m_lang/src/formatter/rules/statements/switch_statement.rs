@@ -34,7 +34,6 @@ impl FormatNodeRule<MSwitchStatement> for FormatMSwitchStatement {
             f,
             [
                 switch_token.format(),
-                space(),
                 l_paren_token.format(),
                 group(&soft_block_indent(&discriminant.format())),
                 r_paren_token.format(),

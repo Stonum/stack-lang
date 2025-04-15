@@ -15,12 +15,12 @@ impl FormatNodeRule<MCatchClause> for FormatMCatchClause {
             body,
         } = node.as_fields();
 
-        write!(f, [catch_token.format(), space()])?;
+        write!(f, [catch_token.format()])?;
 
         if let Some(declaration) = declaration {
-            write![f, [declaration.format(), space()]]?;
+            write![f, [declaration.format()]]?;
         }
 
-        write!(f, [body.format()])
+        write!(f, [space(), body.format()])
     }
 }
