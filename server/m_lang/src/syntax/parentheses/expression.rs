@@ -103,6 +103,8 @@ impl NeedsParentheses for MAssignmentExpression {
                 MAssignmentExpression(_) => false,
                 // `[a = b]`
                 MComputedMemberName(_) => false,
+                // `x = x + b`
+                MExpressionStatement(_) => false,
 
                 MForStatement(for_statement) => {
                      let is_initializer = match for_statement.initializer() {

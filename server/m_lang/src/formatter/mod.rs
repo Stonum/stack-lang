@@ -395,12 +395,13 @@ impl Label for MLabels {
 #[cfg(test)]
 mod tests {
 
+    use super::format_node;
     use super::format_range;
 
     use super::context::MFormatOptions;
     use crate::parser::parse;
     use crate::syntax::MFileSource;
-    use biome_formatter::IndentStyle;
+    use biome_formatter::{IndentStyle, IndentWidth, LineWidth};
     use biome_rowan::{TextRange, TextSize};
 
     #[test]
@@ -558,5 +559,26 @@ func f() {
         );
 
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn format() {
+        let src = r#"
+        x = a + b;
+        "#;
+
+        let syntax = MFileSource::script();
+        let tree = parse(src, syntax);
+
+        let doc = format_node(
+            MFormatOptions::new(syntax)
+                .with_indent_style(IndentStyle::Space)
+                .with_line_width(LineWidth::try_from(80).unwrap())
+                .with_indent_width(IndentWidth::from(3)),
+            &tree.syntax(),
+        );
+
+        let result = doc.unwrap().print().unwrap();
+        println!("{}", &result.as_code());
     }
 }
