@@ -1,48 +1,9 @@
 //! Generated file, do not edit by hand, see `xtask/codegen`
 
-use crate::{generated::nodes::*, MSyntaxToken as SyntaxToken};
+use super::nodes::*;
+use crate::syntax::MSyntaxToken as SyntaxToken;
 use biome_rowan::AstNode;
 use std::iter::once;
-impl AnyMAssignmentPattern {
-    pub fn with_any_m_assignment(self, element: AnyMAssignment) -> Self {
-        Self::unwrap_cast(
-            self.syntax
-                .splice_slots(0usize..=0usize, once(Some(element.into_syntax().into()))),
-        )
-    }
-}
-impl AnyMBindingPattern {
-    pub fn with_any_m_binding(self, element: AnyMBinding) -> Self {
-        Self::unwrap_cast(
-            self.syntax
-                .splice_slots(0usize..=0usize, once(Some(element.into_syntax().into()))),
-        )
-    }
-}
-impl AnyMClass {
-    pub fn with_m_class_declaration(self, element: MClassDeclaration) -> Self {
-        Self::unwrap_cast(
-            self.syntax
-                .splice_slots(0usize..=0usize, once(Some(element.into_syntax().into()))),
-        )
-    }
-}
-impl AnyMInProperty {
-    pub fn with_any_m_expression(self, element: AnyMExpression) -> Self {
-        Self::unwrap_cast(
-            self.syntax
-                .splice_slots(0usize..=0usize, once(Some(element.into_syntax().into()))),
-        )
-    }
-}
-impl AnyMName {
-    pub fn with_m_name(self, element: MName) -> Self {
-        Self::unwrap_cast(
-            self.syntax
-                .splice_slots(0usize..=0usize, once(Some(element.into_syntax().into()))),
-        )
-    }
-}
 impl MArrayExpression {
     pub fn with_at_token(self, element: SyntaxToken) -> Self {
         Self::unwrap_cast(
@@ -71,7 +32,7 @@ impl MArrayExpression {
 }
 impl MArrayHole {}
 impl MAssignmentExpression {
-    pub fn with_left(self, element: AnyMAssignmentPattern) -> Self {
+    pub fn with_left(self, element: AnyMAssignment) -> Self {
         Self::unwrap_cast(
             self.syntax
                 .splice_slots(0usize..=0usize, once(Some(element.into_syntax().into()))),
@@ -87,14 +48,6 @@ impl MAssignmentExpression {
         Self::unwrap_cast(
             self.syntax
                 .splice_slots(2usize..=2usize, once(Some(element.into_syntax().into()))),
-        )
-    }
-}
-impl MBigintLiteralExpression {
-    pub fn with_value_token(self, element: SyntaxToken) -> Self {
-        Self::unwrap_cast(
-            self.syntax
-                .splice_slots(0usize..=0usize, once(Some(element.into()))),
         )
     }
 }
@@ -247,7 +200,7 @@ impl MCatchDeclaration {
                 .splice_slots(0usize..=0usize, once(Some(element.into()))),
         )
     }
-    pub fn with_binding(self, element: AnyMBindingPattern) -> Self {
+    pub fn with_binding(self, element: AnyMBinding) -> Self {
         Self::unwrap_cast(
             self.syntax
                 .splice_slots(1usize..=1usize, once(Some(element.into_syntax().into()))),
@@ -615,7 +568,7 @@ impl MForAllStatement {
                 .splice_slots(3usize..=3usize, once(Some(element.into()))),
         )
     }
-    pub fn with_initializer(self, element: AnyMForInOrOfInitializer) -> Self {
+    pub fn with_initializer(self, element: AnyMForInInitializer) -> Self {
         Self::unwrap_cast(
             self.syntax
                 .splice_slots(4usize..=4usize, once(Some(element.into_syntax().into()))),
@@ -634,7 +587,7 @@ impl MForAllStatement {
         )
     }
 }
-impl MForInStatement {
+impl MForAllInStatement {
     pub fn with_forall_token(self, element: SyntaxToken) -> Self {
         Self::unwrap_cast(
             self.syntax
@@ -647,7 +600,7 @@ impl MForInStatement {
                 .splice_slots(1usize..=1usize, once(Some(element.into()))),
         )
     }
-    pub fn with_initializer(self, element: AnyMForInOrOfInitializer) -> Self {
+    pub fn with_initializer(self, element: AnyMForInInitializer) -> Self {
         Self::unwrap_cast(
             self.syntax
                 .splice_slots(2usize..=2usize, once(Some(element.into_syntax().into()))),
@@ -749,7 +702,7 @@ impl MForVariableDeclaration {
     }
 }
 impl MFormalParameter {
-    pub fn with_binding(self, element: AnyMBindingPattern) -> Self {
+    pub fn with_binding(self, element: AnyMBinding) -> Self {
         Self::unwrap_cast(
             self.syntax
                 .splice_slots(0usize..=0usize, once(Some(element.into_syntax().into()))),
@@ -955,12 +908,6 @@ impl MIfStatement {
     }
 }
 impl MInExpression {
-    pub fn with_property(self, element: AnyMInProperty) -> Self {
-        Self::unwrap_cast(
-            self.syntax
-                .splice_slots(0usize..=0usize, once(Some(element.into_syntax().into()))),
-        )
-    }
     pub fn with_in_token(self, element: SyntaxToken) -> Self {
         Self::unwrap_cast(
             self.syntax
@@ -1140,6 +1087,26 @@ impl MParameters {
         )
     }
 }
+impl MParenthesizedAssignment {
+    pub fn with_l_paren_token(self, element: SyntaxToken) -> Self {
+        Self::unwrap_cast(
+            self.syntax
+                .splice_slots(0usize..=0usize, once(Some(element.into()))),
+        )
+    }
+    pub fn with_assignment(self, element: AnyMAssignment) -> Self {
+        Self::unwrap_cast(
+            self.syntax
+                .splice_slots(1usize..=1usize, once(Some(element.into_syntax().into()))),
+        )
+    }
+    pub fn with_r_paren_token(self, element: SyntaxToken) -> Self {
+        Self::unwrap_cast(
+            self.syntax
+                .splice_slots(2usize..=2usize, once(Some(element.into()))),
+        )
+    }
+}
 impl MParenthesizedExpression {
     pub fn with_l_paren_token(self, element: SyntaxToken) -> Self {
         Self::unwrap_cast(
@@ -1223,7 +1190,7 @@ impl MRestParameter {
                 .splice_slots(0usize..=0usize, once(Some(element.into()))),
         )
     }
-    pub fn with_binding(self, element: Option<AnyMBindingPattern>) -> Self {
+    pub fn with_binding(self, element: Option<AnyMBinding>) -> Self {
         Self::unwrap_cast(self.syntax.splice_slots(
             1usize..=1usize,
             once(element.map(|element| element.into_syntax().into())),
@@ -1369,7 +1336,7 @@ impl MStaticMemberAssignment {
                 .splice_slots(1usize..=1usize, once(Some(element.into()))),
         )
     }
-    pub fn with_member(self, element: AnyMName) -> Self {
+    pub fn with_member(self, element: MName) -> Self {
         Self::unwrap_cast(
             self.syntax
                 .splice_slots(2usize..=2usize, once(Some(element.into_syntax().into()))),
@@ -1389,7 +1356,7 @@ impl MStaticMemberExpression {
                 .splice_slots(1usize..=1usize, once(Some(element.into()))),
         )
     }
-    pub fn with_member(self, element: AnyMName) -> Self {
+    pub fn with_member(self, element: MName) -> Self {
         Self::unwrap_cast(
             self.syntax
                 .splice_slots(2usize..=2usize, once(Some(element.into_syntax().into()))),
@@ -1573,7 +1540,7 @@ impl MVariableDeclarationClause {
     }
 }
 impl MVariableDeclarator {
-    pub fn with_id(self, element: AnyMBindingPattern) -> Self {
+    pub fn with_id(self, element: AnyMBinding) -> Self {
         Self::unwrap_cast(
             self.syntax
                 .splice_slots(0usize..=0usize, once(Some(element.into_syntax().into()))),
