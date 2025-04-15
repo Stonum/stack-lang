@@ -406,26 +406,22 @@ mod tests {
     #[test]
     fn test_range_formatting() {
         let input = "
-while(
-    true
-) {
-    function func() {
-    func(     /* comment */
+    func f() {
+    f(     #comment
     );
 
     var array =
-        [ 1
+        @[ 1
     , 2];
 
     }
 
-    function func2()
+    func f2()
     {
 
-    перем no_format    =    () => {};
+    перем no_format = func() {};
 
     }
-}
 ";
 
         // Start the formatting range two characters before the "let" keywords,
@@ -434,6 +430,7 @@ while(
         let range_end = TextSize::try_from(input.find("перем").unwrap()).unwrap();
 
         let tree = parse(input, MFileSource::script());
+
         let result = format_range(
             MFormatOptions::new(MFileSource::script())
                 .with_indent_style(IndentStyle::Space)
@@ -441,16 +438,15 @@ while(
             &tree.syntax(),
             TextRange::new(range_start, range_end),
         );
-
         let result = result.expect("range formatting failed");
         assert_eq!(
             result.as_code(),
-            "function func() {\n        func(/* comment */);\n\n        var array = [1, 2];\n    }\n\n    function func2() {\n        перем no_format = () => {};\n    }"
+            "func f() {\n        f(\n            #comment\n        );\n\n        var array = @[1, 2];\n    }\n\n    func f2() {\n        перем no_format = func () {};\n    }"
         );
         assert_eq!(
             result.range(),
             Some(TextRange::new(
-                range_start - TextSize::from(56),
+                range_start - TextSize::from(41),
                 range_end + TextSize::from(40)
             ))
         );
@@ -459,12 +455,12 @@ while(
     #[test]
     fn test_range_formatting_indentation() {
         let input = "
-function() {
-         const veryLongIdentifierToCauseALineBreak = { veryLongKeyToCauseALineBreak: 'veryLongValueToCauseALineBreak' }
+func f() {
+         var veryLongIdentifierToCauseALineBreak = @{ veryLongKeyToCauseALineBreak: \"veryLongValueToCauseALineBreak\" }
 }
 ";
 
-        let range_start = TextSize::try_from(input.find("const").unwrap()).unwrap();
+        let range_start = TextSize::try_from(input.find("var").unwrap()).unwrap();
         let range_end = TextSize::try_from(input.find('}').unwrap()).unwrap();
 
         let tree = parse(input, MFileSource::script());
@@ -481,7 +477,7 @@ function() {
         // the object expression is currently rounded down from an odd indentation level
         assert_eq!(
             result.as_code(),
-            "const veryLongIdentifierToCauseALineBreak = {\n            veryLongKeyToCauseALineBreak: \"veryLongValueToCauseALineBreak\",\n        };"
+            "var veryLongIdentifierToCauseALineBreak = @{\n            veryLongKeyToCauseALineBreak: \"veryLongValueToCauseALineBreak\",\n        };"
         );
         assert_eq!(
             result.range(),
@@ -512,17 +508,17 @@ function() {
 
     #[test]
     fn test_range_formatting_middle_of_token() {
-        let input = r#"/* */ function Foo(){
-/**/
+        let input = r#"func Foo(){
+#
 }
 "#;
 
-        let range = TextRange::new(TextSize::from(16), TextSize::from(28));
+        let range = TextRange::new(TextSize::from(6), TextSize::from(15));
 
         debug_assert_eq!(
             &input[range],
             r#"oo(){
-/**/
+#
 }"#
         );
 
@@ -538,13 +534,13 @@ function() {
 
         assert_eq!(
             result.as_code(),
-            r#"/* */ function Foo() {
-    /**/
+            r#"func Foo() {
+    #
 }"#
         );
         assert_eq!(
             result.range(),
-            Some(TextRange::new(TextSize::from(0), TextSize::from(28)))
+            Some(TextRange::new(TextSize::from(0), TextSize::from(15)))
         )
     }
 
