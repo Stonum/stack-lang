@@ -40,11 +40,11 @@ pub(crate) fn parse_function_declaration(
         return Absent;
     }
 
-    let m = if let Some(a) = annotation {
-        a.precede(p)
-    } else {
-        p.start()
-    };
+    let a = annotation.unwrap_or_else(|| {
+        let a = p.start();
+        a.complete(p, M_ANNOTATION_GROUP_LIST)
+    });
+    let m = a.precede(p);
 
     let function = parse_function(
         p,
@@ -124,8 +124,6 @@ fn parse_function(p: &mut MParser, m: Marker, kind: FunctionKind) -> CompletedMa
     {
         body.or_add_diagnostic(p, m_parse_error::expected_function_body);
 
-        
-
         m.complete(p, kind.into())
     }
 }
@@ -153,8 +151,6 @@ pub(crate) fn parse_any_parameter(
     p: &mut MParser,
     expression_context: ExpressionContext,
 ) -> ParsedSyntax {
-    
-
     match p.cur() {
         T![...] => parse_rest_parameter(p),
         _ => parse_formal_parameter(p, expression_context),
@@ -233,12 +229,7 @@ pub(crate) fn parse_parameter_list(p: &mut MParser, flags: SignatureFlags) -> Pa
         return Absent;
     }
     let m = p.start();
-    parse_parameters_list(
-        p,
-        flags,
-        parse_any_parameter,
-        M_PARAMETER_LIST,
-    );
+    parse_parameters_list(p, flags, parse_any_parameter, M_PARAMETER_LIST);
 
     Present(m.complete(p, M_PARAMETERS))
 }

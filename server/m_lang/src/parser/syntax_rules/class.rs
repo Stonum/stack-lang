@@ -87,11 +87,11 @@ fn parse_class(
     kind: ClassKind,
     annotation: Option<CompletedMarker>,
 ) -> CompletedMarker {
-    let m = if let Some(a) = annotation {
-        a.precede(p)
-    } else {
-        p.start()
-    };
+    let a = annotation.unwrap_or_else(|| {
+        let a = p.start();
+        a.complete(p, M_ANNOTATION_GROUP_LIST)
+    });
+    let m = a.precede(p);
 
     let class_token_range = p.cur_range();
     p.expect(T![class]);
@@ -240,8 +240,9 @@ fn parse_class_member(p: &mut MParser) -> ParsedSyntax {
     let member_marker = if p.at(T![:]) && p.nth_at(1, T!['[']) {
         parse_annotation_list(p).precede(p)
     } else {
-        p.start()
+        p.start().complete(p, M_ANNOTATION_GROUP_LIST).precede(p)
     };
+
     // test class_empty_element
     // class foo { ;;;;;;;;;; get foo() {};;;;}
     if p.eat(T![;]) {
