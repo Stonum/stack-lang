@@ -1514,20 +1514,6 @@ pub fn m_switch_statement(
         ],
     ))
 }
-pub fn m_template_element(
-    l_curly_token: SyntaxToken,
-    expression: AnyMExpression,
-    r_curly_token: SyntaxToken,
-) -> MTemplateElement {
-    MTemplateElement::unwrap_cast(SyntaxNode::new_detached(
-        MSyntaxKind::M_TEMPLATE_ELEMENT,
-        [
-            Some(SyntaxElement::Token(l_curly_token)),
-            Some(SyntaxElement::Node(expression.into_syntax())),
-            Some(SyntaxElement::Token(r_curly_token)),
-        ],
-    ))
-}
 pub fn m_this_expression(this_token: SyntaxToken) -> MThisExpression {
     MThisExpression::unwrap_cast(SyntaxNode::new_detached(
         MSyntaxKind::M_THIS_EXPRESSION,
@@ -2000,18 +1986,6 @@ where
 {
     MSwitchCaseList::unwrap_cast(SyntaxNode::new_detached(
         MSyntaxKind::M_SWITCH_CASE_LIST,
-        items
-            .into_iter()
-            .map(|item| Some(item.into_syntax().into())),
-    ))
-}
-pub fn m_template_element_list<I>(items: I) -> MTemplateElementList
-where
-    I: IntoIterator<Item = MTemplateElement>,
-    I::IntoIter: ExactSizeIterator,
-{
-    MTemplateElementList::unwrap_cast(SyntaxNode::new_detached(
-        MSyntaxKind::M_TEMPLATE_ELEMENT_LIST,
         items
             .into_iter()
             .map(|item| Some(item.into_syntax().into())),

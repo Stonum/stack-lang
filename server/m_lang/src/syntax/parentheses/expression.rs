@@ -211,9 +211,7 @@ impl NeedsParentheses for MFunctionExpression {
         };
         matches!(
             parent.kind(),
-            MSyntaxKind::M_CALL_EXPRESSION
-                | MSyntaxKind::M_NEW_EXPRESSION
-                | MSyntaxKind::M_TEMPLATE_EXPRESSION
+            MSyntaxKind::M_CALL_EXPRESSION | MSyntaxKind::M_NEW_EXPRESSION
         ) || is_first_in_statement(self.syntax())
     }
 }
@@ -495,8 +493,6 @@ fn binary_like_needs_parens(node: &MSyntaxNode) -> bool {
         // Callee
         | MSyntaxKind::M_CALL_EXPRESSION
         | MSyntaxKind::M_NEW_EXPRESSION
-        // Template tag
-        | MSyntaxKind::M_TEMPLATE_EXPRESSION
         // Static member
         | MSyntaxKind::M_STATIC_MEMBER_EXPRESSION
         | MSyntaxKind::M_STATIC_MEMBER_ASSIGNMENT => true,
@@ -580,8 +576,6 @@ fn update_or_lower_expression_needs_parens(expression: &MSyntaxNode, parent: MSy
             // Callee
             | MSyntaxKind::M_CALL_EXPRESSION
             | MSyntaxKind::M_NEW_EXPRESSION
-            // Template tag
-            | MSyntaxKind::M_TEMPLATE_EXPRESSION
             // Static member
             | MSyntaxKind::M_STATIC_MEMBER_EXPRESSION
             | MSyntaxKind::M_STATIC_MEMBER_ASSIGNMENT
@@ -603,7 +597,6 @@ fn is_first_in_statement(node: &MSyntaxNode) -> bool {
             }
             MSyntaxKind::M_STATIC_MEMBER_EXPRESSION
             | MSyntaxKind::M_STATIC_MEMBER_ASSIGNMENT
-            | MSyntaxKind::M_TEMPLATE_EXPRESSION
             | MSyntaxKind::M_CALL_EXPRESSION
             | MSyntaxKind::M_NEW_EXPRESSION => parent,
             MSyntaxKind::M_SEQUENCE_EXPRESSION => {

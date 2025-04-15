@@ -1023,12 +1023,6 @@ impl MLongStringLiteralExpression {
                 .splice_slots(0usize..=0usize, once(Some(element.into()))),
         )
     }
-    pub fn with_elements(self, element: MTemplateElementList) -> Self {
-        Self::unwrap_cast(
-            self.syntax
-                .splice_slots(1usize..=1usize, once(Some(element.into_syntax().into()))),
-        )
-    }
     pub fn with_r_tick_token(self, element: SyntaxToken) -> Self {
         Self::unwrap_cast(
             self.syntax
@@ -1459,34 +1453,6 @@ impl MSwitchStatement {
         Self::unwrap_cast(
             self.syntax
                 .splice_slots(6usize..=6usize, once(Some(element.into()))),
-        )
-    }
-}
-impl MTemplateChunkElement {
-    pub fn with_template_chunk_token(self, element: SyntaxToken) -> Self {
-        Self::unwrap_cast(
-            self.syntax
-                .splice_slots(0usize..=0usize, once(Some(element.into()))),
-        )
-    }
-}
-impl MTemplateElement {
-    pub fn with_dollar_curly_token(self, element: SyntaxToken) -> Self {
-        Self::unwrap_cast(
-            self.syntax
-                .splice_slots(0usize..=0usize, once(Some(element.into()))),
-        )
-    }
-    pub fn with_expression(self, element: AnyMExpression) -> Self {
-        Self::unwrap_cast(
-            self.syntax
-                .splice_slots(1usize..=1usize, once(Some(element.into_syntax().into()))),
-        )
-    }
-    pub fn with_r_curly_token(self, element: SyntaxToken) -> Self {
-        Self::unwrap_cast(
-            self.syntax
-                .splice_slots(2usize..=2usize, once(Some(element.into()))),
         )
     }
 }

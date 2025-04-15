@@ -2792,39 +2792,6 @@ impl SyntaxFactory for MSyntaxFactory {
                 }
                 slots.into_node(M_SWITCH_STATEMENT, children)
             }
-            M_TEMPLATE_ELEMENT => {
-                let mut elements = (&children).into_iter();
-                let mut slots: RawNodeSlots<3usize> = RawNodeSlots::default();
-                let mut current_element = elements.next();
-                if let Some(element) = &current_element {
-                    if element.kind() == T!['{'] {
-                        slots.mark_present();
-                        current_element = elements.next();
-                    }
-                }
-                slots.next_slot();
-                if let Some(element) = &current_element {
-                    if AnyMExpression::can_cast(element.kind()) {
-                        slots.mark_present();
-                        current_element = elements.next();
-                    }
-                }
-                slots.next_slot();
-                if let Some(element) = &current_element {
-                    if element.kind() == T!['}'] {
-                        slots.mark_present();
-                        current_element = elements.next();
-                    }
-                }
-                slots.next_slot();
-                if current_element.is_some() {
-                    return RawSyntaxNode::new(
-                        M_TEMPLATE_ELEMENT.to_bogus(),
-                        children.into_iter().map(Some),
-                    );
-                }
-                slots.into_node(M_TEMPLATE_ELEMENT, children)
-            }
             M_THIS_EXPRESSION => {
                 let mut elements = (&children).into_iter();
                 let mut slots: RawNodeSlots<1usize> = RawNodeSlots::default();
@@ -3227,9 +3194,6 @@ impl SyntaxFactory for MSyntaxFactory {
             }
             M_SWITCH_CASE_LIST => {
                 Self::make_node_list_syntax(kind, children, AnyMSwitchClause::can_cast)
-            }
-            M_TEMPLATE_ELEMENT_LIST => {
-                Self::make_node_list_syntax(kind, children, MTemplateElement::can_cast)
             }
             M_VARIABLE_DECLARATOR_LIST => Self::make_separated_list_syntax(
                 kind,

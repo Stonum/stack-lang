@@ -302,14 +302,6 @@ AnyMExpression =
 	| MUnaryExpression
 	| MBogusExpression
 
-
-MTemplateElementList = MTemplateElement*
-
-MTemplateElement =
-	'{'
-	expression: AnyMExpression
-	'}'
-
 MThisExpression = 'this'
 
 MSuperExpression = 'super'

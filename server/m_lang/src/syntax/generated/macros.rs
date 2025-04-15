@@ -403,10 +403,6 @@ macro_rules! map_syntax_node {
                     let $pattern = unsafe { crate::syntax::MSwitchStatement::new_unchecked(node) };
                     $body
                 }
-                crate::syntax::MSyntaxKind::M_TEMPLATE_ELEMENT => {
-                    let $pattern = unsafe { crate::syntax::MTemplateElement::new_unchecked(node) };
-                    $body
-                }
                 crate::syntax::MSyntaxKind::M_THIS_EXPRESSION => {
                     let $pattern = unsafe { crate::syntax::MThisExpression::new_unchecked(node) };
                     $body
@@ -548,11 +544,6 @@ macro_rules! map_syntax_node {
                 }
                 crate::syntax::MSyntaxKind::M_SWITCH_CASE_LIST => {
                     let $pattern = unsafe { crate::syntax::MSwitchCaseList::new_unchecked(node) };
-                    $body
-                }
-                crate::syntax::MSyntaxKind::M_TEMPLATE_ELEMENT_LIST => {
-                    let $pattern =
-                        unsafe { crate::syntax::MTemplateElementList::new_unchecked(node) };
                     $body
                 }
                 crate::syntax::MSyntaxKind::M_VARIABLE_DECLARATOR_LIST => {

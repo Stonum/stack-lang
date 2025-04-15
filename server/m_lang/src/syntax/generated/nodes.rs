@@ -3822,51 +3822,6 @@ pub struct MSwitchStatementFields {
     pub r_curly_token: SyntaxResult<SyntaxToken>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct MTemplateElement {
-    pub(crate) syntax: SyntaxNode,
-}
-impl MTemplateElement {
-    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
-    #[doc = r""]
-    #[doc = r" # Safety"]
-    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
-    #[doc = r" or a match on [SyntaxNode::kind]"]
-    #[inline]
-    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
-        Self { syntax }
-    }
-    pub fn as_fields(&self) -> MTemplateElementFields {
-        MTemplateElementFields {
-            l_curly_token: self.l_curly_token(),
-            expression: self.expression(),
-            r_curly_token: self.r_curly_token(),
-        }
-    }
-    pub fn l_curly_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 0usize)
-    }
-    pub fn expression(&self) -> SyntaxResult<AnyMExpression> {
-        support::required_node(&self.syntax, 1usize)
-    }
-    pub fn r_curly_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 2usize)
-    }
-}
-impl Serialize for MTemplateElement {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.as_fields().serialize(serializer)
-    }
-}
-#[derive(Serialize)]
-pub struct MTemplateElementFields {
-    pub l_curly_token: SyntaxResult<SyntaxToken>,
-    pub expression: SyntaxResult<AnyMExpression>,
-    pub r_curly_token: SyntaxResult<SyntaxToken>,
-}
-#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MThisExpression {
     pub(crate) syntax: SyntaxNode,
 }
@@ -8959,52 +8914,6 @@ impl From<MSwitchStatement> for SyntaxElement {
         n.syntax.into()
     }
 }
-impl AstNode for MTemplateElement {
-    type Language = Language;
-    const KIND_SET: SyntaxKindSet<Language> =
-        SyntaxKindSet::from_raw(RawSyntaxKind(M_TEMPLATE_ELEMENT as u16));
-    fn can_cast(kind: SyntaxKind) -> bool {
-        kind == M_TEMPLATE_ELEMENT
-    }
-    fn cast(syntax: SyntaxNode) -> Option<Self> {
-        if Self::can_cast(syntax.kind()) {
-            Some(Self { syntax })
-        } else {
-            None
-        }
-    }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.syntax
-    }
-    fn into_syntax(self) -> SyntaxNode {
-        self.syntax
-    }
-}
-impl std::fmt::Debug for MTemplateElement {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("MTemplateElement")
-            .field(
-                "l_curly_token",
-                &support::DebugSyntaxResult(self.l_curly_token()),
-            )
-            .field("expression", &support::DebugSyntaxResult(self.expression()))
-            .field(
-                "r_curly_token",
-                &support::DebugSyntaxResult(self.r_curly_token()),
-            )
-            .finish()
-    }
-}
-impl From<MTemplateElement> for SyntaxNode {
-    fn from(n: MTemplateElement) -> SyntaxNode {
-        n.syntax
-    }
-}
-impl From<MTemplateElement> for SyntaxElement {
-    fn from(n: MTemplateElement) -> SyntaxElement {
-        n.syntax.into()
-    }
-}
 impl AstNode for MThisExpression {
     type Language = Language;
     const KIND_SET: SyntaxKindSet<Language> =
@@ -12355,11 +12264,6 @@ impl std::fmt::Display for MSwitchStatement {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
-impl std::fmt::Display for MTemplateElement {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(self.syntax(), f)
-    }
-}
 impl std::fmt::Display for MThisExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
@@ -14033,88 +13937,6 @@ impl IntoIterator for &MSwitchCaseList {
 impl IntoIterator for MSwitchCaseList {
     type Item = AnyMSwitchClause;
     type IntoIter = AstNodeListIterator<Language, AnyMSwitchClause>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter()
-    }
-}
-#[derive(Clone, Eq, PartialEq, Hash)]
-pub struct MTemplateElementList {
-    syntax_list: SyntaxList,
-}
-impl MTemplateElementList {
-    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
-    #[doc = r""]
-    #[doc = r" # Safety"]
-    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
-    #[doc = r" or a match on [SyntaxNode::kind]"]
-    #[inline]
-    pub unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
-        Self {
-            syntax_list: syntax.into_list(),
-        }
-    }
-}
-impl AstNode for MTemplateElementList {
-    type Language = Language;
-    const KIND_SET: SyntaxKindSet<Language> =
-        SyntaxKindSet::from_raw(RawSyntaxKind(M_TEMPLATE_ELEMENT_LIST as u16));
-    fn can_cast(kind: SyntaxKind) -> bool {
-        kind == M_TEMPLATE_ELEMENT_LIST
-    }
-    fn cast(syntax: SyntaxNode) -> Option<MTemplateElementList> {
-        if Self::can_cast(syntax.kind()) {
-            Some(MTemplateElementList {
-                syntax_list: syntax.into_list(),
-            })
-        } else {
-            None
-        }
-    }
-    fn syntax(&self) -> &SyntaxNode {
-        self.syntax_list.node()
-    }
-    fn into_syntax(self) -> SyntaxNode {
-        self.syntax_list.into_node()
-    }
-}
-impl Serialize for MTemplateElementList {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut seq = serializer.serialize_seq(Some(self.len()))?;
-        for e in self.iter() {
-            seq.serialize_element(&e)?;
-        }
-        seq.end()
-    }
-}
-impl AstNodeList for MTemplateElementList {
-    type Language = Language;
-    type Node = MTemplateElement;
-    fn syntax_list(&self) -> &SyntaxList {
-        &self.syntax_list
-    }
-    fn into_syntax_list(self) -> SyntaxList {
-        self.syntax_list
-    }
-}
-impl Debug for MTemplateElementList {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str("MTemplateElementList ")?;
-        f.debug_list().entries(self.iter()).finish()
-    }
-}
-impl IntoIterator for &MTemplateElementList {
-    type Item = MTemplateElement;
-    type IntoIter = AstNodeListIterator<Language, MTemplateElement>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter()
-    }
-}
-impl IntoIterator for MTemplateElementList {
-    type Item = MTemplateElement;
-    type IntoIter = AstNodeListIterator<Language, MTemplateElement>;
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }

@@ -123,7 +123,6 @@ impl AnyMBinaryLikeExpression {
     ) -> bool {
         parent.is_some_and(|parent| match parent.kind() {
             MSyntaxKind::M_RETURN_STATEMENT | MSyntaxKind::M_THROW_STATEMENT => true,
-            MSyntaxKind::M_TEMPLATE_ELEMENT => true,
             MSyntaxKind::M_FOR_STATEMENT => true,
             MSyntaxKind::M_CONDITIONAL_EXPRESSION => parent.parent().is_some_and(|grand_parent| {
                 !matches!(
