@@ -384,7 +384,9 @@ impl NeedsParentheses for MSequenceExpression {
             // There's a precedence for writing `x++, y++`
             MSyntaxKind::M_FOR_STATEMENT |
             MSyntaxKind::M_EXPRESSION_STATEMENT |
-            MSyntaxKind::M_SEQUENCE_EXPRESSION
+            MSyntaxKind::M_SEQUENCE_EXPRESSION |
+            MSyntaxKind::M_COMPUTED_MEMBER_EXPRESSION |
+            MSyntaxKind::M_COMPUTED_MEMBER_ASSIGNMENT
         )
     }
 }

@@ -564,11 +564,12 @@ func f() {
     #[test]
     fn format() {
         let src = r#"
-        x = a + b;
+
+      [индлс, "Расход"] = 5;
         "#;
 
         let syntax = MFileSource::script();
-        let tree = parse(src, syntax);
+        let tree = dbg!(parse(src, syntax));
 
         let doc = format_node(
             MFormatOptions::new(syntax)
