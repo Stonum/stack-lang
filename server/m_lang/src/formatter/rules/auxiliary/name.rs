@@ -6,7 +6,7 @@ use biome_formatter::write;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMName;
-impl_rule!(MName, FormatMName);
+impl_format_with_rule!(MName, FormatMName);
 
 impl FormatNodeRule<MName> for FormatMName {
     fn fmt_fields(&self, node: &MName, f: &mut MFormatter) -> FormatResult<()> {

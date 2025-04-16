@@ -17,7 +17,6 @@ pub(crate) mod formal_parameter;
 pub(crate) mod function;
 pub(crate) mod function_body;
 pub(crate) mod literal_expression;
-pub(crate) mod name;
 pub(crate) mod object_member;
 pub(crate) mod object_member_name;
 pub(crate) mod parameter;
