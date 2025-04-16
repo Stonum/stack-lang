@@ -779,7 +779,7 @@ fn is_short_argument(
                     let formatter =
                         FormatLiteralStringToken::new(&token, StringLiteralParentKind::Expression);
 
-                    formatter.clean_text(f.options()).width() <= threshold as usize
+                    formatter.clean_text().width() <= threshold as usize
                 }
                 _ => true,
             },
