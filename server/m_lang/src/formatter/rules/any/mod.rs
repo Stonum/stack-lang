@@ -4,7 +4,6 @@ pub(crate) mod array_element;
 pub(crate) mod assignment;
 pub(crate) mod binding;
 pub(crate) mod call_argument;
-pub(crate) mod class;
 pub(crate) mod class_member;
 pub(crate) mod class_member_name;
 pub(crate) mod constructor_parameter;
