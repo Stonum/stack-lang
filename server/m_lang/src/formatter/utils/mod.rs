@@ -76,22 +76,11 @@ impl Format<MFormatContext> for FormatInitializerClause<'_> {
 /// or a block statement.
 pub(crate) struct FormatStatementBody<'a> {
     body: &'a AnyMStatement,
-    force_space: bool,
 }
 
 impl<'a> FormatStatementBody<'a> {
     pub fn new(body: &'a AnyMStatement) -> Self {
-        Self {
-            body,
-            force_space: false,
-        }
-    }
-
-    /// Prevents that the consequent is formatted on its own line and indented by one level and
-    /// instead gets separated by a space.
-    pub fn with_forced_space(mut self, forced: bool) -> Self {
-        self.force_space = forced;
-        self
+        Self { body }
     }
 }
 
@@ -101,16 +90,10 @@ impl Format<MFormatContext> for FormatStatementBody<'_> {
 
         if let MEmptyStatement(empty) = &self.body {
             write!(f, [empty.format()])
-        } else if matches!(&self.body, MBlockStatement(_)) || self.force_space {
-            write!(f, [space(), self.body.format()])
+        } else if !matches!(&self.body, MBlockStatement(_)) {
+            write!(f, [block_indent(&self.body.format())])
         } else {
-            write!(
-                f,
-                [indent(&format_args![
-                    soft_line_break_or_space(),
-                    self.body.format()
-                ])]
-            )
+            write!(f, [&format_args![hard_line_break(), self.body.format()]])
         }
     }
 }

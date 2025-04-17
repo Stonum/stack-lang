@@ -11,8 +11,6 @@ impl_format_with_rule!(MElseClause, FormatMElseClause);
 
 impl FormatNodeRule<MElseClause> for FormatMElseClause {
     fn fmt_fields(&self, node: &MElseClause, f: &mut MFormatter) -> FormatResult<()> {
-        use crate::syntax::AnyMStatement::*;
-
         let MElseClauseFields {
             else_token,
             alternate,
@@ -24,10 +22,7 @@ impl FormatNodeRule<MElseClause> for FormatMElseClause {
             f,
             [
                 else_token.format(),
-                group(
-                    &FormatStatementBody::new(&alternate)
-                        .with_forced_space(matches!(alternate, MIfStatement(_)))
-                )
+                group(&FormatStatementBody::new(&alternate))
             ]
         )
     }
