@@ -490,9 +490,6 @@ MClassDeclaration =
 
 MClassMemberList = AnyMClassMember*
 
-MClass =
-	MClassDeclaration
-
 // class Test extends A {}
 //            ^^^^^^^^^
 MExtendsClause =

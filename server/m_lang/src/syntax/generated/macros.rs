@@ -85,10 +85,6 @@ macro_rules! map_syntax_node {
                     let $pattern = unsafe { crate::syntax::MCatchDeclaration::new_unchecked(node) };
                     $body
                 }
-                crate::syntax::MSyntaxKind::M_CLASS => {
-                    let $pattern = unsafe { crate::syntax::MClass::new_unchecked(node) };
-                    $body
-                }
                 crate::syntax::MSyntaxKind::M_CLASS_DECLARATION => {
                     let $pattern = unsafe { crate::syntax::MClassDeclaration::new_unchecked(node) };
                     $body

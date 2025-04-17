@@ -715,41 +715,6 @@ pub struct MCatchDeclarationFields {
     pub r_paren_token: SyntaxResult<SyntaxToken>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct MClass {
-    pub(crate) syntax: SyntaxNode,
-}
-impl MClass {
-    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
-    #[doc = r""]
-    #[doc = r" # Safety"]
-    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
-    #[doc = r" or a match on [SyntaxNode::kind]"]
-    #[inline]
-    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
-        Self { syntax }
-    }
-    pub fn as_fields(&self) -> MClassFields {
-        MClassFields {
-            m_class_declaration: self.m_class_declaration(),
-        }
-    }
-    pub fn m_class_declaration(&self) -> SyntaxResult<MClassDeclaration> {
-        support::required_node(&self.syntax, 0usize)
-    }
-}
-impl Serialize for MClass {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.as_fields().serialize(serializer)
-    }
-}
-#[derive(Serialize)]
-pub struct MClassFields {
-    pub m_class_declaration: SyntaxResult<MClassDeclaration>,
-}
-#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MClassDeclaration {
     pub(crate) syntax: SyntaxNode,
 }
@@ -5849,47 +5814,6 @@ impl From<MCatchDeclaration> for SyntaxNode {
 }
 impl From<MCatchDeclaration> for SyntaxElement {
     fn from(n: MCatchDeclaration) -> SyntaxElement {
-        n.syntax.into()
-    }
-}
-impl AstNode for MClass {
-    type Language = Language;
-    const KIND_SET: SyntaxKindSet<Language> =
-        SyntaxKindSet::from_raw(RawSyntaxKind(M_CLASS as u16));
-    fn can_cast(kind: SyntaxKind) -> bool {
-        kind == M_CLASS
-    }
-    fn cast(syntax: SyntaxNode) -> Option<Self> {
-        if Self::can_cast(syntax.kind()) {
-            Some(Self { syntax })
-        } else {
-            None
-        }
-    }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.syntax
-    }
-    fn into_syntax(self) -> SyntaxNode {
-        self.syntax
-    }
-}
-impl std::fmt::Debug for MClass {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("MClass")
-            .field(
-                "m_class_declaration",
-                &support::DebugSyntaxResult(self.m_class_declaration()),
-            )
-            .finish()
-    }
-}
-impl From<MClass> for SyntaxNode {
-    fn from(n: MClass) -> SyntaxNode {
-        n.syntax
-    }
-}
-impl From<MClass> for SyntaxElement {
-    fn from(n: MClass) -> SyntaxElement {
         n.syntax.into()
     }
 }
@@ -11915,11 +11839,6 @@ impl std::fmt::Display for MCatchClause {
     }
 }
 impl std::fmt::Display for MCatchDeclaration {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(self.syntax(), f)
-    }
-}
-impl std::fmt::Display for MClass {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

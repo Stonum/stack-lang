@@ -234,12 +234,6 @@ pub fn m_catch_declaration(
         ],
     ))
 }
-pub fn m_class(m_class_declaration: MClassDeclaration) -> MClass {
-    MClass::unwrap_cast(SyntaxNode::new_detached(
-        MSyntaxKind::M_CLASS,
-        [Some(SyntaxElement::Node(m_class_declaration.into_syntax()))],
-    ))
-}
 pub fn m_class_declaration(
     annotation: MAnnotationGroupList,
     class_token: SyntaxToken,
