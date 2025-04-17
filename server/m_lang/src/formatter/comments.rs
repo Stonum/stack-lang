@@ -1,8 +1,8 @@
 use super::prelude::*;
 use crate::syntax::{
-    AnyMRoot, AnyMStatement, MArrayHole, MBlockStatement, MCallArguments, MCatchClause,
-    MClassDeclaration, MConditionalExpression, MEmptyStatement, MFinallyClause, MFormalParameter,
-    MFunctionBody, MIdentifierExpression, MIfStatement, MLanguage, MName, MSyntaxKind, MSyntaxNode,
+    AnyMRoot, AnyMStatement, MBlockStatement, MCallArguments, MCatchClause, MClassDeclaration,
+    MConditionalExpression, MEmptyStatement, MFinallyClause, MFormalParameter, MFunctionBody,
+    MIdentifierExpression, MIfStatement, MLanguage, MName, MSyntaxKind, MSyntaxNode,
     MVariableDeclarator, MWhileStatement,
 };
 use biome_formatter::comments::is_alignable_comment;
@@ -118,16 +118,6 @@ impl CommentStyle for MCommentStyle {
     }
 }
 
-/// Handles array hole comments. Array holes have no token so all comments
-/// become trailing comments by default. Override it that all comments are leading comments.
-fn handle_array_hole_comment(comment: DecoratedComment<MLanguage>) -> CommentPlacement<MLanguage> {
-    if let Some(array_hole) = comment.preceding_node().and_then(MArrayHole::cast_ref) {
-        CommentPlacement::leading(array_hole.into_syntax(), comment)
-    } else {
-        CommentPlacement::Default(comment)
-    }
-}
-
 fn handle_call_expression_comment(
     comment: DecoratedComment<MLanguage>,
 ) -> CommentPlacement<MLanguage> {
@@ -224,39 +214,6 @@ fn handle_switch_default_case_comment(
     };
 
     place_block_statement_comment(block, comment)
-}
-
-/// Moves comments in declaration statements to behind the identifier
-///
-/// ```javascript
-/// declare module /* comment */ A {}
-/// declare /* module */ global {}
-/// ```
-fn handle_declare_comment(comment: DecoratedComment<MLanguage>) -> CommentPlacement<MLanguage> {
-    match comment.following_node() {
-        // Check if it is a declare statement
-        Some(following) => match following.kind() {
-            MSyntaxKind::M_CLASS_DECLARATION => {
-                if let Some(first_child) = following.first_child() {
-                    if let Some(second_child) = first_child.next_sibling() {
-                        return CommentPlacement::leading(second_child.clone(), comment);
-                    }
-                }
-                CommentPlacement::Default(comment)
-            }
-            MSyntaxKind::M_VARIABLE_DECLARATION_CLAUSE => {
-                let first_identifier = following
-                    .descendants()
-                    .find(|node| node.kind() == MSyntaxKind::M_IDENTIFIER_BINDING);
-                if let Some(first_identifier_exists) = first_identifier {
-                    return CommentPlacement::leading(first_identifier_exists.clone(), comment);
-                }
-                CommentPlacement::Default(comment)
-            }
-            _ => CommentPlacement::Default(comment),
-        },
-        _ => CommentPlacement::Default(comment),
-    }
 }
 
 fn handle_class_comment(comment: DecoratedComment<MLanguage>) -> CommentPlacement<MLanguage> {

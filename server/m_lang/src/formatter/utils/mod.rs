@@ -4,7 +4,6 @@ pub mod string_utils;
 
 pub(crate) mod format_binary_like_expression;
 pub(crate) mod format_class;
-pub(crate) mod format_node_without_comments;
 pub(crate) mod function_body;
 pub(crate) mod member_chain;
 pub(crate) mod object;
@@ -16,15 +15,13 @@ use super::context;
 use super::context::trailing_commas::FormatTrailingCommas;
 use super::context::Semicolons;
 use super::prelude::*;
-use crate::syntax::{
-    AnyMExpression, AnyMStatement, MCallExpression, MInitializerClause, MLanguage,
-};
+use crate::syntax::{AnyMExpression, AnyMStatement, MCallExpression, MInitializerClause};
 use crate::syntax::{MSyntaxKind, MSyntaxToken};
 pub(crate) use assignment_like::{
     with_assignment_layout, AnyMAssignmentLike, AssignmentLikeLayout,
 };
 use biome_formatter::{format_args, write, Buffer};
-use biome_rowan::{AstNode, AstNodeList, TextSize};
+use biome_rowan::AstNode;
 
 pub(crate) use object_like::*;
 pub(crate) use string_utils::*;
@@ -54,32 +51,6 @@ pub(crate) fn is_long_curried_call(expression: Option<&MCallExpression>) -> bool
     false
 }
 
-/// Utility function to format the separators of the nodes that belong to the unions
-/// of [crate::syntax::TsAnyTypeMember].
-///
-/// We can have two kind of separators: `,`, `;` or ASI.
-/// Because of how the grammar crafts the nodes, the parent will add the separator to the node.
-/// So here, we create - on purpose - an empty node.
-pub(crate) struct FormatTypeMemberSeparator<'a> {
-    token: Option<&'a MSyntaxToken>,
-}
-
-impl<'a> FormatTypeMemberSeparator<'a> {
-    pub fn new(token: Option<&'a MSyntaxToken>) -> Self {
-        Self { token }
-    }
-}
-
-impl Format<MFormatContext> for FormatTypeMemberSeparator<'_> {
-    fn fmt(&self, f: &mut MFormatter) -> FormatResult<()> {
-        if let Some(separator) = self.token {
-            format_removed(separator).fmt(f)
-        } else {
-            Ok(())
-        }
-    }
-}
-
 /// Utility function to format the node [crate::syntax::MInitializerClause]
 pub(crate) struct FormatInitializerClause<'a> {
     initializer: Option<&'a MInitializerClause>,
@@ -95,51 +66,6 @@ impl Format<MFormatContext> for FormatInitializerClause<'_> {
     fn fmt(&self, f: &mut MFormatter) -> FormatResult<()> {
         if let Some(initializer) = self.initializer {
             write!(f, [space(), initializer.format()])
-        } else {
-            Ok(())
-        }
-    }
-}
-
-pub(crate) struct FormatInterpreterToken<'a> {
-    token: Option<&'a MSyntaxToken>,
-}
-
-impl<'a> FormatInterpreterToken<'a> {
-    pub fn new(interpreter_token: Option<&'a MSyntaxToken>) -> Self {
-        Self {
-            token: interpreter_token,
-        }
-    }
-}
-
-impl Format<MFormatContext> for FormatInterpreterToken<'_> {
-    fn fmt(&self, f: &mut MFormatter) -> FormatResult<()> {
-        if let Some(interpreter) = self.token {
-            // Trim trailing spaces of the interpreter
-            let interpreter_text = interpreter.text_trimmed();
-            let trimmed_interpreter_text = interpreter_text.trim_end();
-            let diff = (interpreter_text.len() - trimmed_interpreter_text.len()) as u32;
-            let trimmed_range = interpreter
-                .text_trimmed_range()
-                .sub_end(TextSize::from(diff));
-
-            // We replace the interpreter token by its trimmed version
-            write!(
-                f,
-                [format_replaced(
-                    interpreter,
-                    &located_token_text(interpreter, trimmed_range)
-                )]
-            )?;
-
-            match interpreter
-                .next_token()
-                .map_or(0, |next_token| get_lines_before_token(&next_token))
-            {
-                0 | 1 => write!(f, [hard_line_break()]),
-                _ => write!(f, [empty_line()]),
-            }
         } else {
             Ok(())
         }

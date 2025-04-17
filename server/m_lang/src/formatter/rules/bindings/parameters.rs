@@ -253,15 +253,12 @@ pub(crate) fn should_hug_function_parameters(
 
 /// Tests if all of the parameters of `expression` are simple enough to allow
 /// a function to group.
-pub(crate) fn has_only_simple_parameters(
-    parameters: &MParameters,
-    allow_type_annotations: bool,
-) -> bool {
+pub(crate) fn has_only_simple_parameters(parameters: &MParameters) -> bool {
     parameters
         .items()
         .into_iter()
         .flatten()
-        .all(|parameter| is_simple_parameter(&parameter, allow_type_annotations))
+        .all(|parameter| is_simple_parameter(&parameter))
 }
 
 /// Tests if the single parameter is "simple", as in a plain identifier with no
@@ -276,7 +273,7 @@ pub(crate) fn has_only_simple_parameters(
 /// {a, b} = {}     => false
 /// [a, b]          => false
 ///
-pub(crate) fn is_simple_parameter(parameter: &AnyMParameter, allow_type_annotations: bool) -> bool {
+pub(crate) fn is_simple_parameter(parameter: &AnyMParameter) -> bool {
     match parameter {
         AnyMParameter::AnyMFormalParameter(AnyMFormalParameter::MFormalParameter(param)) => {
             matches!(param.binding(), Ok(AnyMBinding::MIdentifierBinding(_)))

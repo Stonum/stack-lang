@@ -76,15 +76,6 @@ declare_node_union! {
     MethodParameters = MParameters | MConstructorParameters
 }
 
-impl MethodParameters {
-    pub fn len(&self) -> usize {
-        match self {
-            MethodParameters::MParameters(parameters) => parameters.items().len(),
-            MethodParameters::MConstructorParameters(parameters) => parameters.parameters().len(),
-        }
-    }
-}
-
 impl Format<MFormatContext> for MethodParameters {
     fn fmt(&self, f: &mut Formatter<MFormatContext>) -> FormatResult<()> {
         match self {

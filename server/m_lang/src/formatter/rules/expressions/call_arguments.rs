@@ -66,7 +66,6 @@ impl FormatNodeRule<MCallArguments> for FormatMCallArguments {
                     l_paren: &l_paren_token.format(),
                     args: &arguments,
                     r_paren: &r_paren_token.format(),
-                    node,
                     expand: true,
                 }]
             );
@@ -92,7 +91,6 @@ impl FormatNodeRule<MCallArguments> for FormatMCallArguments {
                     l_paren: &l_paren_token.format(),
                     args: &arguments,
                     r_paren: &r_paren_token.format(),
-                    node,
                     expand: false,
                 }]
             )
@@ -300,7 +298,6 @@ fn write_grouped_arguments(
                     l_paren: &l_paren_token.format(),
                     args: &arguments,
                     r_paren: &r_paren_token.format(),
-                    node: call_arguments,
                     expand: true,
                 }]
             );
@@ -339,7 +336,6 @@ fn write_grouped_arguments(
                 l_paren: &l_paren,
                 args: &arguments,
                 r_paren: &r_paren,
-                node: call_arguments,
                 expand: true,
             }]
         )?;
@@ -481,9 +477,6 @@ fn write_grouped_arguments(
 /// Helper for formatting the first grouped argument (see [should_group_first_argument]).
 struct FormatGroupedFirstArgument<'a> {
     argument: &'a FormatCallArgument,
-
-    /// Whether this is the only argument in the argument list.
-    is_only: bool,
 }
 
 impl Format<MFormatContext> for FormatGroupedFirstArgument<'_> {
@@ -556,9 +549,9 @@ fn with_token_tracking_disabled<F: FnOnce(&mut MFormatter) -> R, R>(
 }
 
 fn function_has_only_simple_parameters(expression: &MFunctionExpression) -> bool {
-    expression.parameters().map_or(true, |parameters| {
-        has_only_simple_parameters(&parameters, false)
-    })
+    expression
+        .parameters()
+        .map_or(true, |parameters| has_only_simple_parameters(&parameters))
 }
 
 /// Helper for formatting a grouped call argument (see [should_group_first_argument] and [should_group_last_argument]).
@@ -577,7 +570,6 @@ impl Format<MFormatContext> for FormatGroupedArgument {
         match self.layout {
             Some(GroupedCallArgumentLayout::GroupedFirstArgument) => FormatGroupedFirstArgument {
                 argument: &self.argument,
-                is_only: self.single_argument_list,
             }
             .fmt(f),
             Some(GroupedCallArgumentLayout::GroupedLastArgument) => FormatGroupedLastArgument {
@@ -595,7 +587,6 @@ struct FormatAllArgsBrokenOut<'a> {
     args: &'a [FormatCallArgument],
     r_paren: &'a dyn Format<MFormatContext>,
     expand: bool,
-    node: &'a MCallArguments,
 }
 
 impl<'a> Format<MFormatContext> for FormatAllArgsBrokenOut<'a> {
@@ -672,7 +663,7 @@ fn should_group_first_argument(
             }
 
             Ok(!comments.has_comments(first.syntax())
-                && !can_group_expression_argument(&second, false, comments)?
+                && !can_group_expression_argument(&second, comments)?
                 && is_relatively_short_argument(second))
         }
         _ => Ok(false),
@@ -697,7 +688,7 @@ fn should_group_last_argument(
                 return Ok(false);
             }
 
-            if !can_group_expression_argument(&last, false, comments)? {
+            if !can_group_expression_argument(&last, comments)? {
                 return Ok(false);
             }
 
@@ -770,7 +761,6 @@ fn is_relatively_short_argument(argument: AnyMExpression) -> bool {
 /// Checks if `argument` benefits from grouping in call arguments.
 fn can_group_expression_argument(
     argument: &AnyMExpression,
-    is_arrow_recursion: bool,
     comments: &MComments,
 ) -> SyntaxResult<bool> {
     use AnyMExpression::*;

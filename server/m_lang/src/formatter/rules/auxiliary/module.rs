@@ -1,8 +1,6 @@
 use crate::formatter::prelude::*;
 use biome_formatter::write;
 
-use crate::formatter::utils::FormatInterpreterToken;
-
 use crate::syntax::MModule;
 use crate::syntax::MModuleFields;
 

@@ -4,8 +4,7 @@
 pub(crate) use super::AsFormat;
 pub(crate) use super::IntoFormat;
 pub(crate) use super::{
-    comments::MComments, AsFormat as _, FormatNodeRule, FormattedIterExt, MFormatContext,
-    MFormatter,
+    comments::MComments, FormatNodeRule, FormattedIterExt, MFormatContext, MFormatter,
 };
 pub use biome_formatter::prelude::*;
 pub use biome_formatter::separated::TrailingSeparator;

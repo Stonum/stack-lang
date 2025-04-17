@@ -19,14 +19,11 @@ pub(crate) enum StringLiteralParentKind {
 pub(crate) struct FormatLiteralStringToken<'token> {
     /// The current token
     token: &'token MSyntaxToken,
-
-    /// The parent that holds the token
-    parent_kind: StringLiteralParentKind,
 }
 
 impl<'token> FormatLiteralStringToken<'token> {
-    pub fn new(token: &'token MSyntaxToken, parent_kind: StringLiteralParentKind) -> Self {
-        Self { token, parent_kind }
+    pub fn new(token: &'token MSyntaxToken, _parent_kind: StringLiteralParentKind) -> Self {
+        Self { token }
     }
 
     fn token(&self) -> &'token MSyntaxToken {
