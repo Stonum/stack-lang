@@ -565,7 +565,6 @@ func f() {
     fn format() {
         let src = r#"
 
-      [индлс, "Расход"] = 5;
         "#;
 
         let syntax = MFileSource::script();
