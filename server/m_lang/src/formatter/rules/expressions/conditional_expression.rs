@@ -1,6 +1,7 @@
 use crate::formatter::prelude::*;
 use crate::syntax::parentheses::NeedsParentheses;
 use biome_formatter::{write, CstFormatContext, FormatOptions};
+use biome_rowan::AstNode;
 
 use crate::syntax::{
     AnyMExpression, MAssignmentExpression, MConditionalExpression, MInitializerClause,
@@ -173,8 +174,27 @@ impl FormatMConditionalExpression {
             Some(parent) if parent.kind() == conditional.syntax().kind() => {
                 let conditional_parent = MConditionalExpression::unwrap_cast(parent);
 
-                ConditionalLayout::NestedConsequent {
-                    parent: conditional_parent,
+                // if conditional_parent.is_test(conditional.syntax()) {
+                if conditional_parent
+                    .test()
+                    .ok()
+                    .map_or(false, |resolved| resolved.syntax() == conditional.syntax())
+                {
+                    ConditionalLayout::NestedTest {
+                        parent: conditional_parent,
+                    }
+                } else if conditional_parent
+                    .alternate()
+                    .map(AstNode::into_syntax)
+                    .is_ok()
+                {
+                    ConditionalLayout::NestedAlternate {
+                        parent: conditional_parent,
+                    }
+                } else {
+                    ConditionalLayout::NestedConsequent {
+                        parent: conditional_parent,
+                    }
                 }
             }
             parent => ConditionalLayout::Root { parent },
