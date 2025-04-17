@@ -1,6 +1,5 @@
 pub(crate) mod array;
 mod assignment_like;
-mod conditional;
 pub mod string_utils;
 
 pub(crate) mod format_binary_like_expression;

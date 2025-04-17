@@ -12,7 +12,7 @@ pub(crate) struct FormatMHashSetMemberList {
     group_id: Option<GroupId>,
 }
 
-impl_format!(MHashSetMemberList, FormatMHashSetMemberList);
+impl_format_with_rule!(MHashSetMemberList, FormatMHashSetMemberList);
 impl FormatRuleWithOptions<MHashSetMemberList> for FormatMHashSetMemberList {
     type Options = Option<GroupId>;
 
@@ -22,10 +22,8 @@ impl FormatRuleWithOptions<MHashSetMemberList> for FormatMHashSetMemberList {
     }
 }
 
-impl FormatRule<MHashSetMemberList> for FormatMHashSetMemberList {
-    type Context = MFormatContext;
-
-    fn fmt(&self, node: &MHashSetMemberList, f: &mut MFormatter) -> FormatResult<()> {
+impl FormatNodeRule<MHashSetMemberList> for FormatMHashSetMemberList {
+    fn fmt_fields(&self, node: &MHashSetMemberList, f: &mut MFormatter) -> FormatResult<()> {
         let layout = if can_concisely_print_array_list(node, f.context().comments()) {
             ArrayLayout::Fill
         } else {
