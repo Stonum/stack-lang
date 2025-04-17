@@ -24,7 +24,9 @@ impl FormatNodeRule<MWhileStatement> for FormatMWhileStatement {
             [group(&format_args![
                 while_token.format(),
                 l_paren_token.format(),
+                space(),
                 group(&soft_block_indent(&test.format())),
+                space(),
                 r_paren_token.format(),
                 FormatStatementBody::new(&body?)
             ])]

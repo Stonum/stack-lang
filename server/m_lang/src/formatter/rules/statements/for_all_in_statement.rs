@@ -31,11 +31,13 @@ impl FormatNodeRule<MForAllInStatement> for FormatMForAllInStatement {
             [group(&format_args!(
                 forall_token,
                 l_paren_token.format(),
+                space(),
                 initializer,
                 space(),
                 in_token,
                 space(),
                 expression,
+                space(),
                 r_paren_token.format(),
                 FormatStatementBody::new(&body?)
             ))]
