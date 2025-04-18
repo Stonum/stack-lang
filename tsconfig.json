@@ -1,6 +1,6 @@
 {
    "compilerOptions": {
-      "module": "commonM",
+      "module": "commonjs",
       "target": "es2020",
       "lib": [
          "es2020"

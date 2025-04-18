@@ -24,7 +24,8 @@ use biome_rowan::TextRange;
 use biome_rowan::{AstNode, SyntaxNode};
 
 use comments::MCommentStyle;
-pub(crate) use context::{MFormatContext, MFormatOptions};
+pub(crate) use context::MFormatContext;
+pub use context::MFormatOptions;
 use cst::FormatMSyntaxNode;
 use syntax_rewriter::transform;
 
@@ -306,7 +307,7 @@ impl FormatLanguage for MFormatLanguage {
     }
 
     fn is_range_formatting_node(&self, node: &MSyntaxNode) -> bool {
-        let kind = node.kind();
+        let kind = dbg!(node.kind());
 
         // Do not format variable declaration nodes, format the whole statement instead
         if matches!(kind, MSyntaxKind::M_VARIABLE_DECLARATION) {
