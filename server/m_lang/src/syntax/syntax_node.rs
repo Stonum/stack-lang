@@ -15,3 +15,4 @@ pub type MSyntaxElement = biome_rowan::SyntaxElement<MLanguage>;
 pub type MSyntaxNodeChildren = biome_rowan::SyntaxNodeChildren<MLanguage>;
 pub type MSyntaxElementChildren = biome_rowan::SyntaxElementChildren<MLanguage>;
 pub type MSyntaxList = biome_rowan::SyntaxList<MLanguage>;
+pub type MSyntaxTrivia = biome_rowan::syntax::SyntaxTrivia<MLanguage>;

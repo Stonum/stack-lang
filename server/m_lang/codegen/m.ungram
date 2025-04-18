@@ -729,7 +729,7 @@ MSpread =
 // Reference to an identifier from the lexical scope
 MReferenceIdentifier = value: 'ident'
 
-// A js identifier that is neither a binding, assignment, nor a reference.
+// A  identifier that is neither a binding, assignment, nor a reference.
 // For example a member name
 MName = value: 'ident'
 

@@ -3,23 +3,24 @@ use std::ops::Deref;
 use std::path::PathBuf;
 
 use log::error;
-use log::info;
 
 use ini::Ini;
 
 use biome_diagnostics::diagnostic::Diagnostic as _;
 use dashmap::DashMap;
+
 use ropey::Rope;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use m_lang::{
+    formatter::{format_range, MFormatOptions},
     parser::parse,
     semantic::{identifier_for_offset, semantics, Definition, SemanticModel},
     syntax::MFileSource,
 };
 
-use stack_lang_server::{document::Document, position};
+use stack_lang_server::{document::Document, position, text_range};
 use tokio::runtime::Handle;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::notification::Notification;
@@ -57,7 +58,7 @@ impl LanguageServer for Backend {
                 definition_provider: Some(OneOf::Left(true)),
                 document_symbol_provider: Some(OneOf::Left(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
-                // document_range_formatting_provider: Some(OneOf::Left(true)),
+                document_range_formatting_provider: Some(OneOf::Left(true)),
                 ..ServerCapabilities::default()
             },
         })
@@ -384,12 +385,38 @@ impl LanguageServer for Backend {
         &self,
         params: DocumentRangeFormattingParams,
     ) -> Result<Option<Vec<TextEdit>>> {
-        self.client
-            .log_message(MessageType::INFO, "formatting triggered!")
-            .await;
+        let edited = async {
+            let DocumentRangeFormattingParams {
+                text_document,
+                range,
+                ..
+            } = params;
 
-        info!("range_formatting {:?}", params);
-        Ok(None)
+            let uri = text_document.uri;
+            let document = self
+                .document_map
+                .get(&uri.to_file_path().unwrap_or_default())?;
+
+            let text = document.text();
+            let parsed = parse(&text.to_string(), MFileSource::script());
+            let formatted_text = format_range(
+                MFormatOptions::new(MFileSource::script()),
+                &parsed.syntax(),
+                text_range(&text, range)?,
+            )
+            .ok()?;
+
+            let range = formatted_text.range()?;
+            let range = position(&text, range)?;
+            let new_text = formatted_text.into_code();
+
+            let edits = vec![TextEdit { range, new_text }];
+
+            Some(edits)
+        }
+        .await;
+
+        Ok(edited)
     }
 }
 #[derive(Debug, Deserialize, Serialize)]

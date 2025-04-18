@@ -154,7 +154,7 @@ impl<'src> Lexer<'src> for MLexer<'src> {
     }
 
     fn rewind(&mut self, checkpoint: LexerCheckpoint<Self::Kind>) {
-        // test_err js js_rewind_at_eof_token
+        // test_err M M_rewind_at_eof_token
         // (([zAgRvz=[=(e{V{
 
         let LexerCheckpoint {
@@ -758,7 +758,7 @@ impl<'src> MLexer<'src> {
                 "func" | "функция" => FUNCTION_KW,
                 "get" | "получить" => GET_KW,
                 "if" | "если" => IF_KW,
-                "in"=> IN_KW,
+                "in" => IN_KW,
                 "в" => IN2_KW,
                 "входитв" => INCLUDE_IN_KW,
                 "new" | "новый" => NEW_KW,
