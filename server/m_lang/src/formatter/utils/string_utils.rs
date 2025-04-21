@@ -38,7 +38,9 @@ impl<'token> FormatLiteralStringToken<'token> {
             token.kind()
         );
 
-        let content: Cow<'token, str> = Cow::Borrowed(self.token().text_trimmed());
+        let mut string_cleaner = LiteralStringNormaliser::new(self);
+
+        let content = string_cleaner.normalise_text();
         let normalized_text_width = content.len();
 
         CleanedStringLiteralText {
@@ -80,5 +82,100 @@ impl Format<MFormatContext> for FormatLiteralStringToken<'_> {
         let cleaned = self.clean_text();
 
         cleaned.fmt(f)
+    }
+}
+
+/// Struct of convenience used to manipulate the string. It saves some state in order to apply
+/// the normalise process.
+struct LiteralStringNormaliser<'token> {
+    /// The current token
+    token: &'token FormatLiteralStringToken<'token>,
+}
+
+impl<'token> LiteralStringNormaliser<'token> {
+    pub fn new(token: &'token FormatLiteralStringToken<'_>) -> Self {
+        Self { token }
+    }
+
+    fn normalise_text(&mut self) -> Cow<'token, str> {
+        let polished_raw_content = self.normalize_string();
+        let preferred_quote = self.preferred_quote();
+
+        match polished_raw_content {
+            Cow::Borrowed(raw_content) => self.swap_quotes(raw_content, preferred_quote),
+            Cow::Owned(mut s) => {
+                // content is owned, meaning we allocated a new string,
+                // so we force replacing quotes, regardless
+                s.insert(0, preferred_quote);
+                s.push(preferred_quote);
+                Cow::Owned(s)
+            }
+        }
+    }
+
+    fn get_token(&self) -> &'token MSyntaxToken {
+        self.token.token()
+    }
+
+    fn normalize_string(&self) -> Cow<'token, str> {
+        let raw_content = self.raw_content();
+        let mut reduced_string = String::new();
+        let mut copy_start = 0;
+        let mut bytes = raw_content.bytes().enumerate();
+
+        while let Some((byte_index, byte)) = bytes.next() {
+            match byte {
+                // If the next character is escaped
+                b'\\' => {
+                    if let Some((escaped_index, escaped)) = bytes.next() {
+                        if escaped == b'\r' {
+                            // If we encounter the sequence "\r\n", then skip '\r'
+                            if let Some((next_byte_index, b'\n')) = bytes.next() {
+                                reduced_string.push_str(&raw_content[copy_start..escaped_index]);
+                                copy_start = next_byte_index;
+                            }
+                        }
+                    }
+                }
+                // If we encounter the sequence "\r\n", then skip '\r'
+                b'\r' => {
+                    if let Some((next_byte_index, b'\n')) = bytes.next() {
+                        reduced_string.push_str(&raw_content[copy_start..byte_index]);
+                        copy_start = next_byte_index;
+                    }
+                }
+                _ => {}
+            }
+        }
+        if copy_start == 0 && reduced_string.is_empty() {
+            Cow::Borrowed(raw_content)
+        } else {
+            // Copy the remaining characters
+            reduced_string.push_str(&raw_content[copy_start..]);
+            Cow::Owned(reduced_string)
+        }
+    }
+
+    /// Returns the string without its quotes.
+    fn raw_content(&self) -> &'token str {
+        let content = self.get_token().text_trimmed();
+        &content[1..content.len() - 1]
+    }
+
+    fn preferred_quote(&self) -> char {
+        let content = self.get_token().text_trimmed();
+        content.chars().next().unwrap_or('"')
+    }
+
+    fn swap_quotes(&self, content_to_use: &'token str, preferred_quote: char) -> Cow<'token, str> {
+        let original = self.get_token().text_trimmed();
+
+        if original.starts_with(preferred_quote) {
+            Cow::Borrowed(original)
+        } else {
+            Cow::Owned(std::format!(
+                "{preferred_quote}{content_to_use}{preferred_quote}",
+            ))
+        }
     }
 }
