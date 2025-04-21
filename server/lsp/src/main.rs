@@ -14,13 +14,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use m_lang::{
-    formatter::{format_range, MFormatOptions},
     parser::parse,
     semantic::{identifier_for_offset, semantics, Definition, SemanticModel},
     syntax::MFileSource,
 };
 
-use stack_lang_server::{document::Document, position, text_range};
+use stack_lang_server::{document::Document, format::format, position};
 use tokio::runtime::Handle;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::notification::Notification;
@@ -389,6 +388,7 @@ impl LanguageServer for Backend {
             let DocumentRangeFormattingParams {
                 text_document,
                 range,
+                options,
                 ..
             } = params;
 
@@ -397,22 +397,7 @@ impl LanguageServer for Backend {
                 .document_map
                 .get(&uri.to_file_path().unwrap_or_default())?;
 
-            let text = document.text();
-            let parsed = parse(&text.to_string(), MFileSource::script());
-            let formatted_text = format_range(
-                MFormatOptions::new(MFileSource::script()),
-                &parsed.syntax(),
-                text_range(&text, range)?,
-            )
-            .ok()?;
-
-            let range = formatted_text.range()?;
-            let range = position(&text, range)?;
-            let new_text = formatted_text.into_code();
-
-            let edits = vec![TextEdit { range, new_text }];
-
-            Some(edits)
+            format(document.text(), options, range).await
         }
         .await;
 

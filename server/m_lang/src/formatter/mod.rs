@@ -20,6 +20,7 @@ use biome_formatter::{
     TransformSourceMap,
 };
 use biome_formatter::{Buffer, FormatOwnedWithRule, FormatRefWithRule, Formatted, Printed};
+pub use biome_formatter::{IndentStyle, IndentWidth, LineWidth};
 use biome_rowan::TextRange;
 use biome_rowan::{AstNode, SyntaxNode};
 
@@ -307,7 +308,7 @@ impl FormatLanguage for MFormatLanguage {
     }
 
     fn is_range_formatting_node(&self, node: &MSyntaxNode) -> bool {
-        let kind = dbg!(node.kind());
+        let kind = node.kind();
 
         // Do not format variable declaration nodes, format the whole statement instead
         if matches!(kind, MSyntaxKind::M_VARIABLE_DECLARATION) {
@@ -565,11 +566,15 @@ func f() {
     #[test]
     fn format() {
         let src = r#"
+   Перем sel = Query(`SELECT "Значение" FROM ~Значения параметров~ zp
+                        JOIN ~Параметры~ p on p."row_id" = zp."Параметр-Значения"
+                                             and p."Имя" =:1
+                       WHERE "Ном-Параметры"=:2 `,10, "p1,A,p2,S");
 
         "#;
 
         let syntax = MFileSource::script();
-        let tree = dbg!(parse(src, syntax));
+        let tree = dbg!(parse(dbg!(src), syntax));
 
         let doc = format_node(
             MFormatOptions::new(syntax)
