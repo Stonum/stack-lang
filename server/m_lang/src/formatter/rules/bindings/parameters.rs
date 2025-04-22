@@ -61,7 +61,7 @@ impl Format<MFormatContext> for FormatAnyMParameters {
             }
             ParameterLayout::Hug => {
                 if !parentheses_not_needed {
-                    write!(f, [l_paren_token.format()])?;
+                    write!(f, [l_paren_token.format(), space()])?;
                 } else {
                     write!(f, [format_removed(&l_paren_token)])?;
                 }
@@ -75,7 +75,7 @@ impl Format<MFormatContext> for FormatAnyMParameters {
                 )?;
 
                 if !parentheses_not_needed {
-                    write!(f, [&r_paren_token.format()])?;
+                    write!(f, [space(), &r_paren_token.format()])?;
                 } else {
                     write!(f, [format_removed(&r_paren_token)])?;
                 }
@@ -84,7 +84,7 @@ impl Format<MFormatContext> for FormatAnyMParameters {
             }
             ParameterLayout::Default => {
                 if !parentheses_not_needed {
-                    write!(f, [l_paren_token.format()])?;
+                    write!(f, [l_paren_token.format(), space()])?;
                 } else {
                     write!(f, [format_removed(&l_paren_token)])?;
                 }
@@ -98,7 +98,7 @@ impl Format<MFormatContext> for FormatAnyMParameters {
                 )?;
 
                 if !parentheses_not_needed {
-                    write!(f, [r_paren_token.format()])?;
+                    write!(f, [space(), r_paren_token.format()])?;
                 } else {
                     write!(f, [format_removed(&r_paren_token)])?;
                 }

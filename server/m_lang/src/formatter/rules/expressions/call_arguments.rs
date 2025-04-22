@@ -595,6 +595,7 @@ impl<'a> Format<MFormatContext> for FormatAllArgsBrokenOut<'a> {
             f,
             [group(&format_args![
                 self.l_paren,
+                space(),
                 soft_block_indent(&format_with(|f| {
                     for (index, entry) in self.args.iter().enumerate() {
                         if index > 0 {
@@ -611,6 +612,7 @@ impl<'a> Format<MFormatContext> for FormatAllArgsBrokenOut<'a> {
 
                     Ok(())
                 })),
+                space(),
                 self.r_paren,
             ])
             .should_expand(self.expand)]

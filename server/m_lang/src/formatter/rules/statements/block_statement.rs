@@ -22,9 +22,9 @@ impl FormatNodeRule<MBlockStatement> for FormatMBlockStatement {
         let l_curly_token = l_curly_token?;
         let r_curly_token = r_curly_token?;
 
-        let is_single_statement = is_single_statement_block(node);
+        let is_expression_single_statement = is_single_expression_statement(node);
 
-        if !is_single_statement {
+        if !is_expression_single_statement {
             write!(f, [l_curly_token.format()])?;
         } else {
             write!(f, [format_removed(&l_curly_token)])?;
@@ -57,7 +57,7 @@ impl FormatNodeRule<MBlockStatement> for FormatMBlockStatement {
             write!(f, [block_indent(&statements.format())])?;
         }
 
-        if !is_single_statement {
+        if !is_expression_single_statement {
             write!(f, [r_curly_token.format()])
         } else {
             write!(f, [format_removed(&r_curly_token)])
@@ -104,12 +104,12 @@ fn is_empty_block(block: &MBlockStatement, comments: &MComments) -> bool {
         })
 }
 
-fn is_single_statement_block(block: &MBlockStatement) -> bool {
+fn is_single_expression_statement(block: &MBlockStatement) -> bool {
     block.statements().len() == 1
-        && !block
+        && block
             .statements()
             .iter()
-            .all(|s| matches!(s, AnyMStatement::MEmptyStatement(_)))
+            .all(|s| matches!(s, AnyMStatement::MExpressionStatement(_)))
 }
 
 // Formatting of curly braces for an:

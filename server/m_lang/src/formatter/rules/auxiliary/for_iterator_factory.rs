@@ -26,6 +26,7 @@ impl FormatNodeRule<MForIteratorFactory> for FormatMForIteratorFactory {
                 l_paren_token.format(),
                 expression,
                 comma_token.format(),
+                space(),
                 initializer,
                 r_paren_token.format()
             ))]

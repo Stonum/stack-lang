@@ -58,11 +58,11 @@ impl Format<MFormatContext> for FormatTrailingCommas {
 )]
 pub enum TrailingCommas {
     /// Trailing commas wherever possible (including function parameters and calls).
-    #[default]
     All,
     /// Trailing commas where valid in ES5 (objects, arrays, etc.). No trailing commas in type parameters in TypeScript.
     Es5,
     /// No trailing commas.
+    #[default]
     None,
 }
 
