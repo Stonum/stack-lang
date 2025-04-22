@@ -15,6 +15,9 @@ impl FormatNodeRule<MFinallyClause> for FormatMFinallyClause {
             body,
         } = node.as_fields();
 
-        write![f, [finally_token.format(), space(), body.format()]]
+        write![
+            f,
+            [finally_token.format(), hard_line_break(), body.format()]
+        ]
     }
 }

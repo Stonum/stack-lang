@@ -21,6 +21,6 @@ impl FormatNodeRule<MCatchClause> for FormatMCatchClause {
             write![f, [declaration.format()]]?;
         }
 
-        write!(f, [space(), body.format()])
+        write!(f, [hard_line_break(), body.format()])
     }
 }

@@ -20,9 +20,9 @@ impl FormatNodeRule<MTryStatement> for FormatMTryStatement {
             f,
             [
                 try_token.format(),
-                space(),
+                hard_line_break(),
                 body.format(),
-                space(),
+                hard_line_break(),
                 catch_clause.format(),
             ]
         ]

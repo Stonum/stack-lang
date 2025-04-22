@@ -17,12 +17,12 @@ impl FormatNodeRule<MTryFinallyStatement> for FormatMTryFinallyStatement {
             finally_clause,
         } = node.as_fields();
 
-        write![f, [try_token.format(), space(), body.format()]]?;
+        write![f, [try_token.format(), hard_line_break(), body.format()]]?;
 
         if let Some(catch_clause) = catch_clause {
-            write!(f, [space(), catch_clause.format()])?;
+            write!(f, [hard_line_break(), catch_clause.format()])?;
         }
 
-        write!(f, [space(), finally_clause.format()])
+        write!(f, [hard_line_break(), finally_clause.format()])
     }
 }
