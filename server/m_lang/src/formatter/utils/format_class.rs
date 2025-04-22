@@ -77,6 +77,13 @@ impl Format<MFormatContext> for FormatClass<'_> {
             write!(f, [head, format_heritage_clauses, space()])?;
         }
 
+        if let Some(doc_string) = self.class.doc_string() {
+            write!(
+                f,
+                [hard_line_break(), doc_string.format(), hard_line_break()]
+            )?;
+        }
+
         if members.is_empty() {
             write!(
                 f,

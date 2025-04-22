@@ -33,7 +33,9 @@ impl FormatNodeRule<MSetterClassMember> for FormatMSetterClassMember {
                 parameter.format(),
                 comma_token.format(),
                 r_paren_token.format(),
+                hard_line_break(),
                 doc_string.format(),
+                hard_line_break(),
                 body.format(),
             ]
         ]

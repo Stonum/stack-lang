@@ -130,7 +130,10 @@ impl FormatFunction {
         )?;
 
         if let Some(doc_string) = self.doc_string() {
-            write!(f, [doc_string.format()])?;
+            write!(
+                f,
+                [hard_line_break(), doc_string.format(), hard_line_break()]
+            )?;
         }
 
         if let Some(body) = self.body()? {

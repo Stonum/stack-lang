@@ -15,9 +15,9 @@ pub async fn format(
     options: FormattingOptions,
     range: Range,
 ) -> Option<Vec<TextEdit>> {
-    let parsed = parse(&text.to_string(), MFileSource::script());
+    let parsed = parse(&text.to_string(), MFileSource::module());
 
-    let format_options = MFormatOptions::new(MFileSource::script())
+    let format_options = MFormatOptions::new(MFileSource::module())
         .with_indent_style(match options.insert_spaces {
             true => IndentStyle::Space,
             false => IndentStyle::Tab,

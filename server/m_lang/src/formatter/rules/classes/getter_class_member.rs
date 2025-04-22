@@ -29,7 +29,9 @@ impl FormatNodeRule<MGetterClassMember> for FormatMGetterClassMember {
                 name.format(),
                 l_paren_token.format(),
                 r_paren_token.format(),
+                hard_line_break(),
                 doc_string.format(),
+                hard_line_break(),
                 body.format()
             ]
         ]

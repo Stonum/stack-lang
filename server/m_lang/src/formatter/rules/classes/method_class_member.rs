@@ -1,11 +1,11 @@
 use crate::formatter::prelude::*;
 
 use crate::formatter::utils::object::AnyMMemberName;
-use crate::syntax::MMethodClassMember;
 use crate::syntax::{
     AnyMClassMemberName, MConstructorClassMember, MConstructorParameters, MFunctionBody,
     MParameters,
 };
+use crate::syntax::{AnyMStringLiteralExpression, MMethodClassMember};
 use biome_formatter::write;
 use biome_rowan::{declare_node_union, SyntaxResult};
 
@@ -39,6 +39,13 @@ impl Format<MFormatContext> for FormatAnyMMethodMember {
             }))]
         )?;
 
+        if let Some(doc_string) = self.doc_string() {
+            write!(
+                f,
+                [hard_line_break(), doc_string.format(), hard_line_break()]
+            )?;
+        }
+
         if let Some(body) = self.body()? {
             write!(f, [body.format()])?;
         }
@@ -62,6 +69,13 @@ impl FormatAnyMMethodMember {
             FormatAnyMMethodMember::MMethodClassMember(member) => member.parameters()?.into(),
             FormatAnyMMethodMember::MConstructorClassMember(member) => member.parameters()?.into(),
         })
+    }
+
+    fn doc_string(&self) -> Option<AnyMStringLiteralExpression> {
+        match self {
+            FormatAnyMMethodMember::MMethodClassMember(member) => member.doc_string(),
+            FormatAnyMMethodMember::MConstructorClassMember(member) => member.doc_string(),
+        }
     }
 
     fn body(&self) -> SyntaxResult<Option<MFunctionBody>> {
