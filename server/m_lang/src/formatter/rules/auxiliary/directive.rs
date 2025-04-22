@@ -1,5 +1,5 @@
 use crate::formatter::prelude::*;
-use crate::formatter::utils::{FormatLiteralStringToken, StringLiteralParentKind};
+use biome_formatter::token::number::format_number_token;
 use biome_formatter::write;
 
 use crate::syntax::MDirective;
@@ -19,8 +19,9 @@ impl FormatNodeRule<MDirective> for FormatMDirective {
         write!(
             f,
             [
-                FormatLiteralStringToken::new(&version_token?, StringLiteralParentKind::Directive),
-                FormatLiteralStringToken::new(&value_token?, StringLiteralParentKind::Directive)
+                version_token.format(),
+                space(),
+                format_number_token(&value_token?)
             ]
         )
     }
