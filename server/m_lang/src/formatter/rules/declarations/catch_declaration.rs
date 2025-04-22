@@ -46,7 +46,9 @@ impl FormatNodeRule<MCatchDeclaration> for FormatMCatchDeclaration {
                 f,
                 [
                     l_paren_token.format(),
+                    space(),
                     binding.format(),
+                    space(),
                     r_paren_token.format()
                 ]
             )
