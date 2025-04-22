@@ -21,6 +21,7 @@ impl FormatNodeRule<MElseClause> for FormatMElseClause {
         write!(
             f,
             [
+                hard_line_break(),
                 else_token.format(),
                 group(&FormatStatementBody::new(&alternate))
             ]

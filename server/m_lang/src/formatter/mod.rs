@@ -401,6 +401,7 @@ mod tests {
     use super::format_range;
 
     use super::context::MFormatOptions;
+    use crate::formatter::context::TrailingCommas;
     use crate::parser::parse;
     use crate::syntax::MFileSource;
     use biome_formatter::{IndentStyle, IndentWidth, LineWidth};
@@ -566,14 +567,14 @@ func f() {
     #[test]
     fn format() {
         let src = r#"
-   Перем sel = Query(`SELECT "Значение" FROM ~Значения параметров~ zp
-                        JOIN ~Параметры~ p on p."row_id" = zp."Параметр-Значения"
-                                             and p."Имя" =:1
-                       WHERE "Ном-Параметры"=:2 `,10, "p1,A,p2,S");
-
+          if( true ) {
+        call();
+    }  else {
+      call();
+    }
         "#;
 
-        let syntax = MFileSource::script();
+        let syntax = MFileSource::module();
         let tree = dbg!(parse(dbg!(src), syntax));
 
         let doc = format_node(

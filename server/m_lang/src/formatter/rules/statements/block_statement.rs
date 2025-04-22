@@ -1,5 +1,5 @@
 use crate::formatter::prelude::*;
-use crate::syntax::MBlockStatement;
+use crate::syntax::{AnyMExpression, MBlockStatement, MIfStatement};
 use crate::syntax::{AnyMStatement, MEmptyStatement};
 use biome_formatter::{write, Buffer, CstFormatContext};
 
@@ -22,13 +22,7 @@ impl FormatNodeRule<MBlockStatement> for FormatMBlockStatement {
         let l_curly_token = l_curly_token?;
         let r_curly_token = r_curly_token?;
 
-        let need_remove_curly = is_single_expression_statement(node) && !is_try_catch_parent(node);
-
-        if !need_remove_curly {
-            write!(f, [l_curly_token.format()])?;
-        } else {
-            write!(f, [format_removed(&l_curly_token)])?;
-        }
+        write!(f, [l_curly_token.format()])?;
 
         let comments = f.context().comments();
         if is_empty_block(node, comments) {
@@ -49,19 +43,11 @@ impl FormatNodeRule<MBlockStatement> for FormatMBlockStatement {
             } else if is_non_collapsible(node) {
                 write!(f, [hard_line_break()])?;
             }
-        }
-        //if is_single_statement_block(node) {
-
-        // }
-        else {
+        } else {
             write!(f, [block_indent(&statements.format())])?;
         }
 
-        if !need_remove_curly {
-            write!(f, [r_curly_token.format()])
-        } else {
-            write!(f, [format_removed(&r_curly_token)])
-        }
+        write!(f, [r_curly_token.format()])
     }
 
     fn fmt_dangling_comments(&self, _: &MBlockStatement, _: &mut MFormatter) -> FormatResult<()> {
@@ -102,26 +88,6 @@ fn is_empty_block(block: &MBlockStatement, comments: &MComments) -> bool {
                 && !comments.has_comments(s.syntax())
                 && !comments.is_suppressed(s.syntax())
         })
-}
-
-fn is_single_expression_statement(block: &MBlockStatement) -> bool {
-    block.statements().len() == 1
-        && block
-            .statements()
-            .iter()
-            .all(|s| matches!(s, AnyMStatement::MExpressionStatement(_)))
-}
-
-fn is_try_catch_parent(block: &MBlockStatement) -> bool {
-    let parent = block.syntax().parent();
-    match parent.kind() {
-        Some(
-            MSyntaxKind::M_TRY_STATEMENT
-            | MSyntaxKind::M_TRY_FINALLY_STATEMENT
-            | MSyntaxKind::M_CATCH_CLAUSE,
-        ) => true,
-        _ => false,
-    }
 }
 
 // Formatting of curly braces for an:
