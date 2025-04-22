@@ -136,13 +136,10 @@ impl FormatFunction {
         if let Some(body) = self.body()? {
             write!(
                 f,
-                [
-                    space(),
-                    FormatMaybeCachedFunctionBody {
-                        body: &body.into(),
-                        mode: options.body_cache_mode
-                    }
-                ]
+                [FormatMaybeCachedFunctionBody {
+                    body: &body.into(),
+                    mode: options.body_cache_mode
+                }]
             )?;
         }
 

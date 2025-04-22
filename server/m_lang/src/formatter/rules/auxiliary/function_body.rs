@@ -23,6 +23,7 @@ impl FormatNodeRule<MFunctionBody> for FormatMFunctionBody {
             write!(
                 f,
                 [
+                    space(),
                     l_curly_token.format(),
                     format_dangling_comments(node.syntax()).with_block_indent(),
                     r_curly_token.format()
@@ -32,6 +33,7 @@ impl FormatNodeRule<MFunctionBody> for FormatMFunctionBody {
             write!(
                 f,
                 [
+                    hard_line_break(),
                     l_curly_token.format(),
                     block_indent(&format_args![directives.format(), statements.format()]),
                     r_curly_token.format(),

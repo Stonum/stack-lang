@@ -40,7 +40,7 @@ impl Format<MFormatContext> for FormatAnyMMethodMember {
         )?;
 
         if let Some(body) = self.body()? {
-            write!(f, [space(), body.format()])?;
+            write!(f, [body.format()])?;
         }
 
         Ok(())

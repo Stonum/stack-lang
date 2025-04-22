@@ -90,6 +90,7 @@ impl Format<MFormatContext> for FormatClass<'_> {
             write![
                 f,
                 [
+                    hard_line_break(),
                     self.class.l_curly_token().format(),
                     block_indent(&members.format()),
                     self.class.r_curly_token().format()
