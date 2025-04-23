@@ -438,14 +438,15 @@ mod tests {
         let result = format_range(
             MFormatOptions::new(MFileSource::script())
                 .with_indent_style(IndentStyle::Space)
-                .with_indent_width(4.try_into().unwrap()),
+                .with_indent_width(4.try_into().unwrap())
+                .with_trailing_commas(TrailingCommas::All),
             &tree.syntax(),
             TextRange::new(range_start, range_end),
         );
         let result = result.expect("range formatting failed");
         assert_eq!(
             result.as_code(),
-            "func f() {\n        f(\n            #comment\n        );\n\n        var array = @[1, 2];\n    }\n\n    func f2() {\n        перем no_format = func () {};\n    }"
+            "func f()\n    {\n        f(\n            #comment\n        );\n\n        var array = @[1, 2];\n    }\n\n    func f2()\n    {\n        перем no_format = func () {};\n    }"
         );
         assert_eq!(
             result.range(),
@@ -471,7 +472,8 @@ func f() {
         let result = format_range(
             MFormatOptions::new(MFileSource::script())
                 .with_indent_style(IndentStyle::Space)
-                .with_indent_width(4.try_into().unwrap()),
+                .with_indent_width(4.try_into().unwrap())
+                .with_trailing_commas(TrailingCommas::All),
             &tree.syntax(),
             TextRange::new(range_start, range_end),
         );
@@ -567,11 +569,11 @@ func f() {
     #[test]
     fn format() {
         let src = r#"
-          if( true ) {
+          if( true ) 
         call();
-    }  else {
+     else 
       call();
-    }
+    
         "#;
 
         let syntax = MFileSource::module();

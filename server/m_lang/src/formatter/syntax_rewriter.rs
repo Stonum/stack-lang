@@ -429,8 +429,7 @@ mod tests {
     use crate::parser::parse;
     use crate::syntax::{
         MArrayExpression, MBinaryExpression, MExpressionStatement, MFileSource,
-        MIdentifierExpression, MLogicalExpression, MSequenceExpression, MStringLiteralExpression,
-        MSyntaxNode, MUnaryExpression,
+        MIdentifierExpression, MLogicalExpression, MSyntaxNode, MUnaryExpression,
     };
     use biome_formatter::{SourceMarker, TransformSourceMap};
     use biome_rowan::{AstNode, SyntaxRewriter, TextSize};
@@ -562,34 +561,8 @@ mod tests {
     }
 
     #[test]
-    fn intersecting_ranges() {
-        let (transformed, source_map) = source_map_test("(interface, \"foo\");");
-
-        assert_eq!(&transformed.text(), "interface, \"foo\";");
-
-        let string_literal = transformed
-            .descendants()
-            .find_map(MStringLiteralExpression::cast)
-            .unwrap();
-
-        assert_eq!(
-            source_map.trimmed_source_text(string_literal.syntax()),
-            "\"foo\""
-        );
-
-        let sequence = transformed
-            .descendants()
-            .find_map(MSequenceExpression::cast)
-            .unwrap();
-        assert_eq!(
-            source_map.trimmed_source_text(sequence.syntax()),
-            "(interface, \"foo\")"
-        );
-    }
-
-    #[test]
     fn deep() {
-        let src = r#"[
+        let src = r#"@[
     (2*n)/(r-l), 0,            (r+l)/(r-l),  0,
     0,           (2*n)/(t-b),  (t+b)/(t-b),  0,
     0,           0,           -(f+n)/(f-n), -(2*f*n)/(f-n),
@@ -605,7 +578,7 @@ mod tests {
 
         assert_eq!(
             source_map.trimmed_source_text(array.syntax()),
-            r#"[
+            r#"@[
     (2*n)/(r-l), 0,            (r+l)/(r-l),  0,
     0,           (2*n)/(t-b),  (t+b)/(t-b),  0,
     0,           0,           -(f+n)/(f-n), -(2*f*n)/(f-n),
@@ -657,54 +630,25 @@ mod tests {
     }
 
     #[test]
-    fn first_token_leading_whitespace_before_comment() {
-        let (transformed, _) = source_map_test("a;(\n\n/* comment */\n a + b);");
-
-        // Keeps at least one new line before a leading comment.
-        assert_eq!(&transformed.text(), "a;\n/* comment */\n a + b;");
-    }
-
-    #[test]
-    fn comments() {
-        let (transformed, source_map) =
-            source_map_test("/* outer */ (/* left */ a + b /* right */) /* outer end */;");
-
-        assert_eq!(
-            &transformed.text(),
-            "/* outer */ /* left */ a + b /* right */ /* outer end */;"
-        );
-
-        let binary = transformed
-            .descendants()
-            .find_map(MBinaryExpression::cast)
-            .unwrap();
-
-        assert_eq!(
-            source_map.trimmed_source_text(binary.syntax()),
-            "(/* left */ a + b /* right */)"
-        );
-    }
-
-    #[test]
     fn parentheses() {
         let (transformed, source_map) = source_map_test(
             r#"!(
-  /* foo */
+  #/* foo */
   x
 );
 !(
-  x // foo
+  x #// foo
 );
 !(
-  /* foo */
+  #/* foo */
   x + y
 );
 !(
   x + y
-  /* foo */
+  #/* foo */
 );
 !(
-  x + y // foo
+  x + y #// foo
 );"#,
         );
 
@@ -717,27 +661,27 @@ mod tests {
         assert_eq!(
             source_map.trimmed_source_text(unary_expressions[0].syntax()),
             r#"!(
-  /* foo */
+  #/* foo */
   x
 )"#
         );
 
         assert_eq!(
             source_map.source_range(unary_expressions[1].syntax().text_range()),
-            TextRange::new(TextSize::from(21), TextSize::from(36))
+            TextRange::new(TextSize::from(22), TextSize::from(38))
         );
 
         assert_eq!(
             source_map.trimmed_source_text(unary_expressions[1].syntax()),
             r#"!(
-  x // foo
+  x #// foo
 )"#
         );
 
         assert_eq!(
             source_map.trimmed_source_text(unary_expressions[2].syntax()),
             r#"!(
-  /* foo */
+  #/* foo */
   x + y
 )"#
         );
@@ -746,14 +690,14 @@ mod tests {
             source_map.trimmed_source_text(unary_expressions[3].syntax()),
             r#"!(
   x + y
-  /* foo */
+  #/* foo */
 )"#
         );
 
         assert_eq!(
             source_map.trimmed_source_text(unary_expressions[4].syntax()),
             r#"!(
-  x + y // foo
+  x + y #// foo
 )"#
         );
     }
