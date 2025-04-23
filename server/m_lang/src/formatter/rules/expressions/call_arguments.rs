@@ -1,5 +1,6 @@
 use crate::formatter::context::trailing_commas::FormatTrailingCommas;
 use crate::formatter::prelude::*;
+
 use crate::formatter::rules::bindings::parameters::has_only_simple_parameters;
 use crate::formatter::rules::declarations::function_declaration::FormatFunctionOptions;
 use crate::formatter::rules::lists::array_element_list::can_concisely_print_array_list;
@@ -9,7 +10,7 @@ use crate::formatter::utils::{is_long_curried_call, write_arguments_multi_line};
 use crate::syntax::{
     AnyMCallArgument, AnyMExpression, MBinaryExpressionFields, MCallArgumentList, MCallArguments,
     MCallArgumentsFields, MCallExpression, MFunctionExpression, MLanguage,
-    MLogicalExpressionFields,
+    MLogicalExpressionFields, MLongStringLiteralExpression, MStringLiteralExpression,
 };
 use biome_formatter::{format_args, format_element, write, VecBuffer};
 use biome_rowan::{AstSeparatedElement, AstSeparatedList, SyntaxResult};
@@ -41,6 +42,7 @@ impl FormatNodeRule<MCallArguments> for FormatMCallArguments {
 
         let last_index = args.len().saturating_sub(1);
         let mut has_empty_line = false;
+        let mut first_is_string = false;
 
         let arguments: Vec<_> = args
             .elements()
@@ -50,6 +52,13 @@ impl FormatNodeRule<MCallArguments> for FormatMCallArguments {
                     .node()
                     .map_or(0, |node| get_lines_before(node.syntax()));
                 has_empty_line = has_empty_line || leading_lines > 1;
+                if index == 0 {
+                    if let Ok(node) = element.node() {
+                        first_is_string = MLongStringLiteralExpression::cast_ref(node.syntax())
+                            .is_some()
+                            | MStringLiteralExpression::cast_ref(node.syntax()).is_some()
+                    }
+                }
 
                 FormatCallArgument::Default {
                     element,
@@ -58,6 +67,17 @@ impl FormatNodeRule<MCallArguments> for FormatMCallArguments {
                 }
             })
             .collect();
+
+        if first_is_string && is_query_like_call(call_expression.as_ref()) {
+            return write!(
+                f,
+                [FormatQueryLikeArguments {
+                    l_paren: &l_paren_token.format(),
+                    args: &arguments,
+                    r_paren: &r_paren_token.format(),
+                }]
+            );
+        }
 
         if has_empty_line || is_function_composition_args(node) {
             return write!(
@@ -595,7 +615,6 @@ impl<'a> Format<MFormatContext> for FormatAllArgsBrokenOut<'a> {
             f,
             [group(&format_args![
                 self.l_paren,
-                space(),
                 soft_block_indent(&format_with(|f| {
                     for (index, entry) in self.args.iter().enumerate() {
                         if index > 0 {
@@ -612,7 +631,6 @@ impl<'a> Format<MFormatContext> for FormatAllArgsBrokenOut<'a> {
 
                     Ok(())
                 })),
-                space(),
                 self.r_paren,
             ])
             .should_expand(self.expand)]
@@ -829,4 +847,81 @@ fn is_function_composition_args(arguments: &MCallArguments) -> bool {
     }
 
     false
+}
+
+fn is_query_like_call(expression: Option<&MCallExpression>) -> bool {
+    if let Some(expression) = expression {
+        if let Ok(callee) = expression.callee() {
+            let callee_name = match callee {
+                AnyMExpression::MIdentifierExpression(expression) => expression.text(),
+                AnyMExpression::MStaticMemberExpression(expression) => {
+                    let member = expression.member();
+                    if member.is_err() {
+                        return false;
+                    }
+                    member.unwrap().text()
+                }
+                _ => return false,
+            };
+            return matches!(
+                callee_name.to_ascii_lowercase().as_ref(),
+                "query" | "command" | "bufferedreader"
+            );
+        }
+    }
+
+    false
+}
+
+struct FormatQueryLikeArguments<'a> {
+    l_paren: &'a dyn Format<MFormatContext>,
+    args: &'a [FormatCallArgument],
+    r_paren: &'a dyn Format<MFormatContext>,
+}
+
+impl<'a> Format<MFormatContext> for FormatQueryLikeArguments<'a> {
+    fn fmt(&self, f: &mut Formatter<MFormatContext>) -> FormatResult<()> {
+        let first = self.args.first().ok_or(FormatError::SyntaxError)?;
+        let text_query = first.element().node()?.text();
+        let query_start_with_new_line = text_query[1..]
+            .trim_start_matches(&[' ', '\t']) // remove only spaces and tabs
+            .starts_with(&['\r', '\n']);
+        write!(
+            f,
+            [group(&format_args![
+                self.l_paren,
+                &format_with(|f| {
+                    for (index, entry) in self.args.iter().enumerate() {
+                        match index {
+                            0 => {
+                                if !query_start_with_new_line {
+                                    write!(
+                                        f,
+                                        [indent(&format_args![
+                                            soft_line_break(),
+                                            entry,
+                                            soft_line_break(),
+                                        ],)]
+                                    )?;
+                                } else {
+                                    write!(f, [entry])?;
+                                }
+                            }
+                            _ => write!(f, [space(), entry])?,
+                        }
+                    }
+
+                    write!(f, [FormatTrailingCommas::All])?;
+
+                    Ok(())
+                }),
+            ])]
+        )?;
+
+        if query_start_with_new_line {
+            write!(f, [self.r_paren])
+        } else {
+            write!(f, [soft_line_break(), self.r_paren])
+        }
+    }
 }

@@ -567,13 +567,56 @@ func f() {
     }
 
     #[test]
+    fn format_query_like_expressions() {
+        let src = r#"
+var qq = Query(`
+    select row_id from ~Лицевые договора~ where Договор = :1
+`,1,"p1,S");
+
+var qq = Command(`update stack."Лицевые договора" set Договор = :1 where row_id = :2`,1,"p1,S,p2,S");
+
+var qq = сессия.Query(`select row_id from ~Лицевые договора~ where Договор = :1`,1,"p1,S");
+
+var qq = Query(`select row_id from ~Лицевые договора~ `,1,"p1,S");
+        "#;
+
+        let syntax = MFileSource::module();
+        let tree = parse(src, syntax);
+
+        let doc = format_node(
+            MFormatOptions::new(syntax)
+                .with_indent_style(IndentStyle::Space)
+                .with_line_width(LineWidth::try_from(80).unwrap())
+                .with_indent_width(IndentWidth::from(3)),
+            &tree.syntax(),
+        );
+
+        let result = doc.unwrap().print().unwrap();
+        assert_eq!(
+            result.as_code(),
+            r#"var qq = Query(`
+    select row_id from ~Лицевые договора~ where Договор = :1
+`, 1, "p1,S");
+
+var qq = Command(
+   `update stack."Лицевые договора" set Договор = :1 where row_id = :2`,
+   1, "p1,S,p2,S"
+);
+
+var qq = сессия.Query(
+   `select row_id from ~Лицевые договора~ where Договор = :1`,
+   1, "p1,S"
+);
+
+var qq = Query(`select row_id from ~Лицевые договора~ `, 1, "p1,S");
+"#
+        );
+    }
+
+    #[test]
     fn format() {
         let src = r#"
-          if( true ) 
-        call();
-     else 
-      call();
-    
+
         "#;
 
         let syntax = MFileSource::module();
