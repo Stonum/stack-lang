@@ -776,6 +776,7 @@ pub(crate) fn is_nth_at_expression(p: &mut MParser, n: usize) -> bool {
     matches!(
         p.nth(n),
         T![!]
+            | T![@]
             | T!['(']
             | T!['[']
             | T!['{']
