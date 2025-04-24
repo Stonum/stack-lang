@@ -34,9 +34,59 @@ fn get_text_size_from_position(rope: &Rope, pos: Position) -> Option<TextSize> {
     }
 
     let line_text = rope.line(line);
-    let line_start = rope.line_to_char(line);
+    let line_start = rope.line_to_byte(line);
 
     let byte_idx = line_start + line_text.try_char_to_byte(character).ok()?;
 
     TextSize::try_from(byte_idx).ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_text_range() {
+        let src = r#"
+Функция a() {
+   перем массив1 = @[1
+   ,2,3,
+   ];
+}
+
+Функция b() {
+   перем массив2 = @[4
+   ,5,6,
+   ];
+}
+
+Функция c() {
+   перем массив3 = @[7
+   ,8,9,
+   ];
+}
+        "#;
+
+        let rope = Rope::from_str(src);
+        let range = Range::new(Position::new(2, 9), Position::new(4, 4));
+
+        let t_range = text_range(&rope, range).expect("Convert range is failed");
+
+        let start: usize = t_range.start().into();
+        let end: usize = t_range.end().into();
+        assert_eq!(
+            &rope.to_string()[start..end],
+            "массив1 = @[1\n   ,2,3,\n   ]"
+        );
+
+        let range = Range::new(Position::new(14, 9), Position::new(16, 4));
+        let t_range = text_range(&rope, range).expect("Convert range is failed");
+
+        let start: usize = t_range.start().into();
+        let end: usize = t_range.end().into();
+        assert_eq!(
+            &rope.to_string()[start..end],
+            "массив3 = @[7\n   ,8,9,\n   ]"
+        );
+    }
 }
