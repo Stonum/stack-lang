@@ -2,7 +2,7 @@ use crate::formatter::prelude::*;
 
 use crate::syntax::MFunctionBody;
 use crate::syntax::MFunctionBodyFields;
-use biome_formatter::{format_args, write};
+use biome_formatter::{format_args, write, CstFormatContext};
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMFunctionBody;
@@ -20,10 +20,16 @@ impl FormatNodeRule<MFunctionBody> for FormatMFunctionBody {
         let r_curly_token = r_curly_token?;
 
         if statements.is_empty() && directives.is_empty() {
+            let comments = f.context().comments();
+            let has_dangling_comments = comments.has_dangling_comments(node.syntax());
+            if has_dangling_comments {
+                write!(f, [hard_line_break()])?;
+            } else {
+                write!(f, [space()])?;
+            }
             write!(
                 f,
                 [
-                    space(),
                     l_curly_token.format(),
                     format_dangling_comments(node.syntax()).with_block_indent(),
                     r_curly_token.format()

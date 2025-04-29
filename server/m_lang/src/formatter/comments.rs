@@ -5,6 +5,7 @@ use crate::syntax::{
     MIdentifierExpression, MIfStatement, MLanguage, MName, MSyntaxKind, MSyntaxNode,
     MVariableDeclarator, MWhileStatement,
 };
+
 use biome_formatter::comments::is_alignable_comment;
 use biome_formatter::{
     comments::{
@@ -28,40 +29,7 @@ impl FormatRule<SourceComment<MLanguage>> for FormatMLeadingComment {
         comment: &SourceComment<MLanguage>,
         f: &mut Formatter<Self::Context>,
     ) -> FormatResult<()> {
-        if is_alignable_comment(comment.piece()) {
-            let mut source_offset = comment.piece().text_range().start();
-
-            let mut lines = comment.piece().text().lines();
-
-            // SAFETY: Safe, `is_alignable_comment` only returns `true` for multiline comments
-            let first_line = lines.next().unwrap();
-            write!(f, [dynamic_text(first_line.trim_end(), source_offset)])?;
-
-            source_offset += first_line.text_len();
-
-            // Indent the remaining lines by one space so that all `*` are aligned.
-            write!(
-                f,
-                [&format_once(|f| {
-                    for line in lines {
-                        write!(
-                            f,
-                            [
-                                hard_line_break(),
-                                text(" "),
-                                dynamic_text(line.trim(), source_offset)
-                            ]
-                        )?;
-
-                        source_offset += line.text_len();
-                    }
-
-                    Ok(())
-                })]
-            )
-        } else {
-            write!(f, [comment.piece().as_piece()])
-        }
+        write!(f, [comment.piece().as_piece()])
     }
 }
 
@@ -381,8 +349,7 @@ fn handle_function_comment(comment: DecoratedComment<MLanguage>) -> CommentPlace
     if !matches!(
         comment.enclosing_node().kind(),
         MSyntaxKind::M_FUNCTION_DECLARATION | MSyntaxKind::M_FUNCTION_EXPRESSION
-    ) || !comment.kind().is_line()
-    {
+    ) {
         return CommentPlacement::Default(comment);
     };
 
@@ -390,8 +357,7 @@ fn handle_function_comment(comment: DecoratedComment<MLanguage>) -> CommentPlace
         return CommentPlacement::Default(comment);
     };
 
-    // Make line comments between the `)` token and the function body leading comments
-    // of the first statement or dangling comments of the body.
+    // Make line comments between the `)` token and the function empty body leading
     // ```javascript
     // function test() // comment
     // {
@@ -399,7 +365,7 @@ fn handle_function_comment(comment: DecoratedComment<MLanguage>) -> CommentPlace
     // }
     // ```
     match body.statements().first() {
-        Some(first) => CommentPlacement::leading(first.into_syntax(), comment),
+        Some(_) => CommentPlacement::leading(comment.enclosing_node().clone(), comment),
         None => CommentPlacement::dangling(body.into_syntax(), comment),
     }
 }
@@ -452,23 +418,6 @@ fn handle_if_statement_comment(
         consequent: MSyntaxNode,
         if_statement: MSyntaxNode,
     ) -> CommentPlacement<MLanguage> {
-        // Make all comments trailing comments of the `consequent` if the `consequent` is a `MBlockStatement`
-        // ```javascript
-        // if (test) {
-        //
-        // } /* comment */ else if (b) {
-        //     test
-        // }
-        // /* comment */ else if(c) {
-        //
-        // } /*comment */ else {
-        //
-        // }
-        // ```
-        if consequent.kind() == MSyntaxKind::M_BLOCK_STATEMENT {
-            return CommentPlacement::trailing(consequent, comment);
-        }
-
         // Handle end of line comments that aren't stretching over multiple lines.
         // Make them dangling comments of the consequent expression
         //
@@ -528,14 +477,15 @@ fn handle_if_statement_comment(
                 }
             }
 
-            // Move comments coming before the `{` inside of the block
+            // Move comments coming before the `{` leading
             //
             // ```javascript
-            // if (cond) /* test */ {
+            // if (cond) // test
+            // {
             // }
             // ```
-            if let Some(block_statement) = MBlockStatement::cast_ref(following) {
-                return place_block_statement_comment(block_statement, comment);
+            if let Some(_block_statement) = MBlockStatement::cast_ref(following) {
+                return CommentPlacement::leading(if_statement.syntax().clone(), comment);
             }
 
             // Don't attach comments to empty statements
@@ -567,7 +517,7 @@ fn handle_if_statement_comment(
             // ```
             if let Ok(consequent) = if_statement.consequent() {
                 if consequent.syntax() == following {
-                    return CommentPlacement::leading(following.clone(), comment);
+                    return CommentPlacement::leading(if_statement.syntax().clone(), comment);
                 }
             }
         }
@@ -613,19 +563,20 @@ fn handle_while_comment(comment: DecoratedComment<MLanguage>) -> CommentPlacemen
         }
     }
 
-    // Move comments coming before the `{` inside of the block
+    // Move comments coming before the `{` to leading
     //
     // ```javascript
-    // while (cond) /* test */ {
+    // while (cond) // test
+    // {
     // }
     // ```
-    if let Some(block) = MBlockStatement::cast_ref(following) {
-        return place_block_statement_comment(block, comment);
+    if let Some(_) = MBlockStatement::cast_ref(following) {
+        return CommentPlacement::leading(while_statement.syntax().clone(), comment);
     }
 
     // Don't attach comments to empty statements
     // ```javascript
-    // if (cond) /* test */ ;
+    // if (cond) // test  ;
     // ```
     if let Some(preceding) = comment.preceding_node() {
         if MEmptyStatement::can_cast(following.kind()) {
@@ -641,7 +592,7 @@ fn handle_while_comment(comment: DecoratedComment<MLanguage>) -> CommentPlacemen
     // ```
     if let Ok(body) = while_statement.body() {
         if body.syntax() == following {
-            return CommentPlacement::leading(body.into_syntax(), comment);
+            return CommentPlacement::leading(while_statement.syntax().clone(), comment);
         }
     }
 
