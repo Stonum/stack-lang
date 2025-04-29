@@ -1,7 +1,7 @@
 .vscode
 node_modules
 src/
-tsconfig.Mon
+tsconfig.json
 server-compile.sh
 client/**
 !client/out/**
