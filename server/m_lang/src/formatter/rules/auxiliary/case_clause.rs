@@ -51,24 +51,25 @@ impl FormatNodeRule<MCaseClause> for FormatMCaseClause {
         // seem like it might end.
         // Lastly, the default case is just to break and indent the body.
         //
-        // switch (key) {
+        // switch(key) {
         //   case fallthrough: // trailing comment
         //   case normalBody:
         //     someWork();
         //     break;
         //
-        //   case blockBody: {
-        //     const a = 1;
+        //   case blockBody:
+        //   {
+        //     var a = 1;
         //     break;
         //   }
         //
         //   case separateBlockBody:
-        //     {
-        //       breakIsNotInsideTheBlock();
-        //     }
+        //   {
+        //     breakIsNotInsideTheBlock();
         //     break;
+        //   }
         //
-        //   default:
+        //   else:
         //     break;
         // }
         if consequent.is_empty() {
@@ -77,7 +78,7 @@ impl FormatNodeRule<MCaseClause> for FormatMCaseClause {
             // care of inserting a hard line break between cases.
             Ok(())
         } else if is_single_block_statement {
-            write![f, [space(), consequent.format()]]
+            write![f, [hard_line_break(), consequent.format()]]
         } else {
             // no line break needed after because it is added by the indent in the switch statement
             write!(

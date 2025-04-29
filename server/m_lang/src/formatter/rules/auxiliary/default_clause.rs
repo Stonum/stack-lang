@@ -40,7 +40,7 @@ impl FormatNodeRule<MDefaultClause> for FormatMDefaultClause {
         }
 
         if is_single_block_statement {
-            write!(f, [space(), consequent.format()])
+            write!(f, [hard_line_break(), consequent.format()])
         } else {
             // no line break needed after because it is added by the indent in the switch statement
             write!(

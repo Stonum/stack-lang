@@ -386,7 +386,8 @@ impl NeedsParentheses for MSequenceExpression {
             MSyntaxKind::M_EXPRESSION_STATEMENT |
             MSyntaxKind::M_SEQUENCE_EXPRESSION |
             MSyntaxKind::M_COMPUTED_MEMBER_EXPRESSION |
-            MSyntaxKind::M_COMPUTED_MEMBER_ASSIGNMENT
+            MSyntaxKind::M_COMPUTED_MEMBER_ASSIGNMENT |
+            MSyntaxKind::M_CASE_CLAUSE
         )
     }
 }
