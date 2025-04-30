@@ -534,7 +534,8 @@ func f() {
 
         assert_eq!(
             result.as_code(),
-            r#"func Foo() {
+            r#"func Foo()
+{
     #
 }"#
         );
