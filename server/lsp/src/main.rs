@@ -141,34 +141,34 @@ impl LanguageServer for Backend {
             .log_message(MessageType::INFO, format!("found {} files", files.len()))
             .await;
 
-        // let mut handles = vec![];
-        // let current = Handle::current();
-        // for (i, file) in files.iter().enumerate() {
-        //     self.client
-        //         .send_notification::<StatusBarNotification>(StatusBarNotification::new(&format!(
-        //             "parse definitions from files: {}/{}",
-        //             i,
-        //             files.len()
-        //         )))
-        //         .await;
+        let mut handles = vec![];
+        let current = Handle::current();
+        for (i, file) in files.iter().enumerate() {
+            self.client
+                .send_notification::<StatusBarNotification>(StatusBarNotification::new(&format!(
+                    "parse definitions from files: {}/{}",
+                    i,
+                    files.len()
+                )))
+                .await;
 
-        //     if let Ok(text) = tokio::fs::read_to_string(&file).await {
-        //         let handle = current.spawn_blocking(move || {
-        //             let parsed = parse(&text, MFileSource::module());
-        //             let semantics = semantics(parsed.syntax());
-        //             let rope = Rope::from_str(&text);
-        //             (rope, semantics)
-        //         });
+            if let Ok(text) = tokio::fs::read_to_string(&file).await {
+                let handle = current.spawn_blocking(move || {
+                    let parsed = parse(&text, MFileSource::module());
+                    let semantics = semantics(parsed.syntax());
+                    let rope = Rope::from_str(&text);
+                    (rope, semantics)
+                });
 
-        //         handles.push((Url::from_file_path(file).unwrap(), handle));
-        //     }
-        // }
+                handles.push((Url::from_file_path(file).unwrap(), handle));
+            }
+        }
 
-        // for (uri, handle) in handles {
-        //     let (rope, semantics) = handle.await.unwrap();
-        //     let document = Document::new(uri, rope, semantics);
-        //     self.document_map.insert(document.path(), document);
-        // }
+        for (uri, handle) in handles {
+            let (rope, semantics) = handle.await.unwrap();
+            let document = Document::new(uri, rope, semantics);
+            self.document_map.insert(document.path(), document);
+        }
 
         self.client
             .send_notification::<StatusBarNotification>(StatusBarNotification::clear())
