@@ -284,8 +284,8 @@ impl MLogicalOperator {
 impl MLogicalExpression {
     pub fn operator(&self) -> SyntaxResult<MLogicalOperator> {
         let kind = match self.operator_token()?.kind() {
-            T![&&] => MLogicalOperator::LogicalAnd,
-            T![||] => MLogicalOperator::LogicalOr,
+            T![&&] | T![and] => MLogicalOperator::LogicalAnd,
+            T![||] | T![or] => MLogicalOperator::LogicalOr,
             _ => unreachable!(),
         };
 

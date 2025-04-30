@@ -3,12 +3,12 @@ use std::ops::Deref;
 use std::path::PathBuf;
 
 use log::error;
-use log::info;
 
 use ini::Ini;
 
 use biome_diagnostics::diagnostic::Diagnostic as _;
 use dashmap::DashMap;
+
 use ropey::Rope;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -19,7 +19,7 @@ use m_lang::{
     syntax::MFileSource,
 };
 
-use stack_lang_server::{document::Document, position};
+use stack_lang_server::{document::Document, format::format, position};
 use tokio::runtime::Handle;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::notification::Notification;
@@ -57,7 +57,7 @@ impl LanguageServer for Backend {
                 definition_provider: Some(OneOf::Left(true)),
                 document_symbol_provider: Some(OneOf::Left(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
-                // document_range_formatting_provider: Some(OneOf::Left(true)),
+                document_range_formatting_provider: Some(OneOf::Left(true)),
                 ..ServerCapabilities::default()
             },
         })
@@ -141,34 +141,34 @@ impl LanguageServer for Backend {
             .log_message(MessageType::INFO, format!("found {} files", files.len()))
             .await;
 
-        let mut handles = vec![];
-        let current = Handle::current();
-        for (i, file) in files.iter().enumerate() {
-            self.client
-                .send_notification::<StatusBarNotification>(StatusBarNotification::new(&format!(
-                    "parse definitions from files: {}/{}",
-                    i,
-                    files.len()
-                )))
-                .await;
+        // let mut handles = vec![];
+        // let current = Handle::current();
+        // for (i, file) in files.iter().enumerate() {
+        //     self.client
+        //         .send_notification::<StatusBarNotification>(StatusBarNotification::new(&format!(
+        //             "parse definitions from files: {}/{}",
+        //             i,
+        //             files.len()
+        //         )))
+        //         .await;
 
-            if let Ok(text) = tokio::fs::read_to_string(&file).await {
-                let handle = current.spawn_blocking(move || {
-                    let parsed = parse(&text, MFileSource::module());
-                    let semantics = semantics(parsed.syntax());
-                    let rope = Rope::from_str(&text);
-                    (rope, semantics)
-                });
+        //     if let Ok(text) = tokio::fs::read_to_string(&file).await {
+        //         let handle = current.spawn_blocking(move || {
+        //             let parsed = parse(&text, MFileSource::module());
+        //             let semantics = semantics(parsed.syntax());
+        //             let rope = Rope::from_str(&text);
+        //             (rope, semantics)
+        //         });
 
-                handles.push((Url::from_file_path(file).unwrap(), handle));
-            }
-        }
+        //         handles.push((Url::from_file_path(file).unwrap(), handle));
+        //     }
+        // }
 
-        for (uri, handle) in handles {
-            let (rope, semantics) = handle.await.unwrap();
-            let document = Document::new(uri, rope, semantics);
-            self.document_map.insert(document.path(), document);
-        }
+        // for (uri, handle) in handles {
+        //     let (rope, semantics) = handle.await.unwrap();
+        //     let document = Document::new(uri, rope, semantics);
+        //     self.document_map.insert(document.path(), document);
+        // }
 
         self.client
             .send_notification::<StatusBarNotification>(StatusBarNotification::clear())
@@ -384,12 +384,24 @@ impl LanguageServer for Backend {
         &self,
         params: DocumentRangeFormattingParams,
     ) -> Result<Option<Vec<TextEdit>>> {
-        self.client
-            .log_message(MessageType::INFO, "formatting triggered!")
-            .await;
+        let edited = async {
+            let DocumentRangeFormattingParams {
+                text_document,
+                range,
+                options,
+                ..
+            } = params;
 
-        info!("range_formatting {:?}", params);
-        Ok(None)
+            let uri = text_document.uri;
+            let document = self
+                .document_map
+                .get(&uri.to_file_path().unwrap_or_default())?;
+
+            format(document.text(), options, range).await
+        }
+        .await;
+
+        Ok(edited)
     }
 }
 #[derive(Debug, Deserialize, Serialize)]

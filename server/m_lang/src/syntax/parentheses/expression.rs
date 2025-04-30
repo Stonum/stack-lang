@@ -103,6 +103,8 @@ impl NeedsParentheses for MAssignmentExpression {
                 MAssignmentExpression(_) => false,
                 // `[a = b]`
                 MComputedMemberName(_) => false,
+                // `x = x + b`
+                MExpressionStatement(_) => false,
 
                 MForStatement(for_statement) => {
                      let is_initializer = match for_statement.initializer() {
@@ -382,7 +384,10 @@ impl NeedsParentheses for MSequenceExpression {
             // There's a precedence for writing `x++, y++`
             MSyntaxKind::M_FOR_STATEMENT |
             MSyntaxKind::M_EXPRESSION_STATEMENT |
-            MSyntaxKind::M_SEQUENCE_EXPRESSION
+            MSyntaxKind::M_SEQUENCE_EXPRESSION |
+            MSyntaxKind::M_COMPUTED_MEMBER_EXPRESSION |
+            MSyntaxKind::M_COMPUTED_MEMBER_ASSIGNMENT |
+            MSyntaxKind::M_CASE_CLAUSE
         )
     }
 }

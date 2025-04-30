@@ -74,6 +74,21 @@ fn test_parse_expressions() {
 }
 
 #[test]
+fn test_parse_expressions2() {
+    let res = parse(
+        r#"
+            set(1, null, "hello", 5.55, true, x);
+            @{a: 1, b: null, c: "hello", d: 5.55, "e": true};
+            @(a: 1, b: null, c: "hello", d: 5.55, "e": true);
+            @[1, null, "hello", 5.55, true, x]
+        "#,
+        MFileSource::script(),
+    );
+
+    assert_parser!(res);
+}
+
+#[test]
 fn test_parse_loop() {
     let res = parse(
         r#"

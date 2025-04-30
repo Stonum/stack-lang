@@ -1,10 +1,10 @@
 #[macro_use]
 mod generated;
-mod binary_like_expression;
-mod expression_left_side;
+pub(crate) mod binary_like_expression;
+pub(crate) mod expression_left_side;
 mod ext;
 mod file_source;
-mod parentheses;
+pub(crate) mod parentheses;
 mod static_value;
 mod syntax_node;
 

@@ -19,8 +19,6 @@ pub(crate) fn parse(p: &mut MParser) -> CompletedMarker {
 
     let statement_list = p.start();
 
-    
-
     match p.source_type().module_kind() {
         ModuleKind::Script => {
             parse_statements(p, false, statement_list);

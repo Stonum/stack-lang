@@ -67,7 +67,7 @@ impl MParserState {
     }
 }
 
-/// Stores a checkpoint of the [JsParserState].
+/// Stores a checkpoint of the [MParserState].
 /// Allows rewinding the state to its previous state.
 ///
 /// It's important that creating and rewinding a snapshot is cheap. Consider the performance implications
@@ -103,7 +103,7 @@ impl MParserStateCheckpoint {
     fn rewind(self, _: &MParserState) {}
 }
 
-/// Most of the [JsParserState] is scoped state. It should, therefore, not be necessary to rewind
+/// Most of the [MParserState] is scoped state. It should, therefore, not be necessary to rewind
 /// that state because that's already taken care of by `with_state` and `with_scoped_state`.
 /// But, you can never no and better be safe than sorry. That's why we use some heuristics
 /// to verify that non of the scoped state did change and assert for it when rewinding.
