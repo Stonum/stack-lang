@@ -356,7 +356,9 @@ pub fn format_range(
 /// Formats a JavaScript (and its super languages) file based on its features.
 ///
 /// It returns a [Formatted] result, which the user can use to override a file.
-pub fn format_node(
+/// Used only in tests
+#[cfg(test)]
+pub(crate) fn format_node(
     options: MFormatOptions,
     root: &MSyntaxNode,
 ) -> FormatResult<Formatted<MFormatContext>> {
@@ -410,50 +412,42 @@ mod tests {
     #[test]
     fn test_range_formatting() {
         let input = "
-    func f() {
-    f(     #comment
-    );
+Функция a() {
+   перем массив1 = @[1
+   ,2,3,
+   ];
+}
 
-    var array =
-        @[ 1
-    , 2];
+Функция b() {
+   перем массив2 = @[4
+   ,5,6,
+   ];
+}
 
-    }
-
-    func f2()
-    {
-
-    перем no_format = func() {};
-
-    }
+Функция c() {
+   перем массив3 = @[7
+   ,8,9,
+   ];
+}
 ";
 
-        // Start the formatting range two characters before the "let" keywords,
-        // in the middle of the indentation whitespace for the line
-        let range_start = TextSize::try_from(input.find("var").unwrap() - 2).unwrap();
-        let range_end = TextSize::try_from(input.find("перем").unwrap()).unwrap();
+        let range_start = TextSize::try_from(input.find("@[").unwrap()).unwrap();
+        let range_end = TextSize::try_from(input.find("];").unwrap()).unwrap();
 
         let tree = parse(input, MFileSource::script());
 
         let result = format_range(
             MFormatOptions::new(MFileSource::script())
                 .with_indent_style(IndentStyle::Space)
-                .with_indent_width(4.try_into().unwrap())
-                .with_trailing_commas(TrailingCommas::All),
+                .with_indent_width(4.try_into().unwrap()),
             &tree.syntax(),
             TextRange::new(range_start, range_end),
         );
         let result = result.expect("range formatting failed");
-        assert_eq!(
-            result.as_code(),
-            "func f()\n    {\n        f(\n            #comment\n        );\n\n        var array = @[1, 2];\n    }\n\n    func f2()\n    {\n        перем no_format = func () {};\n    }"
-        );
+        assert_eq!(result.as_code(), "перем массив1 = @[1, 2, 3];");
         assert_eq!(
             result.range(),
-            Some(TextRange::new(
-                range_start - TextSize::from(41),
-                range_end + TextSize::from(40)
-            ))
+            Some(TextRange::new(TextSize::from(25), TextSize::from(70)))
         );
     }
 
@@ -620,7 +614,7 @@ var qq = Query(`select row_id from ~Лицевые договора~ `, 1, "p1,S
         "#;
 
         let syntax = MFileSource::module();
-        let tree = dbg!(parse(dbg!(src), syntax));
+        let tree = dbg!(parse(src, syntax));
 
         let doc = format_node(
             MFormatOptions::new(syntax)

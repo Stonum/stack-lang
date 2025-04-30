@@ -2,6 +2,7 @@ use crate::formatter::prelude::*;
 
 use crate::syntax::MSyntaxKind::{M_LONG_STRING_LITERAL, M_STRING_LITERAL};
 use crate::syntax::MSyntaxToken;
+use biome_formatter::{format_args, write};
 use std::borrow::Cow;
 
 #[derive(Eq, PartialEq, Debug)]
@@ -10,19 +11,21 @@ pub(crate) enum StringLiteralParentKind {
     Expression,
     /// Variant to track tokens that are inside a member
     Member,
-    /// Variant used when the string literal is inside a directive. This will apply
-    /// a simplified logic of normalisation
-    Directive,
 }
 
 /// Data structure of convenience to format string literals
 pub(crate) struct FormatLiteralStringToken<'token> {
-    /// The current token
     token: &'token MSyntaxToken,
 }
 
 impl<'token> FormatLiteralStringToken<'token> {
     pub fn new(token: &'token MSyntaxToken, _parent_kind: StringLiteralParentKind) -> Self {
+        debug_assert!(
+            matches!(token.kind(), M_STRING_LITERAL | M_LONG_STRING_LITERAL),
+            "Found kind {:?}",
+            token.kind()
+        );
+
         Self { token }
     }
 
@@ -32,13 +35,11 @@ impl<'token> FormatLiteralStringToken<'token> {
 
     pub fn clean_text(&self) -> CleanedStringLiteralText {
         let token = self.token();
-        debug_assert!(
-            matches!(token.kind(), M_STRING_LITERAL | M_LONG_STRING_LITERAL),
-            "Found kind {:?}",
-            token.kind()
-        );
 
-        let mut string_cleaner = LiteralStringNormaliser::new(self);
+        let content = token.text_trimmed();
+        let preferred_quote = content.chars().next().unwrap_or('"');
+
+        let mut string_cleaner = LiteralStringNormaliser::new(token, preferred_quote);
 
         let content = string_cleaner.normalise_text();
         let normalized_text_width = content.len();
@@ -89,17 +90,41 @@ impl Format<MFormatContext> for FormatLiteralStringToken<'_> {
 /// the normalise process.
 struct LiteralStringNormaliser<'token> {
     /// The current token
-    token: &'token FormatLiteralStringToken<'token>,
+    token: &'token MSyntaxToken,
+    preferred_quote: char,
 }
 
 impl<'token> LiteralStringNormaliser<'token> {
-    pub fn new(token: &'token FormatLiteralStringToken<'_>) -> Self {
-        Self { token }
+    pub fn new(token: &'token MSyntaxToken, preferred_quote: char) -> Self {
+        Self {
+            token,
+            preferred_quote,
+        }
     }
 
     fn normalise_text(&mut self) -> Cow<'token, str> {
+        self.normalise_string_literal()
+    }
+
+    // fn normalise_sql_query(&mut self) -> Cow<'token, str> {
+    //     let quoteless = self.raw_content();
+    //     let is_multiline_query = quoteless.trim().lines().count() > 1;
+    //     let is_start_newline = quoteless.starts_with('\n');
+    //     let is_end_newline = quoteless.ends_with('\n');
+    //     if is_multiline_query && !(is_start_newline || is_end_newline) {
+    //         let mut new_string = quoteless.trim().to_string();
+    //         new_string.insert_str(0, "\'\n");
+    //         new_string.push_str("\n\'");
+    //         Cow::Owned(new_string)
+    //     } else {
+    //         self.normalise_string_literal()
+    //     }
+    // }
+
+    fn normalise_string_literal(&mut self) -> Cow<'token, str> {
         let polished_raw_content = self.normalize_string();
-        let preferred_quote = self.preferred_quote();
+        let content = self.token.text_trimmed();
+        let preferred_quote = self.preferred_quote;
 
         match polished_raw_content {
             Cow::Borrowed(raw_content) => self.swap_quotes(raw_content, preferred_quote),
@@ -111,10 +136,6 @@ impl<'token> LiteralStringNormaliser<'token> {
                 Cow::Owned(s)
             }
         }
-    }
-
-    fn get_token(&self) -> &'token MSyntaxToken {
-        self.token.token()
     }
 
     fn normalize_string(&self) -> Cow<'token, str> {
@@ -158,17 +179,12 @@ impl<'token> LiteralStringNormaliser<'token> {
 
     /// Returns the string without its quotes.
     fn raw_content(&self) -> &'token str {
-        let content = self.get_token().text_trimmed();
+        let content = self.token.text_trimmed();
         &content[1..content.len() - 1]
     }
 
-    fn preferred_quote(&self) -> char {
-        let content = self.get_token().text_trimmed();
-        content.chars().next().unwrap_or('"')
-    }
-
     fn swap_quotes(&self, content_to_use: &'token str, preferred_quote: char) -> Cow<'token, str> {
-        let original = self.get_token().text_trimmed();
+        let original = self.token.text_trimmed();
 
         if original.starts_with(preferred_quote) {
             Cow::Borrowed(original)
@@ -176,6 +192,114 @@ impl<'token> LiteralStringNormaliser<'token> {
             Cow::Owned(std::format!(
                 "{preferred_quote}{content_to_use}{preferred_quote}",
             ))
+        }
+    }
+}
+
+pub(crate) struct FormatSqlStringToken<'token> {
+    token: &'token MSyntaxToken,
+}
+
+impl<'token> FormatSqlStringToken<'token> {
+    pub fn new(token: &'token MSyntaxToken) -> Self {
+        Self { token }
+    }
+
+    fn token(&self) -> &'token MSyntaxToken {
+        self.token
+    }
+
+    fn format_single_line_query(
+        &self,
+        content: Cow<'token, str>,
+        f: &mut MFormatter,
+    ) -> FormatResult<()> {
+        write!(
+            f,
+            [format_replaced(
+                self.token,
+                &syntax_token_cow_slice(
+                    content,
+                    self.token,
+                    self.token.text_trimmed_range().start()
+                ),
+            ),]
+        )
+    }
+
+    fn format_multi_line_query(
+        &self,
+        content: Cow<'token, str>,
+        f: &mut MFormatter,
+    ) -> FormatResult<()> {
+        let start = self.token.text_trimmed_range().start();
+        let quoteless = &content[1..content.len() - 1];
+
+        // if query starts with newline - write it as is
+        if quoteless.trim_start_matches(&[' ', '\t']).starts_with("\n") {
+            return write!(
+                f,
+                [format_replaced(
+                    self.token,
+                    &syntax_token_cow_slice(content, self.token, start,),
+                )]
+            );
+        }
+
+        let quoteless = quoteless.trim_start_matches('\n').trim_end();
+
+        write!(
+            f,
+            [format_replaced(
+                self.token,
+                &format_args![
+                    text("`"),
+                    &format_with(move |f| {
+                        for (index, line) in quoteless.lines().into_iter().enumerate() {
+                            match index {
+                                // write on new line with indent
+                                0 if !line.starts_with(' ') => write!(
+                                    f,
+                                    [block_indent(&format_args![
+                                        dynamic_text(line, start),
+                                        hard_line_break(),
+                                    ])]
+                                )?,
+
+                                // write on new line with dedent of parent
+                                0 => write!(
+                                    f,
+                                    [dedent(&format_args![
+                                        hard_line_break(),
+                                        dynamic_text(line, start),
+                                        hard_line_break(),
+                                    ]),]
+                                )?,
+
+                                _ => write!(f, [dynamic_text(line, start), hard_line_break(),])?,
+                            }
+                        }
+                        Ok(())
+                    }),
+                    text("`")
+                ]
+            )]
+        )
+    }
+}
+
+impl Format<MFormatContext> for FormatSqlStringToken<'_> {
+    fn fmt(&self, f: &mut MFormatter) -> FormatResult<()> {
+        let token = self.token();
+        let preferred_quote = '`';
+
+        let mut string_cleaner = LiteralStringNormaliser::new(token, preferred_quote);
+
+        let content = string_cleaner.normalise_text();
+        if content.lines().count() > 1 {
+            self.format_multi_line_query(content, f)
+        } else {
+            self.format_single_line_query(content, f)
         }
     }
 }

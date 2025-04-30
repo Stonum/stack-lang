@@ -11,9 +11,12 @@ use crate::syntax::{
     AnyMCallArgument, AnyMExpression, MBinaryExpressionFields, MCallArgumentList, MCallArguments,
     MCallArgumentsFields, MCallExpression, MFunctionExpression, MLanguage,
     MLogicalExpressionFields, MLongStringLiteralExpression, MStringLiteralExpression,
+    MSyntaxKind::{M_LONG_STRING_LITERAL, M_STRING_LITERAL},
 };
 use biome_formatter::{format_args, format_element, write, VecBuffer};
 use biome_rowan::{AstSeparatedElement, AstSeparatedList, SyntaxResult};
+
+use super::string_expression::FormatStringLiteralOptions;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMCallArguments;
@@ -39,6 +42,7 @@ impl FormatNodeRule<MCallArguments> for FormatMCallArguments {
         }
 
         let call_expression = node.parent::<MCallExpression>();
+        let query_like_call = is_query_like_call(call_expression.as_ref());
 
         let last_index = args.len().saturating_sub(1);
         let mut has_empty_line = false;
@@ -64,6 +68,7 @@ impl FormatNodeRule<MCallArguments> for FormatMCallArguments {
                     element,
                     is_last: index == last_index,
                     leading_lines,
+                    query_like_string: index == 0 && first_is_string && query_like_call,
                 }
             })
             .collect();
@@ -134,6 +139,9 @@ enum FormatCallArgument {
 
         /// The number of lines before this node
         leading_lines: usize,
+
+        /// query like
+        query_like_string: bool,
     },
 
     /// The argument has been formatted because a caller inspected if it [Self::will_break].
@@ -228,7 +236,10 @@ impl FormatCallArgument {
                 None => Ok(()),
             },
             FormatCallArgument::Default {
-                element, is_last, ..
+                element,
+                is_last,
+                query_like_string,
+                ..
             } => {
                 match element.node()? {
                     AnyMCallArgument::AnyMExpression(AnyMExpression::MFunctionExpression(
@@ -241,6 +252,20 @@ impl FormatCallArgument {
                                 ..FormatFunctionOptions::default()
                             })]
                         )?;
+                    }
+                    AnyMCallArgument::AnyMExpression(AnyMExpression::AnyMLiteralExpression(
+                        literal,
+                    )) if matches!(
+                        literal.value_token()?.kind(),
+                        M_LONG_STRING_LITERAL | M_STRING_LITERAL
+                    ) =>
+                    {
+                        write!(
+                            f,
+                            [literal.format().with_options(FormatStringLiteralOptions {
+                                is_query_like_string: *query_like_string
+                            })]
+                        )?
                     }
                     node => write!(f, [node.format()])?,
                 }
@@ -865,7 +890,7 @@ fn is_query_like_call(expression: Option<&MCallExpression>) -> bool {
             };
             return matches!(
                 callee_name.to_ascii_lowercase().as_ref(),
-                "query" | "command" | "bufferedreader"
+                "query" | "command" | "bufferedreader" | "execute_command"
             );
         }
     }
@@ -883,9 +908,8 @@ impl<'a> Format<MFormatContext> for FormatQueryLikeArguments<'a> {
     fn fmt(&self, f: &mut Formatter<MFormatContext>) -> FormatResult<()> {
         let first = self.args.first().ok_or(FormatError::SyntaxError)?;
         let text_query = first.element().node()?.text();
-        let query_start_with_new_line = text_query[1..]
-            .trim_start_matches(&[' ', '\t']) // remove only spaces and tabs
-            .starts_with(&['\r', '\n']);
+        let multi_line_query = text_query.lines().count() > 1;
+
         write!(
             f,
             [group(&format_args![
@@ -894,7 +918,9 @@ impl<'a> Format<MFormatContext> for FormatQueryLikeArguments<'a> {
                     for (index, entry) in self.args.iter().enumerate() {
                         match index {
                             0 => {
-                                if !query_start_with_new_line {
+                                if multi_line_query {
+                                    write!(f, [entry])?
+                                } else {
                                     write!(
                                         f,
                                         [indent(&format_args![
@@ -902,9 +928,7 @@ impl<'a> Format<MFormatContext> for FormatQueryLikeArguments<'a> {
                                             entry,
                                             soft_line_break(),
                                         ],)]
-                                    )?;
-                                } else {
-                                    write!(f, [entry])?;
+                                    )?
                                 }
                             }
                             _ => write!(f, [space(), entry])?,
@@ -918,7 +942,7 @@ impl<'a> Format<MFormatContext> for FormatQueryLikeArguments<'a> {
             ])]
         )?;
 
-        if query_start_with_new_line {
+        if multi_line_query {
             write!(f, [self.r_paren])
         } else {
             write!(f, [soft_line_break(), self.r_paren])

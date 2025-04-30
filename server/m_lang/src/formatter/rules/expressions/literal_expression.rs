@@ -1,62 +1,14 @@
 use crate::formatter::prelude::*;
-use crate::formatter::utils::{FormatLiteralStringToken, StringLiteralParentKind};
+
 use biome_formatter::token::number::format_number_token;
 use biome_formatter::write;
 
 use crate::syntax::parentheses::NeedsParentheses;
 use crate::syntax::{
-    MDateLiteralExpression, MDateLiteralExpressionFields, MLongStringLiteralExpression,
-    MLongStringLiteralExpressionFields, MNullLiteralExpression, MNullLiteralExpressionFields,
-    MNumberLiteralExpression, MNumberLiteralExpressionFields, MStringLiteralExpression,
-    MStringLiteralExpressionFields, MTimeLiteralExpression, MTimeLiteralExpressionFields,
+    MDateLiteralExpression, MDateLiteralExpressionFields, MNullLiteralExpression,
+    MNullLiteralExpressionFields, MNumberLiteralExpression, MNumberLiteralExpressionFields,
+    MTimeLiteralExpression, MTimeLiteralExpressionFields,
 };
-
-#[derive(Debug, Clone, Default)]
-pub(crate) struct FormatMStringLiteralExpression;
-impl_format_with_rule!(MStringLiteralExpression, FormatMStringLiteralExpression);
-
-impl FormatNodeRule<MStringLiteralExpression> for FormatMStringLiteralExpression {
-    fn fmt_fields(&self, node: &MStringLiteralExpression, f: &mut MFormatter) -> FormatResult<()> {
-        let MStringLiteralExpressionFields { value_token } = node.as_fields();
-
-        let value_token = value_token?;
-        let formatted =
-            FormatLiteralStringToken::new(&value_token, StringLiteralParentKind::Expression);
-
-        formatted.fmt(f)
-    }
-
-    fn needs_parentheses(&self, item: &MStringLiteralExpression) -> bool {
-        item.needs_parentheses()
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-pub(crate) struct FormatMLongStringLiteralExpression;
-impl_format_with_rule!(
-    MLongStringLiteralExpression,
-    FormatMLongStringLiteralExpression
-);
-
-impl FormatNodeRule<MLongStringLiteralExpression> for FormatMLongStringLiteralExpression {
-    fn fmt_fields(
-        &self,
-        node: &MLongStringLiteralExpression,
-        f: &mut MFormatter,
-    ) -> FormatResult<()> {
-        let MLongStringLiteralExpressionFields { value_token } = node.as_fields();
-
-        let value_token = value_token?;
-        let formatted =
-            FormatLiteralStringToken::new(&value_token, StringLiteralParentKind::Expression);
-
-        formatted.fmt(f)
-    }
-
-    fn needs_parentheses(&self, item: &MLongStringLiteralExpression) -> bool {
-        item.needs_parentheses()
-    }
-}
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMTimeLiteralExpression;
