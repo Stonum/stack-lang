@@ -13,7 +13,6 @@ pub(crate) mod expression_snipped;
 pub(crate) mod finally_clause;
 pub(crate) mod for_iterator_factory;
 pub(crate) mod function_body;
-pub(crate) mod in_property;
 pub(crate) mod initializer_clause;
 pub(crate) mod module;
 pub(crate) mod name;

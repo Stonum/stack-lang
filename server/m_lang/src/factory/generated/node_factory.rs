@@ -1027,7 +1027,7 @@ impl MIfStatementBuilder {
     }
 }
 pub fn m_in_expression(
-    property: MInProperty,
+    property: AnyMExpression,
     in_token: SyntaxToken,
     object: AnyMExpression,
 ) -> MInExpression {
@@ -1038,12 +1038,6 @@ pub fn m_in_expression(
             Some(SyntaxElement::Token(in_token)),
             Some(SyntaxElement::Node(object.into_syntax())),
         ],
-    ))
-}
-pub fn m_in_property(any_m_expression: AnyMExpression) -> MInProperty {
-    MInProperty::unwrap_cast(SyntaxNode::new_detached(
-        MSyntaxKind::M_IN_PROPERTY,
-        [Some(SyntaxElement::Node(any_m_expression.into_syntax()))],
     ))
 }
 pub fn m_initializer_clause(

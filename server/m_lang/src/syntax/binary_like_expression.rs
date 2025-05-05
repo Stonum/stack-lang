@@ -5,7 +5,7 @@
 //! - [MInstanceofExpression]
 
 use super::{
-    AnyMExpression, MBinaryExpression, MBinaryOperator, MIfStatement, MInExpression, MInProperty,
+    AnyMExpression, MBinaryExpression, MBinaryOperator, MIfStatement, MInExpression,
     MLogicalExpression, MLogicalOperator, MSwitchStatement, MSyntaxKind, MSyntaxNode, MSyntaxToken,
     MWhileStatement, OperatorPrecedence,
 };
@@ -190,12 +190,6 @@ impl AnyMBinaryLikeLeftExpression {
         match self {
             Self::AnyMExpression(expression) => Some(expression),
         }
-    }
-}
-
-impl From<MInProperty> for AnyMBinaryLikeLeftExpression {
-    fn from(property: MInProperty) -> Self {
-        Self::AnyMExpression(property.any_m_expression().unwrap())
     }
 }
 

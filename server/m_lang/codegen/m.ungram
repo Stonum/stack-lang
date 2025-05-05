@@ -391,12 +391,9 @@ MBinaryExpression =
     right: AnyMExpression
 
 MInExpression =
-	property: MInProperty
+	property: AnyMExpression
 	'in'
 	object: AnyMExpression
-
-MInProperty =
-	AnyMExpression
 
 MLogicalExpression =
 	left: AnyMExpression

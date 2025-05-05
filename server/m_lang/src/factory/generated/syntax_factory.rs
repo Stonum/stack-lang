@@ -1828,7 +1828,7 @@ impl SyntaxFactory for MSyntaxFactory {
                 let mut slots: RawNodeSlots<3usize> = RawNodeSlots::default();
                 let mut current_element = elements.next();
                 if let Some(element) = &current_element {
-                    if MInProperty::can_cast(element.kind()) {
+                    if AnyMExpression::can_cast(element.kind()) {
                         slots.mark_present();
                         current_element = elements.next();
                     }
@@ -1932,7 +1932,10 @@ impl SyntaxFactory for MSyntaxFactory {
                 }
                 slots.next_slot();
                 if let Some(element) = &current_element {
-                    if matches!(element.kind(), T![and] | T![or] | T ! [||] | T ! [&&]) {
+                    if matches!(
+                        element.kind(),
+                        T![and] | T![or] | T ! [||] | T ! [&&] | T![in] | T![include]
+                    ) {
                         slots.mark_present();
                         current_element = elements.next();
                     }

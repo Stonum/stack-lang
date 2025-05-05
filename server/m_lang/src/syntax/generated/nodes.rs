@@ -2434,7 +2434,7 @@ impl MInExpression {
             object: self.object(),
         }
     }
-    pub fn property(&self) -> SyntaxResult<MInProperty> {
+    pub fn property(&self) -> SyntaxResult<AnyMExpression> {
         support::required_node(&self.syntax, 0usize)
     }
     pub fn in_token(&self) -> SyntaxResult<SyntaxToken> {
@@ -2454,44 +2454,9 @@ impl Serialize for MInExpression {
 }
 #[derive(Serialize)]
 pub struct MInExpressionFields {
-    pub property: SyntaxResult<MInProperty>,
+    pub property: SyntaxResult<AnyMExpression>,
     pub in_token: SyntaxResult<SyntaxToken>,
     pub object: SyntaxResult<AnyMExpression>,
-}
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub struct MInProperty {
-    pub(crate) syntax: SyntaxNode,
-}
-impl MInProperty {
-    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
-    #[doc = r""]
-    #[doc = r" # Safety"]
-    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
-    #[doc = r" or a match on [SyntaxNode::kind]"]
-    #[inline]
-    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
-        Self { syntax }
-    }
-    pub fn as_fields(&self) -> MInPropertyFields {
-        MInPropertyFields {
-            any_m_expression: self.any_m_expression(),
-        }
-    }
-    pub fn any_m_expression(&self) -> SyntaxResult<AnyMExpression> {
-        support::required_node(&self.syntax, 0usize)
-    }
-}
-impl Serialize for MInProperty {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.as_fields().serialize(serializer)
-    }
-}
-#[derive(Serialize)]
-pub struct MInPropertyFields {
-    pub any_m_expression: SyntaxResult<AnyMExpression>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MInitializerClause {
@@ -7498,47 +7463,6 @@ impl From<MInExpression> for SyntaxElement {
         n.syntax.into()
     }
 }
-impl AstNode for MInProperty {
-    type Language = Language;
-    const KIND_SET: SyntaxKindSet<Language> =
-        SyntaxKindSet::from_raw(RawSyntaxKind(M_IN_PROPERTY as u16));
-    fn can_cast(kind: SyntaxKind) -> bool {
-        kind == M_IN_PROPERTY
-    }
-    fn cast(syntax: SyntaxNode) -> Option<Self> {
-        if Self::can_cast(syntax.kind()) {
-            Some(Self { syntax })
-        } else {
-            None
-        }
-    }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.syntax
-    }
-    fn into_syntax(self) -> SyntaxNode {
-        self.syntax
-    }
-}
-impl std::fmt::Debug for MInProperty {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("MInProperty")
-            .field(
-                "any_m_expression",
-                &support::DebugSyntaxResult(self.any_m_expression()),
-            )
-            .finish()
-    }
-}
-impl From<MInProperty> for SyntaxNode {
-    fn from(n: MInProperty) -> SyntaxNode {
-        n.syntax
-    }
-}
-impl From<MInProperty> for SyntaxElement {
-    fn from(n: MInProperty) -> SyntaxElement {
-        n.syntax.into()
-    }
-}
 impl AstNode for MInitializerClause {
     type Language = Language;
     const KIND_SET: SyntaxKindSet<Language> =
@@ -12024,11 +11948,6 @@ impl std::fmt::Display for MIfStatement {
     }
 }
 impl std::fmt::Display for MInExpression {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(self.syntax(), f)
-    }
-}
-impl std::fmt::Display for MInProperty {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

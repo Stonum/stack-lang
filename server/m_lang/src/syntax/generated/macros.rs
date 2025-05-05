@@ -255,10 +255,6 @@ macro_rules! map_syntax_node {
                     let $pattern = unsafe { crate::syntax::MInExpression::new_unchecked(node) };
                     $body
                 }
-                crate::syntax::MSyntaxKind::M_IN_PROPERTY => {
-                    let $pattern = unsafe { crate::syntax::MInProperty::new_unchecked(node) };
-                    $body
-                }
                 crate::syntax::MSyntaxKind::M_INITIALIZER_CLAUSE => {
                     let $pattern =
                         unsafe { crate::syntax::MInitializerClause::new_unchecked(node) };
