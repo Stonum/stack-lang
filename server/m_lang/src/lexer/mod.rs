@@ -1093,17 +1093,17 @@ impl<'src> MLexer<'src> {
             return Some(()); // null time literal
         }
 
+        if chars[..2] == ['2', '4'] && chars[2..].iter().all(|c| *c == '0') {
+            self.advance(size);
+            return Some(()); // 24 hours like 24:00 or 24:00:00
+        }
+
         let [h1, h2, m1, m2, s1, s2] = chars;
         let size = NaiveTime::parse_from_str(&format!("{h1}{h2}:{m1}{m2}:{s1}{s2}"), "%H:%M:%S")
             .and(Ok(size))
             .or_else(|_| {
-                if [h1, h2, m1, m2, s1, s2].iter().all(|c| *c == '0') {
-                    Ok(size) // null time literal
-                } else {
-                    // try parse without seconds
-                    NaiveTime::parse_from_str(&format!("{h1}{h2}:{m1}{m2}"), "%H:%M")
-                        .and(Ok(size - 3))
-                }
+                // try parse without seconds
+                NaiveTime::parse_from_str(&format!("{h1}{h2}:{m1}{m2}"), "%H:%M").and(Ok(size - 3))
             })
             .ok();
 

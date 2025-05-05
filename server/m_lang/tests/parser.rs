@@ -358,6 +358,9 @@ fn test_date_and_time_literals() {
     );
 
     assert_parser!(res);
+
+    let res = parse("var x = 24:00;", MFileSource::script());
+    assert_parser!(res);
 }
 
 #[test]
