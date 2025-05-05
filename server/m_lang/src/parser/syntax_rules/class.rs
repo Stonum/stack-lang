@@ -1,8 +1,8 @@
 use super::annotation::parse_annotation_list;
+use super::binding::parse_identifier_binding;
 use super::ParsedSyntax::{Absent, Present};
 use super::{MParser, ParsedSyntax, RecoveryResult};
 
-use super::binding::parse_binding;
 use super::expr::{
     eat_doc_string_expression, parse_assignment_expression_or_higher, parse_lhs_expr,
     ExpressionContext,
@@ -99,7 +99,7 @@ fn parse_class(
     // test_err class_decl_no_id
     // class {}
     // class implements B {}
-    let id = parse_binding(p);
+    let id = parse_identifier_binding(p);
 
     // parse class id
     if id == Absent {

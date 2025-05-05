@@ -1,4 +1,4 @@
-use super::binding::{parse_binding, parse_binding_pattern};
+use super::binding::parse_identifier_binding;
 use super::class::parse_initializer_clause;
 use super::expr::{parse_doc_string_expression, ExpressionContext};
 use super::m_parse_error;
@@ -142,8 +142,8 @@ pub(crate) fn parse_function_body(p: &mut MParser, flags: SignatureFlags) -> Par
 
 fn parse_function_id(p: &mut MParser, kind: FunctionKind, flags: SignatureFlags) -> ParsedSyntax {
     match kind {
-        FunctionKind::Expression => p.with_state(EnterFunction(flags), parse_binding),
-        _ => parse_binding(p),
+        FunctionKind::Expression => p.with_state(EnterFunction(flags), parse_identifier_binding),
+        _ => parse_identifier_binding(p),
     }
 }
 
@@ -164,7 +164,7 @@ pub(crate) fn parse_rest_parameter(p: &mut MParser) -> ParsedSyntax {
 
     let m = p.start();
     p.bump(T![...]);
-    let _parsed = parse_binding_pattern(p);
+    let _parsed = parse_identifier_binding(p);
 
     let mut valid = true;
 
@@ -208,7 +208,7 @@ pub(crate) fn parse_formal_parameter(
 
     let m = p.start();
 
-    if let Present(_) = parse_binding_pattern(p) {
+    if let Present(_) = parse_identifier_binding(p) {
         parse_initializer_clause(p, expression_context).ok();
 
         let parameter = m.complete(p, M_FORMAL_PARAMETER);

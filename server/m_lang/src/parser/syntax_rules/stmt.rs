@@ -685,7 +685,7 @@ impl VariableDeclaratorContext {
 // A single declarator, either `ident` or `ident = assign_expr`
 fn parse_variable_declarator(p: &mut MParser, context: &VariableDeclaratorContext) -> ParsedSyntax {
     p.state_mut().duplicate_binding_parent = context.kind_name;
-    let id = parse_binding_pattern(p);
+    let id = parse_identifier_binding(p);
     p.state_mut().duplicate_binding_parent = None;
 
     id.map(|id| {
@@ -1125,7 +1125,7 @@ fn parse_catch_declaration(p: &mut MParser) -> ParsedSyntax {
     let declaration_marker = p.start();
 
     p.bump_any(); // bump (
-    parse_binding_pattern(p).or_add_diagnostic(p, expected_binding);
+    parse_identifier_binding(p).or_add_diagnostic(p, expected_binding);
 
     p.expect(T![')']);
 

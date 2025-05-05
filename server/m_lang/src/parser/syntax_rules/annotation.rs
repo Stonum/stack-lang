@@ -1,4 +1,4 @@
-use super::binding::parse_binding;
+use super::binding::parse_identifier_binding;
 use super::class::parse_class_declaration;
 use super::expr::parse_literal_expression;
 use super::function::parse_function_declaration;
@@ -93,7 +93,7 @@ impl ParseSeparatedList for AnnotationList {
 fn parse_annotation(p: &mut MParser) -> ParsedSyntax {
     let m = p.start();
 
-    parse_binding(p).or_add_diagnostic(p, expected_identifier);
+    parse_identifier_binding(p).or_add_diagnostic(p, expected_identifier);
 
     let kind = if p.at(T!['(']) {
         p.bump(T!['(']);
@@ -147,7 +147,7 @@ fn parse_annotation_attribute(p: &mut MParser) -> ParsedSyntax {
     }
 
     let m = p.start();
-    parse_binding(p).or_add_diagnostic(p, expected_identifier);
+    parse_identifier_binding(p).or_add_diagnostic(p, expected_identifier);
     p.expect(T![=]);
     parse_literal_expression(p).or_add_diagnostic(p, expected_literal_expression);
 
