@@ -434,3 +434,16 @@ fn test_annotations() {
 
     assert_parser!(res);
 }
+
+#[test]
+fn test_dot_binding() {
+    let res = parse(
+        r#"
+           func x() {}
+           func x.y() {}
+           func x.y.z() {}
+        "#,
+        MFileSource::script(),
+    );
+    assert_parser!(res);
+}

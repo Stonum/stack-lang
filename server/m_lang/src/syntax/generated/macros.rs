@@ -146,6 +146,10 @@ macro_rules! map_syntax_node {
                     let $pattern = unsafe { crate::syntax::MDirective::new_unchecked(node) };
                     $body
                 }
+                crate::syntax::MSyntaxKind::M_EXTENDED_BINDING => {
+                    let $pattern = unsafe { crate::syntax::MExtendedBinding::new_unchecked(node) };
+                    $body
+                }
                 crate::syntax::MSyntaxKind::M_ELSE_CLAUSE => {
                     let $pattern = unsafe { crate::syntax::MElseClause::new_unchecked(node) };
                     $body

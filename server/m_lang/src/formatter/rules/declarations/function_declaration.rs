@@ -5,7 +5,7 @@ use crate::formatter::utils::function_body::{
     FormatMaybeCachedFunctionBody, FunctionBodyCacheMode,
 };
 use crate::syntax::{
-    AnyMBinding, AnyMStringLiteralExpression, MAnnotationGroupList, MFunctionBody,
+    AnyMFunctionBinding, AnyMStringLiteralExpression, MAnnotationGroupList, MFunctionBody,
     MFunctionDeclaration, MFunctionExpression, MParameters, MSyntaxToken,
 };
 use biome_formatter::{write, RemoveSoftLinesBuffer};
@@ -48,7 +48,7 @@ impl FormatFunction {
         }
     }
 
-    fn id(&self) -> SyntaxResult<Option<AnyMBinding>> {
+    fn id(&self) -> SyntaxResult<Option<AnyMFunctionBinding>> {
         match self {
             FormatFunction::MFunctionDeclaration(declaration) => declaration.id().map(Some),
             FormatFunction::MFunctionExpression(_) => Ok(None),

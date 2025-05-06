@@ -1,6 +1,6 @@
 use crate::syntax::{
-    AnyMBinding, AnyMClassMember, AnyMClassMemberName, AnyMFunction, AnyMFunctionBody, MParameters,
-    MSyntaxToken,
+    AnyMBinding, AnyMClassMember, AnyMClassMemberName, AnyMFunction, AnyMFunctionBinding,
+    AnyMFunctionBody, MParameters, MSyntaxToken,
 };
 use biome_rowan::SyntaxResult;
 
@@ -41,7 +41,7 @@ impl AnyMFunction {
     ///
     /// This may be a binding for the function's identifier, or a binding for
     /// the variable to which the function is assigned.
-    pub fn binding(&self) -> Option<AnyMBinding> {
+    pub fn binding(&self) -> Option<AnyMFunctionBinding> {
         match self {
             AnyMFunction::MFunctionDeclaration(declaration) => declaration.id().ok(),
             AnyMFunction::MFunctionExpression(_) => None,
@@ -57,7 +57,7 @@ impl AnyMFunction {
         }
     }
 
-    pub fn id(&self) -> SyntaxResult<Option<AnyMBinding>> {
+    pub fn id(&self) -> SyntaxResult<Option<AnyMFunctionBinding>> {
         match self {
             AnyMFunction::MFunctionExpression(_) => Ok(None),
             AnyMFunction::MFunctionDeclaration(declaration) => declaration.id().map(Some),

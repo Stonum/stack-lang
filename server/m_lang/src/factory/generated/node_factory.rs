@@ -536,6 +536,20 @@ pub fn m_directive(version_token: SyntaxToken, value_token: SyntaxToken) -> MDir
         ],
     ))
 }
+pub fn m_extended_binding(
+    object: AnyMFunctionBinding,
+    operator_token: SyntaxToken,
+    member: MName,
+) -> MExtendedBinding {
+    MExtendedBinding::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_EXTENDED_BINDING,
+        [
+            Some(SyntaxElement::Node(object.into_syntax())),
+            Some(SyntaxElement::Token(operator_token)),
+            Some(SyntaxElement::Node(member.into_syntax())),
+        ],
+    ))
+}
 pub struct MDirectiveBuilder {
     value_token: SyntaxToken,
     semicolon_token: Option<SyntaxToken>,
@@ -829,7 +843,7 @@ pub fn m_function_body(
 pub fn m_function_declaration(
     annotation: MAnnotationGroupList,
     function_token: SyntaxToken,
-    id: AnyMBinding,
+    id: AnyMFunctionBinding,
     parameters: MParameters,
     body: MFunctionBody,
 ) -> MFunctionDeclarationBuilder {
@@ -845,7 +859,7 @@ pub fn m_function_declaration(
 pub struct MFunctionDeclarationBuilder {
     annotation: MAnnotationGroupList,
     function_token: SyntaxToken,
-    id: AnyMBinding,
+    id: AnyMFunctionBinding,
     parameters: MParameters,
     body: MFunctionBody,
     doc_string: Option<AnyMStringLiteralExpression>,
@@ -1456,14 +1470,14 @@ pub fn m_static_member_assignment(
 }
 pub fn m_static_member_expression(
     object: AnyMExpression,
-    operator_token_token: SyntaxToken,
+    operator_token: SyntaxToken,
     member: MName,
-) -> MStaticMemberExpression {
-    MStaticMemberExpression::unwrap_cast(SyntaxNode::new_detached(
+) -> MExtendedBinding {
+    MExtendedBinding::unwrap_cast(SyntaxNode::new_detached(
         MSyntaxKind::M_STATIC_MEMBER_EXPRESSION,
         [
             Some(SyntaxElement::Node(object.into_syntax())),
-            Some(SyntaxElement::Token(operator_token_token)),
+            Some(SyntaxElement::Token(operator_token)),
             Some(SyntaxElement::Node(member.into_syntax())),
         ],
     ))

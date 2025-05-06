@@ -2,6 +2,7 @@
 
 pub(crate) mod annotation_binding;
 pub(crate) mod constructor_parameters;
+pub(crate) mod extended_binding;
 pub(crate) mod formal_parameter;
 pub(crate) mod identifier_binding;
 pub(crate) mod parameters;

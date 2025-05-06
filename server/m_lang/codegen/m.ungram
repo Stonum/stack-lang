@@ -368,7 +368,6 @@ MParenthesizedExpression =
 MIdentifierExpression = name: MReferenceIdentifier
 
 // a.b
-// a.#b
 MStaticMemberExpression =
 	object: AnyMExpression
 	operator_token: '.'
@@ -613,12 +612,24 @@ AnyMBinding =
 	MIdentifierBinding
 	| MBogusBinding
 
+// func x()
+// func z.y()
+// func x.y.z()
+AnyMFunctionBinding =
+	MIdentifierBinding
+   | MExtendedBinding
+	| MBogusBinding
+
 // Binds a value to an identifier.
 // let x = OR function(test) {}
 //     ^               ^^^^
 MIdentifierBinding =
 	name: 'ident'
 
+MExtendedBinding =
+	object: AnyMFunctionBinding
+	operator_token: '.'
+	member: MName
 
 ///////////////
 // LITERALS
@@ -684,7 +695,7 @@ MVariableDeclarationClause =
 MFunctionDeclaration =
    annotation: MAnnotationGroupList
 	'function'
-	id: AnyMBinding
+	id: AnyMFunctionBinding
 	parameters: MParameters
    doc_string: AnyMStringLiteralExpression?
 	body: MFunctionBody

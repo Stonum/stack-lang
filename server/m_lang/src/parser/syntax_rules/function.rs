@@ -1,4 +1,4 @@
-use super::binding::parse_identifier_binding;
+use super::binding::{parse_dot_binding, parse_identifier_binding};
 use super::class::parse_initializer_clause;
 use super::expr::{parse_doc_string_expression, ExpressionContext};
 use super::m_parse_error;
@@ -12,6 +12,7 @@ use super::syntax::MSyntaxKind::*;
 use super::syntax::{MSyntaxKind, T};
 
 use biome_parser::prelude::*;
+
 use biome_parser::ParserProgress;
 
 /// A function declaration. This takes a marker
@@ -143,7 +144,25 @@ pub(crate) fn parse_function_body(p: &mut MParser, flags: SignatureFlags) -> Par
 fn parse_function_id(p: &mut MParser, kind: FunctionKind, flags: SignatureFlags) -> ParsedSyntax {
     match kind {
         FunctionKind::Expression => p.with_state(EnterFunction(flags), parse_identifier_binding),
-        _ => parse_identifier_binding(p),
+        _ => {
+            let ident = parse_identifier_binding(p);
+            if let Present(lhs) = ident {
+                let mut progress = ParserProgress::default();
+                let mut lhs = lhs;
+                while !p.at(EOF) {
+                    progress.assert_progressing(p);
+                    lhs = match p.cur() {
+                        T![.] => parse_dot_binding(p, lhs, T![.]).unwrap(),
+                        _ => {
+                            break;
+                        }
+                    };
+                }
+                Present(lhs)
+            } else {
+                Absent
+            }
+        }
     }
 }
 

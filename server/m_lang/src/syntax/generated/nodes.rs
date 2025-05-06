@@ -1320,6 +1320,51 @@ pub struct MDirectiveFields {
     pub value_token: SyntaxResult<SyntaxToken>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
+pub struct MExtendedBinding {
+    pub(crate) syntax: SyntaxNode,
+}
+impl MExtendedBinding {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> MExtendedBindingFields {
+        MExtendedBindingFields {
+            object: self.object(),
+            operator_token_token: self.operator_token(),
+            member: self.member(),
+        }
+    }
+    pub fn object(&self) -> SyntaxResult<AnyMFunctionBinding> {
+        support::required_node(&self.syntax, 0usize)
+    }
+    pub fn operator_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 1usize)
+    }
+    pub fn member(&self) -> SyntaxResult<MName> {
+        support::required_node(&self.syntax, 2usize)
+    }
+}
+impl Serialize for MExtendedBinding {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct MExtendedBindingFields {
+    pub object: SyntaxResult<AnyMFunctionBinding>,
+    pub operator_token_token: SyntaxResult<SyntaxToken>,
+    pub member: SyntaxResult<MName>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MElseClause {
     pub(crate) syntax: SyntaxNode,
 }
@@ -2010,7 +2055,7 @@ impl MFunctionDeclaration {
     pub fn function_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 1usize)
     }
-    pub fn id(&self) -> SyntaxResult<AnyMBinding> {
+    pub fn id(&self) -> SyntaxResult<AnyMFunctionBinding> {
         support::required_node(&self.syntax, 2usize)
     }
     pub fn parameters(&self) -> SyntaxResult<MParameters> {
@@ -2035,7 +2080,7 @@ impl Serialize for MFunctionDeclaration {
 pub struct MFunctionDeclarationFields {
     pub annotation: MAnnotationGroupList,
     pub function_token: SyntaxResult<SyntaxToken>,
-    pub id: SyntaxResult<AnyMBinding>,
+    pub id: SyntaxResult<AnyMFunctionBinding>,
     pub parameters: SyntaxResult<MParameters>,
     pub doc_string: Option<AnyMStringLiteralExpression>,
     pub body: SyntaxResult<MFunctionBody>,
@@ -4752,6 +4797,32 @@ impl AnyMFunction {
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, Serialize)]
+pub enum AnyMFunctionBinding {
+    MBogusBinding(MBogusBinding),
+    MExtendedBinding(MExtendedBinding),
+    MIdentifierBinding(MIdentifierBinding),
+}
+impl AnyMFunctionBinding {
+    pub fn as_m_bogus_binding(&self) -> Option<&MBogusBinding> {
+        match &self {
+            Self::MBogusBinding(item) => Some(item),
+            _ => None,
+        }
+    }
+    pub fn as_m_identifier_binding(&self) -> Option<&MIdentifierBinding> {
+        match &self {
+            Self::MIdentifierBinding(item) => Some(item),
+            _ => None,
+        }
+    }
+    pub fn as_m_extended_binding(&self) -> Option<&MExtendedBinding> {
+        match &self {
+            Self::MExtendedBinding(item) => Some(item),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, Serialize)]
 pub enum AnyMFunctionBody {
     AnyMExpression(AnyMExpression),
     MFunctionBody(MFunctionBody),
@@ -6372,6 +6443,58 @@ impl From<MDirective> for SyntaxNode {
 }
 impl From<MDirective> for SyntaxElement {
     fn from(n: MDirective) -> SyntaxElement {
+        n.syntax.into()
+    }
+}
+impl AstNode for MExtendedBinding {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_EXTENDED_BINDING as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_EXTENDED_BINDING
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for MExtendedBinding {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        thread_local! { static DEPTH : std :: cell :: Cell < u8 > = const { std :: cell :: Cell :: new (0) } };
+        let current_depth = DEPTH.get();
+        let result = if current_depth < 16 {
+            DEPTH.set(current_depth + 1);
+            f.debug_struct("MExtendedBinding")
+                .field("object", &support::DebugSyntaxResult(self.object()))
+                .field(
+                    "operator_token",
+                    &support::DebugSyntaxResult(self.operator_token()),
+                )
+                .field("member", &support::DebugSyntaxResult(self.member()))
+                .finish()
+        } else {
+            f.debug_struct("MExtendedBinding").finish()
+        };
+        DEPTH.set(current_depth);
+        result
+    }
+}
+impl From<MExtendedBinding> for SyntaxNode {
+    fn from(n: MExtendedBinding) -> Self {
+        n.syntax
+    }
+}
+impl From<MExtendedBinding> for SyntaxElement {
+    fn from(n: MExtendedBinding) -> Self {
         n.syntax.into()
     }
 }
@@ -10720,6 +10843,80 @@ impl From<AnyMFunction> for SyntaxElement {
         node.into()
     }
 }
+impl From<MBogusBinding> for AnyMFunctionBinding {
+    fn from(node: MBogusBinding) -> Self {
+        Self::MBogusBinding(node)
+    }
+}
+impl From<MIdentifierBinding> for AnyMFunctionBinding {
+    fn from(node: MIdentifierBinding) -> Self {
+        Self::MIdentifierBinding(node)
+    }
+}
+impl From<MExtendedBinding> for AnyMFunctionBinding {
+    fn from(node: MExtendedBinding) -> Self {
+        Self::MExtendedBinding(node)
+    }
+}
+impl AstNode for AnyMFunctionBinding {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> = MBogusBinding::KIND_SET
+        .union(MIdentifierBinding::KIND_SET)
+        .union(MStaticMemberExpression::KIND_SET);
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(
+            kind,
+            M_BOGUS_BINDING | M_IDENTIFIER_BINDING | M_EXTENDED_BINDING
+        )
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        let res = match syntax.kind() {
+            M_BOGUS_BINDING => Self::MBogusBinding(MBogusBinding { syntax }),
+            M_IDENTIFIER_BINDING => Self::MIdentifierBinding(MIdentifierBinding { syntax }),
+            M_EXTENDED_BINDING => Self::MExtendedBinding(MExtendedBinding { syntax }),
+            _ => return None,
+        };
+        Some(res)
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        match self {
+            Self::MBogusBinding(it) => &it.syntax,
+            Self::MExtendedBinding(it) => &it.syntax,
+            Self::MIdentifierBinding(it) => &it.syntax,
+        }
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        match self {
+            Self::MBogusBinding(it) => it.syntax,
+            Self::MExtendedBinding(it) => it.syntax,
+            Self::MIdentifierBinding(it) => it.syntax,
+        }
+    }
+}
+impl std::fmt::Debug for AnyMFunctionBinding {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::MBogusBinding(it) => std::fmt::Debug::fmt(it, f),
+            Self::MExtendedBinding(it) => std::fmt::Debug::fmt(it, f),
+            Self::MIdentifierBinding(it) => std::fmt::Debug::fmt(it, f),
+        }
+    }
+}
+impl From<AnyMFunctionBinding> for SyntaxNode {
+    fn from(n: AnyMFunctionBinding) -> Self {
+        match n {
+            AnyMFunctionBinding::MBogusBinding(it) => it.into(),
+            AnyMFunctionBinding::MExtendedBinding(it) => it.into(),
+            AnyMFunctionBinding::MIdentifierBinding(it) => it.into(),
+        }
+    }
+}
+impl From<AnyMFunctionBinding> for SyntaxElement {
+    fn from(n: AnyMFunctionBinding) -> Self {
+        let node: SyntaxNode = n.into();
+        node.into()
+    }
+}
 impl From<MFunctionBody> for AnyMFunctionBody {
     fn from(node: MFunctionBody) -> AnyMFunctionBody {
         AnyMFunctionBody::MFunctionBody(node)
@@ -11647,6 +11844,11 @@ impl std::fmt::Display for AnyMFunction {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
+impl std::fmt::Display for AnyMFunctionBinding {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
 impl std::fmt::Display for AnyMFunctionBody {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
@@ -11828,6 +12030,11 @@ impl std::fmt::Display for MDefaultClause {
     }
 }
 impl std::fmt::Display for MDirective {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for MExtendedBinding {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
