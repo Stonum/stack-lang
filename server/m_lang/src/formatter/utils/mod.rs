@@ -91,7 +91,12 @@ impl Format<MFormatContext> for FormatStatementBody<'_> {
         if let MEmptyStatement(empty) = &self.body {
             write!(f, [empty.format()])
         } else if !matches!(&self.body, MBlockStatement(_)) {
-            write!(f, [block_indent(&self.body.format())])
+            // check for block in next statement
+            if !has_block_statement(self.body) {
+                write!(f, [block_indent(&self.body.format())])
+            } else {
+                write!(f, [&format_args![hard_line_break(), self.body.format()]])
+            }
         } else {
             write!(f, [&format_args![hard_line_break(), self.body.format()]])
         }
@@ -144,10 +149,13 @@ impl Format<MFormatContext> for FormatSemicolon<'_> {
         match self.semicolon {
             Some(semicolon) => semicolon.format().fmt(f),
             None => {
-                let is_after_bogus = f.elements().start_tag(TagKind::Verbatim).is_some_and(|signal| match signal {
-                        Tag::StartVerbatim(kind) => kind.is_bogus(),
-                        _ => unreachable!(),
-                    });
+                let is_after_bogus =
+                    f.elements()
+                        .start_tag(TagKind::Verbatim)
+                        .is_some_and(|signal| match signal {
+                            Tag::StartVerbatim(kind) => kind.is_bogus(),
+                            _ => unreachable!(),
+                        });
 
                 if !is_after_bogus {
                     write!(f, [text(";")])?;
@@ -193,4 +201,33 @@ where
     }
 
     join_with.finish()
+}
+
+// check block statement in list of statements
+// Examples:
+// if( x == 1 ) if( y == 2 ) { x = 5; } -> true
+// if( x == 1 ) if( y == 2 ) x = 5; -> false
+fn has_block_statement(body: &AnyMStatement) -> bool {
+    if matches!(
+        body,
+        AnyMStatement::MBlockStatement(_) | AnyMStatement::MSwitchStatement(_)
+    ) {
+        return true;
+    }
+
+    match body {
+        AnyMStatement::MIfStatement(stmt) => stmt
+            .consequent()
+            .is_ok_and(|body| has_block_statement(&body)),
+        AnyMStatement::MForAllInStatement(stmt) => {
+            stmt.body().is_ok_and(|body| has_block_statement(&body))
+        }
+        AnyMStatement::MForAllStatement(stmt) => {
+            stmt.body().is_ok_and(|body| has_block_statement(&body))
+        }
+        AnyMStatement::MForStatement(stmt) => {
+            stmt.body().is_ok_and(|body| has_block_statement(&body))
+        }
+        _ => false,
+    }
 }
