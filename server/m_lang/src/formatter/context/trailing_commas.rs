@@ -50,12 +50,10 @@ impl Format<MFormatContext> for FormatTrailingCommas {
 }
 
 /// Print trailing commas wherever possible in multi-line comma-separated syntactic structures.
-#[derive(Clone, Copy, Default, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(
-    feature = "serde",
-    derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema),
-    serde(rename_all = "camelCase")
+#[derive(
+    Clone, Copy, Default, Debug, Eq, Hash, PartialEq, serde::Serialize, serde::Deserialize,
 )]
+#[serde(rename_all = "camelCase")]
 pub enum TrailingCommas {
     /// Trailing commas wherever possible (including function parameters and calls).
     All,

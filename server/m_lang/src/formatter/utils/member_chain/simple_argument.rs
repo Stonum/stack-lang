@@ -1,9 +1,8 @@
 use super::is_call_like_expression;
 use crate::syntax::{
-    AnyMArrayElement, AnyMAssignment, AnyMCallArgument, AnyMExpression, AnyMLiteralExpression,
-    AnyMObjectMember, AnyMObjectMemberName, MComputedMemberExpressionFields, MName,
-    MPostUpdateOperator, MPreUpdateOperator, MSpread, MStaticMemberExpressionFields,
-    MUnaryOperator,
+    AnyMArrayElement, AnyMAssignment, AnyMCallArgument, AnyMExpression, AnyMObjectMember,
+    AnyMObjectMemberName, MComputedMemberExpressionFields, MPostUpdateOperator, MPreUpdateOperator,
+    MSpread, MStaticMemberExpressionFields, MUnaryOperator,
 };
 use biome_rowan::{AstSeparatedList, SyntaxResult};
 
@@ -44,7 +43,6 @@ use biome_rowan::{AstSeparatedList, SyntaxResult};
 pub enum SimpleArgument {
     Expression(AnyMExpression),
     Assignment(AnyMAssignment),
-    Name(MName),
     Spread,
 }
 
@@ -81,7 +79,7 @@ impl SimpleArgument {
     fn is_simple_call_like_expression(&self, depth: u8) -> SyntaxResult<bool> {
         let result = if let SimpleArgument::Expression(any_expression) = self {
             if is_call_like_expression(any_expression) {
-                let mut is_simple_callee = false;
+                let is_simple_callee;
                 let arguments = match any_expression {
                     AnyMExpression::MNewExpression(expr) => {
                         let callee = expr.callee()?;
@@ -272,12 +270,6 @@ impl From<AnyMExpression> for SimpleArgument {
 impl From<AnyMAssignment> for SimpleArgument {
     fn from(assignment: AnyMAssignment) -> Self {
         Self::Assignment(assignment)
-    }
-}
-
-impl From<MName> for SimpleArgument {
-    fn from(name: MName) -> Self {
-        Self::Name(name)
     }
 }
 

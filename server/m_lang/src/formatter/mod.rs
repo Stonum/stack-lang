@@ -19,7 +19,8 @@ use biome_formatter::{
     comments::Comments, write, CstFormatContext, Format, FormatLanguage, FormatToken,
     TransformSourceMap,
 };
-use biome_formatter::{Buffer, FormatOwnedWithRule, FormatRefWithRule, Formatted, Printed};
+
+use biome_formatter::{Buffer, FormatOwnedWithRule, FormatRefWithRule, Printed};
 pub use biome_formatter::{IndentStyle, IndentWidth, LineWidth};
 use biome_rowan::TextRange;
 use biome_rowan::{AstNode, SyntaxNode};
@@ -29,6 +30,9 @@ pub(crate) use context::MFormatContext;
 pub use context::MFormatOptions;
 use cst::FormatMSyntaxNode;
 use syntax_rewriter::transform;
+
+#[cfg(test)]
+use biome_formatter::Formatted;
 
 /// Used to get an object that knows how to format this object.
 pub(crate) trait AsFormat<Context> {

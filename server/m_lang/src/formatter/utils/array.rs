@@ -24,7 +24,6 @@ where
         let node = element.node()?;
         let separator_mode = node.separator_mode();
 
-        let is_disallow = matches!(separator_mode, TrailingSeparatorMode::Disallow);
         let is_force = matches!(separator_mode, TrailingSeparatorMode::Force);
 
         join.entry(
@@ -32,12 +31,7 @@ where
             &format_with(|f| {
                 write!(f, [group(&node.format())])?;
 
-                if is_disallow {
-                    // Trailing separators are disallowed, replace it with an empty element
-                    if let Some(separator) = element.trailing_separator()? {
-                        write!(f, [format_removed(separator)])?;
-                    }
-                } else if is_force || index != last_index {
+                if is_force || index != last_index {
                     // In forced separator mode or if this element is not the last in the list, print the separator
                     match element.trailing_separator()? {
                         Some(trailing) => write!(f, [trailing.format()])?,
@@ -66,8 +60,6 @@ where
 
 /// Determines if a trailing separator should be inserted after an array element
 pub(crate) enum TrailingSeparatorMode {
-    /// Trailing separators are not allowed after this element (eg. rest elements)
-    Disallow,
     /// Trailing separators are inserted after this element except if its the
     /// last element and the group is not breaking
     Auto,

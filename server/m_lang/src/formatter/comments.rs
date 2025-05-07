@@ -6,7 +6,6 @@ use crate::syntax::{
     MVariableDeclarator, MWhileStatement,
 };
 
-use biome_formatter::comments::is_alignable_comment;
 use biome_formatter::{
     comments::{
         CommentKind, CommentPlacement, CommentStyle, CommentTextPosition, Comments,
@@ -14,7 +13,7 @@ use biome_formatter::{
     },
     write,
 };
-use biome_rowan::{AstNode, SyntaxNodeOptionExt, SyntaxTriviaPieceComments, TextLen};
+use biome_rowan::{AstNode, SyntaxNodeOptionExt, SyntaxTriviaPieceComments};
 
 pub type MComments = Comments<MLanguage>;
 

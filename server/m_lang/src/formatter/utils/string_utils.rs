@@ -106,24 +106,8 @@ impl<'token> LiteralStringNormaliser<'token> {
         self.normalise_string_literal()
     }
 
-    // fn normalise_sql_query(&mut self) -> Cow<'token, str> {
-    //     let quoteless = self.raw_content();
-    //     let is_multiline_query = quoteless.trim().lines().count() > 1;
-    //     let is_start_newline = quoteless.starts_with('\n');
-    //     let is_end_newline = quoteless.ends_with('\n');
-    //     if is_multiline_query && !(is_start_newline || is_end_newline) {
-    //         let mut new_string = quoteless.trim().to_string();
-    //         new_string.insert_str(0, "\'\n");
-    //         new_string.push_str("\n\'");
-    //         Cow::Owned(new_string)
-    //     } else {
-    //         self.normalise_string_literal()
-    //     }
-    // }
-
     fn normalise_string_literal(&mut self) -> Cow<'token, str> {
         let polished_raw_content = self.normalize_string();
-        let content = self.token.text_trimmed();
         let preferred_quote = self.preferred_quote;
 
         match polished_raw_content {

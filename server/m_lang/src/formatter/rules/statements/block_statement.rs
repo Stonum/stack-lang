@@ -1,5 +1,5 @@
 use crate::formatter::prelude::*;
-use crate::syntax::{AnyMExpression, MBlockStatement, MIfStatement};
+use crate::syntax::MBlockStatement;
 use crate::syntax::{AnyMStatement, MEmptyStatement};
 use biome_formatter::{write, Buffer, CstFormatContext};
 

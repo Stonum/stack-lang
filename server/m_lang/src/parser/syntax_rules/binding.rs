@@ -3,7 +3,7 @@ use biome_parser::prelude::*;
 use crate::syntax::MSyntaxKind;
 
 use super::expr::{parse_any_name, parse_identifier};
-use biome_parser::prelude::ParsedSyntax::{Absent, Present};
+use biome_parser::prelude::ParsedSyntax::Present;
 
 use super::m_parse_error::expected_identifier;
 use super::syntax::MSyntaxKind::*;

@@ -1,4 +1,4 @@
-#[rustfmt::skip]
+#[macro_use]
 pub mod macros;
 #[rustfmt::skip]
 pub mod nodes;
@@ -8,5 +8,4 @@ pub mod nodes_mut;
 pub mod kind;
 
 pub use kind::*;
-pub use macros::*;
 pub use nodes::*;

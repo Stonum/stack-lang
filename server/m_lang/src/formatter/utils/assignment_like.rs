@@ -152,21 +152,6 @@ pub enum AssignmentLikeLayout {
     /// which requires having the properties broke on different lines.
     BreakLeftHandSide,
 
-    /// This is a special case of the "chain" layout collection. This is triggered when there's
-    /// a series of simple assignments (at least three) and in the middle we have an arrow function
-    /// and this function followed by two more arrow functions.
-    ///
-    /// This layout will break the right hand side of the tail on a new line and add a new level
-    /// of indentation
-    ///
-    /// ```JavaScript
-    /// lorem =
-    ///     fff =
-    ///     ee =
-    ///         () => (fff) => () => (fefef) => () => fff;
-    /// ```
-    ChainTailArrowFunction,
-
     /// Layout used when the operator and right hand side are part of a `MInitializerClause<
     /// that has a suppression comment.
     SuppressedInitializer,
@@ -186,16 +171,6 @@ impl AnyMAssignmentLike {
         };
 
         Ok(right)
-    }
-
-    fn left(&self) -> SyntaxResult<LeftAssignmentLike> {
-        match self {
-            AnyMAssignmentLike::MPropertyObjectMember(property) => Ok(property.name()?.into()),
-            AnyMAssignmentLike::MAssignmentExpression(assignment) => Ok(assignment.left()?.into()),
-            AnyMAssignmentLike::MVariableDeclarator(variable_declarator) => {
-                Ok(variable_declarator.id()?.into())
-            }
-        }
     }
 
     fn write_left(&self, f: &mut MFormatter) -> FormatResult<bool> {
@@ -248,15 +223,15 @@ impl AnyMAssignmentLike {
         }
     }
 
-    fn write_right(&self, f: &mut MFormatter, layout: AssignmentLikeLayout) -> FormatResult<()> {
+    fn write_right(&self, f: &mut MFormatter) -> FormatResult<()> {
         match self {
             AnyMAssignmentLike::MPropertyObjectMember(property) => {
                 let value = property.value()?;
-                write!(f, [with_assignment_layout(&value, Some(layout))])
+                write!(f, [with_assignment_layout(&value)])
             }
             AnyMAssignmentLike::MAssignmentExpression(assignment) => {
                 let right = assignment.right()?;
-                write!(f, [space(), with_assignment_layout(&right, Some(layout))])
+                write!(f, [space(), with_assignment_layout(&right)])
             }
             AnyMAssignmentLike::MVariableDeclarator(variable_declarator) => {
                 if let Some(initializer) = variable_declarator.initializer() {
@@ -266,7 +241,7 @@ impl AnyMAssignmentLike {
                         [
                             space(),
                             format_leading_comments(initializer.syntax()),
-                            with_assignment_layout(&expression, Some(layout)),
+                            with_assignment_layout(&expression),
                             format_trailing_comments(initializer.syntax())
                         ]
                     )?;
@@ -586,7 +561,7 @@ impl Format<MFormatContext> for AnyMAssignmentLike {
             let layout = self.layout(is_left_short, left_may_break, f)?;
 
             let left = format_once(|f| f.write_elements(formatted_left));
-            let right = format_with(|f| self.write_right(f, layout));
+            let right = format_with(|f| self.write_right(f));
 
             let inner_content = format_with(|f| {
                 if matches!(
@@ -639,9 +614,6 @@ impl Format<MFormatContext> for AnyMAssignmentLike {
                         )
                     }
 
-                    AssignmentLikeLayout::ChainTailArrowFunction => {
-                        write!(f, [space(), right])
-                    }
                     AssignmentLikeLayout::SuppressedInitializer => {
                         self.write_suppressed_initializer(f)
                     }
@@ -795,14 +767,10 @@ fn is_short_argument(
 /// formatting rule takes the layout as an option.
 pub(crate) struct WithAssignmentLayout<'a> {
     expression: &'a AnyMExpression,
-    layout: Option<AssignmentLikeLayout>,
 }
 
-pub(crate) fn with_assignment_layout(
-    expression: &AnyMExpression,
-    layout: Option<AssignmentLikeLayout>,
-) -> WithAssignmentLayout {
-    WithAssignmentLayout { expression, layout }
+pub(crate) fn with_assignment_layout(expression: &AnyMExpression) -> WithAssignmentLayout {
+    WithAssignmentLayout { expression }
 }
 
 impl Format<MFormatContext> for WithAssignmentLayout<'_> {

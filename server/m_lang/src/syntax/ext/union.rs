@@ -1,6 +1,6 @@
 use crate::syntax::{
-    AnyMBinding, AnyMClassMember, AnyMClassMemberName, AnyMFunction, AnyMFunctionBinding,
-    AnyMFunctionBody, MParameters, MSyntaxToken,
+    AnyMClassMember, AnyMClassMemberName, AnyMFunction, AnyMFunctionBinding, AnyMFunctionBody,
+    MParameters, MSyntaxToken,
 };
 use biome_rowan::SyntaxResult;
 

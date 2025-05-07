@@ -37,7 +37,7 @@ impl FormatNodeRule<MInitializerClause> for FormatMInitializerClause {
             [
                 eq_token.format(),
                 space(),
-                with_assignment_layout(&expression?, self.assignment_layout)
+                with_assignment_layout(&expression?)
             ]
         ]
     }

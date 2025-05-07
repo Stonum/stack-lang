@@ -2,7 +2,8 @@ use super::prelude::*;
 use biome_formatter::{FormatOwnedWithRule, FormatRefWithRule};
 
 use super::{AsFormat, IntoFormat, MFormatContext};
-use crate::syntax::{map_syntax_node, MSyntaxNode};
+use crate::map_syntax_node;
+use crate::syntax::MSyntaxNode;
 
 #[derive(Debug, Copy, Clone, Default)]
 pub(crate) struct FormatMSyntaxNode;
