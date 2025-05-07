@@ -624,7 +624,7 @@ var qq = Query(`select row_id from ~Лицевые договора~ `, 1, "p1,S
         let doc = format_node(
             MFormatOptions::new(syntax)
                 .with_indent_style(IndentStyle::Space)
-                .with_line_width(LineWidth::try_from(80).unwrap())
+                .with_line_width(LineWidth::try_from(120).unwrap())
                 .with_indent_width(IndentWidth::from(3)),
             &tree.syntax(),
         );

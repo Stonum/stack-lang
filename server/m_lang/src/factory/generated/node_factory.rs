@@ -965,7 +965,7 @@ pub fn m_hash_map_expression(
 pub fn m_hash_set_expression(
     set_token: SyntaxToken,
     l_paren_token: SyntaxToken,
-    members: MHashSetMemberList,
+    members: MHashSetElementList,
     r_paren_token: SyntaxToken,
 ) -> MHashSetExpression {
     MHashSetExpression::unwrap_cast(SyntaxNode::new_detached(
@@ -1894,7 +1894,7 @@ where
         }),
     ))
 }
-pub fn m_hash_set_member_list<I, S>(items: I, separators: S) -> MHashSetMemberList
+pub fn m_hash_set_element_list<I, S>(items: I, separators: S) -> MHashSetElementList
 where
     I: IntoIterator<Item = AnyMArrayElement>,
     I::IntoIter: ExactSizeIterator,
@@ -1904,8 +1904,8 @@ where
     let mut items = items.into_iter();
     let mut separators = separators.into_iter();
     let length = items.len() + separators.len();
-    MHashSetMemberList::unwrap_cast(SyntaxNode::new_detached(
-        MSyntaxKind::M_HASH_SET_MEMBER_LIST,
+    MHashSetElementList::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_HASH_SET_ELEMENT_LIST,
         (0..length).map(|index| {
             if index % 2 == 0 {
                 Some(items.next()?.into_syntax().into())

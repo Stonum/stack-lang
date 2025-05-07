@@ -525,9 +525,9 @@ macro_rules! map_syntax_node {
                         unsafe { $crate::syntax::MHashMapMemberList::new_unchecked(node) };
                     $body
                 }
-                $crate::syntax::MSyntaxKind::M_HASH_SET_MEMBER_LIST => {
+                $crate::syntax::MSyntaxKind::M_HASH_SET_ELEMENT_LIST => {
                     let $pattern =
-                        unsafe { $crate::syntax::MHashSetMemberList::new_unchecked(node) };
+                        unsafe { $crate::syntax::MHashSetElementList::new_unchecked(node) };
                     $body
                 }
                 $crate::syntax::MSyntaxKind::M_MODULE_ITEM_LIST => {

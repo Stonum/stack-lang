@@ -997,7 +997,7 @@ struct HashSetElementList;
 impl ParseSeparatedList for HashSetElementList {
     type Kind = MSyntaxKind;
     type Parser<'a> = MParser<'a>;
-    const LIST_KIND: MSyntaxKind = M_HASH_SET_MEMBER_LIST;
+    const LIST_KIND: MSyntaxKind = M_HASH_SET_ELEMENT_LIST;
 
     fn parse_element(&mut self, p: &mut MParser) -> ParsedSyntax {
         match p.cur() {

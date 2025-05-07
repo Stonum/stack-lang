@@ -4,16 +4,16 @@ use biome_formatter::{write, CstFormatContext, FormatRuleWithOptions, GroupId};
 use crate::formatter::utils::array::write_array_node;
 
 use crate::formatter::context::trailing_commas::FormatTrailingCommas;
-use crate::syntax::MHashSetMemberList;
+use crate::syntax::MHashSetElementList;
 use biome_rowan::{AstNode, AstSeparatedList};
 
 #[derive(Debug, Clone, Default)]
-pub(crate) struct FormatMHashSetMemberList {
+pub(crate) struct FormatMHashSetElementList {
     group_id: Option<GroupId>,
 }
 
-impl_format_with_rule!(MHashSetMemberList, FormatMHashSetMemberList);
-impl FormatRuleWithOptions<MHashSetMemberList> for FormatMHashSetMemberList {
+impl_format_with_rule!(MHashSetElementList, FormatMHashSetElementList);
+impl FormatRuleWithOptions<MHashSetElementList> for FormatMHashSetElementList {
     type Options = Option<GroupId>;
 
     fn with_options(mut self, options: Self::Options) -> Self {
@@ -22,8 +22,8 @@ impl FormatRuleWithOptions<MHashSetMemberList> for FormatMHashSetMemberList {
     }
 }
 
-impl FormatNodeRule<MHashSetMemberList> for FormatMHashSetMemberList {
-    fn fmt_fields(&self, node: &MHashSetMemberList, f: &mut MFormatter) -> FormatResult<()> {
+impl FormatNodeRule<MHashSetElementList> for FormatMHashSetElementList {
+    fn fmt_fields(&self, node: &MHashSetElementList, f: &mut MFormatter) -> FormatResult<()> {
         let layout = if can_concisely_print_array_list(node, f.context().comments()) {
             ArrayLayout::Fill
         } else {
@@ -88,7 +88,7 @@ enum ArrayLayout {
     OnePerLine,
 }
 
-/// Returns true if the provided MHashSetMemberList could
+/// Returns true if the provided MHashSetElementList could
 /// be "fill-printed" instead of breaking each element on
 /// a different line.
 ///
@@ -96,7 +96,7 @@ enum ArrayLayout {
 /// with 10 or less characters, potentially wrapped in a "short"
 /// unary expression (+, -, ~ or !)
 pub(crate) fn can_concisely_print_array_list(
-    list: &MHashSetMemberList,
+    list: &MHashSetElementList,
     comments: &MComments,
 ) -> bool {
     use crate::syntax::AnyMArrayElement::*;

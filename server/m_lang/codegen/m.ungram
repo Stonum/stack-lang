@@ -463,10 +463,10 @@ MHashMapMemberList = (AnyMObjectMember (',' AnyMObjectMember)* ','?)
 ///////////////
 MHashSetExpression =
 	'set''('
-	members: MHashSetMemberList
+	members: MHashSetElementList
 	')'
 
-MHashSetMemberList = (AnyMArrayElement (',' AnyMArrayElement)* ','?)
+MHashSetElementList = (AnyMArrayElement (',' AnyMArrayElement)* ','?)
 
 
 ///////////////

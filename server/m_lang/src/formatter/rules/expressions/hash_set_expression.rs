@@ -2,7 +2,7 @@ use crate::formatter::prelude::*;
 
 use crate::syntax::parentheses::NeedsParentheses;
 use crate::syntax::{AnyMArrayElement, AnyMExpression, MHashSetExpressionFields};
-use crate::syntax::{MHashSetExpression, MHashSetMemberList};
+use crate::syntax::{MHashSetElementList, MHashSetExpression};
 use biome_formatter::{write, FormatRuleWithOptions};
 use biome_rowan::SyntaxResult;
 
@@ -84,7 +84,7 @@ pub(crate) struct FormatMHashSetExpressionOptions {
 /// Returns `true` for arrays containing at least two elements if:
 /// * all elements are either object or array expressions
 /// * each child array expression has at least two elements, or each child object expression has at least two members.
-fn should_break(elements: &MHashSetMemberList) -> SyntaxResult<bool> {
+fn should_break(elements: &MHashSetElementList) -> SyntaxResult<bool> {
     if elements.len() < 2 {
         Ok(false)
     } else {

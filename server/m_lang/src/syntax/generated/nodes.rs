@@ -2273,7 +2273,7 @@ impl MHashSetExpression {
     pub fn l_paren_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 1usize)
     }
-    pub fn members(&self) -> MHashSetMemberList {
+    pub fn members(&self) -> MHashSetElementList {
         support::list(&self.syntax, 2usize)
     }
     pub fn r_paren_token(&self) -> SyntaxResult<SyntaxToken> {
@@ -2292,7 +2292,7 @@ impl Serialize for MHashSetExpression {
 pub struct MHashSetExpressionFields {
     pub set_token: SyntaxResult<SyntaxToken>,
     pub l_paren_token: SyntaxResult<SyntaxToken>,
-    pub members: MHashSetMemberList,
+    pub members: MHashSetElementList,
     pub r_paren_token: SyntaxResult<SyntaxToken>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -13495,10 +13495,10 @@ impl IntoIterator for &MHashMapMemberList {
     }
 }
 #[derive(Clone, Eq, PartialEq, Hash)]
-pub struct MHashSetMemberList {
+pub struct MHashSetElementList {
     syntax_list: SyntaxList,
 }
-impl MHashSetMemberList {
+impl MHashSetElementList {
     #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
     #[doc = r""]
     #[doc = r" # Safety"]
@@ -13511,16 +13511,16 @@ impl MHashSetMemberList {
         }
     }
 }
-impl AstNode for MHashSetMemberList {
+impl AstNode for MHashSetElementList {
     type Language = Language;
     const KIND_SET: SyntaxKindSet<Language> =
-        SyntaxKindSet::from_raw(RawSyntaxKind(M_HASH_SET_MEMBER_LIST as u16));
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_HASH_SET_ELEMENT_LIST as u16));
     fn can_cast(kind: SyntaxKind) -> bool {
-        kind == M_HASH_SET_MEMBER_LIST
+        kind == M_HASH_SET_ELEMENT_LIST
     }
-    fn cast(syntax: SyntaxNode) -> Option<MHashSetMemberList> {
+    fn cast(syntax: SyntaxNode) -> Option<MHashSetElementList> {
         if Self::can_cast(syntax.kind()) {
-            Some(MHashSetMemberList {
+            Some(MHashSetElementList {
                 syntax_list: syntax.into_list(),
             })
         } else {
@@ -13534,7 +13534,7 @@ impl AstNode for MHashSetMemberList {
         self.syntax_list.into_node()
     }
 }
-impl Serialize for MHashSetMemberList {
+impl Serialize for MHashSetElementList {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -13546,7 +13546,7 @@ impl Serialize for MHashSetMemberList {
         seq.end()
     }
 }
-impl AstSeparatedList for MHashSetMemberList {
+impl AstSeparatedList for MHashSetElementList {
     type Language = Language;
     type Node = AnyMArrayElement;
     fn syntax_list(&self) -> &SyntaxList {
@@ -13556,20 +13556,20 @@ impl AstSeparatedList for MHashSetMemberList {
         self.syntax_list
     }
 }
-impl Debug for MHashSetMemberList {
+impl Debug for MHashSetElementList {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str("MHashSetMemberList ")?;
+        f.write_str("MHashSetElementList ")?;
         f.debug_list().entries(self.elements()).finish()
     }
 }
-impl IntoIterator for MHashSetMemberList {
+impl IntoIterator for MHashSetElementList {
     type Item = SyntaxResult<AnyMArrayElement>;
     type IntoIter = AstSeparatedListNodesIterator<Language, AnyMArrayElement>;
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }
 }
-impl IntoIterator for &MHashSetMemberList {
+impl IntoIterator for &MHashSetElementList {
     type Item = SyntaxResult<AnyMArrayElement>;
     type IntoIter = AstSeparatedListNodesIterator<Language, AnyMArrayElement>;
     fn into_iter(self) -> Self::IntoIter {

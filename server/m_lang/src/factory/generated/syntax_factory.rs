@@ -1724,7 +1724,7 @@ impl SyntaxFactory for MSyntaxFactory {
                 }
                 slots.next_slot();
                 if let Some(element) = &current_element {
-                    if MHashSetMemberList::can_cast(element.kind()) {
+                    if MHashSetElementList::can_cast(element.kind()) {
                         slots.mark_present();
                         current_element = elements.next();
                     }
@@ -3185,7 +3185,7 @@ impl SyntaxFactory for MSyntaxFactory {
                 T ! [,],
                 true,
             ),
-            M_HASH_SET_MEMBER_LIST => Self::make_separated_list_syntax(
+            M_HASH_SET_ELEMENT_LIST => Self::make_separated_list_syntax(
                 kind,
                 children,
                 AnyMArrayElement::can_cast,
