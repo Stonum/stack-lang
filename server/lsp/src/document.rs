@@ -55,7 +55,7 @@ impl From<&Document<MLangSemanticModel>> for DocumentSymbolResponse {
             match def {
                 AnyMDefinition::MFunctionDefinition(function) => {
                     let func_def = SymbolInformation {
-                        name: function.id(),
+                        name: trim_quotes_from_id(function.id()),
                         kind: SymbolKind::FUNCTION,
                         tags: None,
                         deprecated: None,
@@ -66,7 +66,7 @@ impl From<&Document<MLangSemanticModel>> for DocumentSymbolResponse {
                 }
                 AnyMDefinition::MClassDefinition(class) => {
                     let class_def = SymbolInformation {
-                        name: class.id(),
+                        name: trim_quotes_from_id(class.id()),
                         kind: SymbolKind::CLASS,
                         tags: None,
                         deprecated: None,
@@ -77,7 +77,7 @@ impl From<&Document<MLangSemanticModel>> for DocumentSymbolResponse {
 
                     for method in class.methods() {
                         let method_def = SymbolInformation {
-                            name: method.id(),
+                            name: trim_quotes_from_id(method.id()),
                             kind: SymbolKind::FUNCTION,
                             tags: None,
                             deprecated: None,
@@ -92,4 +92,11 @@ impl From<&Document<MLangSemanticModel>> for DocumentSymbolResponse {
 
         DocumentSymbolResponse::Flat(response)
     }
+}
+
+fn trim_quotes_from_id(id: String) -> String {
+    if id.starts_with('\'') && id.ends_with('\'') {
+        return id[1..id.len() - 1].to_string();
+    }
+    id
 }
