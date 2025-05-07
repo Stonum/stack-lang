@@ -39,19 +39,19 @@ impl Document<MLangSemanticModel> {
     }
 }
 
-impl Into<DocumentSymbolResponse> for &Document<MLangSemanticModel> {
-    fn into(self) -> DocumentSymbolResponse {
+impl From<&Document<MLangSemanticModel>> for DocumentSymbolResponse {
+    fn from(val: &Document<MLangSemanticModel>) -> Self {
         let mut response = vec![];
 
-        let uri = self.uri();
-        let text = self.text();
+        let uri = val.uri();
+        let text = val.text();
 
         let location = move |range: TextRange| {
             Location::new(uri.clone(), position(text, range).unwrap_or_default())
         };
 
         #[allow(deprecated)]
-        for def in self.definitions() {
+        for def in val.definitions() {
             match def {
                 AnyMDefinition::MFunctionDefinition(function) => {
                     let func_def = SymbolInformation {

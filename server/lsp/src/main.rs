@@ -70,7 +70,7 @@ impl LanguageServer for Backend {
 
         let start = Instant::now();
         self.client
-            .send_notification::<StatusBarNotification>(StatusBarNotification::new(
+            .send_notification::<StatusBarNotification>(StatusBarNotification::create(
                 "parse definitions - load settings",
             ))
             .await;
@@ -145,11 +145,9 @@ impl LanguageServer for Backend {
         let current = Handle::current();
         for (i, file) in files.iter().enumerate() {
             self.client
-                .send_notification::<StatusBarNotification>(StatusBarNotification::new(&format!(
-                    "parse definitions from files: {}/{}",
-                    i,
-                    files.len()
-                )))
+                .send_notification::<StatusBarNotification>(StatusBarNotification::create(
+                    &format!("parse definitions from files: {}/{}", i, files.len()),
+                ))
                 .await;
 
             if let Ok(text) = tokio::fs::read_to_string(&file).await {
@@ -423,7 +421,7 @@ struct StatusBarParams {
 
 struct StatusBarNotification;
 impl StatusBarNotification {
-    fn new(text: &str) -> StatusBarParams {
+    fn create(text: &str) -> StatusBarParams {
         StatusBarParams {
             text: text.to_string(),
         }

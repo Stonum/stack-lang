@@ -23,14 +23,14 @@ pub async fn format(
             false => IndentStyle::Tab,
         })
         .with_line_width(LineWidth::try_from(120).unwrap())
-        .with_indent_width(IndentWidth::try_from(options.tab_size as u8).unwrap_or_default());
+        .with_indent_width(IndentWidth::from(options.tab_size as u8));
 
-    let text_range = text_range(&text, range)?;
+    let text_range = text_range(text, range)?;
 
     let formatted_text = format_range(format_options, &parsed.syntax(), text_range).ok()?;
 
     let range = formatted_text.range()?;
-    let range = position(&text, range)?;
+    let range = position(text, range)?;
     let new_text = formatted_text.into_code();
 
     let edits = vec![TextEdit { range, new_text }];
