@@ -26,8 +26,7 @@ impl FormatNodeRule<MExtendsClause> for FormatMExtendsClause {
 
             if node
                 .syntax()
-                .grand_parent()
-                .map_or(false, |p| p.kind() == M_ASSIGNMENT_EXPRESSION)
+                .grand_parent().is_some_and(|p| p.kind() == M_ASSIGNMENT_EXPRESSION)
             {
                 if comments.has_leading_comments(super_class.syntax()) || has_trailing_comments {
                     write!(f, [text("("), &content, text(")")])

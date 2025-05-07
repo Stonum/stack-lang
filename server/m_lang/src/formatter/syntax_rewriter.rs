@@ -155,7 +155,7 @@ impl MFormatSyntaxRewriter {
             }
         };
 
-        self.source_map.push_source_text(&l_paren.text());
+        self.source_map.push_source_text(l_paren.text());
 
         let inner_trimmed_range = inner.text_trimmed_range();
         // Store away the inner offset because the new returned inner might be a detached node
@@ -182,7 +182,7 @@ impl MFormatSyntaxRewriter {
                     }
                 };
 
-                self.source_map.push_source_text(&r_paren.text());
+                self.source_map.push_source_text(r_paren.text());
 
                 VisitNodeSignal::Replace(updated)
             }
@@ -211,8 +211,7 @@ impl MFormatSyntaxRewriter {
                 }
 
                 let l_paren_trailing_non_whitespace_trivia = l_paren_trailing
-                    .peek()
-                    .map_or(false, |piece| piece.is_skipped() || piece.is_comments());
+                    .peek().is_some_and(|piece| piece.is_skipped() || piece.is_comments());
 
                 let l_paren_trivia =
                     chain_trivia_pieces(l_paren.leading_trivia().pieces(), l_paren_trailing);
@@ -284,7 +283,7 @@ impl MFormatSyntaxRewriter {
                 self.source_map
                     .add_deleted_range(r_paren.text_trimmed_range());
 
-                self.source_map.push_source_text(&r_paren.text());
+                self.source_map.push_source_text(r_paren.text());
 
                 // SAFETY: Calling `unwrap` is safe because we know that `last_token` is part of the `updated` subtree.
                 VisitNodeSignal::Replace(

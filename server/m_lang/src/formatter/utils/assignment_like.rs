@@ -384,7 +384,7 @@ impl AnyMAssignmentLike {
         let upper_chain_is_eligible =
             // First, we check if the current node is an assignment expression
             if let AnyMAssignmentLike::MAssignmentExpression(assignment) = self {
-                assignment.syntax().parent().map_or(false, |parent| {
+                assignment.syntax().parent().is_some_and(|parent| {
                     // Then we check if the parent is assignment expression or variable declarator
                     if matches!(
                         parent.kind(),
@@ -416,9 +416,7 @@ impl AnyMAssignmentLike {
             if !right_is_tail {
                 Some(AssignmentLikeLayout::Chain)
             } else {
-                match right_expression {
-                    _ => Some(AssignmentLikeLayout::ChainTail),
-                }
+                Some(AssignmentLikeLayout::ChainTail)
             }
         } else {
             None
@@ -495,8 +493,7 @@ pub(crate) fn should_break_after_operator(
         AnyMExpression::MSequenceExpression(_) => true,
 
         AnyMExpression::MConditionalExpression(conditional) => {
-            AnyMBinaryLikeExpression::cast(conditional.test()?.into_syntax())
-                .map_or(false, |expression| {
+            AnyMBinaryLikeExpression::cast(conditional.test()?.into_syntax()).is_some_and(|expression| {
                     !expression.should_inline_logical_expression()
                 })
         }

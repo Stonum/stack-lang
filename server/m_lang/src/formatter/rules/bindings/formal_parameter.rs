@@ -23,8 +23,7 @@ impl FormatNodeRule<MFormalParameter> for FormatMFormalParameter {
         let is_hug_parameter = node
             .syntax()
             .grand_parent()
-            .and_then(FormatAnyMParameters::cast)
-            .map_or(false, |parameters| {
+            .and_then(FormatAnyMParameters::cast).is_some_and(|parameters| {
                 should_hug_function_parameters(&parameters, f.comments(), false).unwrap_or(false)
             });
 

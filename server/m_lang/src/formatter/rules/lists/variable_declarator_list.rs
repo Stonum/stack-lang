@@ -14,7 +14,7 @@ impl FormatRule<MVariableDeclaratorList> for FormatMVariableDeclaratorList {
     fn fmt(&self, node: &MVariableDeclaratorList, f: &mut MFormatter) -> FormatResult<()> {
         let length = node.len();
 
-        let is_parent_for_loop = node.syntax().grand_parent().map_or(false, |grand_parent| {
+        let is_parent_for_loop = node.syntax().grand_parent().is_some_and(|grand_parent| {
             matches!(
                 grand_parent.kind(),
                 MSyntaxKind::M_FOR_STATEMENT
@@ -24,7 +24,7 @@ impl FormatRule<MVariableDeclaratorList> for FormatMVariableDeclaratorList {
         });
 
         let has_any_initializer = node.iter().any(|declarator| {
-            declarator.map_or(false, |declarator| declarator.initializer().is_some())
+            declarator.is_ok_and(|declarator| declarator.initializer().is_some())
         });
 
         let format_separator = format_with(|f| {

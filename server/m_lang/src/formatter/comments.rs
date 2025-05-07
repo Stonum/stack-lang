@@ -219,7 +219,7 @@ fn handle_class_comment(comment: DecoratedComment<MLanguage>) -> CommentPlacemen
         // ```
         if comment
             .following_token()
-            .map_or(false, |token| token.kind() == MSyntaxKind::R_CURLY)
+            .is_some_and(|token| token.kind() == MSyntaxKind::R_CURLY)
             && first_member.is_none()
         {
             return CommentPlacement::dangling(comment.enclosing_node().clone(), comment);
@@ -463,7 +463,7 @@ fn handle_if_statement_comment(
                 // Test if this is a comment right before the condition's `)`
                 if comment
                     .following_token()
-                    .map_or(false, |token| token.kind() == MSyntaxKind::R_PAREN)
+                    .is_some_and(|token| token.kind() == MSyntaxKind::R_PAREN)
                 {
                     return CommentPlacement::trailing(preceding.clone(), comment);
                 }
@@ -556,7 +556,7 @@ fn handle_while_comment(comment: DecoratedComment<MLanguage>) -> CommentPlacemen
         // Test if this is a comment right before the condition's `)`
         if comment
             .following_token()
-            .map_or(false, |token| token.kind() == MSyntaxKind::R_PAREN)
+            .is_some_and(|token| token.kind() == MSyntaxKind::R_PAREN)
         {
             return CommentPlacement::trailing(preceding.clone(), comment);
         }
@@ -569,7 +569,7 @@ fn handle_while_comment(comment: DecoratedComment<MLanguage>) -> CommentPlacemen
     // {
     // }
     // ```
-    if let Some(_) = MBlockStatement::cast_ref(following) {
+    if MBlockStatement::cast_ref(following).is_some() {
         return CommentPlacement::leading(while_statement.syntax().clone(), comment);
     }
 
@@ -680,9 +680,10 @@ fn handle_for_comment(comment: DecoratedComment<MLanguage>) -> CommentPlacement<
     // for /* comment */ (;;);
     // for (;;a++) /* comment */;
     // ```
-    else if comment.following_node().map_or(false, |following| {
-        MEmptyStatement::can_cast(following.kind())
-    }) {
+    else if comment
+        .following_node()
+        .is_some_and(|following| MEmptyStatement::can_cast(following.kind()))
+    {
         if let Some(preceding) = comment.preceding_node() {
             CommentPlacement::trailing(preceding.clone(), comment)
         } else {
@@ -734,7 +735,7 @@ fn handle_variable_declarator_comment(
                     if initializer.syntax() == following
                         && initializer
                             .expression()
-                            .map_or(false, |expression| is_complex_value(expression.syntax())) =>
+                            .is_ok_and(|expression| is_complex_value(expression.syntax())) =>
                 {
                     return CommentPlacement::leading(initializer.into_syntax(), comment);
                 }

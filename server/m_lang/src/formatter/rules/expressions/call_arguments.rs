@@ -526,12 +526,10 @@ struct FormatGroupedFirstArgument<'a> {
 
 impl Format<MFormatContext> for FormatGroupedFirstArgument<'_> {
     fn fmt(&self, f: &mut Formatter<MFormatContext>) -> FormatResult<()> {
-        let element = self.argument.element();
+        let _element = self.argument.element().node()?;
 
-        match element.node()? {
-            // For all other nodes, use the normal formatting (which already has been cached)
-            _ => self.argument.fmt(f),
-        }
+        // For all other nodes, use the normal formatting (which already has been cached)
+        self.argument.fmt(f)
     }
 }
 
@@ -634,7 +632,7 @@ struct FormatAllArgsBrokenOut<'a> {
     expand: bool,
 }
 
-impl<'a> Format<MFormatContext> for FormatAllArgsBrokenOut<'a> {
+impl Format<MFormatContext> for FormatAllArgsBrokenOut<'_> {
     fn fmt(&self, f: &mut Formatter<MFormatContext>) -> FormatResult<()> {
         write!(
             f,
@@ -854,7 +852,7 @@ fn is_function_composition_args(arguments: &MCallArguments) -> bool {
                 has_seen_function_like = true;
             }
             AnyMCallArgument::AnyMExpression(MCallExpression(call)) => {
-                if call.arguments().map_or(false, |call_arguments| {
+                if call.arguments().is_ok_and(|call_arguments| {
                     call_arguments.args().iter().flatten().any(|arg| {
                         matches!(
                             arg,
@@ -904,7 +902,7 @@ struct FormatQueryLikeArguments<'a> {
     r_paren: &'a dyn Format<MFormatContext>,
 }
 
-impl<'a> Format<MFormatContext> for FormatQueryLikeArguments<'a> {
+impl Format<MFormatContext> for FormatQueryLikeArguments<'_> {
     fn fmt(&self, f: &mut Formatter<MFormatContext>) -> FormatResult<()> {
         let first = self.args.first().ok_or(FormatError::SyntaxError)?;
         let text_query = first.element().node()?.text();

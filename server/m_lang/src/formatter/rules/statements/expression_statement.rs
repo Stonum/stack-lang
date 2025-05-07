@@ -19,8 +19,7 @@ impl FormatNodeRule<MExpressionStatement> for FormatMExpressionStatement {
         let needs_parentheses = self.needs_parentheses(node);
         let is_after_bogus = f
             .elements()
-            .start_tag(TagKind::Verbatim)
-            .map_or(false, |signal| match signal {
+            .start_tag(TagKind::Verbatim).is_some_and(|signal| match signal {
                 Tag::StartVerbatim(kind) => kind.is_bogus(),
                 _ => unreachable!(),
             });

@@ -200,14 +200,14 @@ pub(crate) fn should_hug_function_parameters(
                 },
 
                 Some(initializer) => {
-                    let should_hug_right = match initializer.expression()? {
+                    
+
+                    match initializer.expression()? {
                         AnyMExpression::MObjectExpression(object) => object.members().is_empty(),
                         AnyMExpression::MArrayExpression(array) => array.elements().is_empty(),
                         AnyMExpression::MIdentifierExpression(_) => true,
                         _ => false,
-                    };
-
-                    should_hug_right
+                    }
                 }
             },
             AnyMFormalParameter::MBogusParameter(_) => return Err(FormatError::SyntaxError),

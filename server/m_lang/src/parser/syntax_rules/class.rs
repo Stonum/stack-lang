@@ -133,22 +133,16 @@ fn parse_class(
 fn eat_class_heritage_clause(p: &mut MParser) {
     let mut first_extends: Option<CompletedMarker> = None;
 
-    loop {
-        match p.cur() {
-            T![extends] => {
-                let current = parse_extends_clause(p).expect(
-                    "Expected extends clause because parser is positioned at extends keyword",
-                );
+    while let T![extends] = p.cur() {
+        let current = parse_extends_clause(p)
+            .expect("Expected extends clause because parser is positioned at extends keyword");
 
-                match first_extends.as_ref() {
-                    None => first_extends = Some(current),
-                    Some(first_extends) => p.error(
-                        p.err_builder("'extends' clause already seen.", current.range(p))
-                            .with_detail(first_extends.range(p), "first 'extends' clause"),
-                    ),
-                }
-            }
-            _ => break,
+        match first_extends.as_ref() {
+            None => first_extends = Some(current),
+            Some(first_extends) => p.error(
+                p.err_builder("'extends' clause already seen.", current.range(p))
+                    .with_detail(first_extends.range(p), "first 'extends' clause"),
+            ),
         }
     }
 }

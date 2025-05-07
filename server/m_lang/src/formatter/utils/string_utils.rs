@@ -220,7 +220,7 @@ impl<'token> FormatSqlStringToken<'token> {
         let quoteless = &content[1..content.len() - 1];
 
         // if query starts with newline - write it as is
-        if quoteless.trim_start_matches(&[' ', '\t']).starts_with("\n") {
+        if quoteless.trim_start_matches([' ', '\t']).starts_with("\n") {
             return write!(
                 f,
                 [format_replaced(
@@ -239,7 +239,7 @@ impl<'token> FormatSqlStringToken<'token> {
                 &format_args![
                     text("`"),
                     &format_with(move |f| {
-                        for (index, line) in quoteless.lines().into_iter().enumerate() {
+                        for (index, line) in quoteless.lines().enumerate() {
                             match index {
                                 // write on new line with indent
                                 0 if !line.starts_with(' ') => write!(

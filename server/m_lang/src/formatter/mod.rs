@@ -443,7 +443,7 @@ mod tests {
         let result = format_range(
             MFormatOptions::new(MFileSource::script())
                 .with_indent_style(IndentStyle::Space)
-                .with_indent_width(4.try_into().unwrap()),
+                .with_indent_width(4.into()),
             &tree.syntax(),
             TextRange::new(range_start, range_end),
         );
@@ -470,7 +470,7 @@ func f() {
         let result = format_range(
             MFormatOptions::new(MFileSource::script())
                 .with_indent_style(IndentStyle::Space)
-                .with_indent_width(4.try_into().unwrap())
+                .with_indent_width(4.into())
                 .with_trailing_commas(TrailingCommas::All),
             &tree.syntax(),
             TextRange::new(range_start, range_end),
@@ -500,7 +500,7 @@ func f() {
         let result = format_range(
             MFormatOptions::new(MFileSource::script())
                 .with_indent_style(IndentStyle::Space)
-                .with_indent_width(4.try_into().unwrap()),
+                .with_indent_width(4.into()),
             &tree.syntax(),
             TextRange::new(range_start, range_end),
         );
@@ -530,7 +530,7 @@ func f() {
         let result = format_range(
             MFormatOptions::new(MFileSource::script())
                 .with_indent_style(IndentStyle::Space)
-                .with_indent_width(4.try_into().unwrap()),
+                .with_indent_width(4.into()),
             &tree.syntax(),
             range,
         )

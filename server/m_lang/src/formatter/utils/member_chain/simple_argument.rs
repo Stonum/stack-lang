@@ -135,7 +135,7 @@ impl SimpleArgument {
                         computed_expression.as_fields();
 
                     Ok(SimpleArgument::from(member?).is_simple_impl(depth)
-                        && object.map_or(false, |object| {
+                        && object.is_some_and(|object| {
                             SimpleArgument::from(object).is_simple_impl(depth)
                         }))
                 }
@@ -246,7 +246,7 @@ impl SimpleArgument {
                                 Ok(AnyMObjectMemberName::MComputedMemberName(_))
                             );
 
-                            let is_simple = property.value().map_or(false, |value| {
+                            let is_simple = property.value().is_ok_and(|value| {
                                 SimpleArgument::from(value).is_simple_impl(depth + 1)
                             });
 

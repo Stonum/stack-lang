@@ -45,15 +45,16 @@ impl AnyMExpressionLeftSide {
                         return expr.left().ok().map(Self::from);
                     }
                     AnyMExpression::MPostUpdateExpression(expr) => {
-                        return expr.operand().ok().map(|assignment| Self::from(assignment));
+                        return expr.operand().ok().map(Self::from);
                     }
                     expr => {
                         return AnyMBinaryLikeExpression::cast_ref(expr.syntax()).and_then(
-                            |binary_like| match binary_like.left().ok() {
-                                Some(AnyMBinaryLikeLeftExpression::AnyMExpression(expression)) => {
-                                    Some(Self::from(expression))
-                                }
-                                None => None,
+                            |binary_like| {
+                                binary_like.left().ok().map(
+                                    |AnyMBinaryLikeLeftExpression::AnyMExpression(expression)| {
+                                        Self::from(expression)
+                                    },
+                                )
                             },
                         );
                     }
@@ -72,7 +73,7 @@ impl AnyMExpressionLeftSide {
                     | AnyMAssignment::MIdentifierAssignment(_)
                     | AnyMAssignment::MBogusAssignment(_) => None,
                 };
-                left.map(Self::from)
+                left
             }
         }
     }

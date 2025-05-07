@@ -178,7 +178,7 @@ impl FormatMConditionalExpression {
                 if conditional_parent
                     .test()
                     .ok()
-                    .map_or(false, |resolved| resolved.syntax() == conditional.syntax())
+                    .is_some_and(|resolved| resolved.syntax() == conditional.syntax())
                 {
                     ConditionalLayout::NestedTest {
                         parent: conditional_parent,
@@ -302,28 +302,28 @@ impl FormatMConditionalExpression {
                 let argument = match parent.kind() {
                     MSyntaxKind::M_INITIALIZER_CLAUSE => {
                         let initializer = MInitializerClause::unwrap_cast(parent);
-                        initializer.expression().ok().map(AnyMExpression::from)
+                        initializer.expression().ok()
                     }
                     MSyntaxKind::M_RETURN_STATEMENT => {
                         let return_statement = MReturnStatement::unwrap_cast(parent);
-                        return_statement.argument().map(AnyMExpression::from)
+                        return_statement.argument()
                     }
                     MSyntaxKind::M_THROW_STATEMENT => {
                         let throw_statement = MThrowStatement::unwrap_cast(parent);
-                        throw_statement.argument().ok().map(AnyMExpression::from)
+                        throw_statement.argument().ok()
                     }
                     MSyntaxKind::M_UNARY_EXPRESSION => {
                         let unary_expression = MUnaryExpression::unwrap_cast(parent);
-                        unary_expression.argument().ok().map(AnyMExpression::from)
+                        unary_expression.argument().ok()
                     }
                     MSyntaxKind::M_ASSIGNMENT_EXPRESSION => {
                         let assignment_expression = MAssignmentExpression::unwrap_cast(parent);
-                        assignment_expression.right().ok().map(AnyMExpression::from)
+                        assignment_expression.right().ok()
                     }
                     _ => None,
                 };
 
-                argument.map_or(false, |argument| argument == expression)
+                argument == Some(expression)
             }
         }
     }

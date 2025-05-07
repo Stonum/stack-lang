@@ -144,13 +144,10 @@ impl Format<MFormatContext> for FormatSemicolon<'_> {
         match self.semicolon {
             Some(semicolon) => semicolon.format().fmt(f),
             None => {
-                let is_after_bogus = f.elements().start_tag(TagKind::Verbatim).map_or(
-                    false,
-                    |signal| match signal {
+                let is_after_bogus = f.elements().start_tag(TagKind::Verbatim).is_some_and(|signal| match signal {
                         Tag::StartVerbatim(kind) => kind.is_bogus(),
                         _ => unreachable!(),
-                    },
-                );
+                    });
 
                 if !is_after_bogus {
                     write!(f, [text(";")])?;

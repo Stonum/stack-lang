@@ -157,9 +157,9 @@ pub(crate) fn parse_expression_or_recover_to_next_statement(
     )
 }
 
-/// A literal expression.
-///
-/// `TRUE | FALSE | NUMBER | STRING | NULL`
+// A literal expression.
+//
+// `TRUE | FALSE | NUMBER | STRING | NULL`
 // test literals
 // 5
 // true
@@ -286,7 +286,7 @@ fn is_assign_token(kind: MSyntaxKind) -> bool {
     matches!(kind, T![=] | T![+=] | T![-=] | T![*=] | T![/=] | T![%=])
 }
 
-/// A conditional expression such as `foo ? bar : baz`
+// A conditional expression such as `foo ? bar : baz`
 // test conditional_expr
 // foo ? bar : baz
 // foo ? bar : baz ? bar : baz
@@ -435,7 +435,7 @@ fn parse_binary_or_logical_expression_recursive(
     left
 }
 
-/// A member or new expression with subscripts. e.g. `new foo`, `new Foo()`, `foo`, or `foo().bar[5]`
+// A member or new expression with subscripts. e.g. `new foo`, `new Foo()`, `foo`, or `foo().bar[5]`
 // test new_exprs
 // new Foo()
 // new foo;
@@ -600,9 +600,9 @@ pub(crate) fn parse_name(p: &mut MParser) -> ParsedSyntax {
     }
 }
 
-/// Arguments to a function.
-///
-/// `"(" (AssignExpr ",")* ")"`
+// Arguments to a function.
+//
+// `"(" (AssignExpr ",")* ")"`
 
 // test call_arguments
 // function foo(...args) {}
@@ -965,7 +965,7 @@ impl ParseSeparatedList for ArrayElementsList {
     }
 }
 
-/// An array literal such as `@[foo, bar, ...baz]`.
+// An array literal such as `@[foo, bar, ...baz]`.
 // test array_expr
 // @[foo, bar];
 // @[foo];
