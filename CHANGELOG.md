@@ -1,6 +1,19 @@
 **Changelog**
 ===============
 
+**v0.2.0 - 2025-05-07**
+------------------------------------
+* **Added**:
+   + document and range formatting
+
+* **Changed**:
+   + moved status bar on left side
+
+* **Fixed**: 
+   + parsing a time literal like `24:00`
+   + parsing a function declaration like `func Object.Subject_API() {}`
+
+
 **v0.1.5 - 2025-03-20**
 ------------------------------------
 
