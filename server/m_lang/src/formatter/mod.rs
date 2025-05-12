@@ -20,7 +20,7 @@ use biome_formatter::{
     TransformSourceMap,
 };
 
-use biome_formatter::{Buffer, FormatOwnedWithRule, FormatRefWithRule, Printed};
+use biome_formatter::{Buffer, FormatOwnedWithRule, FormatRefWithRule, Formatted, Printed};
 pub use biome_formatter::{IndentStyle, IndentWidth, LineWidth};
 use biome_rowan::TextRange;
 use biome_rowan::{AstNode, SyntaxNode};
@@ -30,9 +30,6 @@ pub(crate) use context::MFormatContext;
 pub use context::MFormatOptions;
 use cst::FormatMSyntaxNode;
 use syntax_rewriter::transform;
-
-#[cfg(test)]
-use biome_formatter::Formatted;
 
 /// Used to get an object that knows how to format this object.
 pub(crate) trait AsFormat<Context> {
@@ -361,8 +358,7 @@ pub fn format_range(
 ///
 /// It returns a [Formatted] result, which the user can use to override a file.
 /// Used only in tests
-#[cfg(test)]
-pub(crate) fn format_node(
+pub fn format_node(
     options: MFormatOptions,
     root: &MSyntaxNode,
 ) -> FormatResult<Formatted<MFormatContext>> {
@@ -563,73 +559,5 @@ func f() {
         );
 
         assert!(result.is_err());
-    }
-
-    #[test]
-    fn format_query_like_expressions() {
-        let src = r#"
-var qq = Query(`
-    select row_id from ~Лицевые договора~ where Договор = :1
-`,1,"p1,S");
-
-var qq = Command(`update stack."Лицевые договора" set Договор = :1 where row_id = :2`,1,"p1,S,p2,S");
-
-var qq = сессия.Query(`select row_id from ~Лицевые договора~ where Договор = :1`,1,"p1,S");
-
-var qq = Query(`select row_id from ~Лицевые договора~ `,1,"p1,S");
-        "#;
-
-        let syntax = MFileSource::module();
-        let tree = parse(src, syntax);
-
-        let doc = format_node(
-            MFormatOptions::new(syntax)
-                .with_indent_style(IndentStyle::Space)
-                .with_line_width(LineWidth::try_from(80).unwrap())
-                .with_indent_width(IndentWidth::from(3)),
-            &tree.syntax(),
-        );
-
-        let result = doc.unwrap().print().unwrap();
-        assert_eq!(
-            result.as_code(),
-            r#"var qq = Query(`
-    select row_id from ~Лицевые договора~ where Договор = :1
-`, 1, "p1,S");
-
-var qq = Command(
-   `update stack."Лицевые договора" set Договор = :1 where row_id = :2`,
-   1, "p1,S,p2,S"
-);
-
-var qq = сессия.Query(
-   `select row_id from ~Лицевые договора~ where Договор = :1`,
-   1, "p1,S"
-);
-
-var qq = Query(`select row_id from ~Лицевые договора~ `, 1, "p1,S");
-"#
-        );
-    }
-
-    #[test]
-    fn format() {
-        let src = r#"
-
-        "#;
-
-        let syntax = MFileSource::module();
-        let tree = dbg!(parse(src, syntax));
-
-        let doc = format_node(
-            MFormatOptions::new(syntax)
-                .with_indent_style(IndentStyle::Space)
-                .with_line_width(LineWidth::try_from(120).unwrap())
-                .with_indent_width(IndentWidth::from(3)),
-            &tree.syntax(),
-        );
-
-        let result = doc.unwrap().print().unwrap();
-        println!("{}", &result.as_code());
     }
 }

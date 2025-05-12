@@ -20,12 +20,13 @@ impl FormatNodeRule<MCaseClause> for FormatMCaseClause {
 
         write!(
             f,
-            [
+            [group(&format_args!(
                 case_token.format(),
-                space(),
-                test.format(),
+                // space(),
+                soft_line_indent_or_space(&format_args![test.format()]),
+                // test.format(),
                 colon_token.format()
-            ]
+            ))]
         )?;
 
         // Whether the first statement in the clause is a BlockStatement, and

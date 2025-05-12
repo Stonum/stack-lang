@@ -18,7 +18,7 @@ use biome_rowan::{AstNode, SyntaxNodeOptionExt, SyntaxTriviaPieceComments};
 pub type MComments = Comments<MLanguage>;
 
 #[derive(Default)]
-pub(crate) struct FormatMLeadingComment;
+pub struct FormatMLeadingComment;
 
 impl FormatRule<SourceComment<MLanguage>> for FormatMLeadingComment {
     type Context = MFormatContext;
