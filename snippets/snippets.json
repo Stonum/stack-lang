@@ -1,0 +1,121 @@
+{
+    "Если": {
+        "prefix": "Если",
+        "body": "Если( ${1:Условие} )\n{\n\t$0\n}",
+        "description": "Условие Если",
+        "scope": "source.stack"
+    },
+    "ЕслиИначе": {
+        "prefix": "Если",
+        "body": "Если( ${1:Условие} )\n{\n\t$0\n}\nиначе\n{\n\t\n}",
+        "description": "Условие Если{}Иначе{}",
+        "scope": "source.stack"
+    },
+    "Пока": {
+        "prefix": "Пока",
+        "body": "Пока( ${1:Условие} )\n{\n\t$0\n}",
+        "description": "Пока",
+        "scope": "source.stack"
+    },
+    "ВыборПо": {
+        "prefix": "ВыборПо",
+        "body": "ВыборПо( ${1:Условие} )\n{\n\tВыбор ${Значение1}:\n\t{\n\t\t$2\n\t}\n\tВыбор ${Значение2}:\n\t{\n\t\t$3\n\t}\n}",
+        "description": "ВыборПо",
+        "scope": "source.stack"
+    },
+    "Функция": {
+        "prefix": "Функция",
+        "body": "Функция ${1:ИмяФункции}( $2 )\n{\n\t$0\n}",
+        "description": "Шаблон функции"
+    },
+    "буф": {
+        "prefix": "буф",
+        "body": "\nперем ${1:запрос} = BufferedReader(`\n\tSELECT ${2:*} \n\tFROM   ~${3:Лицевые счета}~ \n\t`, 1500, \"Par,I${0}\" );\n",
+        "description": "BufferedReader",
+        "scope": "source.stack"
+    },
+    "команд": {
+        "prefix": "команд",
+        "body": "\nперем ${1:запрос} = Command(`\n\tUPDATE ~${2:Лицевые счета}~ \n\tSET     ${3:Номер}  = ${4::1}\n\tWHERE   ${5:row_id = :2}\n`, 500, \"Par,I${0}\" ); \n",
+        "description": "Command",
+        "scope": "source.stack"
+    },
+    "команд2": {
+      "prefix": "команд2",
+      "body": "\nEXEC_COMMAND(`\n\tUPDATE ~${2:Лицевые счета}~ \n\tSET     ${3:Номер}  = ${4::1}\n\tWHERE   ${5:row_id = :2}\n`);\n",
+      "description": "EXEC_COMMAND",
+      "scope": "source.stack"
+   },
+    "сел": {
+        "prefix": "сел",
+        "body": "\nперем ${1:Запрос} = Query (`\tSELECT ${2:*}\n\t\t\t\t\t\t\t\tFROM ~${3:Лицевые счета}~`, 500, \"p1,I${0}\" );\n",
+        "description": "Query",
+        "scope": "source.stack"
+    },
+    "темп": {
+        "prefix": "темп",
+        "body": "\nОчиститьИерархию( \"${1:TempTable}\" );\nЗаполнитьИерархию( \"TempTable\", \"Лицевые счета\", \"Счета\", '${2:Список лицевых}');\n${0}   \n",
+        "description": "Temptable",
+        "scope": "source.stack"
+    },
+    "sql.try": {
+        "prefix": "try",
+        "body": "\nBEGIN TRY\n      ${1:sql_statement | statement_block }\nEND TRY\nBEGIN CATCH\n      ${2:sql_statement | statement_block }\nEND CATCH;\n${0}  \n",
+        "description": "TRY...CATCH",
+        "scope": "source.sql"
+    },
+    "update": {
+        "prefix": "sql.update",
+        "body": "\nUPDATE ~${1:Лицевые счета}~ \nSET     ${2:Номер}  = ${3::1}\nWHERE   ${4:row_id = :2} \n",
+        "description": "UPDATE",
+        "scope": "source.sql"
+    },
+    "select": {
+        "prefix": "sql.select",
+        "body": "\nSELECT ${0:*}\nFROM ~${1:Лицевые счета}~ \nWHERE ${2:row_id = :1}",
+        "description": "Шаблон select from table",
+        "scope": "source.sql"
+    },
+    "выполнить": {
+        "prefix": "выполнить",
+        "body": "${0:запрос}.Выполнить( ${1:Параметры} );\n${0:запрос}.Завершить();",
+        "description": "запрос.Выполнить( Параметры );\nзапрос.Завершить();",
+        "scope": "source.stack"
+    },
+    "длявсех": {
+        "prefix": "длявсех",
+        "body": "ДляВсех( Элементов( ${0:Массив}, ${1:Элемент} ) )\n{\n\n}",
+        "description": "ДляВсех( Элементов( Массив, Элемент ) ) {}",
+        "scope": "source.stack"
+    },
+    "длявсех2": {
+        "prefix": "длявсех2",
+        "body": "ДляВсех( Элементов( ${0:Массив}, ${1:Элемент1} ) )\n{\n\tДляВсех( Элементов( ${0:Массив}[ ${1:Элемент1}, ${2:Элемент2} ] ) )\n\t{\n\n\t}\n}",
+        "description": "ДляВсех( Элементов( Массив, Элемент1 ) ) 2ур",
+        "scope": "source.stack"
+    },
+    "длявсех3": {
+        "prefix": "длявсех3",
+        "body": "ДляВсех( Элементов( ${0:Массив}, ${1:Элемент1} ) )\n{\n\tДляВсех( Элементов( ${0:Массив}[ ${1:Элемент1}], ${2:Элемент2} ) )\n\t{\n\t\tДляВсех( Элементов( ${0:Массив}[ ${1:Элемент1}, ${2:Элемент2} ], ${3:Элемент3} ) )\n\t\t{\n\n\t\t}\n\t}\n}",
+        "description": "ДляВсех( Элементов( Массив, Элемент1 ) ) 3ур",
+        "scope": "source.stack"
+    },
+    "еслислед": {
+        "prefix": "еслислед",
+        "body": "${0:з_зап}.УстановитьПараметры( ${1:парам} );\nЕсли( ${0:з_зап}.Следующий() )\n{\n\n}",
+        "description": "запрос.УстановитьПараметры( парам );\nЕсли( запрос.Следующий() )",
+        "scope": "source.stack"
+    },
+    "еслислединаче": {
+        "prefix": "еслислед",
+        "body": "${0:з_зап}.УстановитьПараметры( ${1:парам} );\nЕсли( ${0:з_зап}.Следующий() )\n{\n\n}\nИначе\n{\n\n}",
+        "description": "запрос.УстановитьПараметры( парам );\nЕсли( запрос.Следующий() )",
+        "scope": "source.stack"
+    },
+    "покаслед": {
+        "prefix": "покаслед",
+        "body": "${1:з_зап}.УстановитьПараметры( ${2:парам} );\nПока( ${1:з_зап}.Следующий() )\n{\n$0\n}",
+        "description": "запрос.УстановитьПараметры( парам );\nПока( запрос.Следующий() )",
+        "scope": "source.stack"
+    }
+}
