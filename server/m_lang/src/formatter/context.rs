@@ -15,7 +15,7 @@ use std::str::FromStr;
 pub use trailing_commas::TrailingCommas;
 
 #[derive(Debug, Clone)]
-pub(crate) struct MFormatContext {
+pub struct MFormatContext {
     options: MFormatOptions,
 
     /// The comments of the nodes and tokens in the program.
