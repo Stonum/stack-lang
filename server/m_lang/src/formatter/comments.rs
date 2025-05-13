@@ -51,20 +51,22 @@ impl CommentStyle for MCommentStyle {
         comment: DecoratedComment<Self::Language>,
     ) -> CommentPlacement<Self::Language> {
         match comment.text_position() {
-            CommentTextPosition::EndOfLine => handle_function_comment(comment)
-                .or_else(handle_conditional_comment)
-                .or_else(handle_if_statement_comment)
-                .or_else(handle_while_comment)
-                .or_else(handle_try_comment)
-                .or_else(handle_class_comment)
-                .or_else(handle_method_comment)
-                .or_else(handle_for_comment)
-                .or_else(handle_root_comments)
-                .or_else(handle_variable_declarator_comment)
-                .or_else(handle_parameter_comment)
-                .or_else(handle_call_expression_comment)
-                .or_else(handle_continue_break_comment)
-                .or_else(handle_switch_default_case_comment),
+            CommentTextPosition::EndOfLine | CommentTextPosition::SameLine => {
+                handle_function_comment(comment)
+                    .or_else(handle_conditional_comment)
+                    .or_else(handle_if_statement_comment)
+                    .or_else(handle_while_comment)
+                    .or_else(handle_try_comment)
+                    .or_else(handle_class_comment)
+                    .or_else(handle_method_comment)
+                    .or_else(handle_for_comment)
+                    .or_else(handle_root_comments)
+                    .or_else(handle_variable_declarator_comment)
+                    .or_else(handle_parameter_comment)
+                    .or_else(handle_call_expression_comment)
+                    .or_else(handle_continue_break_comment)
+                    .or_else(handle_switch_default_case_comment)
+            }
             CommentTextPosition::OwnLine => handle_member_expression_comment(comment)
                 .or_else(handle_function_comment)
                 .or_else(handle_if_statement_comment)
@@ -78,9 +80,6 @@ impl CommentStyle for MCommentStyle {
                 .or_else(handle_call_expression_comment)
                 .or_else(handle_continue_break_comment)
                 .or_else(handle_class_method_comment),
-            CommentTextPosition::SameLine => {
-                unreachable!("There can be no tokens after the comment.")
-            }
         }
     }
 }

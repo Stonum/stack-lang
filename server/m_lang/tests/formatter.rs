@@ -1,3 +1,4 @@
+use biome_rowan::{TextRange, TextSize};
 use m_lang::formatter::{format_node, IndentStyle, IndentWidth, LineWidth, MFormatOptions};
 use m_lang::parser::parse;
 use m_lang::syntax::MFileSource;
@@ -17,6 +18,18 @@ macro_rules! assert_fmt {
         let result = result.as_code();
         assert_eq!($src, result, "formatted code: \n{}", result);
     };
+}
+
+#[test]
+fn format_statement_with_trailing_comments() {
+    assert_fmt!(
+        r#"#
+перем фЕстьНашеВложение =
+   оВложение != null или
+   Извлечь(_мВложение.ИдФайла, "") == "" или # не передан объект вложения
+   Извлечь(_мВложение.ИдФайла, "").начинаетсяС("ON"); # старый идентификатор, он не совпадает с тем что в сбисе
+"#
+    );
 }
 
 #[test]
