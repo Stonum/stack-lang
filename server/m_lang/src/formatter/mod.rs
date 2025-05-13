@@ -10,17 +10,14 @@ mod parentheses;
 pub(crate) mod separated;
 mod syntax_rewriter;
 
-use super::syntax::{
-    AnyMDeclaration, AnyMStatement, MLanguage, MSyntaxKind, MSyntaxNode, MSyntaxToken,
-};
+use super::syntax::{AnyMDeclaration, AnyMStatement, MLanguage, MSyntaxKind, MSyntaxNode};
 use biome_formatter::format_element::tag::Label;
 use biome_formatter::prelude::*;
 use biome_formatter::{
-    comments::Comments, write, CstFormatContext, Format, FormatLanguage, FormatToken,
-    TransformSourceMap,
+    comments::Comments, write, CstFormatContext, Format, FormatLanguage, TransformSourceMap,
 };
 
-use biome_formatter::{Buffer, FormatOwnedWithRule, FormatRefWithRule, Formatted, Printed};
+use biome_formatter::{Buffer, Formatted, Printed};
 pub use biome_formatter::{IndentStyle, IndentWidth, LineWidth};
 use biome_rowan::TextRange;
 use biome_rowan::{AstNode, SyntaxNode};
@@ -267,25 +264,6 @@ where
     }
 }
 
-/// Format implementation specific to JavaScript tokens.
-pub(crate) type FormatMSyntaxToken = FormatToken<MFormatContext>;
-
-impl AsFormat<MFormatContext> for MSyntaxToken {
-    type Format<'a> = FormatRefWithRule<'a, MSyntaxToken, FormatMSyntaxToken>;
-
-    fn format(&self) -> Self::Format<'_> {
-        FormatRefWithRule::new(self, FormatMSyntaxToken::default())
-    }
-}
-
-impl IntoFormat<MFormatContext> for MSyntaxToken {
-    type Format = FormatOwnedWithRule<MSyntaxToken, FormatMSyntaxToken>;
-
-    fn into_format(self) -> Self::Format {
-        FormatOwnedWithRule::new(self, FormatMSyntaxToken::default())
-    }
-}
-
 #[derive(Debug, Clone)]
 pub(crate) struct MFormatLanguage {
     options: MFormatOptions,
@@ -399,14 +377,13 @@ impl Label for MLabels {
 #[cfg(test)]
 mod tests {
 
-    use super::format_node;
     use super::format_range;
 
     use super::context::MFormatOptions;
     use crate::formatter::context::TrailingCommas;
     use crate::parser::parse;
     use crate::syntax::MFileSource;
-    use biome_formatter::{IndentStyle, IndentWidth, LineWidth};
+    use biome_formatter::IndentStyle;
     use biome_rowan::{TextRange, TextSize};
 
     #[test]

@@ -359,6 +359,17 @@ impl MSyntaxKind {
             PIPE2 => "||",
             AT => "@",
             BACKTICK => "`",
+            M_STRING_LITERAL => "string literal",
+            M_LONG_STRING_LITERAL => "long string literal",
+            M_NUMBER_LITERAL => "number literal",
+            K_KW | IN2_KW | INCLUDE_IN_KW => return self.to_ru_keyword(),
+            _ => return self.to_en_keyword(),
+        };
+        Some(tok)
+    }
+
+    pub const fn to_en_keyword(&self) -> Option<&'static str> {
+        let tok = match self {
             BREAK_KW => "break",
             CASE_KW => "case",
             CATCH_KW => "catch",
@@ -373,11 +384,9 @@ impl MSyntaxKind {
             FINALLY_KW => "finally",
             FOR_KW => "for",
             FORALL_KW => "forall",
-            FUNCTION_KW => "function",
+            FUNCTION_KW => "func",
             IF_KW => "if",
             IN_KW => "in",
-            IN2_KW => "в",
-            INCLUDE_IN_KW => "входитв",
             NEW_KW => "new",
             NULL_KW => "null",
             RETURN_KW => "return",
@@ -394,11 +403,49 @@ impl MSyntaxKind {
             CONSTRUCTOR_KW => "constructor",
             GET_KW => "get",
             SET_KW => "set",
-            K_KW => "к",
             VERSION_KW => "version",
-            M_STRING_LITERAL => "string literal",
-            M_LONG_STRING_LITERAL => "long string literal",
-            M_NUMBER_LITERAL => "number literal",
+            _ => return None,
+        };
+        Some(tok)
+    }
+
+    pub const fn to_ru_keyword(&self) -> Option<&'static str> {
+        let tok = match self {
+            BREAK_KW => "прервать",
+            CASE_KW => "Выбор",
+            CATCH_KW => "Исключение",
+            CLASS_KW => "Класс",
+            CONTINUE_KW => "продолжить",
+            DEBUG_KW => "отладить",
+            DELETE_KW => "удалить",
+            ELSE_KW => "Иначе",
+            EXTENDS_KW => "расширяет",
+            FALSE_KW => "Ложь",
+            FINALLY_KW => "Заключение",
+            FOR_KW => "Для",
+            FORALL_KW => "ДляВсех",
+            FUNCTION_KW => "Функция",
+            IF_KW => "Если",
+            IN_KW => "в",
+            IN2_KW => "в",
+            INCLUDE_IN_KW => "входитв",
+            NEW_KW => "новый",
+            NULL_KW => "Нуль",
+            RETURN_KW => "Вернуть",
+            SUPER_KW => "базовый",
+            SWITCH_KW => "ВыборПо",
+            THIS_KW => "этот",
+            THROW_KW => "ВызватьИсключение",
+            TRY_KW => "Попытка",
+            TRUE_KW => "Истина",
+            VAR_KW => "перем",
+            WHILE_KW => "Пока",
+            AND_KW => "и",
+            OR_KW => "или",
+            CONSTRUCTOR_KW => "Конструктор",
+            GET_KW => "получить",
+            SET_KW => "установить",
+            K_KW => "к",
             _ => return None,
         };
         Some(tok)

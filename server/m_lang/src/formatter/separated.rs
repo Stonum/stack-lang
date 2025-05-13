@@ -1,5 +1,6 @@
 use super::prelude::*;
-use super::{AsFormat, FormatMSyntaxToken};
+use super::rules::tokens::FormatMSyntaxToken;
+use super::AsFormat;
 use crate::syntax::{MLanguage, MSyntaxToken};
 use biome_formatter::separated::{FormatSeparatedElementRule, FormatSeparatedIter};
 use biome_formatter::FormatRefWithRule;
