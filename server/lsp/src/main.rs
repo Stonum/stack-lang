@@ -276,7 +276,7 @@ impl LanguageServer for Backend {
             for m in self.document_map.iter() {
                 let (_path, document) = m.pair();
                 let uri = document.uri();
-                let definitions = &document.definitions();
+                let definitions = &document.definitions(); // TODO: add goto class methods
                 let mut locations = definitions
                     .iter()
                     .filter_map(|def| {

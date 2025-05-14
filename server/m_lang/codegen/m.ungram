@@ -45,6 +45,7 @@ MBogusBinding = SyntaxElement*
 MBogusAssignment = SyntaxElement*
 MBogusParameter = SyntaxElement*
 
+// TODO: add reports support
 AnyMRoot =
 	MScript | MModule | MExpressionSnipped
 
