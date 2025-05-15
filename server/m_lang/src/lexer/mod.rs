@@ -1149,6 +1149,7 @@ impl<'src> MLexer<'src> {
 
     #[inline]
     fn read_hash(&mut self) -> MSyntaxKind {
+        self.advance(1); // eats #
         while let Some(chr) = self.current_byte() {
             if let b'\r' | b'\n' = chr {
                 return COMMENT;
