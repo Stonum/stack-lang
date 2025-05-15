@@ -1,6 +1,8 @@
-use m_lang::formatter::{format_node, IndentStyle, IndentWidth, LineWidth, MFormatOptions};
+use m_lang::formatter::{
+    format_node, format_range, IndentStyle, IndentWidth, LineWidth, MFormatOptions,
+};
 use m_lang::parser::parse;
-use m_lang::syntax::MFileSource;
+use m_lang::syntax::{MFileSource, TextRange, TextSize};
 
 macro_rules! assert_fmt {
     ($src:expr) => {
@@ -15,8 +17,55 @@ macro_rules! assert_fmt {
         let doc = format_node(options, &tree.syntax());
         let result = doc.unwrap().print().unwrap();
         let result = result.as_code();
-        assert_eq!($src, result, "formatted code: \n{}", result);
+        assert_eq!(
+            $src, result,
+            "formatted code: \n======\n{}\n======\n",
+            result
+        );
     };
+}
+
+macro_rules! assert_fmt_range {
+    ($src:expr,$dest:expr,$range:expr) => {
+        let syntax = MFileSource::script();
+        let tree = parse($src, syntax);
+
+        let options = MFormatOptions::new(syntax)
+            .with_indent_style(IndentStyle::Space)
+            .with_line_width(LineWidth::try_from(120).unwrap())
+            .with_indent_width(IndentWidth::from(3));
+
+        let doc = format_range(
+            options,
+            &tree.syntax(),
+            TextRange::new(TextSize::from($range.start), TextSize::from($range.end)),
+        );
+        let result = doc.unwrap().into_code();
+        assert_eq!(
+            $dest, result,
+            "formatted code: \n======\n{}\n======\n",
+            result
+        );
+    };
+}
+
+#[test]
+fn format_range_if_statement_with_leading_comments() {
+    assert_fmt_range!(
+        r#"
+var isCalc = shema;
+
+# leading comment
+if( true ) 
+   isCalc = calc(_ls, _usl, _p);
+
+var pars = _p;
+    "#,
+        r#"# leading comment
+if( true )
+   isCalc = calc(_ls, _usl, _p);"#,
+        42..83
+    );
 }
 
 #[test]
