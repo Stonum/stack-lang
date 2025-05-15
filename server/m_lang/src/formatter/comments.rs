@@ -496,17 +496,6 @@ fn handle_if_statement_comment(
                 }
             }
 
-            // Move comments coming before an if chain inside the body of the first non chain if.
-            //
-            // ```javascript
-            // if (cond1)  /* test */ if (other) { a }
-            // ```
-            if let Some(if_statement) = MIfStatement::cast_ref(following) {
-                if let Ok(nested_consequent) = if_statement.consequent() {
-                    return place_leading_statement_comment(nested_consequent, comment);
-                }
-            }
-
             // Make all comments after the condition's `)` leading comments
             // ```javascript
             // if (5) // comment
