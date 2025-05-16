@@ -22,7 +22,7 @@ pub async fn format(
             true => IndentStyle::Space,
             false => IndentStyle::Tab,
         })
-        .with_line_width(LineWidth::try_from(120).unwrap())
+        .with_line_width(LineWidth::try_from(150).unwrap())
         .with_indent_width(IndentWidth::from(options.tab_size as u8));
 
     let text_range = text_range(text, range)?;
