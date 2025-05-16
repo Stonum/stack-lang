@@ -19,17 +19,18 @@ pub fn semantics(root: SyntaxNode<MLanguage>) -> SemanticModel {
     collector
 }
 
-pub fn identifier_for_offset(root: SyntaxNode<MLanguage>, offset: u32) -> Option<String> {
+pub fn identifier_for_offset(
+    root: SyntaxNode<MLanguage>,
+    offset: u32,
+) -> Option<(String, SemanticInfo)> {
     // checking the boundaries if cursor is at the start or end token
     let offsets = [offset, offset.saturating_add(1), offset.saturating_sub(1)];
 
     for offset in offsets {
-        let token = root
-            .covering_element(TextRange::new(
-                TextSize::from(offset),
-                TextSize::from(offset),
-            ))
-            .into_token();
+        let range = TextRange::new(TextSize::from(offset), TextSize::from(offset));
+        let node = root.covering_element(range);
+
+        let token = node.as_token();
 
         if token.is_none() {
             continue;
@@ -37,11 +38,41 @@ pub fn identifier_for_offset(root: SyntaxNode<MLanguage>, offset: u32) -> Option
 
         let token = token.unwrap();
         if token.kind() == MSyntaxKind::IDENT {
-            return Some(token.text().to_string());
+            let mut info = SemanticInfo::FunctionCall;
+
+            if let Some(node) = node.parent() {
+                // take nearest parents
+                for n in node.ancestors().take(3) {
+                    match n.kind() {
+                        MSyntaxKind::M_STATIC_MEMBER_EXPRESSION => {
+                            info = SemanticInfo::MethodCall;
+                            break;
+                        }
+                        MSyntaxKind::M_NEW_EXPRESSION => {
+                            info = SemanticInfo::NewExpression;
+                            break;
+                        }
+                        MSyntaxKind::M_CALL_EXPRESSION => {
+                            info = SemanticInfo::FunctionCall;
+                            break;
+                        }
+                        _ => (),
+                    };
+                }
+            }
+
+            return Some((token.text().to_string(), info));
         }
     }
 
     None
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum SemanticInfo {
+    FunctionCall,
+    MethodCall,
+    NewExpression,
 }
 
 #[derive(Debug, Default)]
@@ -53,6 +84,29 @@ pub struct SemanticModel {
 pub enum AnyMDefinition {
     MFunctionDefinition(MFunctionDefinition),
     MClassDefinition(MClassDefinition),
+}
+
+impl AnyMDefinition {
+    pub fn is_class(&self) -> bool {
+        match self {
+            AnyMDefinition::MFunctionDefinition(_) => false,
+            AnyMDefinition::MClassDefinition(_) => true,
+        }
+    }
+
+    pub fn is_function(&self) -> bool {
+        match self {
+            AnyMDefinition::MFunctionDefinition(_) => true,
+            AnyMDefinition::MClassDefinition(_) => false,
+        }
+    }
+
+    pub fn methods(&self) -> Option<&Vec<MClassMethodDefinition>> {
+        match self {
+            AnyMDefinition::MFunctionDefinition(_) => None,
+            AnyMDefinition::MClassDefinition(class) => Some(class.methods()),
+        }
+    }
 }
 
 #[derive(Debug, Default, Eq, PartialEq)]
@@ -338,7 +392,31 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test() {
+    fn test_identifier_for_offset() {
+        #[rustfmt::skip]
+        let inputs = [
+            ("var x = callFunction()", 15, "callFunction", SemanticInfo::FunctionCall),
+            ("var x = z.callMethod()", 15, "callMethod", SemanticInfo::MethodCall),
+            ("var x = new TodoClass()",15, "TodoClass", SemanticInfo::NewExpression),
+            ("var x = callFunction( z.callMethod() )", 30, "callMethod", SemanticInfo::MethodCall),
+            ("var x = z.callMethod( callFunction() )", 30, "callFunction", SemanticInfo::FunctionCall),
+            ("var x = z.callMethod( new TodoClass() )",30, "TodoClass", SemanticInfo::NewExpression),
+        ];
+
+        for (input, offset, ident, info) in inputs {
+            let parsed = parse(input, MFileSource::script());
+            let (identifier, semantic_info) =
+                identifier_for_offset(parsed.syntax(), offset).unwrap();
+            assert_eq!(
+                (ident, info),
+                (identifier.as_ref(), semantic_info),
+                "{input}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_convert_to_definitions() {
         let parsed = parse(
             r#"
 # about module a

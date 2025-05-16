@@ -15,11 +15,15 @@ use serde_json::Value;
 
 use m_lang::{
     parser::parse,
-    semantic::{identifier_for_offset, semantics, Definition, SemanticModel},
+    semantic::{identifier_for_offset, semantics, SemanticModel},
     syntax::MFileSource,
 };
 
-use stack_lang_server::{document::Document, format::format, position};
+use stack_lang_server::{
+    document::{find_definitions, Document},
+    format::format,
+    position,
+};
 use tokio::runtime::Handle;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::notification::Notification;
@@ -269,24 +273,28 @@ impl LanguageServer for Backend {
                 .take_while(|(index, _)| *index as u32 <= character)
                 .fold(0, |acc, (_, char)| acc + char.len_utf8());
 
-            let identifier = identifier_for_offset(syntax, byte_offset as u32)?;
+            let (identifier, semantic_info) = identifier_for_offset(syntax, byte_offset as u32)?;
+
             let identifier = identifier.trim();
 
             let mut loc: Vec<Location> = vec![];
             for m in self.document_map.iter() {
                 let (_path, document) = m.pair();
                 let uri = document.uri();
-                let definitions = &document.definitions(); // TODO: add goto class methods
+                let definitions = document.definitions();
+                let definitions = find_definitions(&identifier, semantic_info, definitions);
+
                 let mut locations = definitions
-                    .iter()
-                    .filter_map(|def| {
-                        if def.id().eq_ignore_ascii_case(identifier) {
-                            let position = position(document.text(), def.range())?;
-                            return Some(Location::new(uri.clone(), position));
+                    .into_iter()
+                    .map(|d| {
+                        if let Some(position) = position(document.text(), d.range()) {
+                            Location::new(uri.clone(), position)
+                        } else {
+                            Location::new(uri.clone(), Range::default())
                         }
-                        None
                     })
                     .collect::<Vec<_>>();
+
                 loc.append(&mut locations);
             }
 
@@ -334,22 +342,20 @@ impl LanguageServer for Backend {
                 .take_while(|(index, _)| *index as u32 <= character)
                 .fold(0, |acc, (_, char)| acc + char.len_utf8());
 
-            let identifier = identifier_for_offset(syntax, byte_offset as u32)?;
+            let (identifier, semantic_info) = identifier_for_offset(syntax, byte_offset as u32)?;
             let identifier = identifier.trim();
 
             let mut loc: Vec<String> = vec![];
             for m in self.document_map.iter() {
                 let (_path, document) = m.pair();
-                let definitions = &document.definitions();
+                let definitions = document.definitions();
+                let definitions = find_definitions(&identifier, semantic_info, definitions);
+
                 let mut locations = definitions
-                    .iter()
-                    .filter_map(|def| {
-                        if def.id().eq_ignore_ascii_case(identifier) {
-                            return Some(def.to_markdown());
-                        }
-                        None
-                    })
+                    .into_iter()
+                    .map(|d| d.to_markdown())
                     .collect::<Vec<_>>();
+
                 loc.append(&mut locations);
             }
             Some(Hover {
