@@ -20,8 +20,7 @@ use m_lang::{
 };
 
 use stack_lang_server::{
-    document::{find_definitions, Document},
-    format::format,
+    definition::find_definitions, document::Document, format::format, get_text_size_from_position,
     position,
 };
 use tokio::runtime::Handle;
@@ -157,6 +156,7 @@ impl LanguageServer for Backend {
             if let Ok(text) = tokio::fs::read_to_string(&file).await {
                 let handle = current.spawn_blocking(move || {
                     let parsed = parse(&text, MFileSource::module());
+
                     let semantics = semantics(parsed.syntax());
                     let rope = Rope::from_str(&text);
                     (rope, semantics)
@@ -258,47 +258,27 @@ impl LanguageServer for Backend {
         let definition = async {
             let uri = params.text_document_position_params.text_document.uri;
 
-            let Position { character, line } = params.text_document_position_params.position;
+            let pos = params.text_document_position_params.position;
             let document = self
                 .document_map
                 .get(&uri.to_file_path().unwrap_or_default())?;
-            let source = document.text().line(line as usize).to_string();
+            let source = document.text();
 
-            let parsed = parse(&source, MFileSource::script());
+            let parsed = parse(&source.to_string(), MFileSource::script());
             let syntax = parsed.syntax();
 
-            let byte_offset = source
-                .chars()
-                .enumerate()
-                .take_while(|(index, _)| *index as u32 <= character)
-                .fold(0, |acc, (_, char)| acc + char.len_utf8());
+            let offset = get_text_size_from_position(source, pos)?;
 
-            let (identifier, semantic_info) = identifier_for_offset(syntax, byte_offset as u32)?;
-
+            let (identifier, semantic_info) = identifier_for_offset(syntax, offset)?;
             let identifier = identifier.trim();
 
-            let mut loc: Vec<Location> = vec![];
-            for m in self.document_map.iter() {
-                let (_path, document) = m.pair();
-                let uri = document.uri();
-                let definitions = document.definitions();
-                let definitions = find_definitions(&identifier, semantic_info, definitions);
+            let definitions = find_definitions(&identifier, &semantic_info, &self.document_map);
+            let locations = definitions
+                .into_iter()
+                .map(|d| Location::new(d.uri, d.range))
+                .collect::<Vec<_>>();
 
-                let mut locations = definitions
-                    .into_iter()
-                    .map(|d| {
-                        if let Some(position) = position(document.text(), d.range()) {
-                            Location::new(uri.clone(), position)
-                        } else {
-                            Location::new(uri.clone(), Range::default())
-                        }
-                    })
-                    .collect::<Vec<_>>();
-
-                loc.append(&mut locations);
-            }
-
-            Some(GotoDefinitionResponse::Array(loc))
+            Some(GotoDefinitionResponse::Array(locations))
         }
         .await;
         Ok(definition)
@@ -326,44 +306,34 @@ impl LanguageServer for Backend {
         let hover = async {
             let uri = params.text_document_position_params.text_document.uri;
 
-            let Position { character, line } = params.text_document_position_params.position;
+            let pos = params.text_document_position_params.position;
 
             let document = self
                 .document_map
                 .get(&uri.to_file_path().unwrap_or_default())?;
-            let source = document.text().line(line as usize).to_string();
+            let source = document.text();
 
-            let parsed = parse(&source, MFileSource::script());
+            let parsed = parse(&source.to_string(), MFileSource::script());
             let syntax = parsed.syntax();
 
-            let byte_offset = source
-                .chars()
-                .enumerate()
-                .take_while(|(index, _)| *index as u32 <= character)
-                .fold(0, |acc, (_, char)| acc + char.len_utf8());
+            let offset = get_text_size_from_position(source, pos)?;
 
-            let (identifier, semantic_info) = identifier_for_offset(syntax, byte_offset as u32)?;
+            let (identifier, semantic_info) = identifier_for_offset(syntax, offset)?;
             let identifier = identifier.trim();
 
-            let mut loc: Vec<String> = vec![];
-            for m in self.document_map.iter() {
-                let (_path, document) = m.pair();
-                let definitions = document.definitions();
-                let definitions = find_definitions(&identifier, semantic_info, definitions);
+            let definitions = find_definitions(&identifier, &semantic_info, &self.document_map);
+            let range = definitions.first().map(|d| d.range);
+            let locations = definitions
+                .into_iter()
+                .map(|d| d.markup)
+                .collect::<Vec<_>>();
 
-                let mut locations = definitions
-                    .into_iter()
-                    .map(|d| d.to_markdown())
-                    .collect::<Vec<_>>();
-
-                loc.append(&mut locations);
-            }
             Some(Hover {
                 contents: HoverContents::Markup(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: loc.join("\n\n"),
+                    value: locations.join("\n\n"),
                 }),
-                range: None,
+                range,
             })
         }
         .await;

@@ -1,6 +1,6 @@
 use super::position;
 use m_lang::{
-    semantic::{AnyMDefinition, Definition, SemanticInfo, SemanticModel as MLangSemanticModel},
+    semantic::{AnyMDefinition, Definition, SemanticModel as MLangSemanticModel},
     syntax::TextRange,
 };
 
@@ -99,46 +99,4 @@ fn trim_quotes_from_id(id: String) -> String {
         return id[1..id.len() - 1].to_string();
     }
     id
-}
-
-pub fn find_definitions<'a, I>(
-    identifier: &str,
-    semantic_info: SemanticInfo,
-    definitions: I,
-) -> Vec<&'a dyn Definition>
-where
-    I: IntoIterator<Item = &'a AnyMDefinition>,
-{
-    let mut finded: Vec<&dyn Definition> = Vec::new();
-
-    match semantic_info {
-        SemanticInfo::FunctionCall => {
-            finded = definitions
-                .into_iter()
-                .filter(|d| d.is_function() && d.id().eq_ignore_ascii_case(identifier))
-                .map(|d| d as &dyn Definition)
-                .collect::<Vec<_>>();
-        }
-        SemanticInfo::NewExpression => {
-            finded = definitions
-                .into_iter()
-                .filter(|d| d.is_class() && d.id().eq_ignore_ascii_case(identifier))
-                .map(|d| d as &dyn Definition)
-                .collect::<Vec<_>>();
-        }
-        SemanticInfo::MethodCall => {
-            for d in definitions {
-                if let Some(methods) = d.methods() {
-                    let mut f_methods = methods
-                        .into_iter()
-                        .filter(|d| d.id().eq_ignore_ascii_case(identifier))
-                        .map(|d| d as &dyn Definition)
-                        .collect::<Vec<_>>();
-                    finded.append(&mut f_methods);
-                }
-            }
-        }
-    }
-
-    finded
 }

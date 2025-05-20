@@ -21,13 +21,17 @@ pub fn semantics(root: SyntaxNode<MLanguage>) -> SemanticModel {
 
 pub fn identifier_for_offset(
     root: SyntaxNode<MLanguage>,
-    offset: u32,
+    offset: TextSize,
 ) -> Option<(String, SemanticInfo)> {
     // checking the boundaries if cursor is at the start or end token
-    let offsets = [offset, offset.saturating_add(1), offset.saturating_sub(1)];
+    let offsets = [
+        offset,
+        offset.checked_add(1.into()).unwrap_or(TextSize::default()),
+        offset.checked_sub(1.into()).unwrap_or(TextSize::default()),
+    ];
 
     for offset in offsets {
-        let range = TextRange::new(TextSize::from(offset), TextSize::from(offset));
+        let range = TextRange::new(offset, offset);
         let node = root.covering_element(range);
 
         let token = node.as_token();
@@ -45,7 +49,22 @@ pub fn identifier_for_offset(
                 for n in node.ancestors().take(3) {
                     match n.kind() {
                         MSyntaxKind::M_STATIC_MEMBER_EXPRESSION => {
-                            info = SemanticInfo::MethodCall;
+                            info = SemanticInfo::MethodCall(None);
+
+                            if let Some(child) = n.first_child() {
+                                // try find class name
+                                if child.kind() == MSyntaxKind::M_THIS_EXPRESSION {
+                                    let class_id = node
+                                        .ancestors()
+                                        .find(|p| p.kind() == MSyntaxKind::M_CLASS_DECLARATION)
+                                        .map_or(None, |class_node| {
+                                            let class = MClassDeclaration::cast(class_node)?;
+                                            let id = class.id().ok()?.text();
+                                            Some(id)
+                                        });
+                                    info = SemanticInfo::MethodCall(class_id);
+                                }
+                            }
                             break;
                         }
                         MSyntaxKind::M_NEW_EXPRESSION => {
@@ -68,10 +87,15 @@ pub fn identifier_for_offset(
     None
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum SemanticInfo {
+    // like zzzzz();
     FunctionCall,
-    MethodCall,
+
+    // like z.cmethod() or this.method()
+    MethodCall(Option<String>),
+
+    // like new MyClass();
     NewExpression,
 }
 
@@ -107,6 +131,13 @@ impl AnyMDefinition {
             AnyMDefinition::MClassDefinition(class) => Some(class.methods()),
         }
     }
+
+    pub fn extends(&self) -> Option<&String> {
+        match self {
+            AnyMDefinition::MFunctionDefinition(_) => None,
+            AnyMDefinition::MClassDefinition(class) => class.extends(),
+        }
+    }
 }
 
 #[derive(Debug, Default, Eq, PartialEq)]
@@ -125,6 +156,7 @@ pub struct MClassDefinition {
     description: Option<String>,
     doc_string: Option<String>,
     range: TextRange,
+    extends: Option<String>,
 }
 
 #[derive(Debug, Default, Eq, PartialEq)]
@@ -214,6 +246,10 @@ impl MClassDefinition {
     pub fn methods(&self) -> &Vec<MClassMethodDefinition> {
         &self.methods
     }
+
+    pub fn extends(&self) -> Option<&String> {
+        self.extends.as_ref()
+    }
 }
 
 impl Definition for MClassDefinition {
@@ -284,6 +320,9 @@ impl SemanticModel {
                 description: Self::trivia_to_string(class.syntax().first_leading_trivia()),
                 doc_string: class.doc_string().map(|s| s.text()),
                 range: class.id().map(|id| id.range()).unwrap_or(class.range()),
+                extends: class
+                    .extends_clause()
+                    .map_or(None, |ext| Some(ext.super_class().ok()?.text())),
             };
 
             for member in members {
@@ -396,9 +435,9 @@ mod tests {
         #[rustfmt::skip]
         let inputs = [
             ("var x = callFunction()", 15, "callFunction", SemanticInfo::FunctionCall),
-            ("var x = z.callMethod()", 15, "callMethod", SemanticInfo::MethodCall),
+            ("var x = z.callMethod()", 15, "callMethod", SemanticInfo::MethodCall(None)),
             ("var x = new TodoClass()",15, "TodoClass", SemanticInfo::NewExpression),
-            ("var x = callFunction( z.callMethod() )", 30, "callMethod", SemanticInfo::MethodCall),
+            ("var x = callFunction( z.callMethod() )", 30, "callMethod", SemanticInfo::MethodCall(None)),
             ("var x = z.callMethod( callFunction() )", 30, "callFunction", SemanticInfo::FunctionCall),
             ("var x = z.callMethod( new TodoClass() )",30, "TodoClass", SemanticInfo::NewExpression),
         ];
@@ -406,12 +445,35 @@ mod tests {
         for (input, offset, ident, info) in inputs {
             let parsed = parse(input, MFileSource::script());
             let (identifier, semantic_info) =
-                identifier_for_offset(parsed.syntax(), offset).unwrap();
+                identifier_for_offset(parsed.syntax(), TextSize::from(offset)).unwrap();
             assert_eq!(
                 (ident, info),
                 (identifier.as_ref(), semantic_info),
                 "{input}"
             );
+        }
+    }
+
+    #[test]
+    fn test_identifier_for_offset2() {
+        let input = r#"
+            class Test {
+                constructor() { this.m2(); }
+                m1() {}
+                m2() { this.m1(); }
+            }
+        "#;
+        let parsed = parse(input, MFileSource::script());
+
+        let offsets = [
+            (65, "m2", SemanticInfo::MethodCall(Some("Test".into()))),
+            (125, "m1", SemanticInfo::MethodCall(Some("Test".into()))),
+        ];
+
+        for (offset, ident, info) in offsets {
+            let (identifier, semantic_info) =
+                identifier_for_offset(parsed.syntax(), TextSize::from(offset)).unwrap();
+            assert_eq!((ident, info), (identifier.as_ref(), semantic_info));
         }
     }
 
@@ -432,7 +494,7 @@ func b() {
     return 123; 
 }
 
-class x {
+class x extends z {
     constructor() {}
 
     # getter description
@@ -480,27 +542,28 @@ class x {
                 description: None,
                 doc_string: None,
                 range: TextRange::new(158.into(), 159.into()),
+                extends: Some("z".into()),
                 methods: vec![
                     MClassMethodDefinition {
                         id: String::from("constructor"),
                         params: String::from("()"),
                         description: None,
                         doc_string: None,
-                        range: TextRange::new(166.into(), 177.into()),
+                        range: TextRange::new(176.into(), 187.into()),
                     },
                     MClassMethodDefinition {
                         id: String::from("x"),
                         params: String::from("()"),
                         description: Some(String::from("\r\n# getter description")),
                         doc_string: None,
-                        range: TextRange::new(217.into(), 218.into()),
+                        range: TextRange::new(227.into(), 228.into()),
                     },
                     MClassMethodDefinition {
                         id: String::from("calc"),
                         params: String::from("()"),
                         description: None,
                         doc_string: None,
-                        range: TextRange::new(253.into(), 257.into()),
+                        range: TextRange::new(263.into(), 267.into()),
                     }
                 ]
             })

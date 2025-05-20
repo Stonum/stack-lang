@@ -2,6 +2,7 @@ use m_lang::syntax::{TextRange, TextSize};
 use ropey::Rope;
 use tower_lsp::lsp_types::{Position, Range};
 
+pub mod definition;
 pub mod document;
 pub mod format;
 
@@ -25,7 +26,7 @@ pub fn text_range(rope: &Rope, range: Range) -> Option<TextRange> {
     Some(TextRange::new(start, end))
 }
 
-fn get_text_size_from_position(rope: &Rope, pos: Position) -> Option<TextSize> {
+pub fn get_text_size_from_position(rope: &Rope, pos: Position) -> Option<TextSize> {
     let line = pos.line as usize;
     let character = pos.character as usize;
 
