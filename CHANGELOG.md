@@ -1,6 +1,18 @@
 **Changelog**
 ===============
 
+**v0.2.2 - 2025-05-20**
+* **Added**:
+   + some code snippets
+   + normlizing keyword cases when formatting
+
+* **Changed**:
+   + change the line width from 120 to 150
+
+* **Fixed**: 
+   + formatting comments
+
+
 **v0.2.0 - 2025-05-07**
 ------------------------------------
 * **Added**:
