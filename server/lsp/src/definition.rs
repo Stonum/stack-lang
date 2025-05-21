@@ -31,11 +31,13 @@ where
                 let doc = r.value();
                 let doc_def = doc.definitions();
 
-                definitions = doc_def
+                let mut functions = doc_def
                     .into_iter()
                     .filter(|d| d.is_function() && d.id().eq_ignore_ascii_case(identifier))
                     .map(|d| convert_to_lsp(d as &dyn Definition, &doc))
                     .collect::<Vec<_>>();
+
+                definitions.append(&mut functions);
             }
         }
         SemanticInfo::NewExpression => {
@@ -43,11 +45,13 @@ where
                 let doc = r.value();
                 let doc_def = doc.definitions();
 
-                definitions = doc_def
+                let mut classes = doc_def
                     .into_iter()
                     .filter(|d| d.is_class() && d.id().eq_ignore_ascii_case(identifier))
                     .map(|d| convert_to_lsp(d as &dyn Definition, &doc))
                     .collect::<Vec<_>>();
+
+                definitions.append(&mut classes);
             }
         }
         SemanticInfo::MethodCall(None) => {
