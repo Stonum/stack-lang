@@ -2,6 +2,7 @@
 ===============
 
 **v0.2.2 - 2025-05-20**
+------------------------------------
 * **Added**:
    + some code snippets
    + normlizing keyword cases when formatting
