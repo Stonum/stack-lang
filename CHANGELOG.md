@@ -1,11 +1,18 @@
 **Changelog**
 ===============
 
+**v0.2.3 - 2025-05-21**
+------------------------------------
+* **Fixed**: 
+   + go to definition for functions and classes
+
+
 **v0.2.2 - 2025-05-20**
 ------------------------------------
 * **Added**:
    + some code snippets
    + normlizing keyword cases when formatting
+   + go to definition for methods
 
 * **Changed**:
    + change the line width from 120 to 150
