@@ -95,6 +95,9 @@ pub struct MLexer<'src> {
     current_flags: TokenFlags,
 
     diagnostics: Vec<ParseDiagnostic>,
+
+    // 'true' if the line starts from ff token
+    after_ff: bool,
 }
 
 impl<'src> Lexer<'src> for MLexer<'src> {
@@ -261,6 +264,7 @@ impl<'src> MLexer<'src> {
             current_flags: TokenFlags::empty(),
             position: 0,
             diagnostics: vec![],
+            after_ff: false,
         }
     }
 
@@ -364,6 +368,17 @@ impl<'src> MLexer<'src> {
                 _ => break,
             }
         }
+    }
+
+    fn consume_ff(&mut self) -> MSyntaxKind {
+        self.assert_current_char_boundary();
+
+        self.after_ff = true;
+        if self.peek_byte() == Some(12) {
+            self.advance(2);
+            return T![ff2];
+        }
+        self.eat_byte(T![ff])
     }
 
     /// Returns the current byte without checking if the lexer is at the end of the file.
@@ -804,6 +819,21 @@ impl<'src> MLexer<'src> {
         }
         self.next_byte_bounded();
 
+        T![ident]
+    }
+
+    #[inline]
+    fn resolve_report_identifier(&mut self) -> MSyntaxKind {
+        loop {
+            if self.next_byte_bounded().is_none()
+                || self.cur_ident_part(true).is_none()
+                || self.consume_newline()
+                || self.current_byte() == Some(b'#')
+            {
+                break;
+            }
+        }
+        self.after_ff = false;
         T![ident]
     }
 
@@ -1286,10 +1316,11 @@ impl<'src> MLexer<'src> {
         let dispatched = lookup_byte(byte);
         match dispatched {
             WHS => {
-                let kind = self.consume_newline_or_whitespaces();
-                if kind == Self::NEWLINE {
-                    self.after_newline = true;
-                }
+                let kind = match byte {
+                    12 => self.consume_ff(),
+                    _ => self.consume_newline_or_whitespaces(),
+                };
+
                 kind
             }
             EXL => self.resolve_bang(),
@@ -1327,6 +1358,7 @@ impl<'src> MLexer<'src> {
                     ERROR_TOKEN
                 }
             }
+            IDT if self.after_ff => self.resolve_report_identifier(),
             IDT | DOL => self.resolve_identifier(byte as char),
             DIG | ZER => self.resolve_number(),
             COL => self.eat_byte(T![:]),
@@ -1358,11 +1390,7 @@ impl<'src> MLexer<'src> {
                 if is_linebreak(chr)
                     || (UNICODE_WHITESPACE_STARTS.contains(&byte) && UNICODE_SPACES.contains(&chr))
                 {
-                    let kind = self.consume_newline_or_whitespaces();
-                    if kind == Self::NEWLINE {
-                        self.after_newline = true;
-                    }
-                    kind
+                    self.consume_newline_or_whitespaces()
                 } else {
                     self.advance(chr.len_utf8() - 1);
                     if is_id_start(chr) {
