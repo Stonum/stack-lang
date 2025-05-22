@@ -80,7 +80,7 @@ pub fn identifier_for_offset(
                 }
             }
 
-            return Some((token.text().to_string(), info));
+            return Some((token.text_trimmed().to_string(), info));
         }
     }
 
@@ -440,6 +440,8 @@ mod tests {
             ("var x = callFunction( z.callMethod() )", 30, "callMethod", SemanticInfo::MethodCall(None)),
             ("var x = z.callMethod( callFunction() )", 30, "callFunction", SemanticInfo::FunctionCall),
             ("var x = z.callMethod( new TodoClass() )",30, "TodoClass", SemanticInfo::NewExpression),
+            ("#comment line
+              callaFterComment()",30, "callaFterComment", SemanticInfo::FunctionCall),
         ];
 
         for (input, offset, ident, info) in inputs {
