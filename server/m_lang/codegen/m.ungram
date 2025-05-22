@@ -1,4 +1,4 @@
-// Javascript Un-Grammar.
+// MLang Un-Grammar.
 //
 // This grammar specifies the structure of Rust's concrete syntax tree.
 // It does not specify parsing rules (ambiguities, precedence, etc are out of scope).
@@ -45,9 +45,8 @@ MBogusBinding = SyntaxElement*
 MBogusAssignment = SyntaxElement*
 MBogusParameter = SyntaxElement*
 
-// TODO: add reports support
 AnyMRoot =
-	MScript | MModule | MExpressionSnipped
+	MScript | MModule | MExpressionSnipped | MReportFile
 
 MScript =
 	statements: MStatementList
@@ -56,6 +55,10 @@ MScript =
 MModule =
 	directives: MDirectiveList
 	items: MModuleItemList
+	eof: 'EOF'
+
+MReportFile =
+	reports: MReportList
 	eof: 'EOF'
 
 MExpressionSnipped =
@@ -814,3 +817,28 @@ MFunctionBody =
 ///////////////
 
 MModuleItemList = AnyMStatement*   
+
+///////////////
+// REPORTS
+///////////////
+
+MReportName =
+	'$''$'
+	MName
+
+MReport = 
+	name: MReportName
+	statements: MStatementList
+	sections: MReportSectionList
+
+MReportList = MReport*
+
+MReportSectionName =
+   '$'
+	MName
+
+MReportSection = 
+	name: MReportSectionName
+	body: MBlockStatement
+
+MReportSectionList = MReportSection*

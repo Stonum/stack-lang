@@ -1295,6 +1295,56 @@ pub fn m_reference_identifier(value_token: SyntaxToken) -> MReferenceIdentifier 
         [Some(SyntaxElement::Token(value_token))],
     ))
 }
+pub fn m_report(
+    name: MReportName,
+    statements: MStatementList,
+    sections: MReportSectionList,
+) -> MReport {
+    MReport::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_REPORT,
+        [
+            Some(SyntaxElement::Node(name.into_syntax())),
+            Some(SyntaxElement::Node(statements.into_syntax())),
+            Some(SyntaxElement::Node(sections.into_syntax())),
+        ],
+    ))
+}
+pub fn m_report_file(reports: MReportList, eof_token: SyntaxToken) -> MReportFile {
+    MReportFile::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_REPORT_FILE,
+        [
+            Some(SyntaxElement::Node(reports.into_syntax())),
+            Some(SyntaxElement::Token(eof_token)),
+        ],
+    ))
+}
+pub fn m_report_name(ff2_token: SyntaxToken, m_name: MName) -> MReportName {
+    MReportName::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_REPORT_NAME,
+        [
+            Some(SyntaxElement::Token(ff2_token)),
+            Some(SyntaxElement::Node(m_name.into_syntax())),
+        ],
+    ))
+}
+pub fn m_report_section(name: MReportSectionName, body: MBlockStatement) -> MReportSection {
+    MReportSection::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_REPORT_SECTION,
+        [
+            Some(SyntaxElement::Node(name.into_syntax())),
+            Some(SyntaxElement::Node(body.into_syntax())),
+        ],
+    ))
+}
+pub fn m_report_section_name(ff_token: SyntaxToken, m_name: MName) -> MReportSectionName {
+    MReportSectionName::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_REPORT_SECTION_NAME,
+        [
+            Some(SyntaxElement::Token(ff_token)),
+            Some(SyntaxElement::Node(m_name.into_syntax())),
+        ],
+    ))
+}
 pub fn m_rest_parameter(dotdotdot_token: SyntaxToken) -> MRestParameterBuilder {
     MRestParameterBuilder {
         dotdotdot_token,
@@ -1967,6 +2017,30 @@ where
                 Some(separators.next()?.into())
             }
         }),
+    ))
+}
+pub fn m_report_list<I>(items: I) -> MReportList
+where
+    I: IntoIterator<Item = MReport>,
+    I::IntoIter: ExactSizeIterator,
+{
+    MReportList::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_REPORT_LIST,
+        items
+            .into_iter()
+            .map(|item| Some(item.into_syntax().into())),
+    ))
+}
+pub fn m_report_section_list<I>(items: I) -> MReportSectionList
+where
+    I: IntoIterator<Item = MReportSection>,
+    I::IntoIter: ExactSizeIterator,
+{
+    MReportSectionList::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_REPORT_SECTION_LIST,
+        items
+            .into_iter()
+            .map(|item| Some(item.into_syntax().into())),
     ))
 }
 pub fn m_statement_list<I>(items: I) -> MStatementList

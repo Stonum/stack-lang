@@ -3254,6 +3254,211 @@ pub struct MReferenceIdentifierFields {
     pub value_token: SyntaxResult<SyntaxToken>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
+pub struct MReport {
+    pub(crate) syntax: SyntaxNode,
+}
+impl MReport {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> MReportFields {
+        MReportFields {
+            name: self.name(),
+            statements: self.statements(),
+            sections: self.sections(),
+        }
+    }
+    pub fn name(&self) -> SyntaxResult<MReportName> {
+        support::required_node(&self.syntax, 0usize)
+    }
+    pub fn statements(&self) -> MStatementList {
+        support::list(&self.syntax, 1usize)
+    }
+    pub fn sections(&self) -> MReportSectionList {
+        support::list(&self.syntax, 2usize)
+    }
+}
+impl Serialize for MReport {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct MReportFields {
+    pub name: SyntaxResult<MReportName>,
+    pub statements: MStatementList,
+    pub sections: MReportSectionList,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct MReportFile {
+    pub(crate) syntax: SyntaxNode,
+}
+impl MReportFile {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> MReportFileFields {
+        MReportFileFields {
+            reports: self.reports(),
+            eof_token: self.eof_token(),
+        }
+    }
+    pub fn reports(&self) -> MReportList {
+        support::list(&self.syntax, 0usize)
+    }
+    pub fn eof_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 1usize)
+    }
+}
+impl Serialize for MReportFile {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct MReportFileFields {
+    pub reports: MReportList,
+    pub eof_token: SyntaxResult<SyntaxToken>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct MReportName {
+    pub(crate) syntax: SyntaxNode,
+}
+impl MReportName {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> MReportNameFields {
+        MReportNameFields {
+            ff2_token: self.ff2_token(),
+            m_name: self.m_name(),
+        }
+    }
+    pub fn ff2_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 0usize)
+    }
+    pub fn m_name(&self) -> SyntaxResult<MName> {
+        support::required_node(&self.syntax, 1usize)
+    }
+}
+impl Serialize for MReportName {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct MReportNameFields {
+    pub ff2_token: SyntaxResult<SyntaxToken>,
+    pub m_name: SyntaxResult<MName>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct MReportSection {
+    pub(crate) syntax: SyntaxNode,
+}
+impl MReportSection {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> MReportSectionFields {
+        MReportSectionFields {
+            name: self.name(),
+            body: self.body(),
+        }
+    }
+    pub fn name(&self) -> SyntaxResult<MReportSectionName> {
+        support::required_node(&self.syntax, 0usize)
+    }
+    pub fn body(&self) -> SyntaxResult<MBlockStatement> {
+        support::required_node(&self.syntax, 1usize)
+    }
+}
+impl Serialize for MReportSection {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct MReportSectionFields {
+    pub name: SyntaxResult<MReportSectionName>,
+    pub body: SyntaxResult<MBlockStatement>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct MReportSectionName {
+    pub(crate) syntax: SyntaxNode,
+}
+impl MReportSectionName {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> MReportSectionNameFields {
+        MReportSectionNameFields {
+            ff_token: self.ff_token(),
+            m_name: self.m_name(),
+        }
+    }
+    pub fn ff_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 0usize)
+    }
+    pub fn m_name(&self) -> SyntaxResult<MName> {
+        support::required_node(&self.syntax, 1usize)
+    }
+}
+impl Serialize for MReportSectionName {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct MReportSectionNameFields {
+    pub ff_token: SyntaxResult<SyntaxToken>,
+    pub m_name: SyntaxResult<MName>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MRestParameter {
     pub(crate) syntax: SyntaxNode,
 }
@@ -4970,6 +5175,7 @@ impl AnyMParameter {
 pub enum AnyMRoot {
     MExpressionSnipped(MExpressionSnipped),
     MModule(MModule),
+    MReportFile(MReportFile),
     MScript(MScript),
 }
 impl AnyMRoot {
@@ -4982,6 +5188,12 @@ impl AnyMRoot {
     pub fn as_m_module(&self) -> Option<&MModule> {
         match &self {
             AnyMRoot::MModule(item) => Some(item),
+            _ => None,
+        }
+    }
+    pub fn as_m_report_file(&self) -> Option<&MReportFile> {
+        match &self {
+            Self::MReportFile(item) => Some(item),
             _ => None,
         }
     }
@@ -8350,6 +8562,247 @@ impl From<MReferenceIdentifier> for SyntaxElement {
         n.syntax.into()
     }
 }
+impl AstNode for MReport {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_REPORT as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_REPORT
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for MReport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        thread_local! { static DEPTH : std :: cell :: Cell < u8 > = const { std :: cell :: Cell :: new (0) } };
+        let current_depth = DEPTH.get();
+        let result = if current_depth < 16 {
+            DEPTH.set(current_depth + 1);
+            f.debug_struct("MReport")
+                .field("name", &support::DebugSyntaxResult(self.name()))
+                .field("statements", &self.statements())
+                .field("sections", &self.sections())
+                .finish()
+        } else {
+            f.debug_struct("MReport").finish()
+        };
+        DEPTH.set(current_depth);
+        result
+    }
+}
+impl From<MReport> for SyntaxNode {
+    fn from(n: MReport) -> Self {
+        n.syntax
+    }
+}
+impl From<MReport> for SyntaxElement {
+    fn from(n: MReport) -> Self {
+        n.syntax.into()
+    }
+}
+impl AstNode for MReportFile {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_REPORT_FILE as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_REPORT_FILE
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for MReportFile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        thread_local! { static DEPTH : std :: cell :: Cell < u8 > = const { std :: cell :: Cell :: new (0) } };
+        let current_depth = DEPTH.get();
+        let result = if current_depth < 16 {
+            DEPTH.set(current_depth + 1);
+            f.debug_struct("MReportFile")
+                .field("reports", &self.reports())
+                .field("eof_token", &support::DebugSyntaxResult(self.eof_token()))
+                .finish()
+        } else {
+            f.debug_struct("MReportFile").finish()
+        };
+        DEPTH.set(current_depth);
+        result
+    }
+}
+impl From<MReportFile> for SyntaxNode {
+    fn from(n: MReportFile) -> Self {
+        n.syntax
+    }
+}
+impl From<MReportFile> for SyntaxElement {
+    fn from(n: MReportFile) -> Self {
+        n.syntax.into()
+    }
+}
+impl AstNode for MReportName {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_REPORT_NAME as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_REPORT_NAME
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for MReportName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        thread_local! { static DEPTH : std :: cell :: Cell < u8 > = const { std :: cell :: Cell :: new (0) } };
+        let current_depth = DEPTH.get();
+        let result = if current_depth < 16 {
+            DEPTH.set(current_depth + 1);
+            f.debug_struct("MReportName")
+                .field("ff2_token", &support::DebugSyntaxResult(self.ff2_token()))
+                .field("m_name", &support::DebugSyntaxResult(self.m_name()))
+                .finish()
+        } else {
+            f.debug_struct("MReportName").finish()
+        };
+        DEPTH.set(current_depth);
+        result
+    }
+}
+impl From<MReportName> for SyntaxNode {
+    fn from(n: MReportName) -> Self {
+        n.syntax
+    }
+}
+impl From<MReportName> for SyntaxElement {
+    fn from(n: MReportName) -> Self {
+        n.syntax.into()
+    }
+}
+impl AstNode for MReportSection {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_REPORT_SECTION as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_REPORT_SECTION
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for MReportSection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        thread_local! { static DEPTH : std :: cell :: Cell < u8 > = const { std :: cell :: Cell :: new (0) } };
+        let current_depth = DEPTH.get();
+        let result = if current_depth < 16 {
+            DEPTH.set(current_depth + 1);
+            f.debug_struct("MReportSection")
+                .field("name", &support::DebugSyntaxResult(self.name()))
+                .field("body", &support::DebugSyntaxResult(self.body()))
+                .finish()
+        } else {
+            f.debug_struct("MReportSection").finish()
+        };
+        DEPTH.set(current_depth);
+        result
+    }
+}
+impl From<MReportSection> for SyntaxNode {
+    fn from(n: MReportSection) -> Self {
+        n.syntax
+    }
+}
+impl From<MReportSection> for SyntaxElement {
+    fn from(n: MReportSection) -> Self {
+        n.syntax.into()
+    }
+}
+impl AstNode for MReportSectionName {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_REPORT_SECTION_NAME as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_REPORT_SECTION_NAME
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for MReportSectionName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        thread_local! { static DEPTH : std :: cell :: Cell < u8 > = const { std :: cell :: Cell :: new (0) } };
+        let current_depth = DEPTH.get();
+        let result = if current_depth < 16 {
+            DEPTH.set(current_depth + 1);
+            f.debug_struct("MReportSectionName")
+                .field("ff_token", &support::DebugSyntaxResult(self.ff_token()))
+                .field("m_name", &support::DebugSyntaxResult(self.m_name()))
+                .finish()
+        } else {
+            f.debug_struct("MReportSectionName").finish()
+        };
+        DEPTH.set(current_depth);
+        result
+    }
+}
+impl From<MReportSectionName> for SyntaxNode {
+    fn from(n: MReportSectionName) -> Self {
+        n.syntax
+    }
+}
+impl From<MReportSectionName> for SyntaxElement {
+    fn from(n: MReportSectionName) -> Self {
+        n.syntax.into()
+    }
+}
 impl AstNode for MRestParameter {
     type Language = Language;
     const KIND_SET: SyntaxKindSet<Language> =
@@ -11352,6 +11805,11 @@ impl From<MModule> for AnyMRoot {
         AnyMRoot::MModule(node)
     }
 }
+impl From<MReportFile> for AnyMRoot {
+    fn from(node: MReportFile) -> Self {
+        Self::MReportFile(node)
+    }
+}
 impl From<MScript> for AnyMRoot {
     fn from(node: MScript) -> AnyMRoot {
         AnyMRoot::MScript(node)
@@ -11361,14 +11819,19 @@ impl AstNode for AnyMRoot {
     type Language = Language;
     const KIND_SET: SyntaxKindSet<Language> = MExpressionSnipped::KIND_SET
         .union(MModule::KIND_SET)
+        .union(MReportFile::KIND_SET)
         .union(MScript::KIND_SET);
     fn can_cast(kind: SyntaxKind) -> bool {
-        matches!(kind, M_EXPRESSION_SNIPPED | M_MODULE | M_SCRIPT)
+        matches!(
+            kind,
+            M_EXPRESSION_SNIPPED | M_MODULE | M_REPORT_FILE | M_SCRIPT
+        )
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         let res = match syntax.kind() {
             M_EXPRESSION_SNIPPED => AnyMRoot::MExpressionSnipped(MExpressionSnipped { syntax }),
             M_MODULE => AnyMRoot::MModule(MModule { syntax }),
+            M_REPORT_FILE => Self::MReportFile(MReportFile { syntax }),
             M_SCRIPT => AnyMRoot::MScript(MScript { syntax }),
             _ => return None,
         };
@@ -11378,6 +11841,7 @@ impl AstNode for AnyMRoot {
         match self {
             AnyMRoot::MExpressionSnipped(it) => &it.syntax,
             AnyMRoot::MModule(it) => &it.syntax,
+            AnyMRoot::MReportFile(it) => &it.syntax,
             AnyMRoot::MScript(it) => &it.syntax,
         }
     }
@@ -11385,6 +11849,7 @@ impl AstNode for AnyMRoot {
         match self {
             AnyMRoot::MExpressionSnipped(it) => it.syntax,
             AnyMRoot::MModule(it) => it.syntax,
+            AnyMRoot::MReportFile(it) => it.syntax,
             AnyMRoot::MScript(it) => it.syntax,
         }
     }
@@ -11394,6 +11859,7 @@ impl std::fmt::Debug for AnyMRoot {
         match self {
             AnyMRoot::MExpressionSnipped(it) => std::fmt::Debug::fmt(it, f),
             AnyMRoot::MModule(it) => std::fmt::Debug::fmt(it, f),
+            AnyMRoot::MReportFile(it) => std::fmt::Debug::fmt(it, f),
             AnyMRoot::MScript(it) => std::fmt::Debug::fmt(it, f),
         }
     }
@@ -11403,6 +11869,7 @@ impl From<AnyMRoot> for SyntaxNode {
         match n {
             AnyMRoot::MExpressionSnipped(it) => it.into(),
             AnyMRoot::MModule(it) => it.into(),
+            AnyMRoot::MReportFile(it) => it.into(),
             AnyMRoot::MScript(it) => it.into(),
         }
     }
@@ -12245,6 +12712,31 @@ impl std::fmt::Display for MPropertyObjectMember {
     }
 }
 impl std::fmt::Display for MReferenceIdentifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for MReport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for MReportFile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for MReportName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for MReportSection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for MReportSectionName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
@@ -13818,6 +14310,170 @@ impl IntoIterator for MParameterList {
 impl IntoIterator for &MParameterList {
     type Item = SyntaxResult<AnyMParameter>;
     type IntoIter = AstSeparatedListNodesIterator<Language, AnyMParameter>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+#[derive(Clone, Eq, PartialEq, Hash)]
+pub struct MReportList {
+    syntax_list: SyntaxList,
+}
+impl MReportList {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self {
+            syntax_list: syntax.into_list(),
+        }
+    }
+}
+impl AstNode for MReportList {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_REPORT_LIST as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_REPORT_LIST
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self {
+                syntax_list: syntax.into_list(),
+            })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        self.syntax_list.node()
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax_list.into_node()
+    }
+}
+impl Serialize for MReportList {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.len()))?;
+        for e in self.iter() {
+            seq.serialize_element(&e)?;
+        }
+        seq.end()
+    }
+}
+impl AstNodeList for MReportList {
+    type Language = Language;
+    type Node = MReport;
+    fn syntax_list(&self) -> &SyntaxList {
+        &self.syntax_list
+    }
+    fn into_syntax_list(self) -> SyntaxList {
+        self.syntax_list
+    }
+}
+impl Debug for MReportList {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("MReportList ")?;
+        f.debug_list().entries(self.iter()).finish()
+    }
+}
+impl IntoIterator for &MReportList {
+    type Item = MReport;
+    type IntoIter = AstNodeListIterator<Language, MReport>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+impl IntoIterator for MReportList {
+    type Item = MReport;
+    type IntoIter = AstNodeListIterator<Language, MReport>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+#[derive(Clone, Eq, PartialEq, Hash)]
+pub struct MReportSectionList {
+    syntax_list: SyntaxList,
+}
+impl MReportSectionList {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self {
+            syntax_list: syntax.into_list(),
+        }
+    }
+}
+impl AstNode for MReportSectionList {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_REPORT_SECTION_LIST as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_REPORT_SECTION_LIST
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self {
+                syntax_list: syntax.into_list(),
+            })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        self.syntax_list.node()
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax_list.into_node()
+    }
+}
+impl Serialize for MReportSectionList {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.len()))?;
+        for e in self.iter() {
+            seq.serialize_element(&e)?;
+        }
+        seq.end()
+    }
+}
+impl AstNodeList for MReportSectionList {
+    type Language = Language;
+    type Node = MReportSection;
+    fn syntax_list(&self) -> &SyntaxList {
+        &self.syntax_list
+    }
+    fn into_syntax_list(self) -> SyntaxList {
+        self.syntax_list
+    }
+}
+impl Debug for MReportSectionList {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("MReportSectionList ")?;
+        f.debug_list().entries(self.iter()).finish()
+    }
+}
+impl IntoIterator for &MReportSectionList {
+    type Item = MReportSection;
+    type IntoIter = AstNodeListIterator<Language, MReportSection>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+impl IntoIterator for MReportSectionList {
+    type Item = MReportSection;
+    type IntoIter = AstNodeListIterator<Language, MReportSection>;
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }
