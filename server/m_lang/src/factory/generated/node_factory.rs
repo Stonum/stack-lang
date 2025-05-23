@@ -1297,17 +1297,39 @@ pub fn m_reference_identifier(value_token: SyntaxToken) -> MReferenceIdentifier 
 }
 pub fn m_report(
     name: MReportName,
-    statements: MStatementList,
+    init: MReportInitList,
     sections: MReportSectionList,
-) -> MReport {
-    MReport::unwrap_cast(SyntaxNode::new_detached(
-        MSyntaxKind::M_REPORT,
-        [
-            Some(SyntaxElement::Node(name.into_syntax())),
-            Some(SyntaxElement::Node(statements.into_syntax())),
-            Some(SyntaxElement::Node(sections.into_syntax())),
-        ],
-    ))
+) -> MReportBuilder {
+    MReportBuilder {
+        name,
+        init,
+        sections,
+        default: None,
+    }
+}
+pub struct MReportBuilder {
+    name: MReportName,
+    init: MReportInitList,
+    sections: MReportSectionList,
+    default: Option<MBlockStatement>,
+}
+impl MReportBuilder {
+    pub fn with_default(mut self, default: MBlockStatement) -> Self {
+        self.default = Some(default);
+        self
+    }
+    pub fn build(self) -> MReport {
+        MReport::unwrap_cast(SyntaxNode::new_detached(
+            MSyntaxKind::M_REPORT,
+            [
+                Some(SyntaxElement::Node(self.name.into_syntax())),
+                Some(SyntaxElement::Node(self.init.into_syntax())),
+                self.default
+                    .map(|token| SyntaxElement::Node(token.into_syntax())),
+                Some(SyntaxElement::Node(self.sections.into_syntax())),
+            ],
+        ))
+    }
 }
 pub fn m_report_file(reports: MReportList, eof_token: SyntaxToken) -> MReportFile {
     MReportFile::unwrap_cast(SyntaxNode::new_detached(
@@ -2017,6 +2039,18 @@ where
                 Some(separators.next()?.into())
             }
         }),
+    ))
+}
+pub fn m_report_init_list<I>(items: I) -> MReportInitList
+where
+    I: IntoIterator<Item = MExpressionStatement>,
+    I::IntoIter: ExactSizeIterator,
+{
+    MReportInitList::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_REPORT_INIT_LIST,
+        items
+            .into_iter()
+            .map(|item| Some(item.into_syntax().into())),
     ))
 }
 pub fn m_report_list<I>(items: I) -> MReportList

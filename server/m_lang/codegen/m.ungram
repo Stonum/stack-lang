@@ -823,15 +823,18 @@ MModuleItemList = AnyMStatement*
 ///////////////
 
 MReportName =
-	'$''$'
+	'$$'
 	MName
 
 MReport = 
 	name: MReportName
-	statements: MStatementList
+	init: MReportInitList
+   default: MBlockStatement?
 	sections: MReportSectionList
 
 MReportList = MReport*
+
+MReportInitList = MExpressionStatement*
 
 MReportSectionName =
    '$'

@@ -3270,18 +3270,22 @@ impl MReport {
     pub fn as_fields(&self) -> MReportFields {
         MReportFields {
             name: self.name(),
-            statements: self.statements(),
+            init: self.init(),
+            default: self.default(),
             sections: self.sections(),
         }
     }
     pub fn name(&self) -> SyntaxResult<MReportName> {
         support::required_node(&self.syntax, 0usize)
     }
-    pub fn statements(&self) -> MStatementList {
+    pub fn init(&self) -> MReportInitList {
         support::list(&self.syntax, 1usize)
     }
+    pub fn default(&self) -> Option<MBlockStatement> {
+        support::node(&self.syntax, 2usize)
+    }
     pub fn sections(&self) -> MReportSectionList {
-        support::list(&self.syntax, 2usize)
+        support::list(&self.syntax, 3usize)
     }
 }
 impl Serialize for MReport {
@@ -3295,7 +3299,8 @@ impl Serialize for MReport {
 #[derive(Serialize)]
 pub struct MReportFields {
     pub name: SyntaxResult<MReportName>,
-    pub statements: MStatementList,
+    pub init: MReportInitList,
+    pub default: Option<MBlockStatement>,
     pub sections: MReportSectionList,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -8591,7 +8596,8 @@ impl std::fmt::Debug for MReport {
             DEPTH.set(current_depth + 1);
             f.debug_struct("MReport")
                 .field("name", &support::DebugSyntaxResult(self.name()))
-                .field("statements", &self.statements())
+                .field("init", &self.init())
+                .field("default", &support::DebugOptionalElement(self.default()))
                 .field("sections", &self.sections())
                 .finish()
         } else {
@@ -14310,6 +14316,88 @@ impl IntoIterator for MParameterList {
 impl IntoIterator for &MParameterList {
     type Item = SyntaxResult<AnyMParameter>;
     type IntoIter = AstSeparatedListNodesIterator<Language, AnyMParameter>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+#[derive(Clone, Eq, PartialEq, Hash)]
+pub struct MReportInitList {
+    syntax_list: SyntaxList,
+}
+impl MReportInitList {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self {
+            syntax_list: syntax.into_list(),
+        }
+    }
+}
+impl AstNode for MReportInitList {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_REPORT_INIT_LIST as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_REPORT_INIT_LIST
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self {
+                syntax_list: syntax.into_list(),
+            })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        self.syntax_list.node()
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax_list.into_node()
+    }
+}
+impl Serialize for MReportInitList {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.len()))?;
+        for e in self.iter() {
+            seq.serialize_element(&e)?;
+        }
+        seq.end()
+    }
+}
+impl AstNodeList for MReportInitList {
+    type Language = Language;
+    type Node = MExpressionStatement;
+    fn syntax_list(&self) -> &SyntaxList {
+        &self.syntax_list
+    }
+    fn into_syntax_list(self) -> SyntaxList {
+        self.syntax_list
+    }
+}
+impl Debug for MReportInitList {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("MReportInitList ")?;
+        f.debug_list().entries(self.iter()).finish()
+    }
+}
+impl IntoIterator for &MReportInitList {
+    type Item = MExpressionStatement;
+    type IntoIter = AstNodeListIterator<Language, MExpressionStatement>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+impl IntoIterator for MReportInitList {
+    type Item = MExpressionStatement;
+    type IntoIter = AstNodeListIterator<Language, MExpressionStatement>;
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }

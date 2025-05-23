@@ -232,6 +232,7 @@ pub enum MSyntaxKind {
     M_REPORT,
     M_REPORT_LIST,
     M_REPORT_NAME,
+    M_REPORT_INIT_LIST,
     M_REPORT_SECTION,
     M_REPORT_SECTION_LIST,
     M_REPORT_SECTION_NAME,
@@ -282,6 +283,7 @@ impl MSyntaxKind {
             | M_ANNOTATION_LIST
             | M_ANNOTATION_ATTRIBUTE_LIST
             | M_REPORT_LIST
+            | M_REPORT_INIT_LIST
             | M_REPORT_SECTION_LIST => true,
             _ => false,
         }

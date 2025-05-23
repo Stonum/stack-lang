@@ -2417,7 +2417,7 @@ impl SyntaxFactory for MSyntaxFactory {
             }
             M_REPORT => {
                 let mut elements = (&children).into_iter();
-                let mut slots: RawNodeSlots<3usize> = RawNodeSlots::default();
+                let mut slots: RawNodeSlots<4usize> = RawNodeSlots::default();
                 let mut current_element = elements.next();
                 if let Some(element) = &current_element {
                     if MReportName::can_cast(element.kind()) {
@@ -2427,7 +2427,14 @@ impl SyntaxFactory for MSyntaxFactory {
                 }
                 slots.next_slot();
                 if let Some(element) = &current_element {
-                    if MStatementList::can_cast(element.kind()) {
+                    if MReportInitList::can_cast(element.kind()) {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if let Some(element) = &current_element {
+                    if MBlockStatement::can_cast(element.kind()) {
                         slots.mark_present();
                         current_element = elements.next();
                     }
@@ -3343,6 +3350,9 @@ impl SyntaxFactory for MSyntaxFactory {
                 T ! [,],
                 true,
             ),
+            M_REPORT_INIT_LIST => {
+                Self::make_node_list_syntax(kind, children, MExpressionStatement::can_cast)
+            }
             M_REPORT_LIST => Self::make_node_list_syntax(kind, children, MReport::can_cast),
             M_REPORT_SECTION_LIST => {
                 Self::make_node_list_syntax(kind, children, MReportSection::can_cast)

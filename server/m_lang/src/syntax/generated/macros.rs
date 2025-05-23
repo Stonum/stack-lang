@@ -564,6 +564,10 @@ macro_rules! map_syntax_node {
                     let $pattern = unsafe { $crate::syntax::MParameterList::new_unchecked(node) };
                     $body
                 }
+                $crate::syntax::MSyntaxKind::M_REPORT_INIT_LIST => {
+                    let $pattern = unsafe { $crate::syntax::MReportInitList::new_unchecked(node) };
+                    $body
+                }
                 $crate::syntax::MSyntaxKind::M_REPORT_LIST => {
                     let $pattern = unsafe { $crate::syntax::MReportList::new_unchecked(node) };
                     $body
