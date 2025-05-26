@@ -8,6 +8,7 @@ mod m_parse_error;
 mod module;
 mod object;
 pub mod program;
+mod report;
 mod stmt;
 
 use super::rewrite;

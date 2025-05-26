@@ -447,3 +447,36 @@ fn test_dot_binding() {
     );
     assert_parser!(res);
 }
+
+#[test]
+fn test_parse_reports() {
+    let res = parse(
+        r#"
+CommonReport
+.CloseWindow = 1;
+{
+    var month = WorkMonth();
+}
+Function declaration
+{
+    func add(i) { return i++; }
+}
+print
+{
+    var i = 1;
+    while( i < 10 )
+       i = add(i);
+}
+Extended.CommonReport
+.CloseWindow = 1;
+print
+{
+    var i = 1;
+    while( i < 10 )
+       i = add(i);
+}
+        "#,
+        MFileSource::report(),
+    );
+    assert_parser!(res);
+}

@@ -1,6 +1,7 @@
 //! Top level functions for parsing a script or module, also includes module specific items.
 
 use super::module::parse_module_body;
+use super::report::parse_reports;
 use super::stmt::{parse_directives, parse_statements};
 use super::syntax::MSyntaxKind::*;
 use super::syntax::ModuleKind;
@@ -28,6 +29,9 @@ pub(crate) fn parse(p: &mut MParser) -> CompletedMarker {
             parse_module_body(p, statement_list);
             m.complete(p, M_MODULE)
         }
-        ModuleKind::Report => todo!(),
+        ModuleKind::Report => {
+            parse_reports(p, statement_list);
+            m.complete(p, M_REPORT_FILE)
+        }
     }
 }

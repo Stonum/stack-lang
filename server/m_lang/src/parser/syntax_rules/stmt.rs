@@ -150,7 +150,7 @@ pub(crate) fn parse_statement(p: &mut MParser, context: StatementContext) -> Par
     }
 }
 
-fn parse_expression_statement(p: &mut MParser) -> ParsedSyntax {
+pub(crate) fn parse_expression_statement(p: &mut MParser) -> ParsedSyntax {
     let start = p.cur_range().start();
 
     let expr =
@@ -1171,7 +1171,7 @@ pub(crate) fn parse_try_statement(p: &mut MParser) -> ParsedSyntax {
     }
 }
 
-fn parse_global_statement(p: &mut MParser) -> ParsedSyntax {
+pub(crate) fn parse_global_statement(p: &mut MParser) -> ParsedSyntax {
     if !p.at(T![.]) {
         return Absent;
     }
