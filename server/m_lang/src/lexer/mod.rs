@@ -827,10 +827,14 @@ impl<'src> MLexer<'src> {
         loop {
             if self.next_byte_bounded().is_none()
                 || self.cur_ident_part(true).is_none()
-                || self.consume_newline()
                 || self.current_byte() == Some(b'#')
             {
                 break;
+            }
+            if let Some(byte) = self.current_byte() {
+                if is_linebreak(byte as char) {
+                    break;
+                }
             }
         }
         self.after_ff = false;
@@ -1394,7 +1398,11 @@ impl<'src> MLexer<'src> {
                 } else {
                     self.advance(chr.len_utf8() - 1);
                     if is_id_start(chr) {
-                        self.resolve_identifier(chr)
+                        if self.after_ff {
+                            self.resolve_report_identifier()
+                        } else {
+                            self.resolve_identifier(chr)
+                        }
                     } else {
                         let err = ParseDiagnostic::new(
                             format!("Unexpected token `{chr}`"),

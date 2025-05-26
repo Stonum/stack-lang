@@ -1371,9 +1371,9 @@ fn lookahead() {
 #[test]
 fn reports() {
     assert_lex! {
-        "report name",
+        "report: name",
         FF2:2,
-        IDENT:11
+        IDENT:12
     }
     assert_lex! {
         "section name",
@@ -1389,5 +1389,10 @@ fn reports() {
         NEWLINE: 1,
         WHITESPACE: 8,
         L_CURLY: 1
+    }
+    assert_lex! {
+        "Общий: Паспорт",
+        FF2:2,
+        IDENT:26
     }
 }
