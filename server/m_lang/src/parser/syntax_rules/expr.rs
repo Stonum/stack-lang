@@ -49,7 +49,6 @@ enum ExpressionContextFlag {
     IncludeIn = 1 << 0,
     AllowObjectExpression = 1 << 1,
     InDecorator = 1 << 2,
-    AllowTSTypeAssertion = 1 << 3,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]

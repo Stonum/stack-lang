@@ -419,17 +419,25 @@ impl Backend {
         let uri = params.uri;
         let text = params.text;
 
-        // skip the reports for now
         let path = uri.to_file_path().unwrap_or_default();
+        let mut file_source = None;
         if let Some(ext) = path.extension() {
-            if ext != "prg" && ext != "hdl" {
-                return;
+            if ext == "prg" || ext == "hdl" {
+                file_source = Some(MFileSource::module())
+            } else if ext.to_string_lossy().starts_with("rpt") {
+                file_source = Some(MFileSource::report())
             }
         }
 
+        if file_source.is_none() {
+            return;
+        }
+
+        let file_source = file_source.unwrap();
+
         let diagnostics;
         {
-            let parsed = parse(&text, MFileSource::module());
+            let parsed = parse(&text, file_source);
             let semantics = semantics(parsed.syntax());
             let rope = Rope::from_str(&text);
 

@@ -350,6 +350,27 @@ macro_rules! map_syntax_node {
                         unsafe { $crate::syntax::MReferenceIdentifier::new_unchecked(node) };
                     $body
                 }
+                $crate::syntax::MSyntaxKind::M_REPORT => {
+                    let $pattern = unsafe { $crate::syntax::MReport::new_unchecked(node) };
+                    $body
+                }
+                $crate::syntax::MSyntaxKind::M_REPORT_FILE => {
+                    let $pattern = unsafe { $crate::syntax::MReportFile::new_unchecked(node) };
+                    $body
+                }
+                $crate::syntax::MSyntaxKind::M_REPORT_NAME => {
+                    let $pattern = unsafe { $crate::syntax::MReportName::new_unchecked(node) };
+                    $body
+                }
+                $crate::syntax::MSyntaxKind::M_REPORT_SECTION => {
+                    let $pattern = unsafe { $crate::syntax::MReportSection::new_unchecked(node) };
+                    $body
+                }
+                $crate::syntax::MSyntaxKind::M_REPORT_SECTION_NAME => {
+                    let $pattern =
+                        unsafe { $crate::syntax::MReportSectionName::new_unchecked(node) };
+                    $body
+                }
                 $crate::syntax::MSyntaxKind::M_REST_PARAMETER => {
                     let $pattern = unsafe { $crate::syntax::MRestParameter::new_unchecked(node) };
                     $body
@@ -541,6 +562,19 @@ macro_rules! map_syntax_node {
                 }
                 $crate::syntax::MSyntaxKind::M_PARAMETER_LIST => {
                     let $pattern = unsafe { $crate::syntax::MParameterList::new_unchecked(node) };
+                    $body
+                }
+                $crate::syntax::MSyntaxKind::M_REPORT_INIT_LIST => {
+                    let $pattern = unsafe { $crate::syntax::MReportInitList::new_unchecked(node) };
+                    $body
+                }
+                $crate::syntax::MSyntaxKind::M_REPORT_LIST => {
+                    let $pattern = unsafe { $crate::syntax::MReportList::new_unchecked(node) };
+                    $body
+                }
+                $crate::syntax::MSyntaxKind::M_REPORT_SECTION_LIST => {
+                    let $pattern =
+                        unsafe { $crate::syntax::MReportSectionList::new_unchecked(node) };
                     $body
                 }
                 $crate::syntax::MSyntaxKind::M_STATEMENT_LIST => {

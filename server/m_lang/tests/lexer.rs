@@ -1367,3 +1367,32 @@ fn lookahead() {
     );
     assert_eq!(buffered.next_token(MLexContext::default()), T![EOF]);
 }
+
+#[test]
+fn reports() {
+    assert_lex! {
+        "report: name",
+        FF2:2,
+        IDENT:12
+    }
+    assert_lex! {
+        "section name",
+        FF:1,
+        IDENT:12
+    }
+    assert_lex! {
+        "section name # comment
+        {",
+        FF:1,
+        IDENT:13,
+        COMMENT:9,
+        NEWLINE: 1,
+        WHITESPACE: 8,
+        L_CURLY: 1
+    }
+    assert_lex! {
+        "Общий: Паспорт",
+        FF2:2,
+        IDENT:26
+    }
+}
