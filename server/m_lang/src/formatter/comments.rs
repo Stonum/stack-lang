@@ -305,6 +305,7 @@ fn handle_root_comments(comment: DecoratedComment<MLanguage>) -> CommentPlacemen
                 module.directives().is_empty() && module.items().is_empty()
             }
             AnyMRoot::MScript(script) => script.statements().is_empty(),
+            AnyMRoot::MReportFile(file) => file.reports().is_empty(),
         };
 
         if is_blank {

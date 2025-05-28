@@ -12,6 +12,7 @@ impl FormatRule<AnyMRoot> for FormatAnyMRoot {
             AnyMRoot::MExpressionSnipped(node) => node.format().fmt(f),
             AnyMRoot::MModule(node) => node.format().fmt(f),
             AnyMRoot::MScript(node) => node.format().fmt(f),
+            AnyMRoot::MReportFile(node) => node.format().fmt(f),
         }
     }
 }

@@ -5,8 +5,11 @@ use m_lang::parser::parse;
 use m_lang::syntax::{MFileSource, TextRange, TextSize};
 
 macro_rules! assert_fmt {
-    ($src:expr) => {
+    ($src:expr $(, $file_type:expr)?) => {
         let syntax = MFileSource::script();
+        $(
+            let syntax = $file_type;
+        )?
         let tree = parse($src, syntax);
 
         let options = MFormatOptions::new(syntax)
@@ -127,5 +130,32 @@ var qq = сессия.Query(
 
 var qq = Query(`select row_id from ~Лицевые договора~ `, 1, "p1,S");
 "#
+    );
+}
+
+#[test]
+fn format_report() {
+    assert_fmt!(
+        r#"#
+CommonReport
+.CloseWindow = 1;
+.Template = "tmp.xlsx";
+.ReportFile = "rep.xlsx";
+{
+   var month = WorkMonth();
+}
+Function declaration
+{
+   func add( i )
+   {
+      return i++;
+   }
+}
+print
+{
+   print("hey");
+}
+"#,
+        MFileSource::report()
     );
 }
