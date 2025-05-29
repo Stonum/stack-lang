@@ -157,7 +157,7 @@ impl LanguageServer for Backend {
                 let handle = current.spawn_blocking(move || {
                     let parsed = parse(&text, MFileSource::module());
 
-                    let semantics = semantics(parsed.syntax());
+                    let semantics = semantics(parsed.syntax(), MFileSource::module());
                     let rope = Rope::from_str(&text);
                     (rope, semantics)
                 });
@@ -422,10 +422,13 @@ impl Backend {
         let path = uri.to_file_path().unwrap_or_default();
         let mut file_source = None;
         if let Some(ext) = path.extension() {
-            if ext == "prg" || ext == "hdl" {
-                file_source = Some(MFileSource::module())
-            } else if ext.to_string_lossy().starts_with("rpt") {
-                file_source = Some(MFileSource::report())
+            match MFileSource::try_from_extension(ext) {
+                Ok(src) => file_source = Some(src),
+                Err(err) => {
+                    let err = Diagnostic::new_simple(Default::default(), err.to_string());
+                    self.client.publish_diagnostics(uri, vec![err], None).await;
+                    return;
+                }
             }
         }
 
@@ -438,7 +441,7 @@ impl Backend {
         let diagnostics;
         {
             let parsed = parse(&text, file_source);
-            let semantics = semantics(parsed.syntax());
+            let semantics = semantics(parsed.syntax(), file_source);
             let rope = Rope::from_str(&text);
 
             diagnostics = parsed

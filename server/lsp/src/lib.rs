@@ -81,7 +81,7 @@ mod tests {
         );
 
         let range = Range::new(Position::new(14, 9), Position::new(16, 4));
-        let t_range = text_range(&rope, range).expect("Convert range is failed");
+        let t_range = text_range(&rope, range).expect("Convert range failed");
 
         let start: usize = t_range.start().into();
         let end: usize = t_range.end().into();
@@ -89,5 +89,17 @@ mod tests {
             &rope.to_string()[start..end],
             "массив3 = @[7\n   ,8,9,\n   ]"
         );
+    }
+
+    #[should_panic]
+    #[test]
+    fn test_len_lines() {
+        let src = "
+SSSSSS
+FFFFFF
+";
+
+        let rope = Rope::from_str(&src);
+        assert_eq!(rope.len_lines(), 4);
     }
 }

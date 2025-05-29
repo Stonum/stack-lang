@@ -68,14 +68,20 @@ impl MFileSource {
     }
 
     pub fn file_extension(&self) -> &str {
-        "prg"
+        match self.module_kind {
+            ModuleKind::Module => "prg",
+            ModuleKind::Report => "rpt",
+            ModuleKind::Script => "",
+        }
     }
 
     /// Try to return the mlang file source corresponding to this file extension
     pub fn try_from_extension(extension: &OsStr) -> Result<Self, FileSourceError> {
         // We assume the file extension is normalized to lowercase
         match extension.as_encoded_bytes() {
-            b"prg" => Ok(Self::module()),
+            b"prg" | b"hdl" => Ok(Self::module()),
+            _ if extension.to_string_lossy().starts_with("rpt") => Ok(Self::report()),
+            _ if extension.to_string_lossy().starts_with("pa") => Ok(Self::report()),
             _ => Err(FileSourceError::UnknownExtension),
         }
     }

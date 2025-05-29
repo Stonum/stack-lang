@@ -1,7 +1,7 @@
 use super::position;
 use m_lang::{
     semantic::{AnyMDefinition, Definition, SemanticModel as MLangSemanticModel},
-    syntax::TextRange,
+    syntax::{ModuleKind, TextRange},
 };
 
 use ropey::Rope;
@@ -35,7 +35,10 @@ impl<T> Document<T> {
 
 impl Document<MLangSemanticModel> {
     pub fn definitions(&self) -> &Vec<AnyMDefinition> {
-        &self.semantics.module_definitions
+        &self.semantics.definitions
+    }
+    pub fn kind(&self) -> ModuleKind {
+        self.semantics.kind
     }
 }
 
@@ -44,10 +47,17 @@ impl From<&Document<MLangSemanticModel>> for DocumentSymbolResponse {
         let mut response = vec![];
 
         let uri = val.uri();
-        let text = val.text();
+        let mut text = val.text().clone();
+
+        // We need to replace all , so that Rope counts the lines correctly
+        // Otherwise every  character increment line count
+        if val.kind() == ModuleKind::Report {
+            let zero_byte_string = (0 as char).to_string();
+            text = Rope::from_str(text.to_string().replace('', &zero_byte_string).as_str());
+        }
 
         let location = move |range: TextRange| {
-            Location::new(uri.clone(), position(text, range).unwrap_or_default())
+            Location::new(uri.clone(), position(&text, range).unwrap_or_default())
         };
 
         #[allow(deprecated)]
@@ -82,9 +92,32 @@ impl From<&Document<MLangSemanticModel>> for DocumentSymbolResponse {
                             tags: None,
                             deprecated: None,
                             location: location(method.range()),
-                            container_name: None,
+                            container_name: Some(class.id()),
                         };
                         response.push(method_def);
+                    }
+                }
+                AnyMDefinition::MReportDefinition(report) => {
+                    let rep_def = SymbolInformation {
+                        name: report.id(),
+                        kind: SymbolKind::CONSTANT,
+                        tags: None,
+                        deprecated: None,
+                        location: location(report.range()),
+                        container_name: None,
+                    };
+                    response.push(rep_def);
+
+                    for section in report.sections() {
+                        let section_def = SymbolInformation {
+                            name: section.id(),
+                            kind: SymbolKind::FIELD,
+                            tags: None,
+                            deprecated: None,
+                            location: location(section.range()),
+                            container_name: Some(report.id()),
+                        };
+                        response.push(section_def);
                     }
                 }
             }
