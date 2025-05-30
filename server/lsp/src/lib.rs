@@ -91,7 +91,6 @@ mod tests {
         );
     }
 
-    #[should_panic]
     #[test]
     fn test_len_lines() {
         let src = "

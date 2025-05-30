@@ -47,17 +47,10 @@ impl From<&Document<MLangSemanticModel>> for DocumentSymbolResponse {
         let mut response = vec![];
 
         let uri = val.uri();
-        let mut text = val.text().clone();
-
-        // We need to replace all , so that Rope counts the lines correctly
-        // Otherwise every  character increment line count
-        if val.kind() == ModuleKind::Report {
-            let zero_byte_string = (0 as char).to_string();
-            text = Rope::from_str(text.to_string().replace('', &zero_byte_string).as_str());
-        }
+        let text = val.text();
 
         let location = move |range: TextRange| {
-            Location::new(uri.clone(), position(&text, range).unwrap_or_default())
+            Location::new(uri.clone(), position(text, range).unwrap_or_default())
         };
 
         #[allow(deprecated)]
