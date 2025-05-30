@@ -18,6 +18,7 @@ use biome_parser::ParserProgress;
 pub fn parse_reports(p: &mut MParser, list_marker: Marker) {
     let mut progress = ParserProgress::default();
 
+    let recovery_set = STMT_RECOVERY_SET.union(token_set!(T![ff2]));
     while !p.at(EOF) {
         progress.assert_progressing(p);
 
@@ -25,7 +26,7 @@ pub fn parse_reports(p: &mut MParser, list_marker: Marker) {
 
         let recovered = report.or_recover_with_token_set(
             p,
-            &ParseRecoveryTokenSet::new(M_BOGUS_STATEMENT, STMT_RECOVERY_SET),
+            &ParseRecoveryTokenSet::new(M_BOGUS_STATEMENT, recovery_set),
             expected_statement,
         );
 
