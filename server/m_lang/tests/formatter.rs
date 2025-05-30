@@ -159,3 +159,14 @@ fn format_report() {
         MFileSource::report()
     );
 }
+
+#[test]
+fn format_variable_declaration_list() {
+    assert_fmt!(
+        r#"#
+var reactions = res = @{};
+var x1 = x2 = x3 = x4 = 0;
+x1 = x2 = x3 = x4 = 0;
+"#
+    );
+}

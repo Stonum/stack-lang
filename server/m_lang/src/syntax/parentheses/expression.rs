@@ -13,11 +13,11 @@ use crate::syntax::{
     MComputedMemberExpression, MComputedMemberName, MConditionalExpression, MConstantExpression,
     MDateLiteralExpression, MExpressionStatement, MForStatement, MFunctionExpression,
     MHashMapExpression, MHashSetExpression, MIdentifierExpression, MInExpression,
-    MLogicalExpression, MLongStringLiteralExpression, MNewExpression, MNullLiteralExpression,
-    MNumberLiteralExpression, MObjectExpression, MParenthesizedExpression, MPostUpdateExpression,
-    MPreUpdateExpression, MPreUpdateOperator, MSequenceExpression, MStaticMemberExpression,
-    MStringLiteralExpression, MSuperExpression, MSyntaxKind, MSyntaxNode, MThisExpression,
-    MTimeLiteralExpression, MUnaryExpression, MUnaryOperator,
+    MInitializerClause, MLogicalExpression, MLongStringLiteralExpression, MNewExpression,
+    MNullLiteralExpression, MNumberLiteralExpression, MObjectExpression, MParenthesizedExpression,
+    MPostUpdateExpression, MPreUpdateExpression, MPreUpdateOperator, MSequenceExpression,
+    MStaticMemberExpression, MStringLiteralExpression, MSuperExpression, MSyntaxKind, MSyntaxNode,
+    MThisExpression, MTimeLiteralExpression, MUnaryExpression, MUnaryOperator,
 };
 
 use super::NeedsParentheses;
@@ -105,6 +105,8 @@ impl NeedsParentheses for MAssignmentExpression {
                 MComputedMemberName(_) => false,
                 // `x = x + b`
                 MExpressionStatement(_) => false,
+                // var x1 = x2 = x3 = 0;
+                MInitializerClause(_) => false,
 
                 MForStatement(for_statement) => {
                      let is_initializer = match for_statement.initializer() {
