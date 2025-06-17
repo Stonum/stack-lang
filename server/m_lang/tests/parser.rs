@@ -480,3 +480,29 @@ fn test_parse_reports() {
     );
     assert_parser!(res);
 }
+
+#[test]
+fn test_parse_report_with_bogus() {
+    let res = parse(
+        r#"
+CommonReport
+ШС             : ТЕКСТ
+НазваниеОтчета : ТЕКСТ
+.CloseWindow = 1;
+{
+    var month = WorkMonth();
+}
+print
+Ф12"Courier New"УП^ШС^;^Артикул^
+Ф16"Times New Roman"ЖЦ^ШС^;^НазваниеОтчета^ж
+Ф12"Times New Roman" 
+{
+    var i = 1;
+    while( i < 10 )
+       i = add(i);
+}
+        "#,
+        MFileSource::report(),
+    );
+    assert!(res.has_errors());
+}
