@@ -385,35 +385,30 @@ impl SemanticModel {
 
         // Обработка Report file
         if let Some(report) = MReport::cast(node.clone()) {
-            let id = if let Ok(id) = report.name() {
-                id.m_name().unwrap().text()
-            } else {
-                String::from("<unnamed class>")
-            };
+            let report_name = report.name().and_then(|n| n.m_name());
+
+            let (id, range) = report_name
+                .map(|n| (n.text(), n.range()))
+                .unwrap_or_else(|_| (String::from("<unnamed report>"), report.range()));
 
             let sections = report
                 .sections()
                 .iter()
-                .map(|section| MReportSectionDefiniton {
-                    id: section.name().unwrap().m_name().unwrap().text(),
-                    range: section
-                        .name()
-                        .unwrap()
-                        .m_name()
-                        .map(|id| id.range())
-                        .unwrap_or(section.range()),
+                .filter_map(|section| {
+                    let name = section.name().ok()?;
+                    let name = name.m_name().ok()?;
+
+                    Some(MReportSectionDefiniton {
+                        id: name.text(),
+                        range: name.range(),
+                    })
                 })
-                .collect::<Vec<_>>();
+                .collect();
 
             let report = MReportDefinition {
                 id,
                 sections,
-                range: report
-                    .name()
-                    .unwrap()
-                    .m_name()
-                    .map(|id| id.range())
-                    .unwrap_or(report.range()),
+                range,
             };
 
             self.definitions
