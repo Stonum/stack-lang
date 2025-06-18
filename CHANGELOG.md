@@ -1,6 +1,15 @@
 **Changelog**
 ===============
 
+**v0.2.4 - 2025-06-18**
+------------------------------------
+* **Added**:
+   + support report files ( parsing, formatting, etc )
+* **Fixed**: 
+   + insertion of parentheses for the initializer has been removed. for exanple: `var x = x1 = x2 = x3 = 0;`
+   + search for an identifier that has leading comments
+
+
 **v0.2.3 - 2025-05-21**
 ------------------------------------
 * **Fixed**: 
