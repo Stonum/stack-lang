@@ -1378,7 +1378,6 @@ impl<'src> MLexer<'src> {
             BEO => self.eat_byte(T!['{']),
             BEC => self.eat_byte(T!['}']),
             PIP => self.resolve_pipe(),
-            TLD => self.eat_byte(T![~]),
 
             UNI => {
                 // A BOM can only appear at the start of a file, so if we haven't advanced at all yet,

@@ -10,7 +10,7 @@
 //!
 //! For example,
 //!
-//! ```M
+//! ```JavaScript
 //! some && thing && elsewhere || happy
 //! ```
 //!
@@ -358,7 +358,7 @@ enum VisitEvent {
 ///
 /// # Examples
 ///
-/// ```M
+/// ```JavaScript
 /// a && b && c && d
 /// ```
 /// This produces a tree with the following shape:

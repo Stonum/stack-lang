@@ -1,129 +1,15 @@
 //! Extensions for things which are not easily generated in ast expr nodes
 use crate::syntax::static_value::StaticValue;
 use crate::syntax::{
-    inner_string_text, AnyMArrayElement, AnyMCallArgument, AnyMClassMemberName, AnyMExpression,
-    AnyMLiteralExpression, AnyMObjectMemberName, MArrayExpression, MArrayHole,
-    MAssignmentExpression, MBinaryExpression, MCallArguments, MCallExpression,
-    MComputedMemberAssignment, MComputedMemberExpression, MConditionalExpression,
-    MForAllInStatement, MForAllStatement, MForStatement, MIfStatement, MLiteralMemberName,
-    MLogicalExpression, MLongStringLiteralExpression, MNewExpression, MNumberLiteralExpression,
-    MObjectExpression, MPostUpdateExpression, MPreUpdateExpression, MReferenceIdentifier,
-    MStaticMemberExpression, MStringLiteralExpression, MSyntaxKind, MSyntaxNode, MSyntaxToken,
-    MUnaryExpression, MWhileStatement, OperatorPrecedence, T,
+    inner_string_text, AnyMClassMemberName, AnyMExpression, AnyMLiteralExpression,
+    AnyMObjectMemberName, MArrayExpression, MArrayHole, MBinaryExpression,
+    MComputedMemberAssignment, MComputedMemberExpression, MLogicalExpression,
+    MLongStringLiteralExpression, MObjectExpression, MPostUpdateExpression, MPreUpdateExpression,
+    MReferenceIdentifier, MStringLiteralExpression, MSyntaxToken, MUnaryExpression,
+    OperatorPrecedence, T,
 };
-use biome_rowan::{
-    declare_node_union, AstNode, AstSeparatedList, SyntaxNodeCast, SyntaxResult, TokenText,
-};
+use biome_rowan::{declare_node_union, AstSeparatedList, SyntaxResult, TokenText};
 use core::iter;
-
-declare_node_union! {
-    pub MNewOrCallExpression = MNewExpression | MCallExpression
-}
-
-impl MNewOrCallExpression {
-    pub fn callee(&self) -> SyntaxResult<AnyMExpression> {
-        match self {
-            MNewOrCallExpression::MNewExpression(node) => node.callee(),
-            MNewOrCallExpression::MCallExpression(node) => node.callee(),
-        }
-    }
-
-    pub fn arguments(&self) -> Option<MCallArguments> {
-        match self {
-            MNewOrCallExpression::MNewExpression(node) => node.arguments(),
-            MNewOrCallExpression::MCallExpression(node) => node.arguments().ok(),
-        }
-    }
-}
-impl From<MNewOrCallExpression> for AnyMExpression {
-    fn from(value: MNewOrCallExpression) -> Self {
-        match value {
-            MNewOrCallExpression::MNewExpression(expr) => Self::MNewExpression(expr),
-            MNewOrCallExpression::MCallExpression(expr) => Self::MCallExpression(expr),
-        }
-    }
-}
-
-impl From<AnyMCallArgument> for AnyMArrayElement {
-    fn from(value: AnyMCallArgument) -> Self {
-        match value {
-            AnyMCallArgument::AnyMExpression(expr) => Self::AnyMExpression(expr),
-            AnyMCallArgument::MSpread(spread) => Self::MSpread(spread),
-        }
-    }
-}
-
-impl MReferenceIdentifier {
-    /// Returns `true` if this identifier has the given name.
-    pub fn has_name(&self, name: &str) -> bool {
-        self.value_token()
-            .is_ok_and(|token| token.text_trimmed() == name)
-    }
-
-    pub fn name(&self) -> SyntaxResult<TokenText> {
-        Ok(self.value_token()?.token_text_trimmed())
-    }
-}
-
-impl MLiteralMemberName {
-    /// Returns the name of the member as a syntax text
-    ///
-    /// ## Examples
-    ///
-    /// Getting the name of a static member containing a string literal
-    ///
-    /// ```
-    /// use m_lang::syntax::{MSyntaxKind, MLanguage, MSyntaxNode, MLiteralMemberName};
-    /// use m_lang::factory::MSyntaxTreeBuilder;
-    /// use biome_rowan::AstNode;
-    ///
-    /// let node: MSyntaxNode =
-    ///     MSyntaxTreeBuilder::wrap_with_node(MSyntaxKind::M_LITERAL_MEMBER_NAME, |builder| {
-    ///         builder.token(MSyntaxKind::M_STRING_LITERAL, "\"abcd\"");
-    ///     });
-    ///
-    /// let static_member_name = MLiteralMemberName::unwrap_cast(node);
-    ///
-    /// assert_eq!("abcd", static_member_name.name().unwrap());
-    /// ```
-    ///
-    /// Getting the name of a static member containing a number literal
-    ///
-    /// ```
-    /// use m_lang::syntax::{MSyntaxKind, MLanguage, MSyntaxNode, MLiteralMemberName};
-    /// use m_lang::factory::MSyntaxTreeBuilder;
-    /// use biome_rowan::AstNode;
-    ///
-    /// let node: MSyntaxNode =
-    ///     MSyntaxTreeBuilder::wrap_with_node(MSyntaxKind::M_LITERAL_MEMBER_NAME, |builder| {
-    ///         builder.token(MSyntaxKind::M_NUMBER_LITERAL, "5");
-    ///     });
-    ///
-    /// let static_member_name = MLiteralMemberName::unwrap_cast(node);
-    ///
-    /// assert_eq!("5", static_member_name.name().unwrap());
-    /// ```
-    ///
-    /// Getting the name of a static member containing an identifier
-    ///
-    /// ```
-    /// use m_lang::syntax::{MSyntaxKind, MLanguage, MSyntaxNode, MLiteralMemberName};
-    /// use m_lang::factory::MSyntaxTreeBuilder;
-    /// use biome_rowan::AstNode;
-    ///
-    /// let node: MSyntaxNode =
-    ///     MSyntaxTreeBuilder::wrap_with_node(MSyntaxKind::M_LITERAL_MEMBER_NAME, |builder| {
-    ///         builder.token(MSyntaxKind::IDENT, "abcd");
-    ///     });
-    ///
-    /// let static_member_name = MLiteralMemberName::unwrap_cast(node);
-    ///
-    /// assert_eq!("abcd", static_member_name.name().unwrap().text());
-    /// ```
-    pub fn name(&self) -> SyntaxResult<TokenText> {
-        Ok(inner_string_text(&self.value()?))
-    }
-}
 
 /// A binary operation applied to two expressions
 ///
@@ -224,7 +110,7 @@ impl MBinaryExpression {
         Ok(kind)
     }
 
-    /// Whether this is a numeric operation, such as `+`, `-`, `*`, `%`, `**`.
+    /// Whether this is a numeric operation, such as `+`, `-`, `*`, '/', `%`.
     pub fn is_numeric_operation(&self) -> bool {
         matches!(
             self.operator_token().map(|t| t.kind()),
@@ -232,7 +118,7 @@ impl MBinaryExpression {
         )
     }
 
-    /// Whether this is a binary operation, such as `<<`, `>>`, `>>>`, `&`, `|`, `^`.
+    /// Whether this is a binary operation, such as `&`, `|`, `^`.
     pub fn is_binary_operation(&self) -> bool {
         matches!(
             self.operator_token().map(|t| t.kind()),
@@ -240,7 +126,7 @@ impl MBinaryExpression {
         )
     }
 
-    /// Whether this is a comparison operation, such as `>`, `<`, `==`, `!=`, `===`, etc.
+    /// Whether this is a comparison operation, such as `>`, `<`, `==`, `!=`, etc.
     pub fn is_comparison_operator(&self) -> bool {
         matches!(
             self.operator_token().map(|t| t.kind()),
@@ -307,8 +193,6 @@ pub enum MUnaryOperator {
     Plus,
     /// `-`
     Minus,
-    /// `~`
-    BitwiseNot,
     /// `!`
     LogicalNot,
 }
@@ -326,7 +210,6 @@ impl MUnaryExpression {
         Ok(match operator.kind() {
             T![+] => MUnaryOperator::Plus,
             T![-] => MUnaryOperator::Minus,
-            T![~] => MUnaryOperator::BitwiseNot,
             T![!] => MUnaryOperator::LogicalNot,
             T![delete] => MUnaryOperator::Delete,
             _ => unreachable!(),
@@ -334,7 +217,7 @@ impl MUnaryExpression {
     }
 
     /// This function checks that `MUnaryExpression` is a signed numeric literal:
-    /// ```M
+    /// ```JavaScript
     ///     +123
     ///     -321
     /// ```
@@ -406,32 +289,6 @@ impl MPostUpdateExpression {
             T![--] => MPostUpdateOperator::Decrement,
             _ => unreachable!(),
         })
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum MAssignmentOperator {
-    Assign,
-    AddAssign,
-    SubtractAssign,
-    TimesAssign,
-    SlashAssign,
-    RemainderAssign,
-}
-
-impl MAssignmentExpression {
-    pub fn operator(&self) -> SyntaxResult<MAssignmentOperator> {
-        let operator = match self.operator_token()?.kind() {
-            T![=] => MAssignmentOperator::Assign,
-            T![+=] => MAssignmentOperator::AddAssign,
-            T![-=] => MAssignmentOperator::SubtractAssign,
-            T![*=] => MAssignmentOperator::TimesAssign,
-            T![/=] => MAssignmentOperator::SlashAssign,
-            T![%=] => MAssignmentOperator::RemainderAssign,
-            _ => unreachable!(),
-        };
-
-        Ok(operator)
     }
 }
 
@@ -675,37 +532,6 @@ impl AnyMComputedMember {
     }
 }
 
-declare_node_union! {
-    pub AnyMMemberExpression = MStaticMemberExpression | MComputedMemberExpression
-}
-
-impl AnyMMemberExpression {
-    pub fn object(&self) -> Option<AnyMExpression> {
-        match self {
-            AnyMMemberExpression::MStaticMemberExpression(expr) => expr.object().ok(),
-            AnyMMemberExpression::MComputedMemberExpression(expr) => expr.object(),
-        }
-    }
-
-    /// Returns the member name of `self` if `self` is a static member or a computed member with a literal string.
-    pub fn member_name(&self) -> Option<StaticValue> {
-        let value = match self {
-            AnyMMemberExpression::MStaticMemberExpression(e) => {
-                StaticValue::String(e.member().ok()?.value_token().ok()?)
-            }
-            AnyMMemberExpression::MComputedMemberExpression(e) => {
-                let member = e.member().ok()?.omit_parentheses();
-                let result = member.as_static_value()?;
-                if !matches!(result, StaticValue::String(_) | StaticValue::EmptyString(_)) {
-                    return None;
-                }
-                result
-            }
-        };
-        Some(value)
-    }
-}
-
 impl AnyMObjectMemberName {
     /// Returns the member name of the current node
     /// if it is a literal member name or a computed member with a literal value.
@@ -726,21 +552,12 @@ impl AnyMObjectMemberName {
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum ClassMemberName {
-    /// Name that is NOT preceded in the source code by the private marker `#`.
-    /// For example `class { f(){} }`
     Public(TokenText),
 }
 impl ClassMemberName {
     pub fn text(&self) -> &str {
         match self {
             Self::Public(name) => name.text(),
-        }
-    }
-}
-impl From<ClassMemberName> for TokenText {
-    fn from(value: ClassMemberName) -> Self {
-        match value {
-            ClassMemberName::Public(name) => name,
         }
     }
 }
@@ -760,138 +577,5 @@ impl AnyMClassMemberName {
             AnyMClassMemberName::MLiteralMemberName(expr) => expr.value().ok()?,
         };
         Some(ClassMemberName::Public(inner_string_text(&token)))
-    }
-}
-
-/// Check if `expr` refers to a name that is directly referenced or indirectly via `globalThis` or `window`.
-/// Returns the reference and the name.
-pub fn global_identifier(expr: &AnyMExpression) -> Option<(MReferenceIdentifier, StaticValue)> {
-    if let Some(reference) = expr.as_m_reference_identifier() {
-        let name = StaticValue::String(reference.value_token().ok()?);
-        return Some((reference, name));
-    }
-    let member_expr = AnyMMemberExpression::cast_ref(expr.syntax())?;
-    let name = member_expr.member_name()?;
-    let expr = member_expr.object()?.omit_parentheses();
-    if let Some(reference) = expr.as_m_reference_identifier() {
-        if reference.name().ok()?.text().starts_with(".") {
-            return Some((reference, name));
-        }
-    }
-    None
-}
-
-impl From<AnyMMemberExpression> for AnyMExpression {
-    fn from(expression: AnyMMemberExpression) -> Self {
-        match expression {
-            AnyMMemberExpression::MComputedMemberExpression(expr) => expr.into(),
-            AnyMMemberExpression::MStaticMemberExpression(expr) => expr.into(),
-        }
-    }
-}
-
-impl MCallExpression {
-    pub fn has_callee(&self, name: &str) -> bool {
-        self.callee().is_ok_and(|it| {
-            it.as_m_reference_identifier()
-                .is_some_and(|it| it.has_name(name))
-        })
-    }
-}
-
-impl MNewExpression {
-    pub fn has_callee(&self, name: &str) -> bool {
-        self.callee().is_ok_and(|it| {
-            it.as_m_reference_identifier()
-                .is_some_and(|it| it.has_name(name))
-        })
-    }
-}
-
-/// Check if the SyntaxNode is a Negate Unary Expression
-/// ## Example
-/// ```js
-/// !x
-/// ```
-pub fn is_negation(node: &MSyntaxNode) -> Option<MUnaryExpression> {
-    let unary_expr = MUnaryExpression::cast_ref(node)?;
-    if unary_expr.operator().ok()? == MUnaryOperator::LogicalNot {
-        Some(unary_expr)
-    } else {
-        None
-    }
-}
-
-/// Check if this node is in the position of `test` slot of parent syntax node.
-/// ## Example
-/// ```js
-/// if (!!x) {
-///     ^^^ this is a boolean context
-/// }
-/// ```
-pub fn is_in_boolean_context(node: &MSyntaxNode) -> Option<bool> {
-    let parent = node.parent()?;
-    match parent.kind() {
-        MSyntaxKind::M_IF_STATEMENT => {
-            Some(parent.cast::<MIfStatement>()?.test().ok()?.syntax() == node)
-        }
-        MSyntaxKind::M_WHILE_STATEMENT => {
-            Some(parent.cast::<MWhileStatement>()?.test().ok()?.syntax() == node)
-        }
-        MSyntaxKind::M_FOR_STATEMENT => {
-            Some(parent.cast::<MForStatement>()?.test()?.syntax() == node)
-        }
-        MSyntaxKind::M_FOR_ALL_IN_STATEMENT => {
-            Some(parent.cast::<MForAllInStatement>()?.test()?.syntax() == node)
-        }
-        MSyntaxKind::M_FOR_ALL_STATEMENT => {
-            Some(parent.cast::<MForAllStatement>()?.test()?.syntax() == node)
-        }
-        MSyntaxKind::M_CONDITIONAL_EXPRESSION => Some(
-            parent
-                .cast::<MConditionalExpression>()?
-                .test()
-                .ok()?
-                .syntax()
-                == node,
-        ),
-        _ => None,
-    }
-}
-
-declare_node_union! {
-    /// Subset of expressions supported by this rule.
-    ///
-    /// ## Examples
-    ///
-    /// - `MStringLiteralExpression` &mdash; `"5"`
-    /// - `MNumberLiteralExpression` &mdash; `5`
-    /// - `MUnaryExpression` &mdash; `+5` | `-5`
-    ///
-    pub AnyNumberLikeExpression = MStringLiteralExpression | MLongStringLiteralExpression | MNumberLiteralExpression | MUnaryExpression
-}
-
-impl AnyNumberLikeExpression {
-    /// Returns the value of a number-like expression; it returns the expression
-    /// text for literal expressions. However, for unary expressions, it only
-    /// returns the value for signed numeric expressions.
-    pub fn value(&self) -> Option<String> {
-        match self {
-            AnyNumberLikeExpression::MStringLiteralExpression(string_literal) => {
-                return Some(string_literal.inner_string_text().ok()?.to_string());
-            }
-            AnyNumberLikeExpression::MLongStringLiteralExpression(string_literal) => {
-                return Some(string_literal.inner_string_text().ok()?.to_string());
-            }
-            AnyNumberLikeExpression::MNumberLiteralExpression(number_literal) => {
-                return Some(number_literal.value_token().ok()?.to_string());
-            }
-            AnyNumberLikeExpression::MUnaryExpression(unary_expression) => {
-                if unary_expression.is_signed_numeric_literal().ok()? {
-                    return Some(unary_expression.argument().ok()?.to_string());
-                }
-            }
-        }
-        None
     }
 }

@@ -3102,10 +3102,7 @@ impl SyntaxFactory for MSyntaxFactory {
                 let mut slots: RawNodeSlots<2usize> = RawNodeSlots::default();
                 let mut current_element = elements.next();
                 if let Some(element) = &current_element {
-                    if matches!(
-                        element.kind(),
-                        T![delete] | T ! [+] | T ! [-] | T ! [~] | T![!]
-                    ) {
+                    if matches!(element.kind(), T![delete] | T ! [+] | T ! [-] | T![!]) {
                         slots.mark_present();
                         current_element = elements.next();
                     }

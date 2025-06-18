@@ -144,7 +144,7 @@ fn identifier_with_keyword() {
 #[test]
 fn punctuators() {
     assert_lex! {
-        "!%%&()*+,-.:;<=>?[]^{}|~",
+        "!%%&()*+,-.:;<=>?[]^{}|",
         BANG:1,
         PERCENT:1,
         PERCENT:1,
@@ -167,7 +167,6 @@ fn punctuators() {
         L_CURLY:1,
         R_CURLY:1,
         PIPE:1,
-        TILDE:1,
     }
 }
 

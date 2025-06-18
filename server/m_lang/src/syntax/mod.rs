@@ -117,15 +117,12 @@ impl TryFrom<MSyntaxKind> for TriviaPieceKind {
     }
 }
 
-/// See: [MDN Operator precedence](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence#table)
 #[allow(dead_code)]
 #[derive(Debug, Eq, Ord, PartialOrd, PartialEq, Copy, Clone, Hash)]
 pub enum OperatorPrecedence {
     Comma = 0,
-    Yield = 1,
     Assignment = 2,
     Conditional = 3,
-    Coalesce = 4,
     LogicalOr = 5,
     LogicalAnd = 6,
     BitwiseOr = 7,
@@ -133,10 +130,8 @@ pub enum OperatorPrecedence {
     BitwiseAnd = 9,
     Equality = 10,
     Relational = 11,
-    Shift = 12,
     Additive = 13,
     Multiplicative = 14,
-    Exponential = 15,
     Unary = 16,
     Update = 17,
     // `new` without arguments list
@@ -163,10 +158,8 @@ impl OperatorPrecedence {
     pub fn is_right_to_left(&self) -> bool {
         matches!(
             self,
-            OperatorPrecedence::Yield
-                | OperatorPrecedence::Assignment
+            OperatorPrecedence::Assignment
                 | OperatorPrecedence::Conditional
-                | OperatorPrecedence::Exponential
                 | OperatorPrecedence::Update
         )
     }
@@ -196,10 +189,6 @@ impl OperatorPrecedence {
                 | OperatorPrecedence::BitwiseOr
                 | OperatorPrecedence::BitwiseXor
         )
-    }
-
-    pub const fn is_shift(&self) -> bool {
-        matches!(self, OperatorPrecedence::Shift)
     }
 
     pub const fn is_additive(&self) -> bool {

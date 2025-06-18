@@ -7,17 +7,17 @@ use crate::syntax::{
         should_flatten, AnyMBinaryLikeExpression, AnyMBinaryLikeLeftExpression,
     },
     expression_left_side::AnyMExpressionLeftSide,
-    AnyMComputedMember, AnyMExpression, AnyMForInitializer, AnyMLiteralExpression,
-    AnyMMemberAssignment, AnyMStatement, MArrayExpression, MAssignmentExpression,
-    MBinaryExpression, MBooleanLiteralExpression, MCallExpression, MComputedMemberAssignment,
-    MComputedMemberExpression, MComputedMemberName, MConditionalExpression, MConstantExpression,
-    MDateLiteralExpression, MExpressionStatement, MForStatement, MFunctionExpression,
-    MHashMapExpression, MHashSetExpression, MIdentifierExpression, MInExpression,
-    MInitializerClause, MLogicalExpression, MLongStringLiteralExpression, MNewExpression,
-    MNullLiteralExpression, MNumberLiteralExpression, MObjectExpression, MParenthesizedExpression,
-    MPostUpdateExpression, MPreUpdateExpression, MPreUpdateOperator, MSequenceExpression,
-    MStaticMemberExpression, MStringLiteralExpression, MSuperExpression, MSyntaxKind, MSyntaxNode,
-    MThisExpression, MTimeLiteralExpression, MUnaryExpression, MUnaryOperator,
+    AnyMComputedMember, AnyMExpression, AnyMForInitializer, AnyMLiteralExpression, AnyMStatement,
+    MArrayExpression, MAssignmentExpression, MBinaryExpression, MBooleanLiteralExpression,
+    MCallExpression, MComputedMemberAssignment, MComputedMemberExpression, MComputedMemberName,
+    MConditionalExpression, MConstantExpression, MDateLiteralExpression, MExpressionStatement,
+    MForStatement, MFunctionExpression, MHashMapExpression, MHashSetExpression,
+    MIdentifierExpression, MInExpression, MInitializerClause, MLogicalExpression,
+    MLongStringLiteralExpression, MNewExpression, MNullLiteralExpression, MNumberLiteralExpression,
+    MObjectExpression, MParenthesizedExpression, MPostUpdateExpression, MPreUpdateExpression,
+    MPreUpdateOperator, MSequenceExpression, MStaticMemberExpression, MStringLiteralExpression,
+    MSuperExpression, MSyntaxKind, MSyntaxNode, MThisExpression, MTimeLiteralExpression,
+    MUnaryExpression, MUnaryOperator,
 };
 
 use super::NeedsParentheses;
@@ -221,43 +221,9 @@ impl NeedsParentheses for MFunctionExpression {
 }
 
 impl NeedsParentheses for MIdentifierExpression {
+    #[inline]
     fn needs_parentheses(&self) -> bool {
-        let Some(parent) = self.syntax().parent() else {
-            return false;
-        };
-        let Ok(name) = self.name().and_then(|x| x.value_token()) else {
-            return false;
-        };
-        // In non-strict mode (sloppy mode), `let` may be a variable name.
-        // To disambiguate `let` from a let-declaration,
-        // we have to enclose `let` between parentheses in some dge cases.
-        match parent.kind() {
-            MSyntaxKind::M_COMPUTED_MEMBER_EXPRESSION
-            | MSyntaxKind::M_COMPUTED_MEMBER_ASSIGNMENT => {
-                // `(let)[0];`
-                // `(let)[0] = 0;`
-                // `for( (let)[0] = 0, b = 0;;;) {}`
-                // `for( (let)[0] of []) {}`
-                name.text_trimmed() == "let"
-                    && parent
-                        .ancestors()
-                        .find(|x| {
-                            !AnyMExpression::can_cast(x.kind())
-                                && !AnyMMemberAssignment::can_cast(x.kind())
-                        })
-                        .filter(|x| {
-                            matches!(
-                                x.kind(),
-                                MSyntaxKind::M_EXPRESSION_STATEMENT
-                                    | MSyntaxKind::M_FOR_ALL_IN_STATEMENT
-                                    | MSyntaxKind::M_FOR_STATEMENT
-                            )
-                        })
-                        .and_then(|x| x.first_child()?.first_token())
-                        .is_some_and(|token| token == name)
-            }
-            _ => false,
-        }
+        false
     }
 }
 
@@ -529,9 +495,9 @@ fn binary_like_needs_parens(node: &MSyntaxNode) -> bool {
                         return true;
                     }
 
-                    // Add parentheses around bitwise and bit shift operators
-                    // `a * 3 >> 5` -> `(a * 3) >> 5`
-                    if parent_precedence.is_bitwise() || parent_precedence.is_shift() {
+                    // Add parentheses around bitwise and bit and, or and xor operators
+                    // `a * 3 & 5` -> `(a * 3) & 5`
+                    if parent_precedence.is_bitwise() {
                         return true;
                     }
 

@@ -2,13 +2,13 @@
 //!
 //! We want to transform code that looks like this:
 //!
-//! ```M
+//! ```JavaScript
 //! something.execute().then().then().catch()
 //! ```
 //!
 //! To something like this:
 //!
-//! ```M
+//! ```JavaScript
 //! something
 //!   .execute()
 //!   .then()
@@ -186,7 +186,8 @@ impl MemberChain {
 
         let has_comments = first_group
             .members()
-            .first().is_some_and(|member| comments.has_comments(member.syntax()));
+            .first()
+            .is_some_and(|member| comments.has_comments(member.syntax()));
 
         if has_comments {
             return false;
@@ -194,14 +195,14 @@ impl MemberChain {
 
         let has_computed_property = first_group
             .members()
-            .first().is_some_and(|item| item.is_computed_expression());
+            .first()
+            .is_some_and(|item| item.is_computed_expression());
 
         if self.head.members().len() == 1 {
             let only_member = &self.head.members()[0];
 
-            let in_expression_statement = parent.is_some_and(|parent| {
-                parent.kind() == MSyntaxKind::M_EXPRESSION_STATEMENT
-            });
+            let in_expression_statement =
+                parent.is_some_and(|parent| parent.kind() == MSyntaxKind::M_EXPRESSION_STATEMENT);
 
             match only_member {
                 ChainMember::Node(node) => {
@@ -211,7 +212,8 @@ impl MemberChain {
                         let is_factory = identifier
                             .name()
                             .and_then(|name| name.value_token())
-                            .as_ref().is_ok_and(is_factory);
+                            .as_ref()
+                            .is_ok_and(is_factory);
 
                         has_computed_property ||
                             is_factory ||
@@ -230,7 +232,8 @@ impl MemberChain {
             let is_factory = member
                 .as_ref()
                 .and_then(|name| name.value_token().ok())
-                .as_ref().is_some_and(is_factory);
+                .as_ref()
+                .is_some_and(is_factory);
 
             has_computed_property || is_factory
         } else {
@@ -386,7 +389,8 @@ impl Format<MFormatContext> for MemberChain {
             } else {
                 let has_empty_line_before_tail = self
                     .tail
-                    .first().is_some_and(|group| group.needs_empty_line_before());
+                    .first()
+                    .is_some_and(|group| group.needs_empty_line_before());
 
                 if has_empty_line_before_tail || self.last_group().will_break(f)? {
                     write!(f, [expand_parent()])?;
@@ -441,7 +445,8 @@ fn split_members_into_head_and_remaining_groups(
         .unwrap_or(members.len());
 
     let first_group_end_index = if !members
-        .first().is_some_and(|member| member.is_call_expression())
+        .first()
+        .is_some_and(|member| member.is_call_expression())
     {
         // Take as many member access chains as possible
         let rest = &members[non_call_or_array_member_access_start..];
@@ -591,9 +596,8 @@ pub fn is_member_call_chain(
 fn has_short_name(identifier: &MIdentifierExpression, tab_width: TabWidth) -> bool {
     identifier
         .name()
-        .and_then(|name| name.value_token()).is_ok_and(|name| {
-            name.text_trimmed().len() <= u8::from(tab_width) as usize
-        })
+        .and_then(|name| name.value_token())
+        .is_ok_and(|name| name.text_trimmed().len() <= u8::from(tab_width) as usize)
 }
 
 struct ChainMembersIterator<'a> {

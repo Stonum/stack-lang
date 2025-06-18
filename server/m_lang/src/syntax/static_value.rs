@@ -3,7 +3,7 @@ use biome_rowan::TextRange;
 use super::{MSyntaxKind, MSyntaxToken};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-/// static values defined in M lang expressions
+/// static values defined in mlang expressions
 pub enum StaticValue {
     Boolean(MSyntaxToken),
     Null(MSyntaxToken),

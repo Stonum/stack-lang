@@ -19,7 +19,7 @@ impl FormatRule<MDirectiveList> for FormatMDirectiveList {
         let next_sibling = syntax_node.next_sibling();
         // if next_sibling's first leading_trivia has more than one new_line, we should add an extra empty line at the end of
         // MDirectiveList, for example:
-        //```M
+        //```JavaScript
         // "use strict"; <- first leading new_line
         //  			 <- second leading new_line
         // function foo() {

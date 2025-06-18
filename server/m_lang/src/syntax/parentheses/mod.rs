@@ -9,12 +9,6 @@
 //! Most of the nodes supporting parentheses (expressions, assignments, and types) implements this trait.
 //! [NeedsParentheses::needs_parentheses] is the trait's main method that implements
 //! the rules when a node requires parentheses.
-//! Tests are available in the `biome_js_formatter` crate.
-//!
-//! A node requires parentheses to:
-//! - improve readability: `a << b << 3` is harder to read than `(a << b) << 3`
-//! - form valid syntax: `class A extends 3 + 3 {}` isn't valid, but `class A extends (3 + 3) {}` is
-//! - preserve operator precedence: `(a + 3) * 4` has a different meaning than `a + 3 * 4`
 //!
 //! The challenge of formatting parenthesized nodes is that a tree with parentheses and a tree without
 //! parentheses (that have the same semantics) must result in the same output. For example,

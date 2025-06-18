@@ -59,7 +59,7 @@ impl FormatNodeRule<MBlockStatement> for FormatMBlockStatement {
 fn is_empty_block(block: &MBlockStatement, comments: &MComments) -> bool {
     // add extra branch to avoid formatting the same code twice and generating different code,
     // here is an example:
-    // ```M
+    // ```JavaScript
     //     try
     // /* missing comment */
     // {;}
@@ -67,7 +67,7 @@ fn is_empty_block(block: &MBlockStatement, comments: &MComments) -> bool {
     // ```
     // if we don't add the extra branch, this function will return false, because  `block.statement` has one empty statement,
     // and would be formatted as :
-    // ```M
+    // ```JavaScript
     //     try
     // /* missing comment */
     // {}
@@ -75,7 +75,7 @@ fn is_empty_block(block: &MBlockStatement, comments: &MComments) -> bool {
     // ```
     // for the second time, the function would return true, because the block is empty and `parent.syntax.kind` is  `M_TRY_FINALLY_STATEMENT`, which would hit the branch `Some(_) => true`,
     // finally the code would be formatted as:
-    // ```M
+    // ```JavaScript
     // try
     /* missing comment */
     // {

@@ -151,10 +151,7 @@ impl SimpleArgument {
         {
             if matches!(
                 unary_expression.operator()?,
-                MUnaryOperator::LogicalNot
-                    | MUnaryOperator::Minus
-                    | MUnaryOperator::Plus
-                    | MUnaryOperator::BitwiseNot
+                MUnaryOperator::LogicalNot | MUnaryOperator::Minus | MUnaryOperator::Plus
             ) {
                 Ok(SimpleArgument::from(unary_expression.argument()?).is_simple_impl(depth))
             } else {

@@ -64,10 +64,10 @@ impl AnyMBinaryLikeExpression {
     ///
     /// # Examples
     ///
-    /// ```javascript
-    /// if (a + b) {} // true
-    /// if (true) { a + b } // false
-    /// switch (a + b) {} // true
+    /// ```JavaScript
+    /// if(a + b) {} // true
+    /// if(true) { a + b } // false
+    /// switch(a + b) {} // true
     /// ```
     pub fn is_inside_condition(&self, parent: Option<&MSyntaxNode>) -> bool {
         parent.is_some_and(|parent| {
@@ -146,9 +146,6 @@ pub(crate) fn should_flatten(
         return false;
     }
     match (parent_operator.precedence(), operator.precedence()) {
-        // `**` is right associative
-        (OperatorPrecedence::Exponential, _) => false,
-
         // `a == b == c` => `(a == b) == c`
         (OperatorPrecedence::Equality, OperatorPrecedence::Equality) => false,
 
@@ -164,8 +161,6 @@ pub(crate) fn should_flatten(
                 parent_operator == operator
             }
         }
-        // `a << 3 << 4` -> `(a << 3) << 4`
-        (OperatorPrecedence::Shift, OperatorPrecedence::Shift) => false,
         _ => true,
     }
 }
