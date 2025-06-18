@@ -3,18 +3,18 @@ use crate::syntax::{
     MParameterList,
 };
 use biome_rowan::{
-    declare_node_union, AstSeparatedList, AstSeparatedListNodesIterator, SyntaxResult,
+    declare_node_union, AstNode, AstSeparatedList, AstSeparatedListNodesIterator, SyntaxResult,
 };
 
-/// An enumeration representing different types of JavaScript/TypeScript parameter lists.
+/// An enumeration representing different types of parameter lists.
 ///
-/// This enum can represent a regular JavaScript/TypeScript parameter list (i.e., for functions)
-/// or a JavaScript/TypeScript constructor parameter list (i.e., for class constructors).
+/// This enum can represent a regular parameter list (i.e., for functions)
+/// or a constructor parameter list (i.e., for class constructors).
 ///
 /// # Variants
 ///
-/// * `MParameterList` - A list of parameters for a JavaScript function.
-/// * `MConstructorParameterList` - A list of parameters for a JavaScript constructor.
+/// * `MParameterList` - A list of parameters for a function.
+/// * `MConstructorParameterList` - A list of parameters for a constructor.
 #[derive(Debug)]
 pub enum AnyMParameterList {
     MParameterList(MParameterList),
@@ -108,6 +108,22 @@ impl AnyMParameterList {
                 parameters.last()?.map(|parameter| parameter.into())
             }
         })
+    }
+
+    /// Converts parameter list to string
+    pub fn to_string(&self) -> String {
+        if self.is_empty() {
+            return String::from("()");
+        }
+
+        match self {
+            AnyMParameterList::MParameterList(parameters) => {
+                format!("( {} )", parameters.syntax().to_string().trim().to_string())
+            }
+            AnyMParameterList::MConstructorParameterList(parameters) => {
+                format!("( {} )", parameters.syntax().to_string().trim().to_string())
+            }
+        }
     }
 }
 

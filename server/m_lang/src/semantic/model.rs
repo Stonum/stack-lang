@@ -1,9 +1,5 @@
-use std::fmt::Display;
-
 use biome_rowan::syntax::SyntaxTrivia;
-use biome_rowan::{
-    AstNode, AstNodeList, SyntaxNode, SyntaxResult, TextRange, TriviaPieceKind, WalkEvent,
-};
+use biome_rowan::{AstNode, AstNodeList, SyntaxNode, TextRange, TriviaPieceKind, WalkEvent};
 
 use crate::syntax::{
     MClassDeclaration, MFileSource, MFunctionDeclaration, MLanguage, MReport, MSyntaxNode,
@@ -299,7 +295,10 @@ impl SemanticModel {
                 self.definitions
                     .push(AnyMDefinition::MFunctionDefinition(MFunctionDefinition {
                         id: name.text(),
-                        params: Self::parameters_to_string(func.parameters()),
+                        params: func
+                            .parameters()
+                            .map(|params| params.to_string().trim().to_string())
+                            .unwrap_or_default(),
                         description: Self::trivia_to_string(func.syntax().first_leading_trivia()),
                         doc_string: func.doc_string().map(|s| s.text()),
                         range: name.range(),
@@ -329,53 +328,20 @@ impl SemanticModel {
             };
 
             for member in members {
-                use crate::syntax::AnyMClassMember::*;
-                match member {
-                    MConstructorClassMember(constructor) if constructor.name().is_ok() => {
-                        class.methods.push(MClassMethodDefinition {
-                            id: constructor.name().unwrap().text(),
-                            params: Self::parameters_to_string(constructor.parameters()),
-                            description: Self::trivia_to_string(
-                                constructor.syntax().first_leading_trivia(),
-                            ),
-                            doc_string: constructor.doc_string().map(|s| s.text()),
-                            range: constructor.name().unwrap().range(),
-                        });
-                    }
-                    MMethodClassMember(method) if method.name().is_ok() => {
-                        class.methods.push(MClassMethodDefinition {
-                            id: method.name().unwrap().text(),
-                            params: Self::parameters_to_string(method.parameters()),
-                            description: Self::trivia_to_string(
-                                method.syntax().first_leading_trivia(),
-                            ),
-                            doc_string: method.doc_string().map(|s| s.text()),
-                            range: method.name().unwrap().range(),
-                        });
-                    }
-                    MGetterClassMember(getter) if getter.name().is_ok() => {
-                        class.methods.push(MClassMethodDefinition {
-                            id: getter.name().unwrap().text(),
-                            params: String::from("()"),
-                            description: Self::trivia_to_string(
-                                getter.syntax().first_leading_trivia(),
-                            ),
-                            doc_string: getter.doc_string().map(|s| s.text()),
-                            range: getter.name().unwrap().range(),
-                        });
-                    }
-                    MSetterClassMember(setter) if setter.name().is_ok() => {
-                        class.methods.push(MClassMethodDefinition {
-                            id: setter.name().unwrap().text(),
-                            params: Self::parameters_to_string(setter.parameter()),
-                            description: Self::trivia_to_string(
-                                setter.syntax().first_leading_trivia(),
-                            ),
-                            doc_string: setter.doc_string().map(|s| s.text()),
-                            range: setter.name().unwrap().range(),
-                        });
-                    }
-                    _ => continue,
+                if let Ok(Some(name)) = member.name() {
+                    let method_definition = MClassMethodDefinition {
+                        id: name.text(),
+                        params: member
+                            .params()
+                            .map(|params| {
+                                params.map(|p| p.to_string()).unwrap_or(String::from("()"))
+                            })
+                            .unwrap_or_default(),
+                        description: Self::trivia_to_string(member.leading_trivia()),
+                        doc_string: member.doc_string().map(|s| s.text()),
+                        range: name.range(),
+                    };
+                    class.methods.push(method_definition);
                 }
             }
 
@@ -413,17 +379,6 @@ impl SemanticModel {
 
             self.definitions
                 .push(AnyMDefinition::MReportDefinition(report));
-        }
-    }
-
-    fn parameters_to_string<T>(parameters: SyntaxResult<T>) -> String
-    where
-        T: AstNode + Display,
-    {
-        if let Ok(params) = parameters {
-            params.to_string().trim().to_string()
-        } else {
-            String::from("()")
         }
     }
 
