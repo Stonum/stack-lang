@@ -38,11 +38,7 @@ const UNICODE_SPACES: [char; 19] = [
 
 /// Context in which the lexer should lex the next token
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Default)]
-pub enum MLexContext {
-    /// Default context for if the lexer isn't in any specific other context
-    #[default]
-    Regular,
-}
+pub struct MLexContext;
 
 impl LexContext for MLexContext {
     /// Returns true if this is [MLexContext::Regular]
@@ -55,11 +51,7 @@ impl LexContext for MLexContext {
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum MReLexContext {
     /// Re-lexes
-    /// * `> >` as `>>`
-    /// * `> > >` as `>>>`,
     /// * `> =` as '>='
-    /// * `> > =` as '>>='
-    /// * `> > > =` as `>>>=`
     BinaryOperator,
 
     /// Re-lexes . name to .name
