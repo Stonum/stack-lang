@@ -12,7 +12,6 @@ impl FormatRule<AnyMClassMember> for FormatAnyMClassMember {
         match node {
             AnyMClassMember::MBogusMember(node) => node.format().fmt(f),
             AnyMClassMember::MConstructorClassMember(node) => node.format().fmt(f),
-            AnyMClassMember::MEmptyClassMember(node) => node.format().fmt(f),
             AnyMClassMember::MGetterClassMember(node) => node.format().fmt(f),
             AnyMClassMember::MMethodClassMember(node) => node.format().fmt(f),
             AnyMClassMember::MSetterClassMember(node) => node.format().fmt(f),

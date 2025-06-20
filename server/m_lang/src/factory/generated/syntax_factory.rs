@@ -1046,25 +1046,6 @@ impl SyntaxFactory for MSyntaxFactory {
                 }
                 slots.into_node(M_ELSE_CLAUSE, children)
             }
-            M_EMPTY_CLASS_MEMBER => {
-                let mut elements = (&children).into_iter();
-                let mut slots: RawNodeSlots<1usize> = RawNodeSlots::default();
-                let mut current_element = elements.next();
-                if let Some(element) = &current_element {
-                    if element.kind() == T ! [;] {
-                        slots.mark_present();
-                        current_element = elements.next();
-                    }
-                }
-                slots.next_slot();
-                if current_element.is_some() {
-                    return RawSyntaxNode::new(
-                        M_EMPTY_CLASS_MEMBER.to_bogus(),
-                        children.into_iter().map(Some),
-                    );
-                }
-                slots.into_node(M_EMPTY_CLASS_MEMBER, children)
-            }
             M_EMPTY_STATEMENT => {
                 let mut elements = (&children).into_iter();
                 let mut slots: RawNodeSlots<1usize> = RawNodeSlots::default();

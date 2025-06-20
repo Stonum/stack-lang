@@ -572,11 +572,6 @@ impl Format for crate::syntax::TsIndexSignatureClassMember {
         self.format_node(formatter)
     }
 }
-impl Format for crate::syntax::MEmptyClassMember {
-    fn format(&self, formatter: &Formatter) -> FormatResult<FormatElement> {
-        self.format_node(formatter)
-    }
-}
 impl Format for crate::syntax::MStaticModifier {
     fn format(&self, formatter: &Formatter) -> FormatResult<FormatElement> {
         self.format_node(formatter)

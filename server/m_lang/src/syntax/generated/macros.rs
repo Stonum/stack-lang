@@ -157,11 +157,6 @@ macro_rules! map_syntax_node {
                     let $pattern = unsafe { $crate::syntax::MElseClause::new_unchecked(node) };
                     $body
                 }
-                $crate::syntax::MSyntaxKind::M_EMPTY_CLASS_MEMBER => {
-                    let $pattern =
-                        unsafe { $crate::syntax::MEmptyClassMember::new_unchecked(node) };
-                    $body
-                }
                 $crate::syntax::MSyntaxKind::M_EMPTY_STATEMENT => {
                     let $pattern = unsafe { $crate::syntax::MEmptyStatement::new_unchecked(node) };
                     $body

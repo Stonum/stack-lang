@@ -1405,41 +1405,6 @@ pub struct MElseClauseFields {
     pub alternate: SyntaxResult<AnyMStatement>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct MEmptyClassMember {
-    pub(crate) syntax: SyntaxNode,
-}
-impl MEmptyClassMember {
-    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
-    #[doc = r""]
-    #[doc = r" # Safety"]
-    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
-    #[doc = r" or a match on [SyntaxNode::kind]"]
-    #[inline]
-    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
-        Self { syntax }
-    }
-    pub fn as_fields(&self) -> MEmptyClassMemberFields {
-        MEmptyClassMemberFields {
-            semicolon_token: self.semicolon_token(),
-        }
-    }
-    pub fn semicolon_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 0usize)
-    }
-}
-impl Serialize for MEmptyClassMember {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.as_fields().serialize(serializer)
-    }
-}
-#[derive(Serialize)]
-pub struct MEmptyClassMemberFields {
-    pub semicolon_token: SyntaxResult<SyntaxToken>,
-}
-#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MEmptyStatement {
     pub(crate) syntax: SyntaxNode,
 }
@@ -4598,7 +4563,6 @@ impl AnyMCallArgument {
 pub enum AnyMClassMember {
     MBogusMember(MBogusMember),
     MConstructorClassMember(MConstructorClassMember),
-    MEmptyClassMember(MEmptyClassMember),
     MGetterClassMember(MGetterClassMember),
     MMethodClassMember(MMethodClassMember),
     MSetterClassMember(MSetterClassMember),
@@ -4613,12 +4577,6 @@ impl AnyMClassMember {
     pub fn as_m_constructor_class_member(&self) -> Option<&MConstructorClassMember> {
         match &self {
             AnyMClassMember::MConstructorClassMember(item) => Some(item),
-            _ => None,
-        }
-    }
-    pub fn as_m_empty_class_member(&self) -> Option<&MEmptyClassMember> {
-        match &self {
-            AnyMClassMember::MEmptyClassMember(item) => Some(item),
             _ => None,
         }
     }
@@ -6751,47 +6709,6 @@ impl From<MElseClause> for SyntaxNode {
 }
 impl From<MElseClause> for SyntaxElement {
     fn from(n: MElseClause) -> SyntaxElement {
-        n.syntax.into()
-    }
-}
-impl AstNode for MEmptyClassMember {
-    type Language = Language;
-    const KIND_SET: SyntaxKindSet<Language> =
-        SyntaxKindSet::from_raw(RawSyntaxKind(M_EMPTY_CLASS_MEMBER as u16));
-    fn can_cast(kind: SyntaxKind) -> bool {
-        kind == M_EMPTY_CLASS_MEMBER
-    }
-    fn cast(syntax: SyntaxNode) -> Option<Self> {
-        if Self::can_cast(syntax.kind()) {
-            Some(Self { syntax })
-        } else {
-            None
-        }
-    }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.syntax
-    }
-    fn into_syntax(self) -> SyntaxNode {
-        self.syntax
-    }
-}
-impl std::fmt::Debug for MEmptyClassMember {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("MEmptyClassMember")
-            .field(
-                "semicolon_token",
-                &support::DebugSyntaxResult(self.semicolon_token()),
-            )
-            .finish()
-    }
-}
-impl From<MEmptyClassMember> for SyntaxNode {
-    fn from(n: MEmptyClassMember) -> SyntaxNode {
-        n.syntax
-    }
-}
-impl From<MEmptyClassMember> for SyntaxElement {
-    fn from(n: MEmptyClassMember) -> SyntaxElement {
         n.syntax.into()
     }
 }
@@ -10201,11 +10118,6 @@ impl From<MConstructorClassMember> for AnyMClassMember {
         AnyMClassMember::MConstructorClassMember(node)
     }
 }
-impl From<MEmptyClassMember> for AnyMClassMember {
-    fn from(node: MEmptyClassMember) -> AnyMClassMember {
-        AnyMClassMember::MEmptyClassMember(node)
-    }
-}
 impl From<MGetterClassMember> for AnyMClassMember {
     fn from(node: MGetterClassMember) -> AnyMClassMember {
         AnyMClassMember::MGetterClassMember(node)
@@ -10225,7 +10137,6 @@ impl AstNode for AnyMClassMember {
     type Language = Language;
     const KIND_SET: SyntaxKindSet<Language> = MBogusMember::KIND_SET
         .union(MConstructorClassMember::KIND_SET)
-        .union(MEmptyClassMember::KIND_SET)
         .union(MGetterClassMember::KIND_SET)
         .union(MMethodClassMember::KIND_SET)
         .union(MSetterClassMember::KIND_SET);
@@ -10234,7 +10145,6 @@ impl AstNode for AnyMClassMember {
             kind,
             M_BOGUS_MEMBER
                 | M_CONSTRUCTOR_CLASS_MEMBER
-                | M_EMPTY_CLASS_MEMBER
                 | M_GETTER_CLASS_MEMBER
                 | M_METHOD_CLASS_MEMBER
                 | M_SETTER_CLASS_MEMBER
@@ -10245,9 +10155,6 @@ impl AstNode for AnyMClassMember {
             M_BOGUS_MEMBER => AnyMClassMember::MBogusMember(MBogusMember { syntax }),
             M_CONSTRUCTOR_CLASS_MEMBER => {
                 AnyMClassMember::MConstructorClassMember(MConstructorClassMember { syntax })
-            }
-            M_EMPTY_CLASS_MEMBER => {
-                AnyMClassMember::MEmptyClassMember(MEmptyClassMember { syntax })
             }
             M_GETTER_CLASS_MEMBER => {
                 AnyMClassMember::MGetterClassMember(MGetterClassMember { syntax })
@@ -10266,7 +10173,6 @@ impl AstNode for AnyMClassMember {
         match self {
             AnyMClassMember::MBogusMember(it) => &it.syntax,
             AnyMClassMember::MConstructorClassMember(it) => &it.syntax,
-            AnyMClassMember::MEmptyClassMember(it) => &it.syntax,
             AnyMClassMember::MGetterClassMember(it) => &it.syntax,
             AnyMClassMember::MMethodClassMember(it) => &it.syntax,
             AnyMClassMember::MSetterClassMember(it) => &it.syntax,
@@ -10276,7 +10182,6 @@ impl AstNode for AnyMClassMember {
         match self {
             AnyMClassMember::MBogusMember(it) => it.syntax,
             AnyMClassMember::MConstructorClassMember(it) => it.syntax,
-            AnyMClassMember::MEmptyClassMember(it) => it.syntax,
             AnyMClassMember::MGetterClassMember(it) => it.syntax,
             AnyMClassMember::MMethodClassMember(it) => it.syntax,
             AnyMClassMember::MSetterClassMember(it) => it.syntax,
@@ -10288,7 +10193,6 @@ impl std::fmt::Debug for AnyMClassMember {
         match self {
             AnyMClassMember::MBogusMember(it) => std::fmt::Debug::fmt(it, f),
             AnyMClassMember::MConstructorClassMember(it) => std::fmt::Debug::fmt(it, f),
-            AnyMClassMember::MEmptyClassMember(it) => std::fmt::Debug::fmt(it, f),
             AnyMClassMember::MGetterClassMember(it) => std::fmt::Debug::fmt(it, f),
             AnyMClassMember::MMethodClassMember(it) => std::fmt::Debug::fmt(it, f),
             AnyMClassMember::MSetterClassMember(it) => std::fmt::Debug::fmt(it, f),
@@ -10300,7 +10204,6 @@ impl From<AnyMClassMember> for SyntaxNode {
         match n {
             AnyMClassMember::MBogusMember(it) => it.into(),
             AnyMClassMember::MConstructorClassMember(it) => it.into(),
-            AnyMClassMember::MEmptyClassMember(it) => it.into(),
             AnyMClassMember::MGetterClassMember(it) => it.into(),
             AnyMClassMember::MMethodClassMember(it) => it.into(),
             AnyMClassMember::MSetterClassMember(it) => it.into(),
@@ -12513,11 +12416,6 @@ impl std::fmt::Display for MExtendedBinding {
     }
 }
 impl std::fmt::Display for MElseClause {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(self.syntax(), f)
-    }
-}
-impl std::fmt::Display for MEmptyClassMember {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

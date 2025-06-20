@@ -229,7 +229,6 @@ impl ParseNodeList for ClassMembersList {
 // test class_declare
 // class B { declare() {} }
 // class B { declare = foo }
-
 fn parse_class_member(p: &mut MParser) -> ParsedSyntax {
     let member_marker = if p.at(T![:]) && p.nth_at(1, T!['[']) {
         parse_annotation_list(p).precede(p)
@@ -237,10 +236,17 @@ fn parse_class_member(p: &mut MParser) -> ParsedSyntax {
         p.start().complete(p, M_ANNOTATION_GROUP_LIST).precede(p)
     };
 
-    // test class_empty_element
+    // test err
     // class foo { ;;;;;;;;;; get foo() {};;;;}
     if p.eat(T![;]) {
-        return Present(member_marker.complete(p, M_EMPTY_CLASS_MEMBER));
+        let empty_member = member_marker.complete(p, M_BOGUS_MEMBER);
+
+        p.error(p.err_builder(
+            "Empty element is not allowed in class",
+            empty_member.range(p),
+        ));
+
+        return Present(empty_member);
     }
 
     parse_class_member_impl(p, member_marker)

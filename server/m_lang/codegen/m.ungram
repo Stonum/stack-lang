@@ -506,7 +506,6 @@ AnyMClassMember =
 	| MMethodClassMember
 	| MGetterClassMember
 	| MSetterClassMember
-	| MEmptyClassMember
 	| MBogusMember
 
 // class Test { constructor() {} }
@@ -567,8 +566,6 @@ MSetterClassMember =
    doc_string: AnyMStringLiteralExpression?
 	body: MFunctionBody
 
-
-MEmptyClassMember = ';'
 
 ///////////////
 // ASSIGNMENT TARGETS

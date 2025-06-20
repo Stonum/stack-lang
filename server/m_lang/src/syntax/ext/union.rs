@@ -15,7 +15,6 @@ impl AnyMClassMember {
             AnyMClassMember::MConstructorClassMember(constructor) => constructor
                 .name()
                 .map(|name| Some(AnyMClassMemberName::from(name))),
-            AnyMClassMember::MEmptyClassMember(_) => Ok(None),
             AnyMClassMember::MGetterClassMember(getter) => getter.name().map(Some),
             AnyMClassMember::MMethodClassMember(method) => method.name().map(Some),
             AnyMClassMember::MSetterClassMember(setter) => setter.name().map(Some),
@@ -28,7 +27,6 @@ impl AnyMClassMember {
             AnyMClassMember::MConstructorClassMember(constructor) => constructor
                 .parameters()
                 .map(|p| Some(p.parameters().into())),
-            AnyMClassMember::MEmptyClassMember(_) => Ok(None),
             AnyMClassMember::MGetterClassMember(_) => Ok(None),
             AnyMClassMember::MMethodClassMember(method) => {
                 method.parameters().map(|p| Some(p.items().into()))
@@ -46,7 +44,6 @@ impl AnyMClassMember {
             AnyMClassMember::MConstructorClassMember(constructor) => {
                 constructor.syntax().first_leading_trivia()
             }
-            AnyMClassMember::MEmptyClassMember(_) => None,
             AnyMClassMember::MGetterClassMember(getter) => getter.syntax().first_leading_trivia(),
             AnyMClassMember::MMethodClassMember(method) => method.syntax().first_leading_trivia(),
             AnyMClassMember::MSetterClassMember(setter) => setter.syntax().first_leading_trivia(),
@@ -57,7 +54,6 @@ impl AnyMClassMember {
     pub fn doc_string(&self) -> Option<AnyMStringLiteralExpression> {
         match self {
             AnyMClassMember::MConstructorClassMember(constructor) => constructor.doc_string(),
-            AnyMClassMember::MEmptyClassMember(_) => None,
             AnyMClassMember::MGetterClassMember(getter) => getter.doc_string(),
             AnyMClassMember::MMethodClassMember(method) => method.doc_string(),
             AnyMClassMember::MSetterClassMember(setter) => setter.doc_string(),

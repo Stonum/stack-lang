@@ -579,12 +579,6 @@ pub fn m_else_clause(else_token: SyntaxToken, alternate: AnyMStatement) -> MElse
         ],
     ))
 }
-pub fn m_empty_class_member(semicolon_token: SyntaxToken) -> MEmptyClassMember {
-    MEmptyClassMember::unwrap_cast(SyntaxNode::new_detached(
-        MSyntaxKind::M_EMPTY_CLASS_MEMBER,
-        [Some(SyntaxElement::Token(semicolon_token))],
-    ))
-}
 pub fn m_empty_statement(semicolon_token: SyntaxToken) -> MEmptyStatement {
     MEmptyStatement::unwrap_cast(SyntaxNode::new_detached(
         MSyntaxKind::M_EMPTY_STATEMENT,
