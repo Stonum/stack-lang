@@ -31,6 +31,7 @@ pub const STMT_RECOVERY_SET: TokenSet<MSyntaxKind> = token_set![
     FUNCTION_KW,
     IF_KW,
     FOR_KW,
+    FORALL_KW,
     DO_KW,
     WHILE_KW,
     CONTINUE_KW,
@@ -42,6 +43,8 @@ pub const STMT_RECOVERY_SET: TokenSet<MSyntaxKind> = token_set![
     DEBUG_KW,
     FUNCTION_KW,
     CLASS_KW,
+    STATIC_KW,
+    VERSION_KW,
     T![;]
 ];
 

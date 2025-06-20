@@ -774,6 +774,7 @@ impl<'src> MLexer<'src> {
                 "super" | "базовый" => SUPER_KW,
                 "switch" | "выборпо" => SWITCH_KW,
                 "set" | "установить" => SET_KW,
+                "static" => STATIC_KW,
                 "or" | "или" => OR_KW,
                 "this" | "этот" => THIS_KW,
                 "throw" | "вызватьисключение" => THROW_KW,

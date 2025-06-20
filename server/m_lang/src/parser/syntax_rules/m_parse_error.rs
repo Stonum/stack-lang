@@ -59,7 +59,7 @@ pub fn expected_statement(p: &MParser, range: TextRange) -> ParseDiagnostic {
 }
 
 pub fn expected_binding(p: &MParser, range: TextRange) -> ParseDiagnostic {
-    expected_any(&["identifier", "array pattern", "object pattern"], range, p)
+    expected_node("identifier", range, p)
 }
 
 pub fn expected_class_member(p: &MParser, range: TextRange) -> ParseDiagnostic {

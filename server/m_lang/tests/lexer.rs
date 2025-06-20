@@ -1210,6 +1210,20 @@ fn chaining() {
 }
 
 #[test]
+fn test_static_kw() {
+    assert_lex! {
+        "var static = 1",
+        VAR_KW:3,
+        WHITESPACE:1,
+        STATIC_KW:6,
+        WHITESPACE:1,
+        EQ:1,
+        WHITESPACE:1,
+        M_NUMBER_LITERAL:1
+    }
+}
+
+#[test]
 fn keywords() {
     #[rustfmt::skip]
     let keywords = vec![
@@ -1246,7 +1260,8 @@ fn keywords() {
         "constructor", 
         "get", "получить",
         "set", "установить",
-        "к"
+        "к",
+        "static"
     ];
 
     for keyword in keywords {
