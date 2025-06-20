@@ -160,14 +160,6 @@ pub struct Parse<T> {
 }
 
 impl<T> Parse<T> {
-    pub fn new_module(root: MSyntaxNode, errors: Vec<ParseDiagnostic>) -> Parse<T> {
-        Self::new(root, errors)
-    }
-
-    pub fn new_script(root: MSyntaxNode, errors: Vec<ParseDiagnostic>) -> Parse<T> {
-        Self::new(root, errors)
-    }
-
     pub fn new(root: MSyntaxNode, errors: Vec<ParseDiagnostic>) -> Parse<T> {
         Parse {
             root,

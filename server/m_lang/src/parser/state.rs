@@ -1,10 +1,9 @@
 use super::MParser;
 use enumflags2::{bitflags, make_bitflags, BitFlags};
-// use indexmap::IndexMap;
+
 use std::ops::{BitOr, BitOrAssign, Deref, DerefMut, Sub};
 
 /// State kept by the parser while parsing.
-/// It is required for things such as strict mode or async functions
 #[derive(Debug)]
 pub struct MParserState {
     parsing_context: ParsingContextFlags,
@@ -12,30 +11,13 @@ pub struct MParserState {
     /// If set, the parser reports bindings with identical names. The option stores the name of the
     /// node that disallows duplicate bindings, for example `let`, `const` or `import`.
     pub duplicate_binding_parent: Option<&'static str>,
-    // pub name_map: IndexMap<String, TextRange>,
-    /// Indicates that the parser is speculatively parsing a syntax. Speculative parsing means that the
-    /// parser tries to parse a syntax as one kind and determines at the end if the assumption was right
-    /// by testing if the parser is at a specific token (or has no errors). For this approach to work,
-    /// the parser isn't allowed to skip any tokens while doing error recovery because it may then successfully
-    /// skip over all invalid tokens, so that it appears as if it was able to parse the syntax correctly.
-    ///
-    /// Speculative parsing is useful if a syntax is ambiguous and no amount of lookahead (except parsing the whole syntax)
-    /// is sufficient to determine what syntax it is. For example, the syntax `(a, b) ...`
-    /// in JavaScript is either a parenthesized expression or an arrow expression if `...` is a `=>`.
-    /// The challenge is, that it isn't possible to tell which of the two kinds it is until the parser
-    /// processed all of `(a, b)`.
-    pub speculative_parsing: bool,
 }
 
 impl MParserState {
     pub fn new() -> Self {
-        
-
         MParserState {
             parsing_context: ParsingContextFlags::TOP_LEVEL,
-            // name_map: IndexMap::new(),
             duplicate_binding_parent: None,
-            speculative_parsing: false,
         }
     }
 
@@ -121,7 +103,6 @@ impl MDebugParserStateCheckpoint {
         Self {
             parsing_context: state.parsing_context,
             duplicate_binding_parent: state.duplicate_binding_parent,
-            // name_map_len: state.name_map.len(),
         }
     }
 
@@ -131,7 +112,6 @@ impl MDebugParserStateCheckpoint {
             state.duplicate_binding_parent,
             self.duplicate_binding_parent
         );
-        // assert_eq!(state.name_map.len(), self.name_map_len);
     }
 }
 

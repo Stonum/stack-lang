@@ -16,13 +16,13 @@ use biome_parser::parse_lists::ParseSeparatedList;
 use biome_parser::prelude::*;
 
 // test object_expr
-// let a = {};
-// let b = {foo,}
+// var a = {};
+// var b = {foo,}
 //
 // test_err object_expr_err
-// let a = {, foo}
-// let b = { foo bar }
-// let b = { foo
+// var a = {, foo}
+// var b = { foo bar }
+// var b = { foo
 
 struct ObjectMembersList;
 

@@ -12,18 +12,11 @@ use super::syntax::MSyntaxKind::*;
 use super::syntax::{MSyntaxKind, T};
 
 use biome_parser::prelude::*;
-
 use biome_parser::ParserProgress;
 
-/// A function declaration. This takes a marker
-/// because you need to first advance over async or start a marker and feed it in.
+/// A function declaration
 // test function_decl
 // function foo1() {}
-// async function foo4() {}
-//
-// test function_declaration_script
-// // SCRIPT
-// function test(await) {}
 //
 // test_err function_decl_err
 // function() {}

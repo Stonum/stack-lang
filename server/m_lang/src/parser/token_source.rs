@@ -130,11 +130,11 @@ impl<'source> TokenSource for MTokenSource<'source> {
 
     #[inline(always)]
     fn bump(&mut self) {
-        self.bump_with_context(MLexContext::Regular)
+        self.bump_with_context(MLexContext)
     }
 
     fn skip_as_trivia(&mut self) {
-        self.skip_as_trivia_with_context(MLexContext::Regular)
+        self.skip_as_trivia_with_context(MLexContext)
     }
 
     fn finish(self) -> (Vec<Trivia>, Vec<ParseDiagnostic>) {

@@ -27,7 +27,7 @@ use biome_parser::parse_lists::ParseNodeList;
 use biome_parser::parse_recovery::ParseRecoveryTokenSet;
 use biome_parser::prelude::*;
 
-use biome_rowan::{SyntaxKind, TextRange};
+use biome_rowan::SyntaxKind;
 
 // test class_declaration
 // class foo {}
@@ -302,8 +302,8 @@ fn parse_class_member_impl(p: &mut MParser, member_marker: Marker) -> ParsedSynt
 
             eat_doc_string_expression(p);
 
-            let member_kind = expect_accessor_body(p);
-            member_marker.complete(p, member_kind.as_getter_syntax_kind())
+            expect_accessor_body(p);
+            member_marker.complete(p, M_GETTER_CLASS_MEMBER)
         } else {
             let has_l_paren = p.expect(T!['(']);
             p.with_state(EnterParameters(SignatureFlags::empty()), |p| {
@@ -322,8 +322,8 @@ fn parse_class_member_impl(p: &mut MParser, member_marker: Marker) -> ParsedSynt
 
             eat_doc_string_expression(p);
 
-            let member_kind = expect_accessor_body(p);
-            member_marker.complete(p, member_kind.as_setter_syntax_kind())
+            expect_accessor_body(p);
+            member_marker.complete(p, M_SETTER_CLASS_MEMBER)
         };
 
         return Present(completed);
@@ -387,8 +387,8 @@ fn parse_class_member_impl(p: &mut MParser, member_marker: Marker) -> ParsedSynt
     }
 }
 
-// test_err class_property_initializer
-// class B { lorem = ; }
+// test_err
+// func x() { lorem = ; }
 pub(crate) fn parse_initializer_clause(
     p: &mut MParser,
     context: ExpressionContext,
@@ -419,41 +419,8 @@ fn parse_method_class_member_rest(
     parse_parameter_list(p, flags).or_add_diagnostic(p, m_parse_error::expected_class_parameters);
 
     eat_doc_string_expression(p);
-    let member_kind = expect_method_body(p, ClassMethodMemberKind::Method(flags));
-    let mut member = m.complete(p, member_kind.as_method_syntax_kind());
-
-    member
-}
-
-#[derive(Debug)]
-enum MemberKind {
-    Declaration,
-}
-
-impl MemberKind {
-    const fn as_method_syntax_kind(&self) -> MSyntaxKind {
-        match self {
-            MemberKind::Declaration => M_METHOD_CLASS_MEMBER,
-        }
-    }
-
-    const fn as_constructor_syntax_kind(&self) -> MSyntaxKind {
-        match self {
-            MemberKind::Declaration => M_CONSTRUCTOR_CLASS_MEMBER,
-        }
-    }
-
-    const fn as_setter_syntax_kind(&self) -> MSyntaxKind {
-        match self {
-            MemberKind::Declaration => M_SETTER_CLASS_MEMBER,
-        }
-    }
-
-    const fn as_getter_syntax_kind(&self) -> MSyntaxKind {
-        match self {
-            MemberKind::Declaration => M_GETTER_CLASS_MEMBER,
-        }
-    }
+    expect_method_body(p, ClassMethodMemberKind::Method(flags));
+    m.complete(p, M_METHOD_CLASS_MEMBER)
 }
 
 #[derive(Debug)]
@@ -486,11 +453,10 @@ impl ClassMethodMemberKind {
 /// * a method signature isn't terminate by a semicolon or ASI
 ///
 /// The method returns the inferred kind (signature or declaration) of the parsed method body
-fn expect_method_body(p: &mut MParser, method_kind: ClassMethodMemberKind) -> MemberKind {
+fn expect_method_body(p: &mut MParser, method_kind: ClassMethodMemberKind) {
     let body = parse_function_body(p, method_kind.signature_flags());
 
     body.or_add_diagnostic(p, m_parse_error::expected_class_method_body);
-    MemberKind::Declaration
 }
 
 // test_err getter_class_no_body
@@ -502,8 +468,8 @@ fn expect_method_body(p: &mut MParser, method_kind: ClassMethodMemberKind) -> Me
 // class Setters {
 //   set foo(a)
 // }
-fn expect_accessor_body(p: &mut MParser) -> MemberKind {
-    expect_method_body(p, ClassMethodMemberKind::Accessor)
+fn expect_accessor_body(p: &mut MParser) {
+    expect_method_body(p, ClassMethodMemberKind::Accessor);
 }
 
 fn parse_constructor_class_member_body(p: &mut MParser, member_marker: Marker) -> CompletedMarker {
@@ -511,9 +477,9 @@ fn parse_constructor_class_member_body(p: &mut MParser, member_marker: Marker) -
         .or_add_diagnostic(p, m_parse_error::expected_constructor_parameters);
 
     eat_doc_string_expression(p);
-    let constructor_kind = expect_method_body(p, ClassMethodMemberKind::Constructor);
+    expect_method_body(p, ClassMethodMemberKind::Constructor);
 
-    member_marker.complete(p, constructor_kind.as_constructor_syntax_kind())
+    member_marker.complete(p, M_CONSTRUCTOR_CLASS_MEMBER)
 }
 
 fn parse_constructor_parameter_list(p: &mut MParser) -> ParsedSyntax {

@@ -58,25 +58,9 @@ pub fn expression_to_assignment(
     )
 }
 
-pub enum AssignmentExprPrecedence {
-    Unary,
-}
-
-impl AssignmentExprPrecedence {
-    fn parse_expression(&self, p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
-        match self {
-            AssignmentExprPrecedence::Unary => parse_unary_expr(p, context),
-        }
-    }
-}
-
-pub fn parse_assignment(
-    p: &mut MParser,
-    expr_kind: AssignmentExprPrecedence,
-    context: ExpressionContext,
-) -> ParsedSyntax {
+pub fn parse_assignment(p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
     let checkpoint = p.checkpoint();
-    let assignment_expression = expr_kind.parse_expression(p, context);
+    let assignment_expression = parse_unary_expr(p, context);
 
     assignment_expression.map(|expr| expression_to_assignment(p, expr, checkpoint))
 }
@@ -167,24 +151,9 @@ impl RewriteParseEvents for ReparseAssignment {
         let (kind, m) = self.parents.pop().unwrap();
 
         if let Some(m) = m {
-            let mut completed = m.complete(p, kind);
+            let completed = m.complete(p, kind);
 
             match kind {
-                M_IDENTIFIER_ASSIGNMENT => {
-                    // test_err eval_arguments_assignment
-                    // eval = "test";
-                    // arguments = "test";
-                    let name = completed.text(p);
-                    if matches!(name, "eval" | "arguments") {
-                        let error = p.err_builder(
-                            format!("Illegal use of `{name}` as an identifier in strict mode"),
-                            completed.range(p),
-                        );
-                        p.error(error);
-
-                        completed.change_to_bogus(p);
-                    }
-                }
                 M_BOGUS_ASSIGNMENT => {
                     let range = completed.range(p);
                     p.error(

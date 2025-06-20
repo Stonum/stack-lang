@@ -11,7 +11,6 @@ use super::rewrite_parser::{RewriteMarker, RewriteParser};
 use super::{MParserCheckpoint, RecoveryResult};
 
 use super::assignment::parse_assignment;
-use super::assignment::AssignmentExprPrecedence;
 use super::assignment::{expression_to_assignment, expression_to_assignment_pattern};
 
 use super::function::parse_function_expression;
@@ -67,10 +66,6 @@ impl ExpressionContextFlags {
     const ALLOW_OBJECT_EXPRESSION: Self =
         Self(make_bitflags!(ExpressionContextFlag::{AllowObjectExpression}));
 
-    /// If `true` then, don't parse computed member expressions because they can as well indicate
-    /// the start of a computed class member.
-    const IN_DECORATOR: Self = Self(make_bitflags!(ExpressionContextFlag::{InDecorator}));
-
     pub fn contains(&self, other: impl Into<ExpressionContextFlags>) -> bool {
         self.0.contains(other.into().0)
     }
@@ -110,11 +105,6 @@ impl ExpressionContext {
     /// Returns `true` if the expression parsing includes binary in expressions.
     pub(crate) fn is_in_included(&self) -> bool {
         self.0.contains(ExpressionContextFlags::INCLUDE_IN)
-    }
-
-    /// Returns `true` if currently parsing a decorator expression `@<expr>`.
-    pub(crate) fn is_in_decorator(&self) -> bool {
-        self.0.contains(ExpressionContextFlags::IN_DECORATOR)
     }
 
     /// Adds the `flag` if `set` is `true`, otherwise removes the `flag`
@@ -444,16 +434,12 @@ fn parse_binary_or_logical_expression_recursive(
 // test_err new_exprs
 // new;
 fn parse_member_expression_or_higher(p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
-    parse_primary_expression(p, context).map(|lhs| parse_member_expression_rest(p, lhs, context))
+    parse_primary_expression(p, context).map(|lhs| parse_member_expression_rest(p, lhs))
 }
 
 // test_err subscripts_err
 // BAR`b
-fn parse_member_expression_rest(
-    p: &mut MParser,
-    lhs: CompletedMarker,
-    context: ExpressionContext,
-) -> CompletedMarker {
+fn parse_member_expression_rest(p: &mut MParser, lhs: CompletedMarker) -> CompletedMarker {
     let mut progress = ParserProgress::default();
     let mut lhs = lhs;
 
@@ -462,9 +448,7 @@ fn parse_member_expression_rest(
         lhs = match p.cur() {
             T![.] => parse_static_member_expression(p, lhs, T![.]).unwrap(),
             // Don't parse out `[` as a member expression because it may as well be the start of a computed class member
-            T!['['] if !context.is_in_decorator() => {
-                parse_computed_member_expression(p, Some(lhs)).unwrap()
-            }
+            T!['['] => parse_computed_member_expression(p, Some(lhs)).unwrap(),
             _ => {
                 break;
             }
@@ -484,7 +468,7 @@ fn parse_new_expr(p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
 
     parse_primary_expression(p, context)
         .or_add_diagnostic(p, expected_expression)
-        .map(|expr| parse_member_expression_rest(p, expr, context));
+        .map(|expr| parse_member_expression_rest(p, expr));
 
     if p.at(T!['(']) {
         parse_call_arguments(p).unwrap();
@@ -605,7 +589,7 @@ pub(crate) fn parse_name(p: &mut MParser) -> ParsedSyntax {
 
 // test call_arguments
 // function foo(...args) {}
-// let a, b, c, d;
+// var a, b, c, d;
 // foo(a);
 // foo(a, b,);
 // foo(a, b, ...c);
@@ -613,7 +597,7 @@ pub(crate) fn parse_name(p: &mut MParser) -> ParsedSyntax {
 //
 // test_err invalid_arg_list
 // function foo(...args) {}
-// let a, b, c;
+// var a, b, c;
 // foo(a,b;
 // foo(a,b var;
 // foo (,,b);
@@ -1070,17 +1054,13 @@ pub(crate) fn parse_lhs_expr(p: &mut MParser, context: ExpressionContext) -> Par
         parse_member_expression_or_higher(p, context)
     };
 
-    lhs.map(|lhs_marker| parse_call_expression_rest(p, lhs_marker, context))
+    lhs.map(|lhs_marker| parse_call_expression_rest(p, lhs_marker))
 }
 
-fn parse_call_expression_rest(
-    p: &mut MParser,
-    lhs: CompletedMarker,
-    context: ExpressionContext,
-) -> CompletedMarker {
+fn parse_call_expression_rest(p: &mut MParser, lhs: CompletedMarker) -> CompletedMarker {
     let mut lhs = lhs;
     loop {
-        lhs = parse_member_expression_rest(p, lhs, context);
+        lhs = parse_member_expression_rest(p, lhs);
 
         if !matches!(p.cur(), T![<] | T!['(']) {
             break lhs;
@@ -1099,8 +1079,7 @@ fn parse_call_expression_rest(
         } else {
             break {
                 // Safety:
-                // * The method initially checks if the parsers at a '<', '(', or '?.' token.
-                // * if the parser is at '?.': It takes the branch right above, ensuring that no token was consumed
+                // * The method initially checks if the parsers at a '<' or '(' token.
                 // * if the parser is at '<': `parse_ts_type_arguments_in_expression` rewinds if what follows aren't  valid type arguments and this is the only way we can reach this branch
                 // * if the parser is at '(': This always parses out as valid arguments.
                 debug_assert_eq!(p.source().position(), start_pos);
@@ -1154,16 +1133,14 @@ pub(crate) fn parse_unary_expr(p: &mut MParser, context: ExpressionContext) -> P
     if p.at(T![++]) {
         let m = p.start();
         p.bump(T![++]);
-        parse_assignment(p, AssignmentExprPrecedence::Unary, context)
-            .or_add_diagnostic(p, expected_simple_assignment_target);
+        parse_assignment(p, context).or_add_diagnostic(p, expected_simple_assignment_target);
         let complete = m.complete(p, M_PRE_UPDATE_EXPRESSION);
         return Present(complete);
     }
     if p.at(T![--]) {
         let m = p.start();
         p.bump(T![--]);
-        parse_assignment(p, AssignmentExprPrecedence::Unary, context)
-            .or_add_diagnostic(p, expected_simple_assignment_target);
+        parse_assignment(p, context).or_add_diagnostic(p, expected_simple_assignment_target);
         let complete = m.complete(p, M_PRE_UPDATE_EXPRESSION);
         return Present(complete);
     }
@@ -1173,7 +1150,6 @@ pub(crate) fn parse_unary_expr(p: &mut MParser, context: ExpressionContext) -> P
     // typeof a;
     // +1;
     // -1;
-    // ~1;
     // !true;
     // -a + -b + +a;
 

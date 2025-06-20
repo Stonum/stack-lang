@@ -308,7 +308,7 @@ fn parse_continue_statement(p: &mut MParser) -> ParsedSyntax {
 }
 
 // test return_stmt
-// () => {
+// func bar() {
 //   return;
 //   return foo;
 //   return
