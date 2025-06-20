@@ -387,24 +387,6 @@ fn parse_class_member_impl(p: &mut MParser, member_marker: Marker) -> ParsedSynt
     }
 }
 
-/// Eats the '?' token for optional member
-fn optional_member_token(p: &mut MParser) -> Result<Option<TextRange>, TextRange> {
-    if p.at(T![?]) {
-        let range = p.cur_range();
-        p.bump(T![?]);
-
-        // test_err optional_member
-        // class B { foo?; }
-
-        let err = p.err_builder("`?` modifiers can only be used in TypeScript files", range);
-
-        p.error(err);
-        Err(range)
-    } else {
-        Ok(None)
-    }
-}
-
 // test_err class_property_initializer
 // class B { lorem = ; }
 pub(crate) fn parse_initializer_clause(
@@ -434,18 +416,11 @@ fn parse_method_class_member_rest(
     m: Marker,
     flags: SignatureFlags,
 ) -> CompletedMarker {
-    let optional = optional_member_token(p);
-
     parse_parameter_list(p, flags).or_add_diagnostic(p, m_parse_error::expected_class_parameters);
 
     eat_doc_string_expression(p);
     let member_kind = expect_method_body(p, ClassMethodMemberKind::Method(flags));
     let mut member = m.complete(p, member_kind.as_method_syntax_kind());
-
-    if optional.is_err() {
-        // error already emitted by `optional_member_token()`
-        member.change_to_bogus(p);
-    }
 
     member
 }
@@ -532,12 +507,6 @@ fn expect_accessor_body(p: &mut MParser) -> MemberKind {
 }
 
 fn parse_constructor_class_member_body(p: &mut MParser, member_marker: Marker) -> CompletedMarker {
-    if let Ok(Some(range)) = optional_member_token(p) {
-        let err = p.err_builder("constructors cannot be optional", range);
-
-        p.error(err);
-    }
-
     parse_constructor_parameter_list(p)
         .or_add_diagnostic(p, m_parse_error::expected_constructor_parameters);
 
