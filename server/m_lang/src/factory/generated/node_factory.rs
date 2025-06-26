@@ -290,6 +290,12 @@ impl MClassDeclarationBuilder {
         ))
     }
 }
+pub fn m_class_member_name(value_token: SyntaxToken) -> MClassMemberName {
+    MClassMemberName::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_CLASS_MEMBER_NAME,
+        [Some(SyntaxElement::Token(value_token))],
+    ))
+}
 pub fn m_computed_member_assignment(
     l_brack_token: SyntaxToken,
     member: AnyMExpression,
@@ -408,7 +414,7 @@ pub fn m_constant_expression(
 }
 pub fn m_constructor_class_member(
     annotation: MAnnotationGroupList,
-    name: MLiteralMemberName,
+    name: MClassMemberName,
     parameters: MConstructorParameters,
     body: MFunctionBody,
 ) -> MConstructorClassMemberBuilder {
@@ -422,7 +428,7 @@ pub fn m_constructor_class_member(
 }
 pub struct MConstructorClassMemberBuilder {
     annotation: MAnnotationGroupList,
-    name: MLiteralMemberName,
+    name: MClassMemberName,
     parameters: MConstructorParameters,
     body: MFunctionBody,
     doc_string: Option<AnyMStringLiteralExpression>,
@@ -895,7 +901,7 @@ pub fn m_function_expression(
 pub fn m_getter_class_member(
     annotation: MAnnotationGroupList,
     get_token: SyntaxToken,
-    name: AnyMClassMemberName,
+    name: MClassMemberName,
     l_paren_token: SyntaxToken,
     r_paren_token: SyntaxToken,
     body: MFunctionBody,
@@ -913,7 +919,7 @@ pub fn m_getter_class_member(
 pub struct MGetterClassMemberBuilder {
     annotation: MAnnotationGroupList,
     get_token: SyntaxToken,
-    name: AnyMClassMemberName,
+    name: MClassMemberName,
     l_paren_token: SyntaxToken,
     r_paren_token: SyntaxToken,
     body: MFunctionBody,
@@ -1088,7 +1094,7 @@ pub fn m_long_string_literal_expression(value_token: SyntaxToken) -> MLongString
 }
 pub fn m_method_class_member(
     annotation: MAnnotationGroupList,
-    name: AnyMClassMemberName,
+    name: MClassMemberName,
     parameters: MParameters,
     body: MFunctionBody,
 ) -> MMethodClassMemberBuilder {
@@ -1102,7 +1108,7 @@ pub fn m_method_class_member(
 }
 pub struct MMethodClassMemberBuilder {
     annotation: MAnnotationGroupList,
-    name: AnyMClassMemberName,
+    name: MClassMemberName,
     parameters: MParameters,
     body: MFunctionBody,
     doc_string: Option<AnyMStringLiteralExpression>,
@@ -1447,7 +1453,7 @@ pub fn m_sequence_expression(
 pub fn m_setter_class_member(
     annotation: MAnnotationGroupList,
     set_token: SyntaxToken,
-    name: AnyMClassMemberName,
+    name: MClassMemberName,
     l_paren_token: SyntaxToken,
     parameter: AnyMFormalParameter,
     r_paren_token: SyntaxToken,
@@ -1468,7 +1474,7 @@ pub fn m_setter_class_member(
 pub struct MSetterClassMemberBuilder {
     annotation: MAnnotationGroupList,
     set_token: SyntaxToken,
-    name: AnyMClassMemberName,
+    name: MClassMemberName,
     l_paren_token: SyntaxToken,
     parameter: AnyMFormalParameter,
     r_paren_token: SyntaxToken,

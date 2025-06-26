@@ -170,3 +170,33 @@ x1 = x2 = x3 = x4 = 0;
 "#
     );
 }
+
+#[test]
+fn format_class() {
+    assert_fmt!(
+        r#"#
+class foo
+{
+   constructor()
+   {
+      this._bar = null;
+   }
+
+   get bar()
+   {
+      return this._bar;
+   }
+
+   set bar(_val)
+   {
+      this._bar = _val;
+   }
+
+   compute()
+   {
+      return std.math.pow(this._bar, 2);
+   }
+}
+"#
+    );
+}

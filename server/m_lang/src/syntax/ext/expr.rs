@@ -1,12 +1,11 @@
 //! Extensions for things which are not easily generated in ast expr nodes
 use crate::syntax::static_value::StaticValue;
 use crate::syntax::{
-    inner_string_text, AnyMClassMemberName, AnyMExpression, AnyMLiteralExpression,
-    AnyMObjectMemberName, MArrayExpression, MArrayHole, MBinaryExpression,
-    MComputedMemberAssignment, MComputedMemberExpression, MLogicalExpression,
-    MLongStringLiteralExpression, MObjectExpression, MPostUpdateExpression, MPreUpdateExpression,
-    MReferenceIdentifier, MStringLiteralExpression, MSyntaxToken, MUnaryExpression,
-    OperatorPrecedence, T,
+    inner_string_text, AnyMExpression, AnyMLiteralExpression, AnyMObjectMemberName,
+    MArrayExpression, MArrayHole, MBinaryExpression, MComputedMemberAssignment,
+    MComputedMemberExpression, MLogicalExpression, MLongStringLiteralExpression, MObjectExpression,
+    MPostUpdateExpression, MPreUpdateExpression, MReferenceIdentifier, MStringLiteralExpression,
+    MSyntaxToken, MUnaryExpression, OperatorPrecedence, T,
 };
 use biome_rowan::{declare_node_union, AstSeparatedList, SyntaxResult, TokenText};
 use core::iter;
@@ -547,35 +546,5 @@ impl AnyMObjectMemberName {
             AnyMObjectMemberName::MLiteralMemberName(expr) => expr.value().ok()?,
         };
         Some(inner_string_text(&token))
-    }
-}
-
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub enum ClassMemberName {
-    Public(TokenText),
-}
-impl ClassMemberName {
-    pub fn text(&self) -> &str {
-        match self {
-            Self::Public(name) => name.text(),
-        }
-    }
-}
-
-impl AnyMClassMemberName {
-    /// Returns the member name of the current node
-    /// if it is a literal, a computed
-    pub fn name(&self) -> Option<ClassMemberName> {
-        let token = match self {
-            AnyMClassMemberName::MComputedMemberName(expr) => {
-                let expr = expr.expression().ok()?;
-                match expr.omit_parentheses() {
-                    AnyMExpression::AnyMLiteralExpression(expr) => expr.value_token().ok()?,
-                    _ => return None,
-                }
-            }
-            AnyMClassMemberName::MLiteralMemberName(expr) => expr.value().ok()?,
-        };
-        Some(ClassMemberName::Public(inner_string_text(&token)))
     }
 }
