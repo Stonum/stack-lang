@@ -2,32 +2,23 @@ use super::FormatLiteralStringToken;
 use super::StringLiteralParentKind;
 
 use crate::formatter::prelude::*;
+use crate::syntax::AnyMObjectMemberName;
 use crate::syntax::MSyntaxKind::M_STRING_LITERAL;
-use crate::syntax::{AnyMClassMemberName, AnyMObjectMemberName};
 use biome_formatter::write;
-use biome_rowan::{declare_node_union, AstNode};
+use biome_rowan::AstNode;
 
-declare_node_union! {
-    pub(crate) AnyMMemberName = AnyMObjectMemberName | AnyMClassMemberName
-}
-
-impl Format<MFormatContext> for AnyMMemberName {
+impl Format<MFormatContext> for AnyMObjectMemberName {
     fn fmt(&self, f: &mut Formatter<MFormatContext>) -> FormatResult<()> {
-        match self {
-            Self::AnyMObjectMemberName(name) => name.format().fmt(f),
-            Self::AnyMClassMemberName(name) => name.format().fmt(f),
-        }
+        self.format().fmt(f)
     }
 }
 
-pub(crate) fn write_member_name(name: &AnyMMemberName, f: &mut MFormatter) -> FormatResult<usize> {
+pub(crate) fn write_member_name(
+    name: &AnyMObjectMemberName,
+    f: &mut MFormatter,
+) -> FormatResult<usize> {
     match name {
-        name @ (AnyMMemberName::AnyMClassMemberName(AnyMClassMemberName::MLiteralMemberName(
-            literal,
-        ))
-        | AnyMMemberName::AnyMObjectMemberName(AnyMObjectMemberName::MLiteralMemberName(
-            literal,
-        ))) => {
+        AnyMObjectMemberName::MLiteralMemberName(literal) => {
             let value = literal.value()?;
 
             if value.kind() == M_STRING_LITERAL {

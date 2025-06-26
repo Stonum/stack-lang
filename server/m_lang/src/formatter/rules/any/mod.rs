@@ -5,7 +5,6 @@ pub(crate) mod assignment;
 pub(crate) mod binding;
 pub(crate) mod call_argument;
 pub(crate) mod class_member;
-pub(crate) mod class_member_name;
 pub(crate) mod constructor_parameter;
 pub(crate) mod declaration;
 pub(crate) mod declaration_clause;

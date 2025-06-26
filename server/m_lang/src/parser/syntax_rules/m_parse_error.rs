@@ -12,7 +12,7 @@ pub fn expected_function_body(p: &MParser, range: TextRange) -> ParseDiagnostic 
 }
 
 pub fn expected_class_member_name(p: &MParser, range: TextRange) -> ParseDiagnostic {
-    expected_any(&["identifier", "string literal"], range, p)
+    expected_any(&["identifier"], range, p)
 }
 
 pub fn expected_object_member(p: &MParser, range: TextRange) -> ParseDiagnostic {

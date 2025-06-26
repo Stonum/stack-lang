@@ -14,9 +14,6 @@ use super::function::{
 };
 use super::m_parse_error;
 
-use super::object::{
-    is_at_literal_member_name, parse_computed_member_name, parse_literal_member_name,
-};
 use super::state::{EnterParameters, SignatureFlags};
 use super::stmt::StatementContext;
 
@@ -258,10 +255,6 @@ fn parse_class_member_impl(p: &mut MParser, member_marker: Marker) -> ParsedSynt
     // test getter_class_member
     // class Getters {
     //   get foo() {}
-    //   get static() {}
-    //   get "baz"() {}
-    //   get ["a" + "b"]() {}
-    //   get 5() {}
     // }
     //
     // test_err method_getter_err
@@ -274,18 +267,13 @@ fn parse_class_member_impl(p: &mut MParser, member_marker: Marker) -> ParsedSynt
     // class Setters {
     //   set foo(a) {}
     //   set bax(a,) {}
-    //   set static(a) {}
-    //   set "baz"(a) {}
-    //   set ["a" + "b"](a) {}
-    //   set 5(a) {}
-    //   set 6(a,) {}
     // }
     //
     // test_err setter_class_member
     // class Setters {
     //   set foo() {}
     // }
-    if matches!(p.cur(), T![get] | T![set]) && is_at_class_member_name(p, 1) {
+    if matches!(p.cur(), T![get] | T![set]) {
         let is_getter = p.at(T![get]);
         if is_getter {
             p.expect(T![get]);
@@ -340,20 +328,12 @@ fn parse_class_member_impl(p: &mut MParser, member_marker: Marker) -> ParsedSynt
         //     this.a = a;
         //   }
         // }
-        // class Bar {
-        //   "constructor"(b) {
-        //     this.b = b;
-        //   }
-        // }
         return if is_constructor {
             Present(parse_constructor_class_member_body(p, member_marker))
         } else {
             // test method_class_member
             // class Test {
             //   method() {}
-            //   "foo"() {}
-            //   ["foo" + "bar"]() {}
-            //   5() {}
             // }
             Present(parse_method_class_member_rest(
                 p,
@@ -508,26 +488,28 @@ fn parse_constructor_parameter(p: &mut MParser, context: ExpressionContext) -> P
     parse_any_parameter(p, context)
 }
 
-fn is_at_class_member_name(p: &mut MParser, offset: usize) -> bool {
-    matches!(p.nth(offset), T!['[']) || is_at_literal_member_name(p, offset)
-}
-
-/// Parses a `AnyMClassMemberName` and returns its completion marker
+/// Parses a `MClassMemberName` and returns its completion marker
 fn parse_class_member_name(p: &mut MParser) -> ParsedSyntax {
+    let m = p.start();
     match p.cur() {
-        T!['['] => parse_computed_member_name(p),
-        _ => parse_literal_member_name(p),
+        T![ident] => {
+            p.bump_any();
+        }
+        T![constructor] => {
+            p.bump_remap(T![ident]);
+        }
+        _ => {
+            m.abandon(p);
+            return Absent;
+        }
     }
+    Present(m.complete(p, M_CLASS_MEMBER_NAME))
 }
 
-fn is_at_method_class_member(p: &mut MParser, mut offset: usize) -> bool {
-    if p.nth_at(offset, T![?]) {
-        offset += 1;
-    }
-
-    p.nth_at(offset, T!['(']) || p.nth_at(offset, T![<])
+fn is_at_method_class_member(p: &mut MParser, offset: usize) -> bool {
+    p.nth_at(offset, T!['('])
 }
 
 fn is_at_constructor(p: &MParser) -> bool {
-    p.at(T![constructor]) || matches!(p.cur_text(), "\"constructor\"" | "'constructor'")
+    p.at(T![constructor])
 }

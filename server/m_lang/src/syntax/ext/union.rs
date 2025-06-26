@@ -1,8 +1,8 @@
 use crate::{
     factory::make::m_parameter_list,
     syntax::{
-        AnyMClassMember, AnyMClassMemberName, AnyMFunction, AnyMFunctionBinding, AnyMFunctionBody,
-        AnyMParameter, AnyMParameterList, AnyMStringLiteralExpression, MLanguage, MParameters,
+        AnyMClassMember, AnyMFunction, AnyMFunctionBinding, AnyMFunctionBody, AnyMParameter,
+        AnyMParameterList, AnyMStringLiteralExpression, MClassMemberName, MLanguage, MParameters,
         MSyntaxToken,
     },
 };
@@ -10,11 +10,9 @@ use biome_rowan::{syntax::SyntaxTrivia, AstNode, SyntaxResult};
 
 impl AnyMClassMember {
     /// Returns the `name` of the member if it has any.
-    pub fn name(&self) -> SyntaxResult<Option<AnyMClassMemberName>> {
+    pub fn name(&self) -> SyntaxResult<Option<MClassMemberName>> {
         match self {
-            AnyMClassMember::MConstructorClassMember(constructor) => constructor
-                .name()
-                .map(|name| Some(AnyMClassMemberName::from(name))),
+            AnyMClassMember::MConstructorClassMember(constructor) => constructor.name().map(Some),
             AnyMClassMember::MGetterClassMember(getter) => getter.name().map(Some),
             AnyMClassMember::MMethodClassMember(method) => method.name().map(Some),
             AnyMClassMember::MSetterClassMember(setter) => setter.name().map(Some),
@@ -59,12 +57,6 @@ impl AnyMClassMember {
             AnyMClassMember::MSetterClassMember(setter) => setter.doc_string(),
             AnyMClassMember::MBogusMember(_) => None,
         }
-    }
-}
-
-impl AnyMClassMemberName {
-    pub const fn is_computed(&self) -> bool {
-        matches!(self, AnyMClassMemberName::MComputedMemberName(_))
     }
 }
 

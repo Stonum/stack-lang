@@ -497,9 +497,7 @@ MExtendsClause =
 	super_class: AnyMExpression
 
 
-AnyMClassMemberName =
-	MLiteralMemberName
-	| MComputedMemberName
+MClassMemberName = value: 'ident'
 
 AnyMClassMember =
 	MConstructorClassMember
@@ -509,14 +507,9 @@ AnyMClassMember =
 	| MBogusMember
 
 // class Test { constructor() {} }
-//              ^^^^^^^^^^^^^^^^
-// class Test { "constructor"() {} }
-//              ^^^^^^^^^^^^^^^^^^
-// class Test { 'constructor'() {} }
-//              ^^^^^^^^^^^^^^^^^^
 MConstructorClassMember =
    annotation: MAnnotationGroupList
-	name: MLiteralMemberName
+	name: MClassMemberName
 	parameters: MConstructorParameters
    doc_string: AnyMStringLiteralExpression?
 	body: MFunctionBody
@@ -538,7 +531,7 @@ AnyMConstructorParameter =
 //              ^^^^^^
 MMethodClassMember =
    annotation: MAnnotationGroupList
-	name: AnyMClassMemberName
+	name: MClassMemberName
 	parameters: MParameters
    doc_string: AnyMStringLiteralExpression?
 	body: MFunctionBody
@@ -548,7 +541,7 @@ MMethodClassMember =
 MGetterClassMember =
    annotation: MAnnotationGroupList
 	'get'
-	name: AnyMClassMemberName
+	name: MClassMemberName
 	'(' ')'
    doc_string: AnyMStringLiteralExpression?
 	body: MFunctionBody
@@ -559,7 +552,7 @@ MGetterClassMember =
 MSetterClassMember =
    annotation: MAnnotationGroupList
 	'set'
-	name: AnyMClassMemberName
+	name: MClassMemberName
 	'('
 	parameter: AnyMFormalParameter','?
 	')'

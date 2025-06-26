@@ -506,3 +506,39 @@ fn test_parse_report_with_bogus() {
     );
     assert!(res.has_errors());
 }
+
+#[test]
+fn test_err_computed_class_member_name() {
+    let res = parse(
+        r#"
+            class foo {
+                "bar"() {}
+            }
+        "#,
+        MFileSource::module(),
+    );
+
+    assert!(res.has_errors());
+
+    let res = parse(
+        r#"
+            class foo {
+                set "bar"(x) {}
+            }
+        "#,
+        MFileSource::module(),
+    );
+
+    assert!(res.has_errors());
+
+    let res = parse(
+        r#"
+            class foo {
+                get 1() {}
+            }
+        "#,
+        MFileSource::module(),
+    );
+
+    assert!(res.has_errors());
+}
