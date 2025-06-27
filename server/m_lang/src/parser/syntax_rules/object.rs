@@ -247,13 +247,6 @@ pub fn parse_computed_member_name(p: &mut MParser) -> ParsedSyntax {
     Present(m.complete(p, M_COMPUTED_MEMBER_NAME))
 }
 
-pub(crate) fn is_at_literal_member_name(p: &mut MParser, offset: usize) -> bool {
-    matches!(
-        p.nth(offset),
-        M_STRING_LITERAL | M_NUMBER_LITERAL | T![ident]
-    ) || p.nth(offset).is_keyword()
-}
-
 pub(crate) fn parse_literal_member_name(p: &mut MParser) -> ParsedSyntax {
     let m = p.start();
     match p.cur() {

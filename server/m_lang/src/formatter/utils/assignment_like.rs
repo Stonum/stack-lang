@@ -4,8 +4,7 @@ use super::{FormatLiteralStringToken, StringLiteralParentKind};
 use crate::formatter::prelude::*;
 use crate::syntax::binary_like_expression::AnyMBinaryLikeExpression;
 use crate::syntax::{
-    AnyMAssignment, AnyMBinding, AnyMCallArgument, AnyMClassMemberName, AnyMExpression,
-    AnyMObjectMemberName, MAssignmentExpression, MInitializerClause, MLiteralMemberName,
+    AnyMAssignment, AnyMCallArgument, AnyMExpression, MAssignmentExpression, MInitializerClause,
     MPropertyObjectMember, MSyntaxKind, MVariableDeclarator,
 };
 use crate::syntax::{AnyMLiteralExpression, MUnaryExpression};
@@ -18,15 +17,6 @@ declare_node_union! {
         MPropertyObjectMember |
         MAssignmentExpression |
         MVariableDeclarator
-}
-
-declare_node_union! {
-    pub(crate) LeftAssignmentLike =
-        AnyMAssignment |
-        AnyMObjectMemberName |
-        AnyMBinding |
-        MLiteralMemberName |
-        AnyMClassMemberName
 }
 
 declare_node_union! {
@@ -493,9 +483,8 @@ pub(crate) fn should_break_after_operator(
         AnyMExpression::MSequenceExpression(_) => true,
 
         AnyMExpression::MConditionalExpression(conditional) => {
-            AnyMBinaryLikeExpression::cast(conditional.test()?.into_syntax()).is_some_and(|expression| {
-                    !expression.should_inline_logical_expression()
-                })
+            AnyMBinaryLikeExpression::cast(conditional.test()?.into_syntax())
+                .is_some_and(|expression| !expression.should_inline_logical_expression())
         }
 
         _ => {

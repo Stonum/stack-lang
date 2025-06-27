@@ -785,6 +785,41 @@ pub struct MClassDeclarationFields {
     pub r_curly_token: SyntaxResult<SyntaxToken>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
+pub struct MClassMemberName {
+    pub(crate) syntax: SyntaxNode,
+}
+impl MClassMemberName {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> MClassMemberNameFields {
+        MClassMemberNameFields {
+            value_token: self.value_token(),
+        }
+    }
+    pub fn value_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 0usize)
+    }
+}
+impl Serialize for MClassMemberName {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct MClassMemberNameFields {
+    pub value_token: SyntaxResult<SyntaxToken>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MComputedMemberAssignment {
     pub(crate) syntax: SyntaxNode,
 }
@@ -1050,7 +1085,7 @@ impl MConstructorClassMember {
     pub fn annotation(&self) -> MAnnotationGroupList {
         support::list(&self.syntax, 0usize)
     }
-    pub fn name(&self) -> SyntaxResult<MLiteralMemberName> {
+    pub fn name(&self) -> SyntaxResult<MClassMemberName> {
         support::required_node(&self.syntax, 1usize)
     }
     pub fn parameters(&self) -> SyntaxResult<MConstructorParameters> {
@@ -1074,7 +1109,7 @@ impl Serialize for MConstructorClassMember {
 #[derive(Serialize)]
 pub struct MConstructorClassMemberFields {
     pub annotation: MAnnotationGroupList,
-    pub name: SyntaxResult<MLiteralMemberName>,
+    pub name: SyntaxResult<MClassMemberName>,
     pub parameters: SyntaxResult<MConstructorParameters>,
     pub doc_string: Option<AnyMStringLiteralExpression>,
     pub body: SyntaxResult<MFunctionBody>,
@@ -2126,7 +2161,7 @@ impl MGetterClassMember {
     pub fn get_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 1usize)
     }
-    pub fn name(&self) -> SyntaxResult<AnyMClassMemberName> {
+    pub fn name(&self) -> SyntaxResult<MClassMemberName> {
         support::required_node(&self.syntax, 2usize)
     }
     pub fn l_paren_token(&self) -> SyntaxResult<SyntaxToken> {
@@ -2154,7 +2189,7 @@ impl Serialize for MGetterClassMember {
 pub struct MGetterClassMemberFields {
     pub annotation: MAnnotationGroupList,
     pub get_token: SyntaxResult<SyntaxToken>,
-    pub name: SyntaxResult<AnyMClassMemberName>,
+    pub name: SyntaxResult<MClassMemberName>,
     pub l_paren_token: SyntaxResult<SyntaxToken>,
     pub r_paren_token: SyntaxResult<SyntaxToken>,
     pub doc_string: Option<AnyMStringLiteralExpression>,
@@ -2649,7 +2684,7 @@ impl MMethodClassMember {
     pub fn annotation(&self) -> MAnnotationGroupList {
         support::list(&self.syntax, 0usize)
     }
-    pub fn name(&self) -> SyntaxResult<AnyMClassMemberName> {
+    pub fn name(&self) -> SyntaxResult<MClassMemberName> {
         support::required_node(&self.syntax, 1usize)
     }
     pub fn parameters(&self) -> SyntaxResult<MParameters> {
@@ -2673,7 +2708,7 @@ impl Serialize for MMethodClassMember {
 #[derive(Serialize)]
 pub struct MMethodClassMemberFields {
     pub annotation: MAnnotationGroupList,
-    pub name: SyntaxResult<AnyMClassMemberName>,
+    pub name: SyntaxResult<MClassMemberName>,
     pub parameters: SyntaxResult<MParameters>,
     pub doc_string: Option<AnyMStringLiteralExpression>,
     pub body: SyntaxResult<MFunctionBody>,
@@ -3631,7 +3666,7 @@ impl MSetterClassMember {
     pub fn set_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 1usize)
     }
-    pub fn name(&self) -> SyntaxResult<AnyMClassMemberName> {
+    pub fn name(&self) -> SyntaxResult<MClassMemberName> {
         support::required_node(&self.syntax, 2usize)
     }
     pub fn l_paren_token(&self) -> SyntaxResult<SyntaxToken> {
@@ -3665,7 +3700,7 @@ impl Serialize for MSetterClassMember {
 pub struct MSetterClassMemberFields {
     pub annotation: MAnnotationGroupList,
     pub set_token: SyntaxResult<SyntaxToken>,
-    pub name: SyntaxResult<AnyMClassMemberName>,
+    pub name: SyntaxResult<MClassMemberName>,
     pub l_paren_token: SyntaxResult<SyntaxToken>,
     pub parameter: SyntaxResult<AnyMFormalParameter>,
     pub comma_token: Option<SyntaxToken>,
@@ -4595,25 +4630,6 @@ impl AnyMClassMember {
     pub fn as_m_setter_class_member(&self) -> Option<&MSetterClassMember> {
         match &self {
             AnyMClassMember::MSetterClassMember(item) => Some(item),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, PartialEq, Eq, Hash, Serialize)]
-pub enum AnyMClassMemberName {
-    MComputedMemberName(MComputedMemberName),
-    MLiteralMemberName(MLiteralMemberName),
-}
-impl AnyMClassMemberName {
-    pub fn as_m_computed_member_name(&self) -> Option<&MComputedMemberName> {
-        match &self {
-            AnyMClassMemberName::MComputedMemberName(item) => Some(item),
-            _ => None,
-        }
-    }
-    pub fn as_m_literal_member_name(&self) -> Option<&MLiteralMemberName> {
-        match &self {
-            AnyMClassMemberName::MLiteralMemberName(item) => Some(item),
             _ => None,
         }
     }
@@ -6085,6 +6101,56 @@ impl From<MClassDeclaration> for SyntaxNode {
 }
 impl From<MClassDeclaration> for SyntaxElement {
     fn from(n: MClassDeclaration) -> SyntaxElement {
+        n.syntax.into()
+    }
+}
+impl AstNode for MClassMemberName {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_CLASS_MEMBER_NAME as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_CLASS_MEMBER_NAME
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for MClassMemberName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        thread_local! { static DEPTH : std :: cell :: Cell < u8 > = const { std :: cell :: Cell :: new (0) } };
+        let current_depth = DEPTH.get();
+        let result = if current_depth < 16 {
+            DEPTH.set(current_depth + 1);
+            f.debug_struct("MClassMemberName")
+                .field(
+                    "value_token",
+                    &support::DebugSyntaxResult(self.value_token()),
+                )
+                .finish()
+        } else {
+            f.debug_struct("MClassMemberName").finish()
+        };
+        DEPTH.set(current_depth);
+        result
+    }
+}
+impl From<MClassMemberName> for SyntaxNode {
+    fn from(n: MClassMemberName) -> Self {
+        n.syntax
+    }
+}
+impl From<MClassMemberName> for SyntaxElement {
+    fn from(n: MClassMemberName) -> Self {
         n.syntax.into()
     }
 }
@@ -10216,70 +10282,6 @@ impl From<AnyMClassMember> for SyntaxElement {
         node.into()
     }
 }
-impl From<MComputedMemberName> for AnyMClassMemberName {
-    fn from(node: MComputedMemberName) -> AnyMClassMemberName {
-        AnyMClassMemberName::MComputedMemberName(node)
-    }
-}
-impl From<MLiteralMemberName> for AnyMClassMemberName {
-    fn from(node: MLiteralMemberName) -> AnyMClassMemberName {
-        AnyMClassMemberName::MLiteralMemberName(node)
-    }
-}
-impl AstNode for AnyMClassMemberName {
-    type Language = Language;
-    const KIND_SET: SyntaxKindSet<Language> =
-        MComputedMemberName::KIND_SET.union(MLiteralMemberName::KIND_SET);
-    fn can_cast(kind: SyntaxKind) -> bool {
-        matches!(kind, M_COMPUTED_MEMBER_NAME | M_LITERAL_MEMBER_NAME)
-    }
-    fn cast(syntax: SyntaxNode) -> Option<Self> {
-        let res = match syntax.kind() {
-            M_COMPUTED_MEMBER_NAME => {
-                AnyMClassMemberName::MComputedMemberName(MComputedMemberName { syntax })
-            }
-            M_LITERAL_MEMBER_NAME => {
-                AnyMClassMemberName::MLiteralMemberName(MLiteralMemberName { syntax })
-            }
-            _ => return None,
-        };
-        Some(res)
-    }
-    fn syntax(&self) -> &SyntaxNode {
-        match self {
-            AnyMClassMemberName::MComputedMemberName(it) => &it.syntax,
-            AnyMClassMemberName::MLiteralMemberName(it) => &it.syntax,
-        }
-    }
-    fn into_syntax(self) -> SyntaxNode {
-        match self {
-            AnyMClassMemberName::MComputedMemberName(it) => it.syntax,
-            AnyMClassMemberName::MLiteralMemberName(it) => it.syntax,
-        }
-    }
-}
-impl std::fmt::Debug for AnyMClassMemberName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AnyMClassMemberName::MComputedMemberName(it) => std::fmt::Debug::fmt(it, f),
-            AnyMClassMemberName::MLiteralMemberName(it) => std::fmt::Debug::fmt(it, f),
-        }
-    }
-}
-impl From<AnyMClassMemberName> for SyntaxNode {
-    fn from(n: AnyMClassMemberName) -> SyntaxNode {
-        match n {
-            AnyMClassMemberName::MComputedMemberName(it) => it.into(),
-            AnyMClassMemberName::MLiteralMemberName(it) => it.into(),
-        }
-    }
-}
-impl From<AnyMClassMemberName> for SyntaxElement {
-    fn from(n: AnyMClassMemberName) -> SyntaxElement {
-        let node: SyntaxNode = n.into();
-        node.into()
-    }
-}
 impl From<MRestParameter> for AnyMConstructorParameter {
     fn from(node: MRestParameter) -> AnyMConstructorParameter {
         AnyMConstructorParameter::MRestParameter(node)
@@ -12170,11 +12172,6 @@ impl std::fmt::Display for AnyMClassMember {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
-impl std::fmt::Display for AnyMClassMemberName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(self.syntax(), f)
-    }
-}
 impl std::fmt::Display for AnyMConstructorParameter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
@@ -12346,6 +12343,11 @@ impl std::fmt::Display for MCatchDeclaration {
     }
 }
 impl std::fmt::Display for MClassDeclaration {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for MClassMemberName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

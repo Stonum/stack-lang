@@ -251,6 +251,14 @@ impl MClassDeclaration {
         )
     }
 }
+impl MClassMemberName {
+    pub fn with_value_token(self, element: SyntaxToken) -> Self {
+        Self::unwrap_cast(
+            self.syntax
+                .splice_slots(0usize..=0usize, once(Some(element.into()))),
+        )
+    }
+}
 impl MComputedMemberAssignment {
     pub fn with_object(self, element: AnyMExpression) -> Self {
         Self::unwrap_cast(
@@ -356,7 +364,7 @@ impl MConditionalExpression {
     }
 }
 impl MConstructorClassMember {
-    pub fn with_name(self, element: MLiteralMemberName) -> Self {
+    pub fn with_name(self, element: MClassMemberName) -> Self {
         Self::unwrap_cast(
             self.syntax
                 .splice_slots(0usize..=0usize, once(Some(element.into_syntax().into()))),
@@ -806,7 +814,7 @@ impl MGetterClassMember {
                 .splice_slots(0usize..=0usize, once(Some(element.into()))),
         )
     }
-    pub fn with_name(self, element: AnyMClassMemberName) -> Self {
+    pub fn with_name(self, element: MClassMemberName) -> Self {
         Self::unwrap_cast(
             self.syntax
                 .splice_slots(1usize..=1usize, once(Some(element.into_syntax().into()))),
@@ -990,7 +998,7 @@ impl MLongStringLiteralExpression {
     }
 }
 impl MMethodClassMember {
-    pub fn with_name(self, element: AnyMClassMemberName) -> Self {
+    pub fn with_name(self, element: MClassMemberName) -> Self {
         Self::unwrap_cast(
             self.syntax
                 .splice_slots(0usize..=0usize, once(Some(element.into_syntax().into()))),
@@ -1358,7 +1366,7 @@ impl MSetterClassMember {
                 .splice_slots(0usize..=0usize, once(Some(element.into()))),
         )
     }
-    pub fn with_name(self, element: AnyMClassMemberName) -> Self {
+    pub fn with_name(self, element: MClassMemberName) -> Self {
         Self::unwrap_cast(
             self.syntax
                 .splice_slots(1usize..=1usize, once(Some(element.into_syntax().into()))),

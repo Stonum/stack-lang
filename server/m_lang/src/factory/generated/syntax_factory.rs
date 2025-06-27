@@ -598,6 +598,25 @@ impl SyntaxFactory for MSyntaxFactory {
                 }
                 slots.into_node(M_CLASS_DECLARATION, children)
             }
+            M_CLASS_MEMBER_NAME => {
+                let mut elements = (&children).into_iter();
+                let mut slots: RawNodeSlots<1usize> = RawNodeSlots::default();
+                let mut current_element = elements.next();
+                if let Some(element) = &current_element {
+                    if element.kind() == IDENT {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if current_element.is_some() {
+                    return RawSyntaxNode::new(
+                        M_CLASS_MEMBER_NAME.to_bogus(),
+                        children.into_iter().map(Some),
+                    );
+                }
+                slots.into_node(M_CLASS_MEMBER_NAME, children)
+            }
             M_COMPUTED_MEMBER_ASSIGNMENT => {
                 let mut elements = (&children).into_iter();
                 let mut slots: RawNodeSlots<4usize> = RawNodeSlots::default();
@@ -796,7 +815,7 @@ impl SyntaxFactory for MSyntaxFactory {
                 }
                 slots.next_slot();
                 if let Some(element) = &current_element {
-                    if MLiteralMemberName::can_cast(element.kind()) {
+                    if MClassMemberName::can_cast(element.kind()) {
                         slots.mark_present();
                         current_element = elements.next();
                     }
@@ -1604,7 +1623,7 @@ impl SyntaxFactory for MSyntaxFactory {
                 }
                 slots.next_slot();
                 if let Some(element) = &current_element {
-                    if AnyMClassMemberName::can_cast(element.kind()) {
+                    if MClassMemberName::can_cast(element.kind()) {
                         slots.mark_present();
                         current_element = elements.next();
                     }
@@ -2001,7 +2020,7 @@ impl SyntaxFactory for MSyntaxFactory {
                 }
                 slots.next_slot();
                 if let Some(element) = &current_element {
-                    if AnyMClassMemberName::can_cast(element.kind()) {
+                    if MClassMemberName::can_cast(element.kind()) {
                         slots.mark_present();
                         current_element = elements.next();
                     }
@@ -2671,7 +2690,7 @@ impl SyntaxFactory for MSyntaxFactory {
                 }
                 slots.next_slot();
                 if let Some(element) = &current_element {
-                    if AnyMClassMemberName::can_cast(element.kind()) {
+                    if MClassMemberName::can_cast(element.kind()) {
                         slots.mark_present();
                         current_element = elements.next();
                     }

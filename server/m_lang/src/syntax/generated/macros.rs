@@ -92,6 +92,10 @@ macro_rules! map_syntax_node {
                         unsafe { $crate::syntax::MClassDeclaration::new_unchecked(node) };
                     $body
                 }
+                $crate::syntax::MSyntaxKind::M_CLASS_MEMBER_NAME => {
+                    let $pattern = unsafe { $crate::syntax::MClassMemberName::new_unchecked(node) };
+                    $body
+                }
                 $crate::syntax::MSyntaxKind::M_COMPUTED_MEMBER_ASSIGNMENT => {
                     let $pattern =
                         unsafe { $crate::syntax::MComputedMemberAssignment::new_unchecked(node) };
