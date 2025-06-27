@@ -497,7 +497,8 @@ fn binary_like_needs_parens(node: &MSyntaxNode) -> bool {
 
                     // Add parentheses around bitwise and bit and, or and xor operators
                     // `a * 3 & 5` -> `(a * 3) & 5`
-                    if parent_precedence.is_bitwise() {
+                    // `a & 5 == 0` -> `a & 5 == 0` - don't insert parentheses
+                    if parent_precedence.is_bitwise() && !precedence.is_equality() {
                         return true;
                     }
 
