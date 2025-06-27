@@ -1,6 +1,14 @@
 **Changelog**
 ===============
 
+**v0.2.5 - 2025-06-27**
+------------------------------------
+* **Added**:
+   + class information for class member definition
+* **Fixed**: 
+   + insertion of  parentheses when formatting. for example `x & 2 == 0`
+
+
 **v0.2.4 - 2025-06-18**
 ------------------------------------
 * **Added**:
