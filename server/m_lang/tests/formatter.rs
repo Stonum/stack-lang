@@ -200,3 +200,13 @@ class foo
 "#
     );
 }
+
+#[test]
+fn format_bit_operations() {
+    assert_fmt!(
+        r#"#
+x & 4 == 0;
+(a * 3) & 5;
+"#
+    );
+}
