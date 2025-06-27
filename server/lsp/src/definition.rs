@@ -68,6 +68,11 @@ where
                             .filter(|d| d.id().eq_ignore_ascii_case(identifier))
                             .map(|d| convert_to_lsp(d as &dyn Definition, &doc))
                             .collect::<Vec<_>>();
+
+                        if methods.len() > 0 {
+                            definitions.push(convert_to_lsp(c as &dyn Definition, &doc));
+                        }
+
                         definitions.append(&mut methods);
                     }
                 }
@@ -96,6 +101,10 @@ where
                                 .filter(|d| d.id().eq_ignore_ascii_case(identifier))
                                 .map(|d| convert_to_lsp(d as &dyn Definition, &doc))
                                 .collect::<Vec<_>>();
+
+                            if methods.len() > 0 {
+                                definitions.push(convert_to_lsp(class as &dyn Definition, &doc));
+                            }
 
                             definitions.append(&mut methods);
                             if let Some(super_class) = class.extends() {

@@ -2,8 +2,8 @@ use biome_rowan::syntax::SyntaxTrivia;
 use biome_rowan::{AstNode, AstNodeList, SyntaxNode, TextRange, TriviaPieceKind, WalkEvent};
 
 use crate::syntax::{
-    MClassDeclaration, MFileSource, MFunctionDeclaration, MLanguage, MReport, MSyntaxNode,
-    ModuleKind,
+    AnyMClassMember, MClassDeclaration, MFileSource, MFunctionDeclaration, MLanguage, MReport,
+    MSyntaxNode, ModuleKind,
 };
 
 pub fn semantics(root: SyntaxNode<MLanguage>, source: MFileSource) -> SemanticModel {
@@ -75,6 +75,7 @@ impl AnyMDefinition {
 
 pub trait Definition {
     fn range(&self) -> TextRange;
+    fn type_keyword(&self) -> &'static str;
     fn id(&self) -> String;
     fn params(&self) -> String;
     fn description(&self) -> Option<String>;
@@ -82,7 +83,8 @@ pub trait Definition {
 
     fn to_markdown(&self) -> String {
         format!(
-            "```{}{}```\n{}\n{}",
+            "```{} {}{}```\n{}\n{}",
+            self.type_keyword(),
             self.id(),
             self.params(),
             self.description()
@@ -102,6 +104,13 @@ impl Definition for AnyMDefinition {
             AnyMDefinition::MFunctionDefinition(def) => def.range(),
             AnyMDefinition::MClassDefinition(def) => def.range(),
             AnyMDefinition::MReportDefinition(def) => def.range(),
+        }
+    }
+    fn type_keyword(&self) -> &'static str {
+        match self {
+            AnyMDefinition::MFunctionDefinition(def) => def.type_keyword(),
+            AnyMDefinition::MClassDefinition(def) => def.type_keyword(),
+            AnyMDefinition::MReportDefinition(def) => def.type_keyword(),
         }
     }
     fn id(&self) -> String {
@@ -146,6 +155,9 @@ impl Definition for MFunctionDefinition {
     fn range(&self) -> TextRange {
         self.range
     }
+    fn type_keyword(&self) -> &'static str {
+        "function"
+    }
     fn id(&self) -> String {
         self.id.clone()
     }
@@ -183,6 +195,9 @@ impl Definition for MClassDefinition {
     fn range(&self) -> TextRange {
         self.range
     }
+    fn type_keyword(&self) -> &'static str {
+        "class"
+    }
     fn id(&self) -> String {
         self.id.clone()
     }
@@ -204,11 +219,28 @@ pub struct MClassMethodDefinition {
     description: Option<String>,
     doc_string: Option<String>,
     range: TextRange,
+    m_type: MClassMethodType,
+}
+
+#[derive(Debug, Default, Eq, PartialEq, Copy, Clone)]
+enum MClassMethodType {
+    Constructor,
+    Getter,
+    Setter,
+    #[default]
+    Method,
 }
 
 impl Definition for MClassMethodDefinition {
     fn range(&self) -> TextRange {
         self.range
+    }
+    fn type_keyword(&self) -> &'static str {
+        match self.m_type {
+            MClassMethodType::Getter => "get",
+            MClassMethodType::Setter => "set",
+            _ => "",
+        }
     }
     fn id(&self) -> String {
         self.id.clone()
@@ -242,6 +274,10 @@ impl Definition for MReportDefinition {
         self.range
     }
 
+    fn type_keyword(&self) -> &'static str {
+        "report"
+    }
+
     fn id(&self) -> String {
         self.id.clone()
     }
@@ -268,6 +304,10 @@ pub struct MReportSectionDefiniton {
 impl Definition for MReportSectionDefiniton {
     fn range(&self) -> TextRange {
         self.range
+    }
+
+    fn type_keyword(&self) -> &'static str {
+        "section"
     }
 
     fn id(&self) -> String {
@@ -340,6 +380,14 @@ impl SemanticModel {
                         description: Self::trivia_to_string(member.leading_trivia()),
                         doc_string: member.doc_string().map(|s| s.text()),
                         range: name.range(),
+                        m_type: match member {
+                            AnyMClassMember::MConstructorClassMember(_) => {
+                                MClassMethodType::Constructor
+                            }
+                            AnyMClassMember::MGetterClassMember(_) => MClassMethodType::Getter,
+                            AnyMClassMember::MSetterClassMember(_) => MClassMethodType::Setter,
+                            _ => MClassMethodType::Method,
+                        },
                     };
                     class.methods.push(method_definition);
                 }
@@ -491,6 +539,7 @@ class x extends z {
                         description: None,
                         doc_string: None,
                         range: TextRange::new(176.into(), 187.into()),
+                        m_type: MClassMethodType::Constructor
                     },
                     MClassMethodDefinition {
                         id: String::from("x"),
@@ -498,6 +547,7 @@ class x extends z {
                         description: Some(String::from("\r\n# getter description")),
                         doc_string: None,
                         range: TextRange::new(227.into(), 228.into()),
+                        m_type: MClassMethodType::Getter
                     },
                     MClassMethodDefinition {
                         id: String::from("calc"),
@@ -505,6 +555,7 @@ class x extends z {
                         description: None,
                         doc_string: None,
                         range: TextRange::new(263.into(), 267.into()),
+                        m_type: MClassMethodType::Method
                     }
                 ]
             })
