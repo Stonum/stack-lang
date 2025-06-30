@@ -378,10 +378,10 @@ impl<'src> MLexer<'src> {
     /// ## Safety
     /// Calling this function if the lexer is at or passed the end of file is undefined behaviour.
     #[inline]
-    unsafe fn current_unchecked(&self) -> u8 {
+    unsafe fn current_unchecked(&self) -> u8 { unsafe {
         self.assert_current_char_boundary();
         *self.source.as_bytes().get_unchecked(self.position)
-    }
+    }}
 
     /// Advances the position by one and returns the next byte value
     #[inline]
