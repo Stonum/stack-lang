@@ -1,5 +1,5 @@
 use m_lang::formatter::{
-    format_node, format_range, IndentStyle, IndentWidth, LineWidth, MFormatOptions,
+    IndentStyle, IndentWidth, LineWidth, MFormatOptions, format_node, format_range,
 };
 use m_lang::parser::parse;
 use m_lang::syntax::{MFileSource, TextRange, TextSize};
@@ -207,6 +207,17 @@ fn format_bit_operations() {
         r#"#
 x & 4 == 0;
 (a * 3) & 5;
+"#
+    );
+}
+
+#[test]
+fn format_some_ru_keywords() {
+    assert_fmt!(
+        r#"#
+перем х = нуль;
+Если( истина )
+   х = ложь;
 "#
     );
 }
