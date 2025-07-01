@@ -60,6 +60,7 @@ export async function activate(context: vscode.ExtensionContext) {
    // If the extension is launched in debug mode then the debug server options are used
    // Otherwise the run options are used
    // Options to control the language client
+   const config = vscode.workspace.getConfiguration('stack');
    let clientOptions: LanguageClientOptions = {
       // Register the server for stack text documents
       documentSelector: [{ scheme: "file", language: "stack" }],
@@ -70,6 +71,9 @@ export async function activate(context: vscode.ExtensionContext) {
             workspace.createFileSystemWatcher("**/*.hdl"),
          ],
       },
+      initializationOptions: {
+         lens_enabled: config.get<boolean>('lens.enabled', false)
+      }
    };
 
    // Create the language client and start the client.

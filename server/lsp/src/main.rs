@@ -38,34 +38,46 @@ struct Backend {
 
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
-    async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
+    async fn initialize(&self, params: InitializeParams) -> Result<InitializeResult> {
+        let mut settings = ServerSettings::default();
+
+        // Get initial settings from initialization_options if available
+        if let Some(opts) = params.initialization_options {
+            if let Ok(new_settings) = serde_json::from_value(opts) {
+                settings = new_settings;
+            }
+        }
+
+        let mut capabilities = ServerCapabilities {
+            text_document_sync: Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::FULL)),
+            execute_command_provider: Some(ExecuteCommandOptions {
+                commands: vec!["dummy.do_something".to_string()],
+                work_done_progress_options: Default::default(),
+            }),
+            workspace: Some(WorkspaceServerCapabilities {
+                workspace_folders: Some(WorkspaceFoldersServerCapabilities {
+                    supported: Some(true),
+                    change_notifications: Some(OneOf::Left(true)),
+                }),
+                file_operations: None,
+            }),
+            definition_provider: Some(OneOf::Left(true)),
+            document_symbol_provider: Some(OneOf::Left(true)),
+            hover_provider: Some(HoverProviderCapability::Simple(true)),
+            document_range_formatting_provider: Some(OneOf::Left(true)),
+            ..ServerCapabilities::default()
+        };
+
+        if settings.lens_enabled {
+            capabilities.code_lens_provider = Some(CodeLensOptions {
+                resolve_provider: Some(false),
+            })
+        }
+
         Ok(InitializeResult {
             server_info: None,
             offset_encoding: None,
-            capabilities: ServerCapabilities {
-                text_document_sync: Some(TextDocumentSyncCapability::Kind(
-                    TextDocumentSyncKind::FULL,
-                )),
-                execute_command_provider: Some(ExecuteCommandOptions {
-                    commands: vec!["dummy.do_something".to_string()],
-                    work_done_progress_options: Default::default(),
-                }),
-                workspace: Some(WorkspaceServerCapabilities {
-                    workspace_folders: Some(WorkspaceFoldersServerCapabilities {
-                        supported: Some(true),
-                        change_notifications: Some(OneOf::Left(true)),
-                    }),
-                    file_operations: None,
-                }),
-                definition_provider: Some(OneOf::Left(true)),
-                document_symbol_provider: Some(OneOf::Left(true)),
-                hover_provider: Some(HoverProviderCapability::Simple(true)),
-                document_range_formatting_provider: Some(OneOf::Left(true)),
-                code_lens_provider: Some(CodeLensOptions {
-                    resolve_provider: Some(false),
-                }),
-                ..ServerCapabilities::default()
-            },
+            capabilities,
         })
     }
 
@@ -240,18 +252,6 @@ impl LanguageServer for Backend {
                 _ => {}
             }
         }
-    }
-
-    async fn did_change_configuration(&self, _: DidChangeConfigurationParams) {
-        self.client
-            .log_message(MessageType::INFO, "configuration changed!")
-            .await;
-    }
-
-    async fn did_change_workspace_folders(&self, _: DidChangeWorkspaceFoldersParams) {
-        self.client
-            .log_message(MessageType::INFO, "workspace folders changed!")
-            .await;
     }
 
     async fn goto_definition(
@@ -430,6 +430,11 @@ impl Notification for StatusBarNotification {
     const METHOD: &'static str = "custom/statusBar";
 }
 
+#[derive(Default, Debug, Serialize, Deserialize)]
+struct ServerSettings {
+    lens_enabled: bool,
+}
+
 impl Backend {
     async fn on_change(&self, params: TextDocumentItem) {
         let uri = params.uri;
@@ -505,7 +510,6 @@ async fn main() {
     })
     .finish();
 
-    serde_json::json!({"test": 20});
     Server::new(stdin, stdout, socket).serve(service).await;
 }
 

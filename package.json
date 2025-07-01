@@ -50,7 +50,7 @@
       "commands": [
          {
             "command": "stack.togglePostgreSQL",
-            "title": "Заменяет тильды в запросе и наоборот",
+            "title": "Replaces tildas in the query to schema and backward",
             "category": "stack"
          }
       ],
@@ -64,8 +64,21 @@
       ],
       "configuration": {
          "type": "object",
-         "title": "stack-lang-server",
-         "properties": {}
+         "title": "Stack lang",
+         "properties": {
+            "stack.iniPath": {
+               "title": "Path to INI file",
+               "markdownDescription": "Path to stack.ini file. It used for filter loaded folders.",
+               "default": "",
+               "type:": "string"
+            },
+            "stack.lens.enabled": {
+               "title": "lens",
+               "markdownDescription": "Whether to show CodeLens in Stack files.",
+               "default": true,
+               "type": "boolean"
+            }
+         }
       },
       "snippets": [
          {
