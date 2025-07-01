@@ -93,7 +93,7 @@ impl LanguageServer for Backend {
             ))
             .await;
 
-        let mut folders: Option<Vec<Url>> = None;
+        let mut folders: Option<Vec<(Url, bool)>> = None;
 
         let settings_path = async {
             let params = vec![ConfigurationItem {
@@ -121,7 +121,10 @@ impl LanguageServer for Backend {
                 let app_path = ini.section(Some("AppPath"))?;
                 let folders = app_path
                     .get_all("PRG")
-                    .filter_map(|s| Url::from_file_path(s).ok())
+                    .filter_map(|s| {
+                        let url = Url::from_file_path(s).ok()?;
+                        Some((url, s.ends_with("**")))
+                    })
                     .collect::<Vec<_>>();
 
                 Some(folders)
@@ -140,16 +143,15 @@ impl LanguageServer for Backend {
 
             folders = async {
                 let f = self.client.workspace_folders().await.ok()?;
-                f.map(|f| f.into_iter().map(|f| f.uri).collect())
+                f.map(|f| f.into_iter().map(|f| (f.uri, true)).collect())
             }
             .await;
         }
 
-        // !TODO - parse without sub folders if from ini file
         let mut files = vec![];
         if let Some(folders) = folders {
-            for folder in folders {
-                if let Err(e) = get_files(folder, &mut files).await {
+            for (folder, recursively) in folders {
+                if let Err(e) = get_files(folder, recursively, &mut files).await {
                     error!("{:?}", e);
                 }
             }
@@ -513,7 +515,7 @@ async fn main() {
     Server::new(stdin, stdout, socket).serve(service).await;
 }
 
-async fn get_files(dir: Url, files: &mut Vec<String>) -> std::io::Result<()> {
+async fn get_files(dir: Url, recursively: bool, files: &mut Vec<String>) -> std::io::Result<()> {
     let mut to_visit: Vec<Url> = vec![dir];
 
     while !to_visit.is_empty() {
@@ -524,7 +526,8 @@ async fn get_files(dir: Url, files: &mut Vec<String>) -> std::io::Result<()> {
             while let Some(entry) = dir.next_entry().await? {
                 let path = entry.path();
 
-                if path.is_dir() {
+                // visit nested dirs only with recursively flag
+                if path.is_dir() && recursively {
                     to_visit.push(Url::from_file_path(path).unwrap());
                 } else if let Some(ext) = path.extension() {
                     match ext.to_str().unwrap() {
