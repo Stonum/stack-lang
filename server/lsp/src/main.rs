@@ -15,7 +15,7 @@ use serde_json::Value;
 
 use m_lang::{
     parser::parse,
-    semantic::{identifier_for_offset, semantics, SemanticModel},
+    semantic::{SemanticModel, identifier_for_offset, semantics},
     syntax::MFileSource,
 };
 
@@ -61,6 +61,9 @@ impl LanguageServer for Backend {
                 document_symbol_provider: Some(OneOf::Left(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
                 document_range_formatting_provider: Some(OneOf::Left(true)),
+                code_lens_provider: Some(CodeLensOptions {
+                    resolve_provider: Some(false),
+                }),
                 ..ServerCapabilities::default()
             },
         })
@@ -290,14 +293,15 @@ impl LanguageServer for Backend {
     ) -> Result<Option<DocumentSymbolResponse>> {
         let file_uri = params.text_document.uri;
 
-        let document_symbol = || -> Option<DocumentSymbolResponse> {
+        let document_symbol = async || -> Option<DocumentSymbolResponse> {
             let document = self
                 .document_map
                 .get(&file_uri.to_file_path().unwrap_or_default())?;
 
             let document = document.deref();
             Some(document.into())
-        }();
+        }()
+        .await;
 
         Ok(document_symbol)
     }
@@ -377,10 +381,22 @@ impl LanguageServer for Backend {
 
         Ok(edited)
     }
-}
-#[derive(Debug, Deserialize, Serialize)]
-struct InlayHintParams {
-    path: String,
+
+    async fn code_lens(&self, params: CodeLensParams) -> Result<Option<Vec<CodeLens>>> {
+        let file_uri = params.text_document.uri;
+
+        let code_lens = async || -> Option<Vec<CodeLens>> {
+            let document = self
+                .document_map
+                .get(&file_uri.to_file_path().unwrap_or_default())?;
+
+            let document = document.deref();
+            Some(document.into())
+        }()
+        .await;
+
+        Ok(code_lens)
+    }
 }
 
 #[derive(Debug, Clone)]
