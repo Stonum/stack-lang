@@ -12,8 +12,6 @@ Based on vscode extension  [buzzzzer.stack](https://marketplace.visualstudio.com
 - Formatting the code
 - Code validator ( in future )
 
-### Formatting
-
 
 ## Keyboard shortcuts
 |Description|Keybinding|
