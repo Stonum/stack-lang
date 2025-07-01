@@ -531,7 +531,7 @@ async fn get_files(dir: Url, recursively: bool, files: &mut Vec<String>) -> std:
                     to_visit.push(Url::from_file_path(path).unwrap());
                 } else if let Some(ext) = path.extension() {
                     match ext.to_str().unwrap() {
-                        "prg" | "hdl" => files.push(path.to_str().unwrap().to_string()),
+                        "prg" => files.push(path.to_str().unwrap().to_string()),
                         _ => (),
                     }
                 }
