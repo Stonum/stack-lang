@@ -5,8 +5,11 @@ use m_lang::{
 };
 
 use ropey::Rope;
+use serde_json::Value;
 use std::path::PathBuf;
-use tower_lsp::lsp_types::{DocumentSymbolResponse, Location, SymbolInformation, SymbolKind, Url};
+use tower_lsp::lsp_types::{
+    CodeLens, Command, DocumentSymbolResponse, Location, SymbolInformation, SymbolKind, Url,
+};
 
 pub struct Document<T> {
     uri: Url,
@@ -117,6 +120,69 @@ impl From<&Document<MLangSemanticModel>> for DocumentSymbolResponse {
         }
 
         DocumentSymbolResponse::Flat(response)
+    }
+}
+
+impl From<&Document<MLangSemanticModel>> for Vec<CodeLens> {
+    fn from(val: &Document<MLangSemanticModel>) -> Self {
+        let mut response = vec![];
+
+        let text = val.text();
+
+        let start_line =
+            move |range: TextRange| position(text, range).unwrap_or_default().start.line;
+
+        let command = String::from("stack.movetoLine");
+
+        for def in val.definitions() {
+            match def {
+                AnyMDefinition::MClassDefinition(class) => {
+                    let title = class.id();
+                    let line = start_line(class.range());
+                    let args = vec![Value::Number(line.into())];
+
+                    let command = Some(Command::new(title, command.clone(), Some(args)));
+
+                    let mut lenses = class
+                        .methods()
+                        .iter()
+                        .filter_map(|m| {
+                            let range = position(text, m.range())?;
+                            Some(CodeLens {
+                                range,
+                                command: command.clone(),
+                                data: None,
+                            })
+                        })
+                        .collect::<Vec<_>>();
+                    response.append(&mut lenses);
+                }
+                AnyMDefinition::MReportDefinition(report) => {
+                    let title = report.id();
+                    let line = start_line(report.range());
+                    let args = vec![Value::Number(line.into())];
+
+                    let command = Some(Command::new(title, command.clone(), Some(args)));
+
+                    let mut lenses = report
+                        .sections()
+                        .iter()
+                        .filter_map(|s| {
+                            let range = position(text, s.range())?;
+                            Some(CodeLens {
+                                range,
+                                command: command.clone(),
+                                data: None,
+                            })
+                        })
+                        .collect::<Vec<_>>();
+                    response.append(&mut lenses);
+                }
+                _ => (),
+            }
+        }
+
+        response
     }
 }
 

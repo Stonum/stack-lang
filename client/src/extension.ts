@@ -7,10 +7,8 @@ import {
    workspace,
    window,
    commands,
-   ExtensionContext,
-   StatusBarAlignment,
-   StatusBarItem,
 } from "vscode";
+import * as vscode from "vscode";
 
 import * as path from "path";
 import { exec } from "child_process";
@@ -26,9 +24,9 @@ import {
 import { togglePostgreSQL } from './postgreUtils';
 
 let client: LanguageClient;
-let statusBarItem: StatusBarItem;
+let statusBarItem: vscode.StatusBarItem;
 
-export async function activate(context: ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
    const command =
       process.env.SERVER_PATH ||
       path.join(
@@ -84,7 +82,7 @@ export async function activate(context: ExtensionContext) {
    
    const myCommandId = 'custom/statusBar';
    // Create a status bar item
-   statusBarItem = window.createStatusBarItem(StatusBarAlignment.Left, 0);
+   statusBarItem = window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
    context.subscriptions.push(statusBarItem);
 
 
@@ -97,13 +95,31 @@ export async function activate(context: ExtensionContext) {
       }
    });
 
-   let disposable = commands.registerCommand('stack.togglePostgreSQL', args => {
+   let togglePSQL = commands.registerCommand('stack.togglePostgreSQL', args => {
       args = args || {}
       const namespace = args.namespace || 'stack'
       const dollar = args.dollar || false
       togglePostgreSQL( namespace, dollar)
    });
-   context.subscriptions.push(disposable);
+   context.subscriptions.push(togglePSQL);
+
+   let moveToLine = commands.registerCommand('stack.movetoLine', (line: number) => {
+      const editor = window.activeTextEditor;
+      if (!editor) return; // No active editor
+
+      // Create a new position at the start of the line
+      const position = new vscode.Position(line, 0);
+
+      // Set the selection (collapsed to a single cursor)
+      editor.selection = new vscode.Selection(position, position);
+
+      // Optionally, reveal the line in the top of the editor
+      editor.revealRange(
+         new vscode.Range(position, position),
+         vscode.TextEditorRevealType.AtTop
+      );
+   });
+   context.subscriptions.push(moveToLine);
 
    client.start();
 }
