@@ -1,6 +1,6 @@
 # Extension stack-lang for Visual Studio Code
 
-Adds features for the built-in language of the STACK Software Package
+Adds features for the built-in language of the STACK Software Package  
 Based on vscode extension  [buzzzzer.stack](https://marketplace.visualstudio.com/items?itemName=buzzzzer.stack)
 
 ---
