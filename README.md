@@ -1,26 +1,22 @@
-# Расширение stack-lang для Visual Studio Code
+# Extension stack-lang for Visual Studio Code
 
-Добавляет возможности для встроенного языка Комплекса программ "СТЕК" (_.prg, _.hdl, *.rpt)
+Adds features for the built-in language of the STACK Software Package
+Based on vscode extension  [buzzzzer.stack](https://marketplace.visualstudio.com/items?itemName=buzzzzer.stack)
 
 ---
 
-## Возможности
-- Подсветка синтаксиса
-- Навигация по коду
-- Сниппеты (шаблоны текста)
-- Форматирование кода
-- Валидатор кода ( в разработке )
+## Features
+- Syntax highlighting
+- Code navigation
+- Snippets (text templates)
+- Formatting the code
+- Code validator ( in future )
 
-### Форматирование
+### Formatting
 
 
-## Горячие клавиши
-|Описание|Горячие клавиши|
+## Keyboard shortcuts
+|Description|Keybinding|
 |-|-|
-|Замена `stack."Таблица"` на `~Таблица~` и обратно| F12          |
-|Список функций текущего файла                    | Ctrl+Shift+O |
-
-
-
-An extension that implements syntax highlighting, code navigation, and formatting  
-Based on vscode extension  [buzzzzer.stack](https://marketplace.visualstudio.com/items?itemName=buzzzzer.stack)
+|Replace `stack."Table"` for `~Table~` and backward| F12|
+|List of definitions of the current file| Ctrl+Shift+O |
