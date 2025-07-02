@@ -231,6 +231,12 @@ enum MClassMethodType {
     Method,
 }
 
+impl MClassMethodDefinition {
+    pub fn is_constructor(&self) -> bool {
+        self.m_type == MClassMethodType::Constructor
+    }
+}
+
 impl Definition for MClassMethodDefinition {
     fn range(&self) -> TextRange {
         self.range

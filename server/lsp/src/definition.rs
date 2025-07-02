@@ -45,13 +45,23 @@ where
                 let doc = r.value();
                 let doc_def = doc.definitions();
 
-                let mut classes = doc_def
+                let classes = doc_def
                     .into_iter()
-                    .filter(|d| d.is_class() && d.id().eq_ignore_ascii_case(identifier))
-                    .map(|d| convert_to_lsp(d as &dyn Definition, &doc))
-                    .collect::<Vec<_>>();
+                    .filter(|d| d.is_class() && d.id().eq_ignore_ascii_case(identifier));
 
-                definitions.append(&mut classes);
+                for c in classes {
+                    definitions.push(convert_to_lsp(c as &dyn Definition, &doc));
+
+                    if let Some(methods) = c.methods() {
+                        let mut constructors = methods
+                            .into_iter()
+                            .filter(|d| d.is_constructor())
+                            .map(|d| convert_to_lsp(d as &dyn Definition, &doc))
+                            .collect::<Vec<_>>();
+
+                        definitions.append(&mut constructors);
+                    }
+                }
             }
         }
         SemanticInfo::MethodCall(None) => {
