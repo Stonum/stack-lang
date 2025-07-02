@@ -1,6 +1,17 @@
 **Changelog**
 ===============
 
+**v0.2.6 - 2025-07-02**
+------------------------------------
+* **Added**:
+   + constructors for class information
+   + code lens for report sections (report name ) and class methods ( class name )
+* **Fixed**: 
+   + convert to lowercase keywords: `ложь`, `истина` and `нуль` 
+   + parsing nested folders from stack.ini path only with `**` pattern
+   + removed parsing `.hdl` files as startup
+
+
 **v0.2.5 - 2025-06-27**
 ------------------------------------
 * **Added**:
