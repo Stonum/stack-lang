@@ -18,3 +18,8 @@ Based on vscode extension  [buzzzzer.stack](https://marketplace.visualstudio.com
 |-|-|
 |Replace `stack."Table"` for `~Table~` and backward| F12|
 |List of definitions of the current file| Ctrl+Shift+O |
+
+
+## Configuration
+- `stack.iniPath`: path to stack.ini file. It used for filter loaded folders.
+- `stack.lens.enabled`: whether to show CodeLens in Stack files
