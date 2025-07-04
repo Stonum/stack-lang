@@ -85,10 +85,7 @@ impl LanguageServer for Backend {
         info!("stack lang server initialized!");
 
         let start = Instant::now();
-        self.client
-            .send_notification::<StatusBarNotification>(StatusBarNotification::create(
-                "parse definitions - load settings",
-            ))
+        self.send_status_bar_notofication("parse definitions - load settings")
             .await;
 
         let mut folders: Option<Vec<(Url, bool)>> = None;
@@ -150,17 +147,18 @@ impl LanguageServer for Backend {
         let mut handles = vec![];
         let current = Handle::current();
         for (i, file) in files.iter().enumerate() {
-            self.client
-                .send_notification::<StatusBarNotification>(StatusBarNotification::create(
-                    &format!("parse definitions from files: {}/{}", i, files.len()),
-                ))
-                .await;
+            self.send_status_bar_notofication(&format!(
+                "parse definitions from files: {}/{}",
+                i,
+                files.len()
+            ))
+            .await;
 
             if let Ok(text) = tokio::fs::read_to_string(&file).await {
                 let handle = current.spawn_blocking(move || {
                     let parsed = parse(&text, MFileSource::module());
 
-                    let semantics = semantics(parsed.syntax(), MFileSource::module());
+                    let semantics = semantics(parsed.syntax());
                     let rope = Rope::from_str(&text);
                     (rope, semantics)
                 });
@@ -175,9 +173,7 @@ impl LanguageServer for Backend {
             self.document_map.insert(document.path(), document);
         }
 
-        self.client
-            .send_notification::<StatusBarNotification>(StatusBarNotification::clear())
-            .await;
+        self.send_status_bar_notofication("").await;
 
         info!("parse definitions completed for {:?}", start.elapsed());
     }
@@ -442,7 +438,7 @@ impl Backend {
         let diagnostics;
         {
             let parsed = parse(&text, file_source);
-            let semantics = semantics(parsed.syntax(), file_source);
+            let semantics = semantics(parsed.syntax());
             let rope = Rope::from_str(&text);
 
             diagnostics = parsed
@@ -473,6 +469,12 @@ impl Backend {
 
         self.client
             .publish_diagnostics(params.uri, vec![], Some(params.version))
+            .await;
+    }
+
+    async fn send_status_bar_notofication(&self, msg: &str) {
+        self.client
+            .send_notification::<StatusBarNotification>(StatusBarNotification::create(msg))
             .await;
     }
 }
