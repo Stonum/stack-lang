@@ -26,6 +26,10 @@ pub fn identifier_for_offset(
 
     for offset in offsets {
         let range = TextRange::new(offset, offset);
+        if !root.text_range().contains_range(range) {
+            continue;
+        }
+
         let node = root.covering_element(range);
 
         let token = node.as_token();
