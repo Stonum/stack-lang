@@ -2,7 +2,7 @@
 use std::ops::Deref;
 use std::path::PathBuf;
 
-use log::error;
+use log::{debug, error, info};
 
 use ini::Ini;
 
@@ -82,9 +82,7 @@ impl LanguageServer for Backend {
     }
 
     async fn initialized(&self, _: InitializedParams) {
-        self.client
-            .log_message(MessageType::INFO, "stack lang server initialized!")
-            .await;
+        info!("stack lang server initialized!");
 
         let start = Instant::now();
         self.client
@@ -109,12 +107,7 @@ impl LanguageServer for Backend {
         .await;
 
         if let Some(path) = settings_path {
-            self.client
-                .log_message(
-                    MessageType::INFO,
-                    format!("parse definitions from ini file {}!", path),
-                )
-                .await;
+            info!("parse definitions from ini file {}!", path);
 
             folders = async {
                 let ini = Ini::load_from_file_noescape(path + "\\stack.ini").ok()?;
@@ -134,12 +127,7 @@ impl LanguageServer for Backend {
 
         // get all workspace folders if we don't have them yet
         if folders.is_none() {
-            self.client
-                .log_message(
-                    MessageType::INFO,
-                    "parse definitions from workspace folder!".to_string(),
-                )
-                .await;
+            info!("parse definitions from workspace folder!");
 
             folders = async {
                 let f = self.client.workspace_folders().await.ok()?;
@@ -157,9 +145,7 @@ impl LanguageServer for Backend {
             }
         }
 
-        self.client
-            .log_message(MessageType::INFO, format!("found {} files", files.len()))
-            .await;
+        info!("found {} files", files.len());
 
         let mut handles = vec![];
         let current = Handle::current();
@@ -193,12 +179,7 @@ impl LanguageServer for Backend {
             .send_notification::<StatusBarNotification>(StatusBarNotification::clear())
             .await;
 
-        self.client
-            .log_message(
-                MessageType::INFO,
-                format!("parse definitions completed for {:?}", start.elapsed()),
-            )
-            .await;
+        info!("parse definitions completed for {:?}", start.elapsed());
     }
 
     async fn shutdown(&self) -> Result<()> {
@@ -347,14 +328,12 @@ impl LanguageServer for Backend {
     }
 
     async fn execute_command(&self, _: ExecuteCommandParams) -> Result<Option<Value>> {
-        self.client
-            .log_message(MessageType::INFO, "command executed!")
-            .await;
+        debug!("command executed!");
 
         match self.client.apply_edit(WorkspaceEdit::default()).await {
-            Ok(res) if res.applied => self.client.log_message(MessageType::INFO, "applied").await,
-            Ok(_) => self.client.log_message(MessageType::INFO, "rejected").await,
-            Err(err) => self.client.log_message(MessageType::ERROR, err).await,
+            Ok(res) if res.applied => info!("applied"),
+            Ok(_) => info!("rejected"),
+            Err(err) => error!("{err}"),
         }
 
         Ok(None)
@@ -448,8 +427,7 @@ impl Backend {
             match MFileSource::try_from_extension(ext) {
                 Ok(src) => file_source = Some(src),
                 Err(err) => {
-                    let err = Diagnostic::new_simple(Default::default(), err.to_string());
-                    self.client.publish_diagnostics(uri, vec![err], None).await;
+                    error!("{err}");
                     return;
                 }
             }
