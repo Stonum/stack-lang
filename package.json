@@ -10,6 +10,7 @@
       "Formatters",
       "Linters"
    ],
+   "icon": "images/mark-logo-stack.png",
    "license": "MIT",
    "keywords": [
       "language-server",
