@@ -47,8 +47,6 @@ export async function activate(context: vscode.ExtensionContext) {
       options: {
          env: {
             ...process.env,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            RUST_LOG: "debug",
          },
       },
    };

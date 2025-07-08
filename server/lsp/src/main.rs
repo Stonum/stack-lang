@@ -1,8 +1,9 @@
 #![allow(deprecated)]
-use std::ops::Deref;
+use std::env;
 use std::path::PathBuf;
 
-use log::{debug, error, info};
+use env_logger::Builder;
+use log::{LevelFilter, debug, error, info};
 
 use ini::Ini;
 
@@ -481,7 +482,7 @@ impl Backend {
 
 #[tokio::main]
 async fn main() {
-    env_logger::init();
+    init_logger();
 
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
@@ -493,6 +494,17 @@ async fn main() {
     .finish();
 
     Server::new(stdin, stdout, socket).serve(service).await;
+}
+
+fn init_logger() {
+    let mut builder = Builder::from_default_env();
+
+    // Set default level to info if not specified
+    if env::var("RUST_LOG").is_err() {
+        builder.filter_level(LevelFilter::Info);
+    }
+
+    builder.init();
 }
 
 async fn get_files(dir: Url, recursively: bool, files: &mut Vec<String>) -> std::io::Result<()> {
