@@ -1,5 +1,6 @@
 #![allow(deprecated)]
 use std::env;
+use std::ops::Deref;
 use std::path::PathBuf;
 
 use env_logger::Builder;
@@ -159,7 +160,7 @@ impl LanguageServer for Backend {
                 let handle = current.spawn_blocking(move || {
                     let parsed = parse(&text, MFileSource::module());
 
-                    let semantics = semantics(parsed.syntax());
+                    let semantics = semantics(parsed.syntax(), MFileSource::module());
                     let rope = Rope::from_str(&text);
                     (rope, semantics)
                 });
@@ -439,7 +440,7 @@ impl Backend {
         let diagnostics;
         {
             let parsed = parse(&text, file_source);
-            let semantics = semantics(parsed.syntax());
+            let semantics = semantics(parsed.syntax(), file_source);
             let rope = Rope::from_str(&text);
 
             diagnostics = parsed
