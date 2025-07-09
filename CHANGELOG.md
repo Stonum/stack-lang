@@ -1,5 +1,13 @@
 **Changelog**
 ===============
+**v0.2.7 - 2025-07-09**
+------------------------------------
+* **Fixed**: 
+   + crash where hovering element end of file
+* **Changed**:
+   + downgrade ubuntu version for linux binaries
+   + keybinding for psql toggle has been replaced with ctrl+shift+r
+
 
 **v0.2.6 - 2025-07-02**
 ------------------------------------
