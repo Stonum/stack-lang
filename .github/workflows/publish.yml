@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             path: linux
           - os: windows-latest
             path: win32
