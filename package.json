@@ -59,8 +59,8 @@
       "keybindings": [
          {
             "command": "stack.togglePostgreSQL",
-            "key": "f12",
-            "mac": "f12",
+            "key": "ctrl+shift+r",
+            "mac": "cmd+shift+r",
             "when": "editorTextFocus"
          }
       ],

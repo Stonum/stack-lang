@@ -16,7 +16,7 @@ Based on vscode extension  [buzzzzer.stack](https://marketplace.visualstudio.com
 ## Keyboard shortcuts
 |Description|Keybinding|
 |-|-|
-|Replace `stack."Table"` for `~Table~` and backward| F12|
+|Replace `stack."Table"` for `~Table~` and backward| Ctrl+Shift+R |
 |List of definitions of the current file| Ctrl+Shift+O |
 
 
