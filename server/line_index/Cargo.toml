@@ -1,0 +1,9 @@
+[package]
+name = "line_index"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rustc-hash = "2.1.1"
+biome_text_size = "0.5.8"
+biome_rowan = "0.5.8"

@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+line_index = { path = "../line_index" }
+
 biome_parser = "0.5.8"
 biome_rowan = { version = "=0.5.8", features = ["serde"] }
 biome_unicode_table = "0.5.9"
