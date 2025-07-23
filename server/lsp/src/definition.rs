@@ -1,10 +1,8 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
-use dashmap::mapref::multiple::RefMulti;
+use line_index::LineColRange;
 use m_lang::semantic::{Definition, SemanticInfo, SemanticModel as MLangSemanticModel};
-use tower_lsp::lsp_types::{Range, Url};
-
-use crate::{document::Document, position};
+use tower_lsp::lsp_types::{Position, Range, Url};
 
 #[derive(Debug)]
 pub struct LspDefinition {
@@ -13,36 +11,44 @@ pub struct LspDefinition {
     pub markup: String,
 }
 
-pub fn find_definitions<'a, I>(
+pub fn find_definitions<I>(
     identifier: &str,
     semantic_info: &SemanticInfo,
-    documents: I,
+    semantics: I,
 ) -> Vec<LspDefinition>
 where
-    I: IntoIterator<Item = RefMulti<'a, PathBuf, Document<MLangSemanticModel>>>,
+    I: IntoIterator<Item = (PathBuf, Arc<MLangSemanticModel>)>,
 {
     let mut definitions = vec![];
 
-    let documents = documents.into_iter().collect::<Vec<_>>();
+    let semantics = semantics.into_iter().collect::<Vec<_>>();
 
     match semantic_info {
         SemanticInfo::FunctionCall => {
-            for r in documents.iter() {
-                let doc = r.value();
+            for (path, doc) in semantics.iter() {
+                let uri = if let Ok(uri) = Url::from_file_path(path) {
+                    uri
+                } else {
+                    continue;
+                };
                 let doc_def = doc.definitions();
 
                 let mut functions = doc_def
                     .into_iter()
                     .filter(|d| d.is_function() && d.id().eq_ignore_ascii_case(identifier))
-                    .map(|d| convert_to_lsp(d as &dyn Definition, &doc))
+                    .map(|d| convert_to_lsp(d as &dyn Definition, uri.clone()))
                     .collect::<Vec<_>>();
 
                 definitions.append(&mut functions);
             }
         }
         SemanticInfo::NewExpression => {
-            for r in documents.iter() {
-                let doc = r.value();
+            for (path, doc) in semantics.iter() {
+                let uri = if let Ok(uri) = Url::from_file_path(path) {
+                    uri
+                } else {
+                    continue;
+                };
                 let doc_def = doc.definitions();
 
                 let classes = doc_def
@@ -50,13 +56,13 @@ where
                     .filter(|d| d.is_class() && d.id().eq_ignore_ascii_case(identifier));
 
                 for c in classes {
-                    definitions.push(convert_to_lsp(c as &dyn Definition, &doc));
+                    definitions.push(convert_to_lsp(c as &dyn Definition, uri.clone()));
 
                     if let Some(methods) = c.methods() {
                         let mut constructors = methods
                             .into_iter()
                             .filter(|d| d.is_constructor())
-                            .map(|d| convert_to_lsp(d as &dyn Definition, &doc))
+                            .map(|d| convert_to_lsp(d as &dyn Definition, uri.clone()))
                             .collect::<Vec<_>>();
 
                         definitions.append(&mut constructors);
@@ -65,8 +71,12 @@ where
             }
         }
         SemanticInfo::MethodCall(None) => {
-            for r in documents.iter() {
-                let doc = r.value();
+            for (path, doc) in semantics.iter() {
+                let uri = if let Ok(uri) = Url::from_file_path(path) {
+                    uri
+                } else {
+                    continue;
+                };
                 let doc_def = doc.definitions();
 
                 let classes = doc_def.into_iter().filter(|c| c.is_class());
@@ -76,11 +86,11 @@ where
                         let mut methods = methods
                             .into_iter()
                             .filter(|d| d.id().eq_ignore_ascii_case(identifier))
-                            .map(|d| convert_to_lsp(d as &dyn Definition, &doc))
+                            .map(|d| convert_to_lsp(d as &dyn Definition, uri.clone()))
                             .collect::<Vec<_>>();
 
                         if methods.len() > 0 {
-                            definitions.push(convert_to_lsp(c as &dyn Definition, &doc));
+                            definitions.push(convert_to_lsp(c as &dyn Definition, uri.clone()));
                         }
 
                         definitions.append(&mut methods);
@@ -95,8 +105,12 @@ where
                 let classes_for_filter = class_names.clone();
                 class_names.clear();
 
-                for r in documents.iter() {
-                    let doc = r.value();
+                for (path, doc) in semantics.iter() {
+                    let uri = if let Ok(uri) = Url::from_file_path(path) {
+                        uri
+                    } else {
+                        continue;
+                    };
                     let doc_def = doc.definitions();
 
                     let classes = doc_def
@@ -109,11 +123,12 @@ where
                             let mut methods = methods
                                 .into_iter()
                                 .filter(|d| d.id().eq_ignore_ascii_case(identifier))
-                                .map(|d| convert_to_lsp(d as &dyn Definition, &doc))
+                                .map(|d| convert_to_lsp(d as &dyn Definition, uri.clone()))
                                 .collect::<Vec<_>>();
 
                             if methods.len() > 0 {
-                                definitions.push(convert_to_lsp(class as &dyn Definition, &doc));
+                                definitions
+                                    .push(convert_to_lsp(class as &dyn Definition, uri.clone()));
                             }
 
                             definitions.append(&mut methods);
@@ -134,10 +149,14 @@ where
     definitions
 }
 
-fn convert_to_lsp<T>(d: &dyn Definition, doc: &Document<T>) -> LspDefinition {
+fn convert_to_lsp(d: &dyn Definition, uri: Url) -> LspDefinition {
+    let LineColRange { start, end } = d.id_range();
     LspDefinition {
-        uri: doc.uri().clone(),
-        range: position(doc.text(), d.range()).unwrap_or_default(),
+        uri,
+        range: Range::new(
+            Position::new(start.line, start.col),
+            Position::new(end.line, end.col),
+        ),
         markup: d.to_markdown(),
     }
 }
