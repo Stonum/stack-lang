@@ -25,7 +25,13 @@ pub fn semantics(text: &str, root: SyntaxNode<MLanguage>) -> SemanticModel {
 
 #[derive(Debug, Default)]
 pub struct SemanticModel {
-    pub definitions: Vec<AnyMDefinition>,
+    definitions: Vec<AnyMDefinition>,
+}
+
+impl SemanticModel {
+    pub fn definitions(&self) -> &Vec<AnyMDefinition> {
+        self.definitions.as_ref()
+    }
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -84,6 +90,7 @@ pub trait Definition {
     fn range(&self) -> LineColRange;
     fn type_keyword(&self) -> &'static str;
     fn id(&self) -> String;
+    fn id_range(&self) -> LineColRange;
     fn params(&self) -> String;
     fn description(&self) -> Option<String>;
     fn doc_string(&self) -> Option<String>;
@@ -127,6 +134,13 @@ impl Definition for AnyMDefinition {
             AnyMDefinition::MReportDefinition(def) => def.id(),
         }
     }
+    fn id_range(&self) -> LineColRange {
+        match self {
+            AnyMDefinition::MFunctionDefinition(def) => def.id_range(),
+            AnyMDefinition::MClassDefinition(def) => def.id_range(),
+            AnyMDefinition::MReportDefinition(def) => def.id_range(),
+        }
+    }
     fn params(&self) -> String {
         match self {
             AnyMDefinition::MFunctionDefinition(def) => def.params(),
@@ -162,20 +176,29 @@ impl Definition for MFunctionDefinition {
     fn range(&self) -> LineColRange {
         self.range
     }
+
     fn type_keyword(&self) -> &'static str {
         "function"
     }
+
     fn id(&self) -> String {
         self.id.name.clone()
     }
+
     fn params(&self) -> String {
         self.params.clone()
     }
+
     fn description(&self) -> Option<String> {
         self.description.clone()
     }
+
     fn doc_string(&self) -> Option<String> {
         self.doc_string.clone()
+    }
+
+    fn id_range(&self) -> LineColRange {
+        self.id.range
     }
 }
 
@@ -202,20 +225,29 @@ impl Definition for MClassDefinition {
     fn range(&self) -> LineColRange {
         self.range
     }
+
     fn type_keyword(&self) -> &'static str {
         "class"
     }
+
     fn id(&self) -> String {
         self.id.name.clone()
     }
+
     fn params(&self) -> String {
         String::from("")
     }
+
     fn description(&self) -> Option<String> {
         self.description.clone()
     }
+
     fn doc_string(&self) -> Option<String> {
         self.doc_string.clone()
+    }
+
+    fn id_range(&self) -> LineColRange {
+        self.id.range
     }
 }
 
@@ -267,6 +299,9 @@ impl Definition for MClassMethodDefinition {
     fn doc_string(&self) -> Option<String> {
         self.doc_string.clone()
     }
+    fn id_range(&self) -> LineColRange {
+        self.id.range
+    }
 }
 
 #[derive(Debug, Default, Eq, PartialEq)]
@@ -306,6 +341,9 @@ impl Definition for MReportDefinition {
     fn doc_string(&self) -> Option<String> {
         None
     }
+    fn id_range(&self) -> LineColRange {
+        self.id.range
+    }
 }
 
 #[derive(Debug, Default, Eq, PartialEq)]
@@ -337,6 +375,9 @@ impl Definition for MReportSectionDefiniton {
 
     fn doc_string(&self) -> Option<String> {
         None
+    }
+    fn id_range(&self) -> LineColRange {
+        self.id.range
     }
 }
 

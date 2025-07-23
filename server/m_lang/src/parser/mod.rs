@@ -8,11 +8,12 @@ pub mod token_source;
 
 use std::marker::PhantomData;
 
+pub use biome_parser::diagnostic::ParseDiagnostic;
 use biome_parser::event::Event;
 use biome_parser::token_source::Trivia;
 use biome_parser::tree_sink::LosslessTreeSink;
-use biome_parser::{prelude::*, ParserContextCheckpoint};
 use biome_parser::{AnyParse, Parser, ParserContext};
+use biome_parser::{ParserContextCheckpoint, prelude::*};
 use biome_rowan::{AstNode, NodeCache};
 use state::ChangeParserState;
 
@@ -21,7 +22,7 @@ use self::token_source::MTokenSource;
 use self::state::{MParserState, MParserStateCheckpoint};
 use super::factory::MSyntaxFactory;
 use super::syntax::{AnyMRoot, MSyntaxNode};
-use super::syntax::{MFileSource, MLanguage, MSyntaxKind, TextRange, T};
+use super::syntax::{MFileSource, MLanguage, MSyntaxKind, T, TextRange};
 use crate::lexer::MReLexContext;
 use token_source::MTokenSourceCheckpoint;
 

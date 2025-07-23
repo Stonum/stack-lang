@@ -1,4 +1,4 @@
-use biome_rowan::FileSourceError;
+pub use biome_rowan::FileSourceError;
 use std::{ffi::OsStr, path::Path};
 
 #[derive(Debug, Clone, Default, Copy, Eq, PartialEq, Hash)]
@@ -7,6 +7,8 @@ pub enum ModuleKind {
 
     #[default]
     Module,
+
+    Handler,
 
     Report,
 }
@@ -18,7 +20,9 @@ impl ModuleKind {
     pub const fn is_module(&self) -> bool {
         matches!(self, ModuleKind::Module)
     }
-
+    pub const fn is_handler(&self) -> bool {
+        matches!(self, ModuleKind::Handler)
+    }
     pub const fn is_report(&self) -> bool {
         matches!(self, ModuleKind::Report)
     }
@@ -32,6 +36,10 @@ pub struct MFileSource {
 impl MFileSource {
     pub fn module() -> Self {
         Self::default()
+    }
+
+    pub fn handler() -> Self {
+        Self::default().with_module_kind(ModuleKind::Handler)
     }
 
     pub fn script() -> Self {
@@ -70,6 +78,7 @@ impl MFileSource {
     pub fn file_extension(&self) -> &str {
         match self.module_kind {
             ModuleKind::Module => "prg",
+            ModuleKind::Handler => "hdl",
             ModuleKind::Report => "rpt",
             ModuleKind::Script => "",
         }
@@ -79,7 +88,8 @@ impl MFileSource {
     pub fn try_from_extension(extension: &OsStr) -> Result<Self, FileSourceError> {
         // We assume the file extension is normalized to lowercase
         match extension.as_encoded_bytes() {
-            b"prg" | b"hdl" => Ok(Self::module()),
+            b"prg" => Ok(Self::module()),
+            b"hdl" => Ok(Self::handler()),
             _ if extension.to_string_lossy().starts_with("rpt") => Ok(Self::report()),
             _ if extension.to_string_lossy().starts_with("pa") => Ok(Self::report()),
             _ => Err(FileSourceError::UnknownExtension),
