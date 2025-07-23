@@ -378,5 +378,6 @@ fn init_logger() {
     builder
         .format_module_path(false)
         .format_target(false)
+        .format_timestamp_millis()
         .init();
 }
