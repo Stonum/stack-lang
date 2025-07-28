@@ -1,31 +1,14 @@
 #![allow(deprecated)]
 use std::env;
-use std::ops::Deref;
-use std::path::PathBuf;
 
 use env_logger::Builder;
-use log::{LevelFilter, debug, error, info};
+use log::{LevelFilter, error, info, trace};
 
-use ini::Ini;
-
-use biome_diagnostics::diagnostic::Diagnostic as _;
-use dashmap::DashMap;
-
-use ropey::Rope;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use m_lang::{
-    parser::parse,
-    semantic::{SemanticModel, identifier_for_offset, semantics},
-    syntax::MFileSource,
-};
+use stack_lang_server::{format::format, workspace::Workspace};
 
-use stack_lang_server::{
-    definition::find_definitions, document::Document, format::format, get_text_size_from_position,
-    position,
-};
-use tokio::runtime::Handle;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::notification::Notification;
 use tower_lsp::lsp_types::*;
@@ -35,7 +18,7 @@ use std::time::Instant;
 
 struct Backend {
     client: Client,
-    document_map: DashMap<PathBuf, Document<SemanticModel>>,
+    workspace: Workspace,
 }
 
 #[tower_lsp::async_trait]
@@ -83,14 +66,17 @@ impl LanguageServer for Backend {
         })
     }
 
+    async fn shutdown(&self) -> Result<()> {
+        Ok(())
+    }
+
     async fn initialized(&self, _: InitializedParams) {
-        info!("stack lang server initialized!");
+        info!("Stack lang server initialized!");
 
         let start = Instant::now();
-        self.send_status_bar_notofication("parse definitions - load settings")
+        info!("Start workspace initialization");
+        self.send_status_bar_notofication("Workspace initialization - loading settings")
             .await;
-
-        let mut folders: Option<Vec<(Url, bool)>> = None;
 
         let settings_path = async {
             let params = vec![ConfigurationItem {
@@ -105,106 +91,92 @@ impl LanguageServer for Backend {
         }
         .await;
 
-        if let Some(path) = settings_path {
-            info!("parse definitions from ini file {}!", path);
+        let get_folders = async || {
+            self.client.workspace_folders().await.unwrap_or_else(|e| {
+                error!("Error receiving workspace folders: {e}");
+                None
+            })
+        };
 
-            folders = async {
-                let ini = Ini::load_from_file_noescape(path + "\\stack.ini").ok()?;
-                let app_path = ini.section(Some("AppPath"))?;
-                let folders = app_path
-                    .get_all("PRG")
-                    .filter_map(|s| {
-                        let url = Url::from_file_path(s).ok()?;
-                        Some((url, s.ends_with("**")))
-                    })
-                    .collect::<Vec<_>>();
+        match settings_path {
+            Some(path) if path != "" => {
+                if let Err(error) = self.workspace.init_with_settings_file(&path).await {
+                    error!("Initialization error: {error}");
 
-                Some(folders)
+                    // try init from workspace folders
+                    info!("Trying initialization from workspace folders");
+                    let folders = get_folders().await;
+                    if let Err(error) = self.workspace.init_with_workspace_folders(folders).await {
+                        error!("Initialization error: {error}");
+                        return;
+                    }
+                }
             }
-            .await;
-        }
-
-        // get all workspace folders if we don't have them yet
-        if folders.is_none() {
-            info!("parse definitions from workspace folder!");
-
-            folders = async {
-                let f = self.client.workspace_folders().await.ok()?;
-                f.map(|f| f.into_iter().map(|f| (f.uri, true)).collect())
-            }
-            .await;
-        }
-
-        let mut files = vec![];
-        if let Some(folders) = folders {
-            for (folder, recursively) in folders {
-                if let Err(e) = get_files(folder, recursively, &mut files).await {
-                    error!("{:?}", e);
+            _ => {
+                let folders = get_folders().await;
+                if let Err(error) = self.workspace.init_with_workspace_folders(folders).await {
+                    error!("{error}");
+                    return;
                 }
             }
         }
 
-        info!("found {} files", files.len());
+        self.send_status_bar_notofication(
+            "Workspace initialization - updating semantic information",
+        )
+        .await;
 
-        let mut handles = vec![];
-        let current = Handle::current();
-        for (i, file) in files.iter().enumerate() {
-            self.send_status_bar_notofication(&format!(
-                "parse definitions from files: {}/{}",
-                i,
-                files.len()
-            ))
-            .await;
+        self.workspace.update_semantic_information().await;
 
-            if let Ok(text) = tokio::fs::read_to_string(&file).await {
-                let handle = current.spawn_blocking(move || {
-                    let parsed = parse(&text, MFileSource::module());
-
-                    let semantics = semantics(parsed.syntax(), MFileSource::module());
-                    let rope = Rope::from_str(&text);
-                    (rope, semantics)
-                });
-
-                handles.push((Url::from_file_path(file).unwrap(), handle));
-            }
-        }
-
-        for (uri, handle) in handles {
-            let (rope, semantics) = handle.await.unwrap();
-            let document = Document::new(uri, rope, semantics);
-            self.document_map.insert(document.path(), document);
-        }
-
+        info!(
+            "Workspae initialization completed for {:?}",
+            start.elapsed()
+        );
         self.send_status_bar_notofication("").await;
-
-        info!("parse definitions completed for {:?}", start.elapsed());
-    }
-
-    async fn shutdown(&self) -> Result<()> {
-        Ok(())
     }
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
-        let text_document = TextDocumentItem {
-            uri: params.text_document.uri,
-            text: params.text_document.text,
-            version: params.text_document.version,
-        };
+        let text_document = params.text_document;
+        let file_uri = text_document.uri.clone();
+        trace!("did_open {}", &file_uri);
 
-        self.on_change(text_document).await;
+        match self.workspace.open_document(text_document).await {
+            Ok(diagnostics) => self.publish_diagnostics(file_uri, diagnostics).await,
+            Err(e) => error!("Open workspace document: {e}"),
+        }
+    }
+
+    async fn did_close(&self, params: DidCloseTextDocumentParams) {
+        let file_uri = params.text_document.uri;
+        trace!("did_close {}", &file_uri);
+
+        self.workspace.close_document(&file_uri).await;
+        self.publish_diagnostics(file_uri, vec![]).await;
     }
 
     async fn did_change(&self, mut params: DidChangeTextDocumentParams) {
         let text_document = TextDocumentItem {
             uri: params.text_document.uri,
+            language_id: String::from(""),
             text: std::mem::take(&mut params.content_changes[0].text),
             version: params.text_document.version,
         };
-        self.on_change(text_document).await;
+        let file_uri = text_document.uri.clone();
+        trace!("did_change {}", &file_uri);
+
+        match self.workspace.change_document(text_document).await {
+            Ok(diagnostics) => self.publish_diagnostics(file_uri, diagnostics).await,
+            Err(e) => error!("Change workspace document: {e}"),
+        }
     }
 
     async fn did_change_watched_files(&self, params: DidChangeWatchedFilesParams) {
         for change in params.changes {
+            trace!(
+                "did_change_watched_files {} - {:?}",
+                &change.uri, change.typ
+            );
+
             match change.typ {
                 FileChangeType::CREATED | FileChangeType::CHANGED => {
                     let text_document: Option<TextDocumentItem> = async {
@@ -212,6 +184,7 @@ impl LanguageServer for Backend {
                         let text = tokio::fs::read_to_string(&file).await.ok()?;
                         Some(TextDocumentItem {
                             uri: change.uri,
+                            language_id: String::from(""),
                             text,
                             version: 0,
                         })
@@ -219,53 +192,23 @@ impl LanguageServer for Backend {
                     .await;
 
                     if let Some(text_document) = text_document {
-                        self.on_change(text_document).await;
+                        let file_uri = text_document.uri.clone();
+
+                        match self.workspace.change_document(text_document).await {
+                            Ok(diagnostics) => {
+                                self.publish_diagnostics(file_uri, diagnostics).await
+                            }
+                            Err(e) => error!("Change workspace document: {e}"),
+                        }
                     }
                 }
                 FileChangeType::DELETED => {
-                    let text_document = TextDocumentItem {
-                        uri: change.uri,
-                        text: String::new(),
-                        version: 0,
-                    };
-                    self.on_delete(text_document).await;
+                    self.workspace.delete_document(&change.uri).await;
+                    self.publish_diagnostics(change.uri, vec![]).await;
                 }
                 _ => {}
             }
         }
-    }
-
-    async fn goto_definition(
-        &self,
-        params: GotoDefinitionParams,
-    ) -> Result<Option<GotoDefinitionResponse>> {
-        let definition = async {
-            let uri = params.text_document_position_params.text_document.uri;
-
-            let pos = params.text_document_position_params.position;
-            let document = self
-                .document_map
-                .get(&uri.to_file_path().unwrap_or_default())?;
-            let source = document.text();
-
-            let parsed = parse(&source.to_string(), MFileSource::script());
-            let syntax = parsed.syntax();
-
-            let offset = get_text_size_from_position(source, pos)?;
-
-            let (identifier, semantic_info) = identifier_for_offset(syntax, offset)?;
-            let identifier = identifier.trim();
-
-            let definitions = find_definitions(&identifier, &semantic_info, &self.document_map);
-            let locations = definitions
-                .into_iter()
-                .map(|d| Location::new(d.uri, d.range))
-                .collect::<Vec<_>>();
-
-            Some(GotoDefinitionResponse::Array(locations))
-        }
-        .await;
-        Ok(definition)
     }
 
     async fn document_symbol(
@@ -273,88 +216,69 @@ impl LanguageServer for Backend {
         params: DocumentSymbolParams,
     ) -> Result<Option<DocumentSymbolResponse>> {
         let file_uri = params.text_document.uri;
+        trace!("document_symbol {}", &file_uri);
 
-        let document_symbol = async || -> Option<DocumentSymbolResponse> {
-            let document = self
-                .document_map
-                .get(&file_uri.to_file_path().unwrap_or_default())?;
-
-            let document = document.deref();
-            Some(document.into())
-        }()
-        .await;
+        let document_symbol = self.workspace.document_symbol_response(&file_uri).await;
 
         Ok(document_symbol)
     }
 
-    async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
-        let hover = async {
-            let uri = params.text_document_position_params.text_document.uri;
+    async fn goto_definition(
+        &self,
+        params: GotoDefinitionParams,
+    ) -> Result<Option<GotoDefinitionResponse>> {
+        let file_uri = params.text_document_position_params.text_document.uri;
+        let pos = params.text_document_position_params.position;
+        trace!("goto_definition {} {:?}", &file_uri, &pos);
 
-            let pos = params.text_document_position_params.position;
-
-            let document = self
-                .document_map
-                .get(&uri.to_file_path().unwrap_or_default())?;
-            let source = document.text();
-
-            let parsed = parse(&source.to_string(), MFileSource::script());
-            let syntax = parsed.syntax();
-
-            let offset = get_text_size_from_position(source, pos)?;
-
-            let (identifier, semantic_info) = identifier_for_offset(syntax, offset)?;
-            let identifier = identifier.trim();
-
-            let definitions = find_definitions(&identifier, &semantic_info, &self.document_map);
-            let range = definitions.first().map(|d| d.range);
+        let definition: Option<GotoDefinitionResponse> = async {
+            let definitions = self.workspace.find_definitions(&file_uri, pos).await?;
             let locations = definitions
                 .into_iter()
-                .map(|d| d.markup)
+                .map(|d| Location::new(d.uri, d.range))
+                .collect::<Vec<_>>();
+            Some(GotoDefinitionResponse::Array(locations))
+        }
+        .await;
+
+        Ok(definition)
+    }
+
+    async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
+        let file_uri = params.text_document_position_params.text_document.uri;
+        let pos = params.text_document_position_params.position;
+        trace!("hover {} {:?}", &file_uri, &pos);
+
+        let hover: Option<Hover> = async {
+            let definitions = self.workspace.find_definitions(&file_uri, pos).await?;
+            let markups = definitions
+                .into_iter()
+                .map(|d| MarkedString::String(d.markup))
                 .collect::<Vec<_>>();
 
             Some(Hover {
-                contents: HoverContents::Markup(MarkupContent {
-                    kind: MarkupKind::Markdown,
-                    value: locations.join("\n\n"),
-                }),
-                range,
+                contents: HoverContents::Array(markups),
+                range: None,
             })
         }
         .await;
+
         Ok(hover)
-    }
-
-    async fn execute_command(&self, _: ExecuteCommandParams) -> Result<Option<Value>> {
-        debug!("command executed!");
-
-        match self.client.apply_edit(WorkspaceEdit::default()).await {
-            Ok(res) if res.applied => info!("applied"),
-            Ok(_) => info!("rejected"),
-            Err(err) => error!("{err}"),
-        }
-
-        Ok(None)
     }
 
     async fn range_formatting(
         &self,
         params: DocumentRangeFormattingParams,
     ) -> Result<Option<Vec<TextEdit>>> {
+        let file_uri = params.text_document.uri;
+        let range = params.range;
+        let options = params.options;
+        trace!("range_formatting {} {:?}", &file_uri, &range);
+
         let edited = async {
-            let DocumentRangeFormattingParams {
-                text_document,
-                range,
-                options,
-                ..
-            } = params;
+            let document = self.workspace.get_opened_document(&file_uri).await?;
 
-            let uri = text_document.uri;
-            let document = self
-                .document_map
-                .get(&uri.to_file_path().unwrap_or_default())?;
-
-            format(document.text(), options, range).await
+            format(&document, options, range).await
         }
         .await;
 
@@ -363,26 +287,12 @@ impl LanguageServer for Backend {
 
     async fn code_lens(&self, params: CodeLensParams) -> Result<Option<Vec<CodeLens>>> {
         let file_uri = params.text_document.uri;
+        trace!("code_lens {}", &file_uri);
 
-        let code_lens = async || -> Option<Vec<CodeLens>> {
-            let document = self
-                .document_map
-                .get(&file_uri.to_file_path().unwrap_or_default())?;
-
-            let document = document.deref();
-            Some(document.into())
-        }()
-        .await;
+        let code_lens = self.workspace.code_lens(&file_uri).await;
 
         Ok(code_lens)
     }
-}
-
-#[derive(Debug, Clone)]
-struct TextDocumentItem {
-    uri: Url,
-    text: String,
-    version: i32,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -395,11 +305,6 @@ impl StatusBarNotification {
     fn create(text: &str) -> StatusBarParams {
         StatusBarParams {
             text: text.to_string(),
-        }
-    }
-    fn clear() -> StatusBarParams {
-        StatusBarParams {
-            text: String::new(),
         }
     }
 }
@@ -415,62 +320,14 @@ struct ServerSettings {
 }
 
 impl Backend {
-    async fn on_change(&self, params: TextDocumentItem) {
-        let uri = params.uri;
-        let text = params.text;
-
-        let path = uri.to_file_path().unwrap_or_default();
-        let mut file_source = None;
-        if let Some(ext) = path.extension() {
-            match MFileSource::try_from_extension(ext) {
-                Ok(src) => file_source = Some(src),
-                Err(err) => {
-                    error!("{err}");
-                    return;
-                }
-            }
-        }
-
-        if file_source.is_none() {
-            return;
-        }
-
-        let file_source = file_source.unwrap();
-
-        let diagnostics;
-        {
-            let parsed = parse(&text, file_source);
-            let semantics = semantics(parsed.syntax(), file_source);
-            let rope = Rope::from_str(&text);
-
-            diagnostics = parsed
-                .diagnostics()
-                .iter()
-                .map(|error| {
-                    let range = error
-                        .location()
-                        .span
-                        .map(|range| position(&rope, range).unwrap_or_default());
-
-                    Diagnostic::new_simple(range.unwrap_or_default(), format!("{}", error.message))
-                })
-                .collect();
-
-            let document = Document::new(uri.clone(), rope, semantics);
-            self.document_map.insert(document.path(), document);
-        }
+    async fn publish_diagnostics(&self, uri: Url, diagnostic: Vec<(Range, String)>) {
+        let diagnostics = diagnostic
+            .into_iter()
+            .map(|(range, message)| Diagnostic::new_simple(range, message))
+            .collect();
 
         self.client
             .publish_diagnostics(uri, diagnostics, None)
-            .await;
-    }
-
-    async fn on_delete(&self, params: TextDocumentItem) {
-        self.document_map
-            .remove(&params.uri.to_file_path().unwrap_or_default());
-
-        self.client
-            .publish_diagnostics(params.uri, vec![], Some(params.version))
             .await;
     }
 
@@ -490,7 +347,7 @@ async fn main() {
 
     let (service, socket) = LspService::build(|client| Backend {
         client,
-        document_map: DashMap::new(),
+        workspace: Workspace::new(),
     })
     .finish();
 
@@ -505,32 +362,9 @@ fn init_logger() {
         builder.filter_level(LevelFilter::Info);
     }
 
-    builder.init();
-}
-
-async fn get_files(dir: Url, recursively: bool, files: &mut Vec<String>) -> std::io::Result<()> {
-    let mut to_visit: Vec<Url> = vec![dir];
-
-    while !to_visit.is_empty() {
-        let path = to_visit.pop().unwrap().to_file_path().unwrap();
-
-        if path.is_dir() {
-            let mut dir = tokio::fs::read_dir(path).await?;
-            while let Some(entry) = dir.next_entry().await? {
-                let path = entry.path();
-
-                // visit nested dirs only with recursively flag
-                if path.is_dir() && recursively {
-                    to_visit.push(Url::from_file_path(path).unwrap());
-                } else if let Some(ext) = path.extension() {
-                    match ext.to_str().unwrap() {
-                        "prg" => files.push(path.to_str().unwrap().to_string()),
-                        _ => (),
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(())
+    builder
+        .format_module_path(false)
+        .format_target(false)
+        .format_timestamp_millis()
+        .init();
 }

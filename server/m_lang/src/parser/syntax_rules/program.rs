@@ -25,7 +25,7 @@ pub(crate) fn parse(p: &mut MParser) -> CompletedMarker {
             parse_statements(p, false, statement_list);
             m.complete(p, M_SCRIPT)
         }
-        ModuleKind::Module => {
+        ModuleKind::Module | ModuleKind::Handler => {
             parse_module_body(p, statement_list);
             m.complete(p, M_MODULE)
         }

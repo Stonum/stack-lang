@@ -3,7 +3,8 @@ resolver = "2"
 
 members = [ 
     "lsp",
-    "m_lang"
+    "m_lang",
+    "line_index"
 ]
 
 [workspace.dependencies]

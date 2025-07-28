@@ -10,7 +10,8 @@ mod syntax_node;
 
 use biome_rowan::RawSyntaxKind;
 pub use biome_rowan::{
-    AstNode, TextLen, TextRange, TextSize, TokenAtOffset, TokenText, TriviaPieceKind, WalkEvent,
+    AstNode, Language, SendNode, SyntaxNode, TextLen, TextRange, TextSize, TokenAtOffset,
+    TokenText, TriviaPieceKind, WalkEvent,
 };
 
 pub use self::ext::*;
