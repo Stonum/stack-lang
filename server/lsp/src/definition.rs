@@ -58,15 +58,22 @@ where
                 for c in classes {
                     definitions.push(convert_to_lsp(c as &dyn Definition, uri.clone()));
 
-                    if let Some(methods) = c.methods() {
-                        let mut constructors = methods
-                            .into_iter()
-                            .filter(|d| d.is_constructor())
-                            .map(|d| convert_to_lsp(d as &dyn Definition, uri.clone()))
-                            .collect::<Vec<_>>();
+                    let mut constructors = doc_def
+                        .into_iter()
+                        .filter_map(|d| {
+                            if !d.is_constructor() {
+                                return None;
+                            }
+                            let container = d.container()?;
+                            if &container != c {
+                                return None;
+                            }
 
-                        definitions.append(&mut constructors);
-                    }
+                            Some(convert_to_lsp(d as &dyn Definition, uri.clone()))
+                        })
+                        .collect::<Vec<_>>();
+
+                    definitions.append(&mut constructors);
                 }
             }
         }
@@ -79,23 +86,13 @@ where
                 };
                 let doc_def = doc.definitions();
 
-                let classes = doc_def.into_iter().filter(|c| c.is_class());
+                let mut methods = doc_def
+                    .into_iter()
+                    .filter(|d| d.is_method() && d.id().eq_ignore_ascii_case(identifier))
+                    .map(|d| convert_to_lsp(d as &dyn Definition, uri.clone()))
+                    .collect::<Vec<_>>();
 
-                for c in classes {
-                    if let Some(methods) = c.methods() {
-                        let mut methods = methods
-                            .into_iter()
-                            .filter(|d| d.id().eq_ignore_ascii_case(identifier))
-                            .map(|d| convert_to_lsp(d as &dyn Definition, uri.clone()))
-                            .collect::<Vec<_>>();
-
-                        if methods.len() > 0 {
-                            definitions.push(convert_to_lsp(c as &dyn Definition, uri.clone()));
-                        }
-
-                        definitions.append(&mut methods);
-                    }
-                }
+                definitions.append(&mut methods);
             }
         }
         SemanticInfo::MethodCall(Some(class_name)) => {
@@ -113,34 +110,38 @@ where
                     };
                     let doc_def = doc.definitions();
 
-                    let classes = doc_def
+                    let mut methods = doc_def
                         .into_iter()
-                        .filter(|c| c.is_class() && classes_for_filter.contains(&&c.id()))
+                        .filter(|d| {
+                            d.is_method()
+                                && d.id().eq_ignore_ascii_case(identifier)
+                                && d.container().is_some_and(|c| {
+                                    classes_for_filter
+                                        .iter()
+                                        .any(|cff| c.id().eq_ignore_ascii_case(cff))
+                                })
+                        })
+                        .map(|d| convert_to_lsp(d as &dyn Definition, uri.clone()))
                         .collect::<Vec<_>>();
 
-                    for class in classes {
-                        if let Some(methods) = class.methods() {
-                            let mut methods = methods
-                                .into_iter()
-                                .filter(|d| d.id().eq_ignore_ascii_case(identifier))
-                                .map(|d| convert_to_lsp(d as &dyn Definition, uri.clone()))
-                                .collect::<Vec<_>>();
-
-                            if methods.len() > 0 {
-                                definitions
-                                    .push(convert_to_lsp(class as &dyn Definition, uri.clone()));
-                            }
-
-                            definitions.append(&mut methods);
-                            if let Some(super_class) = class.extends() {
-                                class_names.push(super_class);
-                            }
-                        }
+                    if methods.len() > 0 {
+                        definitions.append(&mut methods);
+                    } else {
+                        let mut super_classes = doc_def
+                            .into_iter()
+                            .filter_map(|d| {
+                                if d.is_class()
+                                    && classes_for_filter
+                                        .iter()
+                                        .any(|cff| d.id().eq_ignore_ascii_case(cff))
+                                {
+                                    return d.parent();
+                                }
+                                None
+                            })
+                            .collect::<Vec<_>>();
+                        class_names.append(&mut super_classes);
                     }
-                }
-
-                if definitions.len() > 0 {
-                    class_names.clear();
                 }
             }
         }

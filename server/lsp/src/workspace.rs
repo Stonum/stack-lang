@@ -1,18 +1,22 @@
-use std::{ffi::OsStr, path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc};
 
 use dashmap::DashMap;
 use ini::Ini;
-use line_index::{LineCol, LineIndex};
+use line_index::{LineCol, LineColRange, LineIndex};
 use log::{error, info};
+use serde_json::Value;
 use thiserror::Error;
 
 use m_lang::{
     parser::parse,
-    semantic::{SemanticModel, identifier_for_offset, semantics},
+    semantic::{AnyMDefinition, Definition as _, SemanticModel, identifier_for_offset, semantics},
     syntax::MFileSource,
 };
 use tokio::runtime::Handle;
-use tower_lsp::lsp_types::{Position, Range, TextDocumentItem, Url, WorkspaceFolder};
+use tower_lsp::lsp_types::{
+    CodeLens, Command, DocumentSymbolResponse, Location, Position, Range, SymbolInformation,
+    SymbolKind, TextDocumentItem, Url, WorkspaceFolder,
+};
 
 use crate::{
     definition::{LspDefinition, find_definitions},
@@ -194,6 +198,86 @@ impl Workspace {
 
         let definitions = find_definitions(&identifier, &semantic_info, semantics);
         Some(definitions)
+    }
+
+    pub async fn document_symbol_response(&self, uri: &Url) -> Option<DocumentSymbolResponse> {
+        let document = self.get_opened_document(uri).await?;
+
+        let definitions = document.semantics().definitions();
+        let response = definitions
+            .iter()
+            .map(|def| {
+                let kind = match def {
+                    AnyMDefinition::MFunctionDefinition(_) => SymbolKind::FUNCTION,
+                    AnyMDefinition::MClassDefinition(_) => SymbolKind::CLASS,
+                    AnyMDefinition::MClassMemberDefinition(_) => SymbolKind::FUNCTION,
+                    AnyMDefinition::MReportDefinition(_) => SymbolKind::CONSTANT,
+                    AnyMDefinition::MReportSectionDefiniton(_) => SymbolKind::FIELD,
+                };
+
+                let mut name = def.id();
+                if name.starts_with('\'') && name.ends_with('\'') {
+                    name = name[1..name.len() - 1].to_string();
+                }
+
+                let location = {
+                    let LineColRange { start, end } = def.range();
+                    Location::new(
+                        uri.clone(),
+                        Range::new(
+                            Position::new(start.line, start.col),
+                            Position::new(end.line, end.col),
+                        ),
+                    )
+                };
+
+                #[allow(deprecated)]
+                SymbolInformation {
+                    name,
+                    kind,
+                    tags: None,
+                    deprecated: None,
+                    location,
+                    container_name: def.container().map(|c| c.id()),
+                }
+            })
+            .collect();
+
+        Some(DocumentSymbolResponse::Flat(response))
+    }
+
+    pub async fn code_lens(&self, uri: &Url) -> Option<Vec<CodeLens>> {
+        let document = self.get_opened_document(uri).await?;
+        let command = String::from("stack.movetoLine");
+
+        let definitions = document.semantics().definitions();
+        let response = definitions
+            .iter()
+            .filter_map(|def| {
+                let container = def.container()?;
+                let title = container.id();
+                let line = container.range().start.line;
+                let args = vec![Value::Number(line.into())];
+
+                let command = Some(Command::new(title, command.clone(), Some(args)));
+
+                let range = {
+                    let range = def.range();
+                    Range::new(
+                        Position::new(range.start.line, range.start.col),
+                        Position::new(range.end.line, range.end.col),
+                    )
+                };
+
+                Some(CodeLens {
+                    range,
+                    command,
+                    data: None,
+                })
+            })
+            .collect();
+
+        Some(response)
     }
 }
 

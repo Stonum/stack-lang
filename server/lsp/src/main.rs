@@ -7,7 +7,6 @@ use log::{LevelFilter, error, info, trace};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use stack_lang_server::document::{code_lens, document_symbol_response};
 use stack_lang_server::{format::format, workspace::Workspace};
 
 use tower_lsp::jsonrpc::Result;
@@ -219,14 +218,7 @@ impl LanguageServer for Backend {
         let file_uri = params.text_document.uri;
         trace!("document_symbol {}", &file_uri);
 
-        let document_symbol: Option<DocumentSymbolResponse> = async {
-            let document = self.workspace.get_opened_document(&file_uri).await?;
-            Some(document_symbol_response(
-                document.uri(),
-                &document.semantics(),
-            ))
-        }
-        .await;
+        let document_symbol = self.workspace.document_symbol_response(&file_uri).await;
 
         Ok(document_symbol)
     }
@@ -297,12 +289,7 @@ impl LanguageServer for Backend {
         let file_uri = params.text_document.uri;
         trace!("code_lens {}", &file_uri);
 
-        let code_lens: Option<Vec<CodeLens>> = async {
-            let document = self.workspace.get_opened_document(&file_uri).await?;
-
-            Some(code_lens(&document.semantics()))
-        }
-        .await;
+        let code_lens = self.workspace.code_lens(&file_uri).await;
 
         Ok(code_lens)
     }
