@@ -9,17 +9,21 @@ use thiserror::Error;
 
 use m_lang::{
     parser::parse,
-    semantic::{AnyMDefinition, Definition as _, SemanticModel, identifier_for_offset, semantics},
+    semantic::{
+        AnyMDefinition, Definition as _, SemanticInfo, SemanticModel, identifier_for_offset,
+        semantics,
+    },
     syntax::MFileSource,
 };
 use tokio::runtime::Handle;
 use tower_lsp::lsp_types::{
-    CodeLens, Command, DocumentSymbolResponse, Location, Position, Range, SymbolInformation,
-    SymbolKind, TextDocumentItem, Url, WorkspaceFolder,
+    CodeLens, Command, DocumentSymbolResponse, GotoDefinitionResponse, Hover, HoverContents,
+    Location, Position, Range, SymbolInformation, SymbolKind, TextDocumentItem, Url,
+    WorkspaceFolder,
 };
 
 use crate::{
-    definition::{LspDefinition, find_definitions},
+    definition::{get_hover, get_locations},
     document::CurrentDocument,
 };
 
@@ -169,35 +173,49 @@ impl Workspace {
         Some(document)
     }
 
-    pub async fn find_definitions(
-        &self,
-        uri: &Url,
-        position: Position,
-    ) -> Option<Vec<LspDefinition>> {
-        let document = self.get_opened_document(uri).await?;
-        let syntax = document.syntax();
-        let text = syntax.text().to_string();
-
-        let line_index = LineIndex::new(&text);
-        let offset = line_index.offset(LineCol {
-            line: position.line,
-            col: position.character,
-        })?;
-
-        let (identifier, semantic_info) = identifier_for_offset(syntax, offset)?;
-        let identifier = identifier.trim();
+    pub async fn hover(&self, uri: &Url, position: Position) -> Option<Hover> {
+        let (identifier, semantic_info) = self.identifier_from_position(uri, position).await?;
 
         let semantics = self
             .semantics
             .iter()
             .filter_map(|r| match r.pair() {
-                (path, Some(doc)) => Some((path.to_owned(), Arc::clone(doc))),
+                (_path, Some(doc)) => Some(Arc::clone(doc)),
                 _ => None,
             })
             .collect::<Vec<_>>();
 
-        let definitions = find_definitions(&identifier, &semantic_info, semantics);
-        Some(definitions)
+        let definitions = semantics.iter().flat_map(|arc| arc.definitions().iter());
+
+        let markups = get_hover(&identifier, &semantic_info, definitions);
+        Some(Hover {
+            contents: HoverContents::Array(markups),
+            range: None,
+        })
+    }
+
+    pub async fn goto_definition(
+        &self,
+        uri: &Url,
+        position: Position,
+    ) -> Option<GotoDefinitionResponse> {
+        let (identifier, semantic_info) = self.identifier_from_position(uri, position).await?;
+
+        let semantics = self
+            .semantics
+            .iter()
+            .filter_map(|r| match r.pair() {
+                (path, Some(doc)) => {
+                    let uri = Url::from_file_path(path).ok()?;
+                    Some((uri, Arc::clone(doc)))
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+
+        let locations = get_locations(&identifier, &semantic_info, semantics);
+
+        Some(GotoDefinitionResponse::Array(locations))
     }
 
     pub async fn document_symbol_response(&self, uri: &Url) -> Option<DocumentSymbolResponse> {
@@ -376,5 +394,23 @@ impl Workspace {
         }
 
         Ok(files)
+    }
+
+    async fn identifier_from_position(
+        &self,
+        uri: &Url,
+        position: Position,
+    ) -> Option<(String, SemanticInfo)> {
+        let document = self.get_opened_document(uri).await?;
+        let syntax = document.syntax();
+        let text = syntax.text().to_string();
+
+        let line_index = LineIndex::new(&text);
+        let offset = line_index.offset(LineCol {
+            line: position.line,
+            col: position.character,
+        })?;
+
+        identifier_for_offset(syntax, offset)
     }
 }

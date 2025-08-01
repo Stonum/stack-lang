@@ -231,15 +231,7 @@ impl LanguageServer for Backend {
         let pos = params.text_document_position_params.position;
         trace!("goto_definition {} {:?}", &file_uri, &pos);
 
-        let definition: Option<GotoDefinitionResponse> = async {
-            let definitions = self.workspace.find_definitions(&file_uri, pos).await?;
-            let locations = definitions
-                .into_iter()
-                .map(|d| Location::new(d.uri, d.range))
-                .collect::<Vec<_>>();
-            Some(GotoDefinitionResponse::Array(locations))
-        }
-        .await;
+        let definition = self.workspace.goto_definition(&file_uri, pos).await;
 
         Ok(definition)
     }
@@ -249,19 +241,7 @@ impl LanguageServer for Backend {
         let pos = params.text_document_position_params.position;
         trace!("hover {} {:?}", &file_uri, &pos);
 
-        let hover: Option<Hover> = async {
-            let definitions = self.workspace.find_definitions(&file_uri, pos).await?;
-            let markups = definitions
-                .into_iter()
-                .map(|d| MarkedString::String(d.markup))
-                .collect::<Vec<_>>();
-
-            Some(Hover {
-                contents: HoverContents::Array(markups),
-                range: None,
-            })
-        }
-        .await;
+        let hover = self.workspace.hover(&file_uri, pos).await;
 
         Ok(hover)
     }

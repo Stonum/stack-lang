@@ -181,6 +181,15 @@ impl Definition for AnyMDefinition {
             AnyMDefinition::MReportSectionDefiniton(def) => def.description(),
         }
     }
+    fn to_markdown(&self) -> String {
+        match self {
+            AnyMDefinition::MFunctionDefinition(def) => def.to_markdown(),
+            AnyMDefinition::MClassDefinition(def) => def.to_markdown(),
+            AnyMDefinition::MClassMemberDefinition(def) => def.to_markdown(),
+            AnyMDefinition::MReportDefinition(def) => def.to_markdown(),
+            AnyMDefinition::MReportSectionDefiniton(def) => def.to_markdown(),
+        }
+    }
 }
 
 #[derive(Debug, Default, Eq, PartialEq)]
@@ -320,6 +329,30 @@ impl Definition for MClassMemberDefinition {
 
     fn id_range(&self) -> LineColRange {
         self.id.range
+    }
+
+    fn to_markdown(&self) -> String {
+        if self.is_method() {
+            if let Some(class) = self.class.upgrade() {
+                return format!(
+                    "```{} {}```  \n```{} {}{}```  \n{}",
+                    class.type_keyword(),
+                    class.id(),
+                    self.type_keyword(),
+                    self.id(),
+                    self.params(),
+                    self.description().unwrap_or_default()
+                );
+            }
+        }
+
+        format!(
+            "```{} {}{}```  \n{}",
+            self.type_keyword(),
+            self.id(),
+            self.params(),
+            self.description().unwrap_or_default()
+        )
     }
 }
 

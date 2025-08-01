@@ -78,7 +78,7 @@ pub fn identifier_for_offset(
                 }
             }
 
-            return Some((token.text_trimmed().to_string(), info));
+            return Some((token.text_trimmed().trim().to_string(), info));
         }
     }
 
