@@ -1,22 +1,36 @@
 use crate::syntax::{MClassDeclaration, MLanguage, MSyntaxKind};
 use biome_rowan::{AstNode, SyntaxNode, TextRange, TextSize};
 
+pub type Identifier = String;
+pub type Class = String;
+
 #[derive(Debug, Eq, PartialEq)]
 pub enum SemanticInfo {
     // like zzzzz();
-    FunctionCall,
+    // contains function name
+    FunctionCall(Identifier),
 
     // like z.cmethod() or this.method()
-    MethodCall(Option<String>),
+    // contains method name and optionally contains class name
+    MethodCall(Identifier, Option<Class>),
 
     // like new MyClass();
-    NewExpression,
+    // contains class name
+    NewExpression(Identifier),
+
+    // like class A extends B
+    // contains class name
+    ClassExtends(Identifier),
+
+    // like super(x);
+    // contains super class name
+    SuperCall(Identifier, Class),
 }
 
 pub fn identifier_for_offset(
     root: SyntaxNode<MLanguage>,
     offset: TextSize,
-) -> Option<(String, SemanticInfo)> {
+) -> Option<SemanticInfo> {
     // checking the boundaries if cursor is at the start or end token
     let offsets = [
         offset,
@@ -40,14 +54,19 @@ pub fn identifier_for_offset(
 
         let token = token.unwrap();
         if token.kind() == MSyntaxKind::IDENT {
-            let mut info = SemanticInfo::FunctionCall;
+            let ident = token.text_trimmed().trim().to_string();
+            let mut info = None;
 
             if let Some(node) = node.parent() {
                 // take nearest parents
                 for n in node.ancestors().take(3) {
                     match n.kind() {
+                        MSyntaxKind::M_FUNCTION_DECLARATION => {
+                            info = Some(SemanticInfo::FunctionCall(ident));
+                            break;
+                        }
                         MSyntaxKind::M_STATIC_MEMBER_EXPRESSION => {
-                            info = SemanticInfo::MethodCall(None);
+                            info = Some(SemanticInfo::MethodCall(ident.clone(), None));
 
                             if let Some(child) = n.first_child() {
                                 // try find class name
@@ -60,17 +79,21 @@ pub fn identifier_for_offset(
                                             let id = class.id().ok()?.text();
                                             Some(id)
                                         });
-                                    info = SemanticInfo::MethodCall(class_id);
+                                    info = Some(SemanticInfo::MethodCall(ident, class_id));
                                 }
                             }
                             break;
                         }
                         MSyntaxKind::M_NEW_EXPRESSION => {
-                            info = SemanticInfo::NewExpression;
+                            info = Some(SemanticInfo::NewExpression(ident));
                             break;
                         }
                         MSyntaxKind::M_CALL_EXPRESSION => {
-                            info = SemanticInfo::FunctionCall;
+                            info = Some(SemanticInfo::FunctionCall(ident));
+                            break;
+                        }
+                        MSyntaxKind::M_EXTENDS_CLAUSE => {
+                            info = Some(SemanticInfo::ClassExtends(ident));
                             break;
                         }
                         _ => (),
@@ -78,7 +101,23 @@ pub fn identifier_for_offset(
                 }
             }
 
-            return Some((token.text_trimmed().trim().to_string(), info));
+            return info;
+        }
+
+        if token.kind() == MSyntaxKind::SUPER_KW {
+            let super_class_id = node
+                .ancestors()
+                .find(|p| p.kind() == MSyntaxKind::M_CLASS_DECLARATION)
+                .map_or(None, |class_node| {
+                    let class = MClassDeclaration::cast(class_node)?;
+                    let id = class.extends_clause()?.super_class().ok()?.text();
+                    Some(id)
+                });
+            if let Some(super_class) = super_class_id {
+                let info =
+                    SemanticInfo::SuperCall(token.text_trimmed().trim().to_string(), super_class);
+                return Some(info);
+            }
         }
     }
 
@@ -95,25 +134,23 @@ mod tests {
     fn test_identifier_for_offset() {
         #[rustfmt::skip]
         let inputs = [
-            ("var x = callFunction()", 15, "callFunction", SemanticInfo::FunctionCall),
-            ("var x = z.callMethod()", 15, "callMethod", SemanticInfo::MethodCall(None)),
-            ("var x = new TodoClass()",15, "TodoClass", SemanticInfo::NewExpression),
-            ("var x = callFunction( z.callMethod() )", 30, "callMethod", SemanticInfo::MethodCall(None)),
-            ("var x = z.callMethod( callFunction() )", 30, "callFunction", SemanticInfo::FunctionCall),
-            ("var x = z.callMethod( new TodoClass() )",30, "TodoClass", SemanticInfo::NewExpression),
+            ("var x = callFunction()", 15, SemanticInfo::FunctionCall("callFunction".to_owned())),
+            ("var x = z.callMethod()", 15, SemanticInfo::MethodCall("callMethod".to_owned(), None)),
+            ("var x = new TodoClass()",15, SemanticInfo::NewExpression("TodoClass".to_owned())),
+            ("var x = callFunction( z.callMethod() )", 30, SemanticInfo::MethodCall("callMethod".to_owned(), None)),
+            ("var x = z.callMethod( callFunction() )", 30, SemanticInfo::FunctionCall("callFunction".to_owned())),
+            ("var x = z.callMethod( new TodoClass() )",30, SemanticInfo::NewExpression("TodoClass".to_owned())),
             ("#comment line
-              callaFterComment()",30, "callaFterComment", SemanticInfo::FunctionCall),
+              callaFterComment()",30, SemanticInfo::FunctionCall("callaFterComment".to_owned())),
+            ("class B extends A {}", 17, SemanticInfo::ClassExtends("A".to_owned())),
+            ("class B extends A { constructor() { super() } }", 40, SemanticInfo::SuperCall("super".to_owned(), "A".to_owned()))
         ];
 
-        for (input, offset, ident, info) in inputs {
+        for (input, offset, info) in inputs {
             let parsed = parse(input, MFileSource::script());
-            let (identifier, semantic_info) =
+            let semantic_info =
                 identifier_for_offset(parsed.syntax(), TextSize::from(offset)).unwrap();
-            assert_eq!(
-                (ident, info),
-                (identifier.as_ref(), semantic_info),
-                "{input}"
-            );
+            assert_eq!(info, semantic_info, "{input}");
         }
     }
 
@@ -129,14 +166,20 @@ mod tests {
         let parsed = parse(input, MFileSource::script());
 
         let offsets = [
-            (65, "m2", SemanticInfo::MethodCall(Some("Test".into()))),
-            (125, "m1", SemanticInfo::MethodCall(Some("Test".into()))),
+            (
+                65,
+                SemanticInfo::MethodCall("m2".to_owned(), Some("Test".into())),
+            ),
+            (
+                125,
+                SemanticInfo::MethodCall("m1".to_owned(), Some("Test".into())),
+            ),
         ];
 
-        for (offset, ident, info) in offsets {
-            let (identifier, semantic_info) =
+        for (offset, info) in offsets {
+            let semantic_info =
                 identifier_for_offset(parsed.syntax(), TextSize::from(offset)).unwrap();
-            assert_eq!((ident, info), (identifier.as_ref(), semantic_info));
+            assert_eq!(info, semantic_info);
         }
     }
 }

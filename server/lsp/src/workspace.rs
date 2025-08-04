@@ -174,7 +174,7 @@ impl Workspace {
     }
 
     pub async fn hover(&self, uri: &Url, position: Position) -> Option<Hover> {
-        let (identifier, semantic_info) = self.identifier_from_position(uri, position).await?;
+        let semantic_info = self.identifier_from_position(uri, position).await?;
 
         let semantics = self
             .semantics
@@ -187,7 +187,7 @@ impl Workspace {
 
         let definitions = semantics.iter().flat_map(|arc| arc.definitions().iter());
 
-        let markups = get_hover(&identifier, &semantic_info, definitions);
+        let markups = get_hover(&semantic_info, definitions);
         Some(Hover {
             contents: HoverContents::Array(markups),
             range: None,
@@ -199,7 +199,7 @@ impl Workspace {
         uri: &Url,
         position: Position,
     ) -> Option<GotoDefinitionResponse> {
-        let (identifier, semantic_info) = self.identifier_from_position(uri, position).await?;
+        let semantic_info = self.identifier_from_position(uri, position).await?;
 
         let semantics = self
             .semantics
@@ -213,7 +213,7 @@ impl Workspace {
             })
             .collect::<Vec<_>>();
 
-        let locations = get_locations(&identifier, &semantic_info, semantics);
+        let locations = get_locations(&semantic_info, semantics);
 
         Some(GotoDefinitionResponse::Array(locations))
     }
@@ -400,7 +400,7 @@ impl Workspace {
         &self,
         uri: &Url,
         position: Position,
-    ) -> Option<(String, SemanticInfo)> {
+    ) -> Option<SemanticInfo> {
         let document = self.get_opened_document(uri).await?;
         let syntax = document.syntax();
         let text = syntax.text().to_string();
