@@ -55,19 +55,15 @@ pub fn identifier_for_offset(
         let token = token.unwrap();
         if token.kind() == MSyntaxKind::IDENT {
             let ident = token.text_trimmed().trim().to_string();
-            let mut info = None;
 
             if let Some(node) = node.parent() {
                 // take nearest parents
                 for n in node.ancestors().take(3) {
                     match n.kind() {
                         MSyntaxKind::M_FUNCTION_DECLARATION => {
-                            info = Some(SemanticInfo::FunctionCall(ident));
-                            break;
+                            return Some(SemanticInfo::FunctionCall(ident));
                         }
                         MSyntaxKind::M_STATIC_MEMBER_EXPRESSION => {
-                            info = Some(SemanticInfo::MethodCall(ident.clone(), None));
-
                             if let Some(child) = n.first_child() {
                                 // try find class name
                                 if child.kind() == MSyntaxKind::M_THIS_EXPRESSION {
@@ -79,29 +75,24 @@ pub fn identifier_for_offset(
                                             let id = class.id().ok()?.text();
                                             Some(id)
                                         });
-                                    info = Some(SemanticInfo::MethodCall(ident, class_id));
+                                    return Some(SemanticInfo::MethodCall(ident, class_id));
                                 }
                             }
-                            break;
+                            return Some(SemanticInfo::MethodCall(ident, None));
                         }
                         MSyntaxKind::M_NEW_EXPRESSION => {
-                            info = Some(SemanticInfo::NewExpression(ident));
-                            break;
+                            return Some(SemanticInfo::NewExpression(ident));
                         }
                         MSyntaxKind::M_CALL_EXPRESSION => {
-                            info = Some(SemanticInfo::FunctionCall(ident));
-                            break;
+                            return Some(SemanticInfo::FunctionCall(ident));
                         }
                         MSyntaxKind::M_EXTENDS_CLAUSE => {
-                            info = Some(SemanticInfo::ClassExtends(ident));
-                            break;
+                            return Some(SemanticInfo::ClassExtends(ident));
                         }
                         _ => (),
                     };
                 }
             }
-
-            return info;
         }
 
         if token.kind() == MSyntaxKind::SUPER_KW {
