@@ -21,7 +21,7 @@ import {
    TransportKind,
 } from "vscode-languageclient/node";
 
-import { togglePostgreSQL } from './postgreUtils';
+import { togglePostgreSQL, fieldsToPostgreSQL } from './postgreUtils';
 
 let client: LanguageClient;
 let statusBarItem: vscode.StatusBarItem;
@@ -103,7 +103,12 @@ export async function activate(context: vscode.ExtensionContext) {
       const dollar = args.dollar || false
       togglePostgreSQL( namespace, dollar)
    });
+
    context.subscriptions.push(togglePSQL);
+   let fieldsToPSQL = commands.registerCommand('stack.fieldsToPostgreSQL', () => {
+      fieldsToPostgreSQL()
+   });
+   context.subscriptions.push(fieldsToPSQL);
 
    let moveToLine = commands.registerCommand('stack.movetoLine', (line: number) => {
       const editor = window.activeTextEditor;

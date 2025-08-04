@@ -54,6 +54,11 @@
             "command": "stack.togglePostgreSQL",
             "title": "Replaces tildas in the query to schema and backward",
             "category": "stack"
+         },
+         {
+            "command": "stack.fieldsToPostgreSQL",
+            "title": "Заменяет [] на \"",
+            "category": "stack"
          }
       ],
       "keybindings": [

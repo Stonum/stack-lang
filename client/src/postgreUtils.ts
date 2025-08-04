@@ -78,3 +78,16 @@ function forAllSelections(
       }
    }
 }
+
+export function fieldsToPostgreSQL(): void {
+   const editor = vscode.window.activeTextEditor
+   if (!editor) {
+      return
+   }
+
+   editor.edit(b => {
+      forAllSelections(editor, (range, text) => {
+         b.replace(range, text.replace(/[\[\]]/g, '"'))
+      })
+   })
+}

@@ -17,6 +17,7 @@ Based on vscode extension  [buzzzzer.stack](https://marketplace.visualstudio.com
 |Description|Keybinding|
 |-|-|
 |Replace `stack."Table"` for `~Table~` and backward| Ctrl+Shift+R |
+|Replace `[]` for `""`|  |
 |List of definitions of the current file| Ctrl+Shift+O |
 
 
