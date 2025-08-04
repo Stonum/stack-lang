@@ -786,7 +786,7 @@ impl<'src> MLexer<'src> {
                 "true" | "истина" => TRUE_KW,
                 "while" | "пока" => WHILE_KW,
                 "var" | "перем" => VAR_KW,
-                "к" => K_KW,
+                "k" | "к" => K_KW,
                 _ => T![ident],
             },
             Err(_) => ERROR_TOKEN,

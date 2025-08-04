@@ -1260,7 +1260,7 @@ fn keywords() {
         "constructor", 
         "get", "получить",
         "set", "установить",
-        "к",
+        "k", "к",
         "static"
     ];
 
