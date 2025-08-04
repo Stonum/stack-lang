@@ -24,37 +24,33 @@ fn to_location(uri: Url, range: LineColRange) -> Location {
     }
 }
 
-pub fn get_locations<I>(
-    identifier: &str,
-    semantic_info: &SemanticInfo,
-    semantics: I,
-) -> Vec<Location>
+pub fn get_locations<I>(semantic_info: &SemanticInfo, semantics: I) -> Vec<Location>
 where
     I: IntoIterator<Item = (Url, Arc<MLangSemanticModel>)>,
 {
     let mut locations = vec![];
 
     match semantic_info {
-        SemanticInfo::FunctionCall => {
+        SemanticInfo::FunctionCall(ident) => {
             for (uri, doc) in semantics.into_iter() {
                 let doc_def = doc.definitions();
 
                 let mut functions = doc_def
                     .into_iter()
-                    .filter(|d| d.is_function() && d.id().eq_ignore_ascii_case(identifier))
+                    .filter(|d| d.is_function() && d.id().eq_ignore_ascii_case(ident))
                     .map(|d| to_location(uri.clone(), d.id_range()))
                     .collect::<Vec<_>>();
 
                 locations.append(&mut functions);
             }
         }
-        SemanticInfo::NewExpression => {
+        SemanticInfo::NewExpression(ident) => {
             for (uri, doc) in semantics.into_iter() {
                 let doc_def = doc.definitions();
 
                 let classes = doc_def
                     .into_iter()
-                    .filter(|d| d.is_class() && d.id().eq_ignore_ascii_case(identifier));
+                    .filter(|d| d.is_class() && d.id().eq_ignore_ascii_case(ident));
 
                 for c in classes {
                     let mut constructors = doc_def
@@ -80,20 +76,33 @@ where
                 }
             }
         }
-        SemanticInfo::MethodCall(None) => {
+        SemanticInfo::ClassExtends(ident) => {
+            for (uri, doc) in semantics.into_iter() {
+                let doc_def = doc.definitions();
+
+                let mut classes = doc_def
+                    .into_iter()
+                    .filter(|d| d.is_class() && d.id().eq_ignore_ascii_case(ident))
+                    .map(|d| to_location(uri.clone(), d.id_range()))
+                    .collect::<Vec<_>>();
+
+                locations.append(&mut classes);
+            }
+        }
+        SemanticInfo::MethodCall(ident, None) => {
             for (uri, doc) in semantics.into_iter() {
                 let doc_def = doc.definitions();
 
                 let mut methods = doc_def
                     .into_iter()
-                    .filter(|d| d.is_method() && d.id().eq_ignore_ascii_case(identifier))
+                    .filter(|d| d.is_method() && d.id().eq_ignore_ascii_case(ident))
                     .map(|d| to_location(uri.clone(), d.id_range()))
                     .collect::<Vec<_>>();
 
                 locations.append(&mut methods);
             }
         }
-        SemanticInfo::MethodCall(Some(class_name)) => {
+        SemanticInfo::MethodCall(ident, Some(class_name)) => {
             let semantics = semantics.into_iter().collect::<Vec<_>>();
             let mut class_names = vec![class_name];
 
@@ -107,7 +116,7 @@ where
                     let mut methods = doc_def
                         .into_iter()
                         // find by method name
-                        .filter(|d| d.is_method() && d.id().eq_ignore_ascii_case(identifier))
+                        .filter(|d| d.is_method() && d.id().eq_ignore_ascii_case(ident))
                         // find by class name
                         .filter(|d| {
                             d.container().is_some_and(|c| {
@@ -143,37 +152,65 @@ where
                 }
             }
         }
+        SemanticInfo::SuperCall(_ident, class_name) => {
+            for (uri, doc) in semantics.into_iter() {
+                let doc_def = doc.definitions();
+
+                let classes = doc_def
+                    .into_iter()
+                    .filter(|d| d.is_class() && d.id().eq_ignore_ascii_case(class_name));
+
+                for c in classes {
+                    let mut constructors = doc_def
+                        .into_iter()
+                        .filter_map(|d| {
+                            if !d.is_constructor() {
+                                return None;
+                            }
+                            let container = d.container()?;
+                            if &container != c {
+                                return None;
+                            }
+
+                            Some(to_location(uri.clone(), d.id_range()))
+                        })
+                        .collect::<Vec<_>>();
+
+                    if constructors.len() > 0 {
+                        locations.append(&mut constructors);
+                    } else {
+                        locations.push(to_location(uri.clone(), c.id_range()));
+                    }
+                }
+            }
+        }
     }
 
     locations
 }
 
-pub fn get_hover<'a, I>(
-    identifier: &str,
-    semantic_info: &SemanticInfo,
-    definitions: I,
-) -> Vec<MarkedString>
+pub fn get_hover<'a, I>(semantic_info: &SemanticInfo, definitions: I) -> Vec<MarkedString>
 where
     I: IntoIterator<Item = &'a AnyMDefinition>,
 {
     match semantic_info {
-        SemanticInfo::FunctionCall => {
+        SemanticInfo::FunctionCall(ident) => {
             let functions = definitions
                 .into_iter()
-                .filter(|d| d.is_function() && d.id().eq_ignore_ascii_case(identifier))
+                .filter(|d| d.is_function() && d.id().eq_ignore_ascii_case(ident))
                 .map(|d| MarkedString::String(d.to_markdown()))
                 .collect::<Vec<_>>();
 
             return functions;
         }
-        SemanticInfo::NewExpression => {
+        SemanticInfo::NewExpression(ident) => {
             let mut markups = vec![];
 
             let definitions = definitions.into_iter().collect::<Vec<_>>();
 
             let classes = definitions
                 .iter()
-                .filter(|d| d.is_class() && d.id().eq_ignore_ascii_case(identifier));
+                .filter(|d| d.is_class() && d.id().eq_ignore_ascii_case(ident));
 
             for c in classes {
                 markups.push(MarkedString::String(c.to_markdown()));
@@ -197,16 +234,25 @@ where
             }
             return markups;
         }
-        SemanticInfo::MethodCall(None) => {
+        SemanticInfo::ClassExtends(ident) => {
+            let classes = definitions
+                .into_iter()
+                .filter(|d| d.is_class() && d.id().eq_ignore_ascii_case(ident))
+                .map(|d| MarkedString::String(d.to_markdown()))
+                .collect::<Vec<_>>();
+
+            return classes;
+        }
+        SemanticInfo::MethodCall(ident, None) => {
             let methods = definitions
                 .into_iter()
-                .filter(|d| d.is_method() && d.id().eq_ignore_ascii_case(identifier))
+                .filter(|d| d.is_method() && d.id().eq_ignore_ascii_case(ident))
                 .map(|d| MarkedString::String(d.to_markdown()))
                 .collect::<Vec<_>>();
 
             return methods;
         }
-        SemanticInfo::MethodCall(Some(class_name)) => {
+        SemanticInfo::MethodCall(ident, Some(class_name)) => {
             let mut markups = vec![];
 
             let definitions = definitions.into_iter().collect::<Vec<_>>();
@@ -219,7 +265,7 @@ where
                 let mut methods = definitions
                     .iter()
                     // find by method name
-                    .filter(|d| d.is_method() && d.id().eq_ignore_ascii_case(identifier))
+                    .filter(|d| d.is_method() && d.id().eq_ignore_ascii_case(ident))
                     // find by class name
                     .filter(|d| {
                         d.container().is_some_and(|c| {
@@ -254,6 +300,37 @@ where
                 class_names.append(&mut super_classes);
             }
 
+            return markups;
+        }
+        SemanticInfo::SuperCall(_ident, class_name) => {
+            let mut markups = vec![];
+
+            let definitions = definitions.into_iter().collect::<Vec<_>>();
+
+            let classes = definitions
+                .iter()
+                .filter(|d| d.is_class() && d.id().eq_ignore_ascii_case(class_name));
+
+            for c in classes {
+                markups.push(MarkedString::String(c.to_markdown()));
+
+                let mut constructors = definitions
+                    .iter()
+                    .filter_map(|d| {
+                        if !d.is_constructor() {
+                            return None;
+                        }
+                        let container = d.container()?;
+                        if &&container != c {
+                            return None;
+                        }
+
+                        Some(MarkedString::String(d.to_markdown()))
+                    })
+                    .collect::<Vec<_>>();
+
+                markups.append(&mut constructors);
+            }
             return markups;
         }
     }
