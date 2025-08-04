@@ -1,5 +1,16 @@
 **Changelog**
 ===============
+**v0.2.8 - 2025-08-04**
+------------------------------------
+* **Added**:
+   + little optimizations
+   + command to replace `[]` for ""
+   + goto and hover for super class
+* **Fixed**: 
+   + support en version "к" keyword
+* **Changed**:
+   + workspace initialization and logs
+
 **v0.2.7 - 2025-07-09**
 ------------------------------------
 * **Fixed**: 
