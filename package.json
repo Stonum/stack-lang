@@ -57,7 +57,7 @@
          },
          {
             "command": "stack.fieldsToPostgreSQL",
-            "title": "Заменяет [] на \"",
+            "title": "Replaces [] на \"",
             "category": "stack"
          }
       ],
