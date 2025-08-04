@@ -1409,4 +1409,9 @@ fn reports() {
         FF2:2,
         IDENT:26
     }
+    assert_lex! {
+        "103 Полезный отпуск",
+        FF2:2,
+        IDENT:33
+    }
 }
