@@ -334,7 +334,7 @@ impl Workspace {
             .or(Err(WorkspaceError::UrlConvertation(uri.clone())))?;
         let file_source = MFileSource::try_from(path.as_path())?;
 
-        let parsed = parse(&document.text, MFileSource::module());
+        let parsed = parse(&document.text, file_source);
         let semantics = semantics(&document.text, parsed.syntax());
 
         let mut diagnostics = vec![];
