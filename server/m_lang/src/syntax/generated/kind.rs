@@ -324,7 +324,7 @@ impl MSyntaxKind {
             "true" | "истина" => TRUE_KW,
             "while" | "пока" => WHILE_KW,
             "var" | "перем" => VAR_KW,
-            "к" => K_KW,
+            "k" | "к" => K_KW,
             "version" => VERSION_KW,
             "static" => STATIC_KW,
             _ => return None,
@@ -420,6 +420,7 @@ impl MSyntaxKind {
             GET_KW => "get",
             SET_KW => "set",
             VERSION_KW => "version",
+            K_KW => "k",
             _ => return None,
         };
         Some(tok)
