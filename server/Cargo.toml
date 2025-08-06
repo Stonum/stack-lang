@@ -9,6 +9,7 @@ members = [
    "mlang_parser",
    "mlang_semantic",
    "mlang_formatter",
+   "mlang_core"
 ]
 
 [workspace.package]
@@ -22,10 +23,12 @@ mlang_factory = { path = 'mlang_factory' }
 mlang_parser = { path = "mlang_parser" }
 mlang_semantic = { path = "mlang_semantic" }
 mlang_formatter = { path = "mlang_formatter" }
+mlang_core = { path = "mlang_core" }
 
 tokio = { version = "1.17.0", features = ["full"] }
 tower-lsp = { version = "0.20.0", features = ["proposed"] }
 serde_json = "1.0.78"
+serde_yaml = "0.9.33"
 serde = { version = "1.0", features = ["derive"] }
 rustc-hash = "2.1.1"
 tracing = { version = "0.1.40", default-features = false, features = ["std"] }
@@ -33,6 +36,7 @@ enumflags2 = "0.7.10"
 chrono = "0.4.24"
 env_logger = "0.9.0"
 dashmap = "5.1.0"
+unicase = "2.8.1"
 
 log = "0.4.14"
 rust-ini = "0.21.0"

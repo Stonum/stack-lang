@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use line_index::LineColRange;
+use mlang_core::AnyMCoreDefinition;
 use mlang_semantic::{
     AnyMDefinition, Definition, SemanticInfo, SemanticModel as MLangSemanticModel,
 };
 use tower_lsp::lsp_types::{Location, MarkedString, Position, Range, Url};
-
 #[derive(Debug)]
 pub struct LspDefinition {
     pub uri: Url,
@@ -333,5 +333,35 @@ where
             }
             return markups;
         }
+    }
+}
+
+pub fn get_hover_for_core_api<'a, I>(
+    semantic_info: &SemanticInfo,
+    definitions: I,
+) -> Vec<MarkedString>
+where
+    I: IntoIterator<Item = &'a AnyMCoreDefinition>,
+{
+    match semantic_info {
+        SemanticInfo::FunctionCall(ident) => {
+            let functions = definitions
+                .into_iter()
+                .filter(|d| d.is_function() && unicase::eq(d.id(), ident))
+                .map(|d| MarkedString::String(d.to_markdown()))
+                .collect::<Vec<_>>();
+
+            return functions;
+        }
+        SemanticInfo::MethodCall(ident, None) => {
+            let methods = definitions
+                .into_iter()
+                .filter(|d| d.is_method() && unicase::eq(d.id(), ident))
+                .map(|d| MarkedString::String(d.to_markdown()))
+                .collect::<Vec<_>>();
+
+            return methods;
+        }
+        _ => vec![],
     }
 }

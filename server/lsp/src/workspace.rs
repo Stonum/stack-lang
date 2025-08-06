@@ -4,6 +4,7 @@ use dashmap::DashMap;
 use ini::Ini;
 use line_index::{LineCol, LineColRange, LineIndex};
 use log::{error, info};
+use mlang_core::{AnyMCoreDefinition, load_core_api};
 use serde_json::Value;
 use thiserror::Error;
 
@@ -21,7 +22,7 @@ use tower_lsp::lsp_types::{
 };
 
 use crate::{
-    definition::{get_hover, get_locations},
+    definition::{get_hover, get_hover_for_core_api, get_locations},
     document::CurrentDocument,
 };
 
@@ -48,6 +49,7 @@ pub enum WorkspaceError {
 pub struct Workspace {
     opened_files: DashMap<Url, Arc<CurrentDocument>>,
     semantics: DashMap<PathBuf, Option<Arc<SemanticModel>>>,
+    core: Vec<AnyMCoreDefinition>,
 }
 
 impl Workspace {
@@ -55,6 +57,7 @@ impl Workspace {
         Workspace {
             opened_files: DashMap::new(),
             semantics: DashMap::new(),
+            core: load_core_api(),
         }
     }
 
@@ -184,6 +187,14 @@ impl Workspace {
             .collect::<Vec<_>>();
 
         let definitions = semantics.iter().flat_map(|arc| arc.definitions().iter());
+
+        let core_markups = get_hover_for_core_api(&semantic_info, &self.core);
+        if core_markups.len() > 0 {
+            return Some(Hover {
+                contents: HoverContents::Array(core_markups),
+                range: None,
+            });
+        }
 
         let markups = get_hover(&semantic_info, definitions);
         Some(Hover {

@@ -129,7 +129,7 @@ impl LanguageServer for Backend {
         self.workspace.update_semantic_information().await;
 
         info!(
-            "Workspae initialization completed for {:?}",
+            "Workspace initialization completed for {:?}",
             start.elapsed()
         );
         self.send_status_bar_notofication("").await;
