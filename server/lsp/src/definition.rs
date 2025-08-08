@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use line_index::LineColRange;
-use m_lang::semantic::{
+use mlang_semantic::{
     AnyMDefinition, Definition, SemanticInfo, SemanticModel as MLangSemanticModel,
 };
 use tower_lsp::lsp_types::{Location, MarkedString, Position, Range, Url};

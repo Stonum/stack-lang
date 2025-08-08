@@ -6,20 +6,20 @@ name = "stack-lang-server"
 version = "0.1.0"
 edition = "2024"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-m_lang = { path = "../m_lang" }
-line_index = { path = "../line_index" }
+line_index = { workspace = true }
+mlang_syntax = { workspace = true }
+mlang_parser = { workspace = true }
+mlang_formatter = { workspace = true }
+mlang_semantic = { workspace = true }
 
-env_logger = "0.9.0"
+env_logger = { workspace = true }
 serde_json = { workspace = true }
 serde = { workspace = true }
-tokio = { version = "1.17.0", features = ["full"] }
-dashmap = "5.1.0"
-tower-lsp = { version = "0.20.0", features = ["proposed"]}
-log = "0.4.14"
-rust-ini = "0.21.0"
-thiserror = "2.0.12"
-biome_diagnostics = "0.5.8"
-
+tokio = { workspace = true }
+dashmap = { workspace = true }
+tower-lsp = { workspace = true }
+log = { workspace = true }
+rust-ini = { workspace = true }
+thiserror = { workspace = true }
+biome_diagnostics = { workspace = true }

@@ -1,9 +1,9 @@
 [package]
 name = "line_index"
 version = "0.1.0"
-edition = "2024"
+edition.workspace = true
 
 [dependencies]
-rustc-hash = "2.1.1"
-biome_text_size = "0.5.8"
-biome_rowan = "0.5.8"
+rustc-hash = { workspace = true }
+biome_text_size = { workspace = true }
+biome_rowan = { workspace = true }

@@ -1,10 +1,9 @@
 use biome_diagnostics::diagnostic::Diagnostic as _;
 use line_index::{LineColRange, LineIndex};
-use m_lang::{
-    parser::{ParseDiagnostic, parse},
-    semantic::{SemanticModel as MLangSemanticModel, semantics},
-    syntax::{MFileSource, MLanguage, MSyntaxNode, SendNode, SyntaxNode},
-};
+
+use mlang_parser::{ParseDiagnostic, parse};
+use mlang_semantic::{SemanticModel as MLangSemanticModel, semantics};
+use mlang_syntax::{MFileSource, MLanguage, MSyntaxNode, SendNode, SyntaxNode};
 
 use std::{any::type_name, path::PathBuf};
 use tower_lsp::lsp_types::{Position, Range, Url};

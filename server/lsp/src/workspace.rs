@@ -7,14 +7,12 @@ use log::{error, info};
 use serde_json::Value;
 use thiserror::Error;
 
-use m_lang::{
-    parser::parse,
-    semantic::{
-        AnyMDefinition, Definition as _, SemanticInfo, SemanticModel, identifier_for_offset,
-        semantics,
-    },
-    syntax::MFileSource,
+use mlang_parser::parse;
+use mlang_semantic::{
+    AnyMDefinition, Definition as _, SemanticInfo, SemanticModel, identifier_for_offset, semantics,
 };
+use mlang_syntax::MFileSource;
+
 use tokio::runtime::Handle;
 use tower_lsp::lsp_types::{
     CodeLens, Command, DocumentSymbolResponse, GotoDefinitionResponse, Hover, HoverContents,
@@ -44,7 +42,7 @@ pub enum WorkspaceError {
     #[error("Failed convert Url to file path {0}")]
     UrlConvertation(Url),
     #[error("{0}")]
-    FileSource(#[from] m_lang::syntax::FileSourceError),
+    FileSource(#[from] mlang_syntax::FileSourceError),
 }
 
 pub struct Workspace {
