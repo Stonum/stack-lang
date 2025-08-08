@@ -1,0 +1,17 @@
+
+[package]
+name = "mlang_parser"
+version = "0.0.1"
+edition.workspace = true
+
+[dependencies]
+mlang_syntax = { workspace = true }
+mlang_factory = { workspace = true }
+
+biome_parser = { workspace = true }
+biome_rowan = { workspace = true }
+biome_unicode_table = { workspace = true }
+
+chrono = { workspace = true }
+tracing = { workspace = true }
+enumflags2 = { workspace = true }

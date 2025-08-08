@@ -1,8 +1,6 @@
 use line_index::{LineCol, LineColRange};
-use m_lang::{
-    formatter::{IndentStyle, IndentWidth, LineWidth, MFormatOptions, format_range},
-    syntax::MFileSource,
-};
+use mlang_formatter::{IndentStyle, IndentWidth, LineWidth, MFormatOptions, format_range};
+use mlang_syntax::MFileSource;
 
 use tower_lsp::lsp_types::{FormattingOptions, Position};
 use tower_lsp::lsp_types::{Range, TextEdit};

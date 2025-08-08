@@ -1,0 +1,16 @@
+
+[package]
+name = "mlang_formatter"
+version = "0.0.1"
+edition.workspace = true
+
+[dependencies]
+mlang_syntax = { workspace = true }
+mlang_factory = { workspace = true }
+
+serde = { workspace = true }
+biome_rowan = { workspace = true }
+biome_formatter = { workspace = true }
+
+[dev-dependencies]
+mlang_parser = { workspace = true }

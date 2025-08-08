@@ -1,0 +1,12 @@
+
+[package]
+name = "mlang_semantic"
+version = "0.0.1"
+edition.workspace = true
+
+[dependencies]
+line_index = { workspace = true }
+mlang_syntax = { workspace = true }
+mlang_parser = { workspace = true }
+
+biome_rowan = { workspace = true }
