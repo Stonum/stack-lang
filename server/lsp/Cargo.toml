@@ -12,6 +12,7 @@ mlang_syntax = { workspace = true }
 mlang_parser = { workspace = true }
 mlang_formatter = { workspace = true }
 mlang_semantic = { workspace = true }
+mlang_core = { workspace = true }
 
 env_logger = { workspace = true }
 serde_json = { workspace = true }
@@ -23,3 +24,4 @@ log = { workspace = true }
 rust-ini = { workspace = true }
 thiserror = { workspace = true }
 biome_diagnostics = { workspace = true }
+unicase = { workspace = true }
