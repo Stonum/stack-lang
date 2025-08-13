@@ -89,6 +89,9 @@ pub fn identifier_for_offset(
                         MSyntaxKind::M_EXTENDS_CLAUSE => {
                             return Some(SemanticInfo::ClassExtends(ident));
                         }
+                        MSyntaxKind::M_FOR_ITERATOR_FACTORY => {
+                            return Some(SemanticInfo::FunctionCall(ident));
+                        }
                         _ => (),
                     };
                 }
@@ -135,7 +138,8 @@ mod tests {
             ("#comment line
               callaFterComment()",30, SemanticInfo::FunctionCall("callaFterComment".to_owned())),
             ("class B extends A {}", 17, SemanticInfo::ClassExtends("A".to_owned())),
-            ("class B extends A { constructor() { super() } }", 40, SemanticInfo::SuperCall("super".to_owned(), "A".to_owned()))
+            ("class B extends A { constructor() { super() } }", 40, SemanticInfo::SuperCall("super".to_owned(), "A".to_owned())),
+            ("forall( iterator(arr, ind)) {}", 15, SemanticInfo::FunctionCall("iterator".to_owned()))
         ];
 
         for (input, offset, info) in inputs {
