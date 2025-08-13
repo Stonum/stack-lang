@@ -99,7 +99,7 @@ impl AnyMDefinition {
         }
     }
 
-    pub fn parent(&self) -> Option<&String> {
+    pub fn parent(&self) -> Option<&str> {
         match self {
             AnyMDefinition::MClassDefinition(class) => class.extends(),
             _ => None,
@@ -110,10 +110,10 @@ impl AnyMDefinition {
 pub trait Definition {
     fn range(&self) -> LineColRange;
     fn type_keyword(&self) -> &'static str;
-    fn id(&self) -> String;
+    fn id(&self) -> &str;
     fn id_range(&self) -> LineColRange;
-    fn params(&self) -> String;
-    fn description(&self) -> Option<String>;
+    fn params(&self) -> &str;
+    fn description(&self) -> Option<&str>;
 
     fn to_markdown(&self) -> String {
         format!(
@@ -145,7 +145,7 @@ impl Definition for AnyMDefinition {
             AnyMDefinition::MReportSectionDefiniton(def) => def.type_keyword(),
         }
     }
-    fn id(&self) -> String {
+    fn id(&self) -> &str {
         match self {
             AnyMDefinition::MFunctionDefinition(def) => def.id(),
             AnyMDefinition::MClassDefinition(def) => def.id(),
@@ -163,7 +163,7 @@ impl Definition for AnyMDefinition {
             AnyMDefinition::MReportSectionDefiniton(def) => def.id_range(),
         }
     }
-    fn params(&self) -> String {
+    fn params(&self) -> &str {
         match self {
             AnyMDefinition::MFunctionDefinition(def) => def.params(),
             AnyMDefinition::MClassDefinition(def) => def.params(),
@@ -172,7 +172,7 @@ impl Definition for AnyMDefinition {
             AnyMDefinition::MReportSectionDefiniton(def) => def.params(),
         }
     }
-    fn description(&self) -> Option<String> {
+    fn description(&self) -> Option<&str> {
         match self {
             AnyMDefinition::MFunctionDefinition(def) => def.description(),
             AnyMDefinition::MClassDefinition(def) => def.description(),
@@ -208,16 +208,16 @@ impl Definition for MFunctionDefinition {
         "function"
     }
 
-    fn id(&self) -> String {
-        self.id.name.clone()
+    fn id(&self) -> &str {
+        &self.id.name
     }
 
-    fn params(&self) -> String {
-        self.params.clone()
+    fn params(&self) -> &str {
+        &self.params
     }
 
-    fn description(&self) -> Option<String> {
-        self.description.clone()
+    fn description(&self) -> Option<&str> {
+        self.description.as_deref()
     }
 
     fn id_range(&self) -> LineColRange {
@@ -238,8 +238,8 @@ impl MClassDefinition {
         &self.methods
     }
 
-    pub fn extends(&self) -> Option<&String> {
-        self.extends.as_ref()
+    pub fn extends(&self) -> Option<&str> {
+        self.extends.as_deref()
     }
 }
 
@@ -252,16 +252,16 @@ impl Definition for MClassDefinition {
         "class"
     }
 
-    fn id(&self) -> String {
-        self.id.name.clone()
+    fn id(&self) -> &str {
+        &self.id.name
     }
 
-    fn params(&self) -> String {
-        String::from("")
+    fn params(&self) -> &str {
+        ""
     }
 
-    fn description(&self) -> Option<String> {
-        self.description.clone()
+    fn description(&self) -> Option<&str> {
+        self.description.as_deref()
     }
 
     fn id_range(&self) -> LineColRange {
@@ -315,16 +315,16 @@ impl Definition for MClassMemberDefinition {
         }
     }
 
-    fn id(&self) -> String {
-        self.id.name.clone()
+    fn id(&self) -> &str {
+        &self.id.name
     }
 
-    fn params(&self) -> String {
-        self.params.clone()
+    fn params(&self) -> &str {
+        &self.params
     }
 
-    fn description(&self) -> Option<String> {
-        self.description.clone()
+    fn description(&self) -> Option<&str> {
+        self.description.as_deref()
     }
 
     fn id_range(&self) -> LineColRange {
@@ -389,15 +389,15 @@ impl Definition for MReportDefinition {
         "report"
     }
 
-    fn id(&self) -> String {
-        self.id.name.clone()
+    fn id(&self) -> &str {
+        &self.id.name
     }
 
-    fn params(&self) -> String {
-        String::from("")
+    fn params(&self) -> &str {
+        ""
     }
 
-    fn description(&self) -> Option<String> {
+    fn description(&self) -> Option<&str> {
         None
     }
 
@@ -422,15 +422,15 @@ impl Definition for MReportSectionDefiniton {
         "section"
     }
 
-    fn id(&self) -> String {
-        self.id.name.clone()
+    fn id(&self) -> &str {
+        &self.id.name
     }
 
-    fn params(&self) -> String {
-        String::from("")
+    fn params(&self) -> &str {
+        ""
     }
 
-    fn description(&self) -> Option<String> {
+    fn description(&self) -> Option<&str> {
         None
     }
 

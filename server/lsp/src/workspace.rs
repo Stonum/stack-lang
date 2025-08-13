@@ -244,7 +244,7 @@ impl Workspace {
 
                 let mut name = def.id();
                 if name.starts_with('\'') && name.ends_with('\'') {
-                    name = name[1..name.len() - 1].to_string();
+                    name = &name[1..name.len() - 1];
                 }
 
                 let location = {
@@ -260,12 +260,12 @@ impl Workspace {
 
                 #[allow(deprecated)]
                 SymbolInformation {
-                    name,
+                    name: name.to_string(),
                     kind,
                     tags: None,
                     deprecated: None,
                     location,
-                    container_name: def.container().map(|c| c.id()),
+                    container_name: def.container().map(|c| c.id().to_string()),
                 }
             })
             .collect();
@@ -282,7 +282,7 @@ impl Workspace {
             .iter()
             .filter_map(|def| {
                 let container = def.container()?;
-                let title = container.id();
+                let title = container.id().to_string();
                 let line = container.range().start.line;
                 let args = vec![Value::Number(line.into())];
 

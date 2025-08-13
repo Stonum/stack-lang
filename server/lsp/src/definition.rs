@@ -37,7 +37,7 @@ where
 
                 let mut functions = doc_def
                     .into_iter()
-                    .filter(|d| d.is_function() && d.id().eq_ignore_ascii_case(ident))
+                    .filter(|d| d.is_function() && unicase::eq(d.id(), ident))
                     .map(|d| to_location(uri.clone(), d.id_range()))
                     .collect::<Vec<_>>();
 
@@ -50,7 +50,7 @@ where
 
                 let classes = doc_def
                     .into_iter()
-                    .filter(|d| d.is_class() && d.id().eq_ignore_ascii_case(ident));
+                    .filter(|d| d.is_class() && unicase::eq(d.id(), ident));
 
                 for c in classes {
                     let mut constructors = doc_def
@@ -82,7 +82,7 @@ where
 
                 let mut classes = doc_def
                     .into_iter()
-                    .filter(|d| d.is_class() && d.id().eq_ignore_ascii_case(ident))
+                    .filter(|d| d.is_class() && unicase::eq(d.id(), ident))
                     .map(|d| to_location(uri.clone(), d.id_range()))
                     .collect::<Vec<_>>();
 
@@ -95,7 +95,7 @@ where
 
                 let mut methods = doc_def
                     .into_iter()
-                    .filter(|d| d.is_method() && d.id().eq_ignore_ascii_case(ident))
+                    .filter(|d| d.is_method() && unicase::eq(d.id(), ident))
                     .map(|d| to_location(uri.clone(), d.id_range()))
                     .collect::<Vec<_>>();
 
@@ -104,7 +104,7 @@ where
         }
         SemanticInfo::MethodCall(ident, Some(class_name)) => {
             let semantics = semantics.into_iter().collect::<Vec<_>>();
-            let mut class_names = vec![class_name];
+            let mut class_names: Vec<&str> = vec![class_name];
 
             while !class_names.is_empty() {
                 let classes_for_filter = class_names.clone();
@@ -116,13 +116,13 @@ where
                     let mut methods = doc_def
                         .into_iter()
                         // find by method name
-                        .filter(|d| d.is_method() && d.id().eq_ignore_ascii_case(ident))
+                        .filter(|d| d.is_method() && unicase::eq(d.id(), ident))
                         // find by class name
                         .filter(|d| {
                             d.container().is_some_and(|c| {
                                 classes_for_filter
                                     .iter()
-                                    .any(|cff| c.id().eq_ignore_ascii_case(cff))
+                                    .any(|cff| unicase::eq(c.id(), cff))
                             })
                         })
                         .map(|d| to_location(uri.clone(), d.id_range()))
@@ -140,7 +140,7 @@ where
                             if d.is_class()
                                 && classes_for_filter
                                     .iter()
-                                    .any(|cff| d.id().eq_ignore_ascii_case(cff))
+                                    .any(|cff| unicase::eq(d.id(), cff))
                             {
                                 return d.parent();
                             }
@@ -158,7 +158,7 @@ where
 
                 let classes = doc_def
                     .into_iter()
-                    .filter(|d| d.is_class() && d.id().eq_ignore_ascii_case(class_name));
+                    .filter(|d| d.is_class() && unicase::eq(d.id(), class_name));
 
                 for c in classes {
                     let mut constructors = doc_def
@@ -197,7 +197,7 @@ where
         SemanticInfo::FunctionCall(ident) => {
             let functions = definitions
                 .into_iter()
-                .filter(|d| d.is_function() && d.id().eq_ignore_ascii_case(ident))
+                .filter(|d| d.is_function() && unicase::eq(d.id(), ident))
                 .map(|d| MarkedString::String(d.to_markdown()))
                 .collect::<Vec<_>>();
 
@@ -210,7 +210,7 @@ where
 
             let classes = definitions
                 .iter()
-                .filter(|d| d.is_class() && d.id().eq_ignore_ascii_case(ident));
+                .filter(|d| d.is_class() && unicase::eq(d.id(), ident));
 
             for c in classes {
                 markups.push(MarkedString::String(c.to_markdown()));
@@ -237,7 +237,7 @@ where
         SemanticInfo::ClassExtends(ident) => {
             let classes = definitions
                 .into_iter()
-                .filter(|d| d.is_class() && d.id().eq_ignore_ascii_case(ident))
+                .filter(|d| d.is_class() && unicase::eq(d.id(), ident))
                 .map(|d| MarkedString::String(d.to_markdown()))
                 .collect::<Vec<_>>();
 
@@ -246,7 +246,7 @@ where
         SemanticInfo::MethodCall(ident, None) => {
             let methods = definitions
                 .into_iter()
-                .filter(|d| d.is_method() && d.id().eq_ignore_ascii_case(ident))
+                .filter(|d| d.is_method() && unicase::eq(d.id(), ident))
                 .map(|d| MarkedString::String(d.to_markdown()))
                 .collect::<Vec<_>>();
 
@@ -256,7 +256,7 @@ where
             let mut markups = vec![];
 
             let definitions = definitions.into_iter().collect::<Vec<_>>();
-            let mut class_names = vec![class_name];
+            let mut class_names: Vec<&str> = vec![class_name];
 
             while !class_names.is_empty() {
                 let classes_for_filter = class_names.clone();
@@ -265,13 +265,13 @@ where
                 let mut methods = definitions
                     .iter()
                     // find by method name
-                    .filter(|d| d.is_method() && d.id().eq_ignore_ascii_case(ident))
+                    .filter(|d| d.is_method() && unicase::eq(d.id(), ident))
                     // find by class name
                     .filter(|d| {
                         d.container().is_some_and(|c| {
                             classes_for_filter
                                 .iter()
-                                .any(|cff| c.id().eq_ignore_ascii_case(cff))
+                                .any(|cff| unicase::eq(c.id(), cff))
                         })
                     })
                     .map(|d| MarkedString::String(d.to_markdown()))
@@ -289,7 +289,7 @@ where
                         if d.is_class()
                             && classes_for_filter
                                 .iter()
-                                .any(|cff| d.id().eq_ignore_ascii_case(cff))
+                                .any(|cff| unicase::eq(d.id(), cff))
                         {
                             return d.parent();
                         }
@@ -309,7 +309,7 @@ where
 
             let classes = definitions
                 .iter()
-                .filter(|d| d.is_class() && d.id().eq_ignore_ascii_case(class_name));
+                .filter(|d| d.is_class() && unicase::eq(d.id(), class_name));
 
             for c in classes {
                 markups.push(MarkedString::String(c.to_markdown()));
