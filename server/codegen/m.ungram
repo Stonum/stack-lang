@@ -688,6 +688,7 @@ MVariableDeclarationClause =
 
 MFunctionDeclaration =
    annotation: MAnnotationGroupList
+	'inline'? 
 	'function'
 	id: AnyMFunctionBinding
 	parameters: MParameters

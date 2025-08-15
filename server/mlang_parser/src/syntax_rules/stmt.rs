@@ -141,7 +141,7 @@ pub(crate) fn parse_statement(p: &mut MParser, context: StatementContext) -> Par
         T![throw] => parse_throw_statement(p),
         T![debug] => parse_debugger_statement(p),
         // function
-        T![function] => parse_function_declaration(p, context, None),
+        T![inline] | T![function] => parse_function_declaration(p, context, None),
 
         // class
         T![class] => parse_class_declaration(p, context, None),

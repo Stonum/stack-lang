@@ -1,18 +1,18 @@
+use super::ParsedSyntax::{Absent, Present};
 use super::binding::{parse_dot_binding, parse_identifier_binding};
 use super::class::parse_initializer_clause;
-use super::expr::{parse_doc_string_expression, ExpressionContext};
+use super::expr::{ExpressionContext, parse_doc_string_expression};
 use super::m_parse_error;
 use super::m_parse_error::expected_parameter;
 use super::state::{EnterFunction, EnterParameters, SignatureFlags};
-use super::stmt::{parse_block_impl, StatementContext};
-use super::ParsedSyntax::{Absent, Present};
+use super::stmt::{StatementContext, parse_block_impl};
 use super::{MParser, ParseRecoveryTokenSet, ParsedSyntax};
 
 use mlang_syntax::MSyntaxKind::*;
 use mlang_syntax::{MSyntaxKind, T};
 
-use biome_parser::prelude::*;
 use biome_parser::ParserProgress;
+use biome_parser::prelude::*;
 
 /// A function declaration
 // test function_decl
@@ -82,13 +82,14 @@ impl From<FunctionKind> for MSyntaxKind {
 }
 
 fn is_at_function(p: &mut MParser) -> bool {
-    p.at_ts(token_set![T![function]])
+    p.at_ts(token_set![T![inline], T![function]])
 }
 
 #[inline]
 fn parse_function(p: &mut MParser, m: Marker, kind: FunctionKind) -> CompletedMarker {
     let flags = SignatureFlags::empty();
 
+    p.eat(T![inline]);
     p.expect(T![function]);
 
     let id = parse_function_id(p, kind, flags);
