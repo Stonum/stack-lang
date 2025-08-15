@@ -120,9 +120,9 @@ where
                                 return None;
                             }
                             let container = d.container()?;
-                            // if &container != c {
-                            return None;
-                            // }
+                            if &container != c {
+                                return None;
+                            }
 
                             Some(d.id_location(uri.clone()))
                         })
@@ -216,9 +216,9 @@ where
                                 return None;
                             }
                             let container = d.container()?;
-                            // if &container != c {
-                            return None;
-                            // }
+                            if &container != c {
+                                return None;
+                            }
 
                             Some(d.id_location(uri.clone()))
                         })

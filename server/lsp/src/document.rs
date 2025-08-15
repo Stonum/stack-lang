@@ -2,7 +2,7 @@ use biome_diagnostics::diagnostic::Diagnostic as _;
 use line_index::{LineColRange, LineIndex};
 
 use mlang_parser::{ParseDiagnostic, parse};
-use mlang_semantic::{AnyMDefinition, SemanticModel as MLangSemanticModel, semantics};
+use mlang_semantic::{AnyMDefinition, semantics};
 use mlang_syntax::{MFileSource, MLanguage, MSyntaxNode, SendNode, SyntaxNode};
 
 use std::{any::type_name, path::PathBuf};

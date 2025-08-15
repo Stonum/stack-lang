@@ -1,5 +1,4 @@
 use std::sync::{Arc, Weak};
-use unicase;
 
 use biome_rowan::syntax::SyntaxTrivia;
 use biome_rowan::{AstNode, AstNodeList, SyntaxNode, TriviaPieceKind, WalkEvent};

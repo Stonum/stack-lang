@@ -845,16 +845,6 @@ fn handle_class_method_comment(
     }
 }
 
-fn place_leading_statement_comment(
-    statement: AnyMStatement,
-    comment: DecoratedComment<MLanguage>,
-) -> CommentPlacement<MLanguage> {
-    match statement {
-        AnyMStatement::MBlockStatement(block) => place_block_statement_comment(block, comment),
-        statement => CommentPlacement::leading(statement.into_syntax(), comment),
-    }
-}
-
 fn place_block_statement_comment(
     block_statement: MBlockStatement,
     comment: DecoratedComment<MLanguage>,
