@@ -3,14 +3,14 @@
 #![allow(clippy::enum_variant_names)]
 #![allow(clippy::match_like_matches_macro)]
 use crate::{
-    macros::map_syntax_node,
     MLanguage as Language, MSyntaxElement as SyntaxElement,
     MSyntaxElementChildren as SyntaxElementChildren,
     MSyntaxKind::{self as SyntaxKind, *},
     MSyntaxList as SyntaxList, MSyntaxNode as SyntaxNode, MSyntaxToken as SyntaxToken,
+    macros::map_syntax_node,
 };
 
-use biome_rowan::{support, AstNode, RawSyntaxKind, SyntaxKindSet, SyntaxResult};
+use biome_rowan::{AstNode, RawSyntaxKind, SyntaxKindSet, SyntaxResult, support};
 #[allow(unused)]
 use biome_rowan::{
     AstNodeList, AstNodeListIterator, AstNodeSlotMap, AstSeparatedList,
@@ -2042,6 +2042,7 @@ impl MFunctionDeclaration {
     pub fn as_fields(&self) -> MFunctionDeclarationFields {
         MFunctionDeclarationFields {
             annotation: self.annotation(),
+            inline_token: self.inline_token(),
             function_token: self.function_token(),
             id: self.id(),
             parameters: self.parameters(),
@@ -2052,20 +2053,23 @@ impl MFunctionDeclaration {
     pub fn annotation(&self) -> MAnnotationGroupList {
         support::list(&self.syntax, 0usize)
     }
+    pub fn inline_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, 1usize)
+    }
     pub fn function_token(&self) -> SyntaxResult<SyntaxToken> {
-        support::required_token(&self.syntax, 1usize)
+        support::required_token(&self.syntax, 2usize)
     }
     pub fn id(&self) -> SyntaxResult<AnyMFunctionBinding> {
-        support::required_node(&self.syntax, 2usize)
-    }
-    pub fn parameters(&self) -> SyntaxResult<MParameters> {
         support::required_node(&self.syntax, 3usize)
     }
+    pub fn parameters(&self) -> SyntaxResult<MParameters> {
+        support::required_node(&self.syntax, 4usize)
+    }
     pub fn doc_string(&self) -> Option<AnyMStringLiteralExpression> {
-        support::node(&self.syntax, 4usize)
+        support::node(&self.syntax, 5usize)
     }
     pub fn body(&self) -> SyntaxResult<MFunctionBody> {
-        support::required_node(&self.syntax, 5usize)
+        support::required_node(&self.syntax, 6usize)
     }
 }
 impl Serialize for MFunctionDeclaration {
@@ -2079,6 +2083,7 @@ impl Serialize for MFunctionDeclaration {
 #[derive(Serialize)]
 pub struct MFunctionDeclarationFields {
     pub annotation: MAnnotationGroupList,
+    pub inline_token: Option<SyntaxToken>,
     pub function_token: SyntaxResult<SyntaxToken>,
     pub id: SyntaxResult<AnyMFunctionBinding>,
     pub parameters: SyntaxResult<MParameters>,
@@ -7366,6 +7371,10 @@ impl std::fmt::Debug for MFunctionDeclaration {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MFunctionDeclaration")
             .field("annotation", &self.annotation())
+            .field(
+                "inline_token",
+                &support::DebugOptionalElement(self.inline_token()),
+            )
             .field(
                 "function_token",
                 &support::DebugSyntaxResult(self.function_token()),

@@ -853,6 +853,7 @@ pub fn m_function_declaration(
         id,
         parameters,
         body,
+        inline_token: None,
         doc_string: None,
     }
 }
@@ -862,9 +863,14 @@ pub struct MFunctionDeclarationBuilder {
     id: AnyMFunctionBinding,
     parameters: MParameters,
     body: MFunctionBody,
+    inline_token: Option<SyntaxToken>,
     doc_string: Option<AnyMStringLiteralExpression>,
 }
 impl MFunctionDeclarationBuilder {
+    pub fn with_inline_token(mut self, inline_token: SyntaxToken) -> Self {
+        self.inline_token = Some(inline_token);
+        self
+    }
     pub fn with_doc_string(mut self, doc_string: AnyMStringLiteralExpression) -> Self {
         self.doc_string = Some(doc_string);
         self
@@ -874,6 +880,7 @@ impl MFunctionDeclarationBuilder {
             MSyntaxKind::M_FUNCTION_DECLARATION,
             [
                 Some(SyntaxElement::Node(self.annotation.into_syntax())),
+                self.inline_token.map(|token| SyntaxElement::Token(token)),
                 Some(SyntaxElement::Token(self.function_token)),
                 Some(SyntaxElement::Node(self.id.into_syntax())),
                 Some(SyntaxElement::Node(self.parameters.into_syntax())),
