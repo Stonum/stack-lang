@@ -1,15 +1,13 @@
 use crate::prelude::*;
 
 use crate::rules::expressions::call_arguments::GroupedCallArgumentLayout;
-use crate::utils::function_body::{
-    FormatMaybeCachedFunctionBody, FunctionBodyCacheMode,
-};
+use crate::utils::function_body::{FormatMaybeCachedFunctionBody, FunctionBodyCacheMode};
+use biome_formatter::{RemoveSoftLinesBuffer, write};
+use biome_rowan::{SyntaxResult, declare_node_union};
 use mlang_syntax::{
     AnyMFunctionBinding, AnyMStringLiteralExpression, MAnnotationGroupList, MFunctionBody,
     MFunctionDeclaration, MFunctionExpression, MParameters, MSyntaxToken,
 };
-use biome_formatter::{write, RemoveSoftLinesBuffer};
-use biome_rowan::{declare_node_union, SyntaxResult};
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMFunctionDeclaration;
@@ -37,6 +35,13 @@ impl FormatFunction {
     fn annotation(&self) -> Option<MAnnotationGroupList> {
         match self {
             FormatFunction::MFunctionDeclaration(declaration) => Some(declaration.annotation()),
+            FormatFunction::MFunctionExpression(_) => None,
+        }
+    }
+
+    fn inline_token(&self) -> Option<MSyntaxToken> {
+        match self {
+            FormatFunction::MFunctionDeclaration(declaration) => declaration.inline_token(),
             FormatFunction::MFunctionExpression(_) => None,
         }
     }
@@ -91,6 +96,10 @@ impl FormatFunction {
     ) -> FormatResult<()> {
         if let Some(annotation) = self.annotation() {
             write!(f, [annotation.format()])?;
+        }
+
+        if let Some(inline_token) = self.inline_token() {
+            write!(f, [inline_token.format(), space()])?;
         }
 
         write!(f, [self.function_token().format()])?;

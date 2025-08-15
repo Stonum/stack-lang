@@ -221,3 +221,15 @@ fn format_some_ru_keywords() {
 "#
     );
 }
+
+#[test]
+fn format_inline_function_declaration() {
+    assert_fmt!(
+        r#"#
+inline func i()
+{
+   return 1;
+}
+"#
+    );
+}
