@@ -1,31 +1,6 @@
 use biome_rowan::{AstNode, SyntaxNode, TextRange, TextSize};
+use mlang_lsp_definition::SemanticInfo;
 use mlang_syntax::{MClassDeclaration, MLanguage, MSyntaxKind};
-
-pub type Identifier = String;
-pub type Class = String;
-
-#[derive(Debug, Eq, PartialEq)]
-pub enum SemanticInfo {
-    // like zzzzz();
-    // contains function name
-    FunctionCall(Identifier),
-
-    // like z.cmethod() or this.method()
-    // contains method name and optionally contains class name
-    MethodCall(Identifier, Option<Class>),
-
-    // like new MyClass();
-    // contains class name
-    NewExpression(Identifier),
-
-    // like class A extends B
-    // contains class name
-    ClassExtends(Identifier),
-
-    // like super(x);
-    // contains super class name
-    SuperCall(Identifier, Class),
-}
 
 pub fn identifier_for_offset(
     root: SyntaxNode<MLanguage>,

@@ -8,5 +8,7 @@ edition.workspace = true
 line_index = { workspace = true }
 mlang_syntax = { workspace = true }
 mlang_parser = { workspace = true }
+mlang_lsp_definition = { workspace = true }
 
 biome_rowan = { workspace = true }
+unicase = { workspace = true }

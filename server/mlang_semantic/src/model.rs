@@ -1,15 +1,17 @@
 use std::sync::{Arc, Weak};
+use unicase;
 
 use biome_rowan::syntax::SyntaxTrivia;
 use biome_rowan::{AstNode, AstNodeList, SyntaxNode, TriviaPieceKind, WalkEvent};
 use line_index::{LineColRange, LineIndex};
 
+use mlang_lsp_definition::{CodeSymbolDefinition, LocationDefinition, MarkupDefinition};
 use mlang_syntax::{
     AnyMClassMember, MClassDeclaration, MFunctionDeclaration, MLanguage, MReport, MReportSection,
     MSyntaxNode,
 };
 
-pub fn semantics(text: &str, root: SyntaxNode<MLanguage>) -> SemanticModel {
+pub fn semantics(text: &str, root: SyntaxNode<MLanguage>) -> Vec<AnyMDefinition> {
     let mut collector = SemanticModel {
         definitions: vec![],
     };
@@ -22,7 +24,7 @@ pub fn semantics(text: &str, root: SyntaxNode<MLanguage>) -> SemanticModel {
         }
     }
 
-    collector
+    collector.definitions
 }
 
 #[derive(Debug, Default)]
@@ -31,8 +33,8 @@ pub struct SemanticModel {
 }
 
 impl SemanticModel {
-    pub fn definitions(&self) -> &Vec<AnyMDefinition> {
-        self.definitions.as_ref()
+    pub fn definitions<'a>(&'a self) -> Vec<&'a AnyMDefinition> {
+        self.definitions.iter().collect()
     }
 }
 
@@ -51,143 +53,128 @@ pub struct DefinitionId {
     range: LineColRange,
 }
 
-impl AnyMDefinition {
-    pub fn is_class(&self) -> bool {
-        match self {
-            AnyMDefinition::MClassDefinition(_) => true,
-            _ => false,
-        }
+impl CodeSymbolDefinition for AnyMDefinition {
+    fn is_function(&self) -> bool {
+        matches!(self, AnyMDefinition::MFunctionDefinition(_))
     }
 
-    pub fn is_function(&self) -> bool {
-        match self {
-            AnyMDefinition::MFunctionDefinition(_) => true,
-            _ => false,
-        }
+    fn is_class(&self) -> bool {
+        matches!(self, AnyMDefinition::MClassMemberDefinition(_))
     }
 
-    pub fn is_report(&self) -> bool {
+    fn is_constructor(&self) -> bool {
         match self {
-            AnyMDefinition::MReportDefinition(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_constructor(&self) -> bool {
-        match self {
-            AnyMDefinition::MClassMemberDefinition(method) => method.is_constructor(),
-            _ => false,
-        }
-    }
-
-    pub fn is_method(&self) -> bool {
-        match self {
-            AnyMDefinition::MClassMemberDefinition(method) => method.is_method(),
-            _ => false,
-        }
-    }
-
-    pub fn container(&self) -> Option<AnyMDefinition> {
-        match self {
-            AnyMDefinition::MClassMemberDefinition(method) => {
-                method.class().map(AnyMDefinition::MClassDefinition)
+            AnyMDefinition::MClassMemberDefinition(member) => {
+                member.m_type == MClassMethodType::Constructor
             }
-            AnyMDefinition::MReportSectionDefiniton(section) => {
-                section.report().map(AnyMDefinition::MReportDefinition)
+            _ => false,
+        }
+    }
+
+    fn is_method(&self) -> bool {
+        match self {
+            AnyMDefinition::MClassMemberDefinition(member) => {
+                member.m_type == MClassMethodType::Method
             }
-            _ => None,
+            _ => false,
         }
     }
 
-    pub fn parent(&self) -> Option<&str> {
-        match self {
-            AnyMDefinition::MClassDefinition(class) => class.extends(),
-            _ => None,
-        }
-    }
-}
-
-pub trait Definition {
-    fn range(&self) -> LineColRange;
-    fn type_keyword(&self) -> &'static str;
-    fn id(&self) -> &str;
-    fn id_range(&self) -> LineColRange;
-    fn params(&self) -> &str;
-    fn description(&self) -> Option<&str>;
-
-    fn to_markdown(&self) -> String {
-        format!(
-            "```{} {}{}```  \n{}",
-            self.type_keyword(),
-            self.id(),
-            self.params(),
-            self.description().unwrap_or_default()
-        )
-    }
-}
-
-impl Definition for AnyMDefinition {
-    fn range(&self) -> LineColRange {
-        match self {
-            AnyMDefinition::MFunctionDefinition(def) => def.range(),
-            AnyMDefinition::MClassDefinition(def) => def.range(),
-            AnyMDefinition::MClassMemberDefinition(def) => def.range(),
-            AnyMDefinition::MReportDefinition(def) => def.range(),
-            AnyMDefinition::MReportSectionDefiniton(def) => def.range(),
-        }
-    }
-    fn type_keyword(&self) -> &'static str {
-        match self {
-            AnyMDefinition::MFunctionDefinition(def) => def.type_keyword(),
-            AnyMDefinition::MClassDefinition(def) => def.type_keyword(),
-            AnyMDefinition::MClassMemberDefinition(def) => def.type_keyword(),
-            AnyMDefinition::MReportDefinition(def) => def.type_keyword(),
-            AnyMDefinition::MReportSectionDefiniton(def) => def.type_keyword(),
-        }
-    }
     fn id(&self) -> &str {
         match self {
-            AnyMDefinition::MFunctionDefinition(def) => def.id(),
-            AnyMDefinition::MClassDefinition(def) => def.id(),
-            AnyMDefinition::MClassMemberDefinition(def) => def.id(),
-            AnyMDefinition::MReportDefinition(def) => def.id(),
-            AnyMDefinition::MReportSectionDefiniton(def) => def.id(),
+            AnyMDefinition::MFunctionDefinition(f) => &f.id.name,
+            AnyMDefinition::MClassDefinition(c) => &c.id.name,
+            AnyMDefinition::MClassMemberDefinition(m) => &m.id.name,
+            AnyMDefinition::MReportDefinition(r) => &r.id.name,
+            AnyMDefinition::MReportSectionDefiniton(s) => &s.id.name,
+        }
+    }
+
+    fn container(&self) -> Option<AnyMDefinition> {
+        match self {
+            AnyMDefinition::MClassMemberDefinition(member) => {
+                member.class.upgrade().map(AnyMDefinition::MClassDefinition)
+            }
+            AnyMDefinition::MReportSectionDefiniton(section) => section
+                .report
+                .upgrade()
+                .map(AnyMDefinition::MReportDefinition),
+            _ => None,
+        }
+    }
+
+    fn parent(&self) -> Option<&str> {
+        match self {
+            AnyMDefinition::MClassDefinition(class) => class.extends.as_deref(),
+            _ => None,
+        }
+    }
+}
+
+impl LocationDefinition for AnyMDefinition {
+    fn range(&self) -> LineColRange {
+        match self {
+            AnyMDefinition::MFunctionDefinition(function) => function.range,
+            AnyMDefinition::MClassDefinition(class) => class.range,
+            AnyMDefinition::MClassMemberDefinition(member) => member.range,
+            AnyMDefinition::MReportDefinition(report) => report.range,
+            AnyMDefinition::MReportSectionDefiniton(section) => section.range,
         }
     }
     fn id_range(&self) -> LineColRange {
         match self {
-            AnyMDefinition::MFunctionDefinition(def) => def.id_range(),
-            AnyMDefinition::MClassDefinition(def) => def.id_range(),
-            AnyMDefinition::MClassMemberDefinition(def) => def.id_range(),
-            AnyMDefinition::MReportDefinition(def) => def.id_range(),
-            AnyMDefinition::MReportSectionDefiniton(def) => def.id_range(),
+            AnyMDefinition::MFunctionDefinition(function) => function.id.range,
+            AnyMDefinition::MClassDefinition(class) => class.id.range,
+            AnyMDefinition::MClassMemberDefinition(member) => member.id.range,
+            AnyMDefinition::MReportDefinition(report) => report.id.range,
+            AnyMDefinition::MReportSectionDefiniton(section) => section.id.range,
         }
     }
-    fn params(&self) -> &str {
+}
+
+impl MarkupDefinition for AnyMDefinition {
+    fn markdown(&self) -> String {
         match self {
-            AnyMDefinition::MFunctionDefinition(def) => def.params(),
-            AnyMDefinition::MClassDefinition(def) => def.params(),
-            AnyMDefinition::MClassMemberDefinition(def) => def.params(),
-            AnyMDefinition::MReportDefinition(def) => def.params(),
-            AnyMDefinition::MReportSectionDefiniton(def) => def.params(),
-        }
-    }
-    fn description(&self) -> Option<&str> {
-        match self {
-            AnyMDefinition::MFunctionDefinition(def) => def.description(),
-            AnyMDefinition::MClassDefinition(def) => def.description(),
-            AnyMDefinition::MClassMemberDefinition(def) => def.description(),
-            AnyMDefinition::MReportDefinition(def) => def.description(),
-            AnyMDefinition::MReportSectionDefiniton(def) => def.description(),
-        }
-    }
-    fn to_markdown(&self) -> String {
-        match self {
-            AnyMDefinition::MFunctionDefinition(def) => def.to_markdown(),
-            AnyMDefinition::MClassDefinition(def) => def.to_markdown(),
-            AnyMDefinition::MClassMemberDefinition(def) => def.to_markdown(),
-            AnyMDefinition::MReportDefinition(def) => def.to_markdown(),
-            AnyMDefinition::MReportSectionDefiniton(def) => def.to_markdown(),
+            AnyMDefinition::MFunctionDefinition(function) => format!(
+                "```{} {}{}```  \n{}",
+                function.type_keyword(),
+                function.id.name,
+                function.params,
+                function.description.as_deref().unwrap_or_default()
+            ),
+            AnyMDefinition::MClassDefinition(class) => format!(
+                "```{} {}```  \n{}",
+                class.type_keyword(),
+                class.id.name,
+                class.description.as_deref().unwrap_or_default()
+            ),
+            AnyMDefinition::MClassMemberDefinition(member) => match member.m_type {
+                MClassMethodType::Method if member.class.upgrade().is_some() => {
+                    let class = member.class.upgrade().unwrap();
+
+                    format!(
+                        "```{} {}```  \n```{}{}```  \n{}",
+                        class.type_keyword(),
+                        class.id.name,
+                        member.id.name,
+                        member.params,
+                        member.description.as_deref().unwrap_or_default()
+                    )
+                }
+                _ => format!(
+                    "```{} {}{}```  \n{}",
+                    member.type_keyword(),
+                    member.id.name,
+                    member.params,
+                    member.description.as_deref().unwrap_or_default()
+                ),
+            },
+            AnyMDefinition::MReportDefinition(report) => {
+                format!("```{} {}```", report.type_keyword(), report.id.name,)
+            }
+            AnyMDefinition::MReportSectionDefiniton(section) => {
+                format!("```{} {}```", section.type_keyword(), section.id.name,)
+            }
         }
     }
 }
@@ -199,29 +186,9 @@ pub struct MFunctionDefinition {
     description: Option<String>,
     range: LineColRange,
 }
-impl Definition for MFunctionDefinition {
-    fn range(&self) -> LineColRange {
-        self.range
-    }
-
+impl MFunctionDefinition {
     fn type_keyword(&self) -> &'static str {
         "function"
-    }
-
-    fn id(&self) -> &str {
-        &self.id.name
-    }
-
-    fn params(&self) -> &str {
-        &self.params
-    }
-
-    fn description(&self) -> Option<&str> {
-        self.description.as_deref()
-    }
-
-    fn id_range(&self) -> LineColRange {
-        self.id.range
     }
 }
 
@@ -234,38 +201,8 @@ pub struct MClassDefinition {
     extends: Option<String>,
 }
 impl MClassDefinition {
-    pub fn methods(&self) -> &Vec<Arc<MClassMemberDefinition>> {
-        &self.methods
-    }
-
-    pub fn extends(&self) -> Option<&str> {
-        self.extends.as_deref()
-    }
-}
-
-impl Definition for MClassDefinition {
-    fn range(&self) -> LineColRange {
-        self.range
-    }
-
     fn type_keyword(&self) -> &'static str {
         "class"
-    }
-
-    fn id(&self) -> &str {
-        &self.id.name
-    }
-
-    fn params(&self) -> &str {
-        ""
-    }
-
-    fn description(&self) -> Option<&str> {
-        self.description.as_deref()
-    }
-
-    fn id_range(&self) -> LineColRange {
-        self.id.range
     }
 }
 
@@ -289,70 +226,12 @@ enum MClassMethodType {
 }
 
 impl MClassMemberDefinition {
-    pub fn is_constructor(&self) -> bool {
-        self.m_type == MClassMethodType::Constructor
-    }
-
-    pub fn is_method(&self) -> bool {
-        self.m_type == MClassMethodType::Method
-    }
-
-    pub fn class(&self) -> Option<Arc<MClassDefinition>> {
-        self.class.upgrade()
-    }
-}
-
-impl Definition for MClassMemberDefinition {
-    fn range(&self) -> LineColRange {
-        self.range
-    }
-
     fn type_keyword(&self) -> &'static str {
         match self.m_type {
             MClassMethodType::Getter => "get",
             MClassMethodType::Setter => "set",
             _ => "",
         }
-    }
-
-    fn id(&self) -> &str {
-        &self.id.name
-    }
-
-    fn params(&self) -> &str {
-        &self.params
-    }
-
-    fn description(&self) -> Option<&str> {
-        self.description.as_deref()
-    }
-
-    fn id_range(&self) -> LineColRange {
-        self.id.range
-    }
-
-    fn to_markdown(&self) -> String {
-        if self.is_method() {
-            if let Some(class) = self.class.upgrade() {
-                return format!(
-                    "```{} {}```  \n```{} {}{}```  \n{}",
-                    class.type_keyword(),
-                    class.id(),
-                    self.type_keyword(),
-                    self.id(),
-                    self.params(),
-                    self.description().unwrap_or_default()
-                );
-            }
-        }
-
-        format!(
-            "```{} {}{}```  \n{}",
-            self.type_keyword(),
-            self.id(),
-            self.params(),
-            self.description().unwrap_or_default()
-        )
     }
 }
 
@@ -375,34 +254,8 @@ pub struct MReportDefinition {
 }
 
 impl MReportDefinition {
-    pub fn sections(&self) -> &Vec<Arc<MReportSectionDefiniton>> {
-        &self.sections
-    }
-}
-
-impl Definition for MReportDefinition {
-    fn range(&self) -> LineColRange {
-        self.range
-    }
-
     fn type_keyword(&self) -> &'static str {
         "report"
-    }
-
-    fn id(&self) -> &str {
-        &self.id.name
-    }
-
-    fn params(&self) -> &str {
-        ""
-    }
-
-    fn description(&self) -> Option<&str> {
-        None
-    }
-
-    fn id_range(&self) -> LineColRange {
-        self.id.range
     }
 }
 
@@ -413,35 +266,9 @@ pub struct MReportSectionDefiniton {
     range: LineColRange,
 }
 
-impl Definition for MReportSectionDefiniton {
-    fn range(&self) -> LineColRange {
-        self.range
-    }
-
+impl MReportSectionDefiniton {
     fn type_keyword(&self) -> &'static str {
         "section"
-    }
-
-    fn id(&self) -> &str {
-        &self.id.name
-    }
-
-    fn params(&self) -> &str {
-        ""
-    }
-
-    fn description(&self) -> Option<&str> {
-        None
-    }
-
-    fn id_range(&self) -> LineColRange {
-        self.id.range
-    }
-}
-
-impl MReportSectionDefiniton {
-    pub fn report(&self) -> Option<Arc<MReportDefinition>> {
-        self.report.upgrade()
     }
 }
 
@@ -727,12 +554,12 @@ mod tests {
     "#;
         let parsed = parse(&text, MFileSource::module());
 
-        let collector = semantics(text, parsed.syntax());
+        let definitions = semantics(text, parsed.syntax());
 
-        assert!(!collector.definitions.is_empty());
+        assert!(!definitions.is_empty());
 
         assert_eq!(
-            collector.definitions[0],
+            definitions[0],
             AnyMDefinition::MFunctionDefinition(MFunctionDefinition {
                 id: DefinitionId {
                     name: String::from("a"),
@@ -748,7 +575,7 @@ mod tests {
         );
 
         assert_eq!(
-            collector.definitions[1],
+            definitions[1],
             AnyMDefinition::MFunctionDefinition(MFunctionDefinition {
                 id: DefinitionId {
                     name: String::from("b"),
@@ -762,7 +589,7 @@ mod tests {
         );
 
         assert_eq!(
-            collector.definitions[2],
+            definitions[2],
             AnyMDefinition::MClassDefinition(Arc::new(MClassDefinition {
                 id: DefinitionId {
                     name: String::from("x"),
@@ -777,7 +604,7 @@ mod tests {
         );
 
         assert_eq!(
-            collector.definitions[3],
+            definitions[3],
             AnyMDefinition::MClassMemberDefinition(MClassMemberDefinition {
                 id: DefinitionId {
                     name: String::from("constructor"),
@@ -792,7 +619,7 @@ mod tests {
         );
 
         assert_eq!(
-            collector.definitions[4],
+            definitions[4],
             AnyMDefinition::MClassMemberDefinition(MClassMemberDefinition {
                 id: DefinitionId {
                     name: String::from("x"),
@@ -807,7 +634,7 @@ mod tests {
         );
 
         assert_eq!(
-            collector.definitions[5],
+            definitions[5],
             AnyMDefinition::MClassMemberDefinition(MClassMemberDefinition {
                 id: DefinitionId {
                     name: String::from("calc"),
@@ -846,12 +673,12 @@ mod tests {
 "#;
         let parsed = parse(&text, MFileSource::report());
 
-        let collector = semantics(text, parsed.syntax());
+        let definitions = semantics(text, parsed.syntax());
 
-        assert!(!collector.definitions.is_empty());
+        assert!(!definitions.is_empty());
 
         assert_eq!(
-            collector.definitions[0],
+            definitions[0],
             AnyMDefinition::MReportDefinition(Arc::new(MReportDefinition {
                 id: DefinitionId {
                     name: String::from("CommonReport"),
@@ -863,7 +690,7 @@ mod tests {
         );
 
         assert_eq!(
-            collector.definitions[1],
+            definitions[1],
             AnyMDefinition::MReportSectionDefiniton(MReportSectionDefiniton {
                 id: DefinitionId {
                     name: String::from("Function declaration"),
@@ -875,7 +702,7 @@ mod tests {
         );
 
         assert_eq!(
-            collector.definitions[2],
+            definitions[2],
             AnyMDefinition::MReportSectionDefiniton(MReportSectionDefiniton {
                 id: DefinitionId {
                     name: String::from("print"),

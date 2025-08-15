@@ -2,7 +2,7 @@ use biome_diagnostics::diagnostic::Diagnostic as _;
 use line_index::{LineColRange, LineIndex};
 
 use mlang_parser::{ParseDiagnostic, parse};
-use mlang_semantic::{SemanticModel as MLangSemanticModel, semantics};
+use mlang_semantic::{AnyMDefinition, SemanticModel as MLangSemanticModel, semantics};
 use mlang_syntax::{MFileSource, MLanguage, MSyntaxNode, SendNode, SyntaxNode};
 
 use std::{any::type_name, path::PathBuf};
@@ -12,7 +12,7 @@ pub struct CurrentDocument {
     uri: Url,
     root: SendNode,
     line_index: LineIndex,
-    semantics: MLangSemanticModel,
+    semantics: Vec<AnyMDefinition>,
     diagnostics: Vec<ParseDiagnostic>,
 }
 
@@ -66,7 +66,7 @@ impl CurrentDocument {
         })
     }
 
-    pub fn semantics(&self) -> &MLangSemanticModel {
+    pub fn definitions(&self) -> &Vec<AnyMDefinition> {
         &self.semantics
     }
 

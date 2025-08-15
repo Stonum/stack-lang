@@ -3,6 +3,8 @@ mod yaml;
 
 use std::sync::{Arc, Weak};
 
+use mlang_lsp_definition::{CodeSymbolDefinition, MarkupDefinition};
+
 pub fn load_core_api() -> Vec<AnyMCoreDefinition> {
     let mut json_entities: Vec<AnyMCoreDefinition> = json::load().into();
     let yaml_functions: Vec<AnyMCoreDefinition> = yaml::load().into();
@@ -18,33 +20,20 @@ pub enum AnyMCoreDefinition {
     MCoreEntityMemberDefinition(MCoreEntityMemberDefinition),
 }
 
-impl AnyMCoreDefinition {
-    pub fn is_class(&self) -> bool {
-        match self {
-            AnyMCoreDefinition::MCoreEntityDefinition(_) => true,
-            _ => false,
-        }
+impl CodeSymbolDefinition for AnyMCoreDefinition {
+    fn is_class(&self) -> bool {
+        matches!(self, AnyMCoreDefinition::MCoreEntityDefinition(_))
     }
 
-    pub fn is_function(&self) -> bool {
-        match self {
-            AnyMCoreDefinition::MCoreFunctionDefinition(_) => true,
-            _ => false,
-        }
+    fn is_function(&self) -> bool {
+        matches!(self, AnyMCoreDefinition::MCoreFunctionDefinition(_))
     }
 
-    pub fn is_constructor(&self) -> bool {
-        false
+    fn is_method(&self) -> bool {
+        matches!(self, AnyMCoreDefinition::MCoreEntityMemberDefinition(_))
     }
 
-    pub fn is_method(&self) -> bool {
-        match self {
-            AnyMCoreDefinition::MCoreEntityMemberDefinition(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn container(&self) -> Option<AnyMCoreDefinition> {
+    fn container(&self) -> Option<AnyMCoreDefinition> {
         match self {
             AnyMCoreDefinition::MCoreEntityMemberDefinition(method) => method
                 .class
@@ -54,24 +43,30 @@ impl AnyMCoreDefinition {
         }
     }
 
-    pub fn id(&self) -> &str {
-        match self {
-            AnyMCoreDefinition::MCoreFunctionDefinition(function) => function.id.as_str(),
-            AnyMCoreDefinition::MCoreEntityDefinition(entity) => entity.id.as_str(),
-            AnyMCoreDefinition::MCoreEntityMemberDefinition(member) => member.id.as_str(),
-        }
+    fn parent(&self) -> Option<&str> {
+        None
     }
 
-    pub fn to_markdown(&self) -> String {
+    fn id(&self) -> &str {
+        match self {
+            AnyMCoreDefinition::MCoreFunctionDefinition(f) => &f.id,
+            AnyMCoreDefinition::MCoreEntityDefinition(c) => &c.id,
+            AnyMCoreDefinition::MCoreEntityMemberDefinition(m) => &m.id,
+        }
+    }
+}
+
+impl MarkupDefinition for AnyMCoreDefinition {
+    fn markdown(&self) -> String {
         match self {
             AnyMCoreDefinition::MCoreFunctionDefinition(function) => {
-                format!("```{}```  \n{}", function.id, function.description)
+                format!("{}", function.description)
             }
             AnyMCoreDefinition::MCoreEntityDefinition(entity) => {
-                format!("```{}```  \n{}", entity.id, entity.description)
+                format!("{}", entity.description)
             }
             AnyMCoreDefinition::MCoreEntityMemberDefinition(member) => {
-                format!("```{}```  \n{}", member.id, member.description)
+                format!("{}", member.description)
             }
         }
     }

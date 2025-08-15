@@ -1,0 +1,10 @@
+[package]
+name = "mlang_lsp_definition"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+line_index = {workspace = true }
+
+tower-lsp ={ workspace = true }
+unicase = { workspace = true }

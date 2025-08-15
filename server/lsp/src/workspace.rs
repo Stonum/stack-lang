@@ -2,29 +2,26 @@ use std::{path::PathBuf, sync::Arc};
 
 use dashmap::DashMap;
 use ini::Ini;
-use line_index::{LineCol, LineColRange, LineIndex};
+use line_index::{LineCol, LineIndex};
 use log::{error, info};
 use mlang_core::{AnyMCoreDefinition, load_core_api};
 use serde_json::Value;
 use thiserror::Error;
 
-use mlang_parser::parse;
-use mlang_semantic::{
-    AnyMDefinition, Definition as _, SemanticInfo, SemanticModel, identifier_for_offset, semantics,
+use mlang_lsp_definition::{
+    CodeSymbolDefinition as _, LocationDefinition as _, SemanticInfo, get_hover, get_locations,
 };
+use mlang_parser::parse;
+use mlang_semantic::{AnyMDefinition, identifier_for_offset, semantics};
 use mlang_syntax::MFileSource;
 
 use tokio::runtime::Handle;
 use tower_lsp::lsp_types::{
     CodeLens, Command, DocumentSymbolResponse, GotoDefinitionResponse, Hover, HoverContents,
-    Location, Position, Range, SymbolInformation, SymbolKind, TextDocumentItem, Url,
-    WorkspaceFolder,
+    Position, Range, SymbolInformation, SymbolKind, TextDocumentItem, Url, WorkspaceFolder,
 };
 
-use crate::{
-    definition::{get_hover, get_hover_for_core_api, get_locations},
-    document::CurrentDocument,
-};
+use crate::document::CurrentDocument;
 
 #[derive(Debug, Error)]
 pub enum WorkspaceInitializationError {
@@ -48,7 +45,7 @@ pub enum WorkspaceError {
 
 pub struct Workspace {
     opened_files: DashMap<Url, Arc<CurrentDocument>>,
-    semantics: DashMap<PathBuf, Option<Arc<SemanticModel>>>,
+    semantics: DashMap<PathBuf, Option<Arc<Vec<AnyMDefinition>>>>,
     core: Vec<AnyMCoreDefinition>,
 }
 
@@ -177,24 +174,24 @@ impl Workspace {
     pub async fn hover(&self, uri: &Url, position: Position) -> Option<Hover> {
         let semantic_info = self.identifier_from_position(uri, position).await?;
 
-        let semantics = self
-            .semantics
-            .iter()
-            .filter_map(|r| match r.pair() {
-                (_path, Some(doc)) => Some(Arc::clone(doc)),
-                _ => None,
-            })
-            .collect::<Vec<_>>();
-
-        let definitions = semantics.iter().flat_map(|arc| arc.definitions().iter());
-
-        let core_markups = get_hover_for_core_api(&semantic_info, &self.core);
+        let core_markups = get_hover(&semantic_info, &self.core);
         if core_markups.len() > 0 {
             return Some(Hover {
                 contents: HoverContents::Array(core_markups),
                 range: None,
             });
         }
+
+        let semantics = self
+            .semantics
+            .iter()
+            .filter_map(|r| match r.pair() {
+                (_path, Some(definitions)) => Some(Arc::clone(definitions)),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+
+        let definitions = semantics.iter().flat_map(|arc| arc.iter());
 
         let markups = get_hover(&semantic_info, definitions);
         Some(Hover {
@@ -210,17 +207,13 @@ impl Workspace {
     ) -> Option<GotoDefinitionResponse> {
         let semantic_info = self.identifier_from_position(uri, position).await?;
 
-        let semantics = self
-            .semantics
-            .iter()
-            .filter_map(|r| match r.pair() {
-                (path, Some(doc)) => {
-                    let uri = Url::from_file_path(path).ok()?;
-                    Some((uri, Arc::clone(doc)))
-                }
-                _ => None,
-            })
-            .collect::<Vec<_>>();
+        let semantics = self.semantics.iter().filter_map(|r| match r.pair() {
+            (path, Some(definitions)) => {
+                let uri = Url::from_file_path(path).ok()?;
+                Some((uri, Arc::clone(definitions)))
+            }
+            _ => None,
+        });
 
         let locations = get_locations(&semantic_info, semantics);
 
@@ -230,7 +223,7 @@ impl Workspace {
     pub async fn document_symbol_response(&self, uri: &Url) -> Option<DocumentSymbolResponse> {
         let document = self.get_opened_document(uri).await?;
 
-        let definitions = document.semantics().definitions();
+        let definitions = document.definitions();
         let response = definitions
             .iter()
             .map(|def| {
@@ -247,24 +240,13 @@ impl Workspace {
                     name = &name[1..name.len() - 1];
                 }
 
-                let location = {
-                    let LineColRange { start, end } = def.range();
-                    Location::new(
-                        uri.clone(),
-                        Range::new(
-                            Position::new(start.line, start.col),
-                            Position::new(end.line, end.col),
-                        ),
-                    )
-                };
-
                 #[allow(deprecated)]
                 SymbolInformation {
                     name: name.to_string(),
                     kind,
                     tags: None,
                     deprecated: None,
-                    location,
+                    location: def.location(uri.clone()),
                     container_name: def.container().map(|c| c.id().to_string()),
                 }
             })
@@ -277,7 +259,7 @@ impl Workspace {
         let document = self.get_opened_document(uri).await?;
         let command = String::from("stack.movetoLine");
 
-        let definitions = document.semantics().definitions();
+        let definitions = document.definitions();
         let response = definitions
             .iter()
             .filter_map(|def| {
@@ -286,19 +268,9 @@ impl Workspace {
                 let line = container.range().start.line;
                 let args = vec![Value::Number(line.into())];
 
-                let command = Some(Command::new(title, command.clone(), Some(args)));
-
-                let range = {
-                    let range = def.range();
-                    Range::new(
-                        Position::new(range.start.line, range.start.col),
-                        Position::new(range.end.line, range.end.col),
-                    )
-                };
-
                 Some(CodeLens {
-                    range,
-                    command,
+                    range: def.lsp_range(),
+                    command: Some(Command::new(title, command.clone(), Some(args))),
                     data: None,
                 })
             })

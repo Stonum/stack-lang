@@ -877,9 +877,11 @@ dependencies = [
 name = "mlang_core"
 version = "0.1.0"
 dependencies = [
+ "mlang_lsp_definition",
  "serde",
  "serde_json",
  "serde_yaml",
+ "unicase",
 ]
 
 [[package]]
@@ -903,6 +905,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "mlang_lsp_definition"
+version = "0.1.0"
+dependencies = [
+ "line_index",
+ "tower-lsp",
+ "unicase",
+]
+
+[[package]]
 name = "mlang_parser"
 version = "0.0.1"
 dependencies = [
@@ -922,8 +933,10 @@ version = "0.0.1"
 dependencies = [
  "biome_rowan",
  "line_index",
+ "mlang_lsp_definition",
  "mlang_parser",
  "mlang_syntax",
+ "unicase",
 ]
 
 [[package]]
@@ -1375,6 +1388,7 @@ dependencies = [
  "log",
  "mlang_core",
  "mlang_formatter",
+ "mlang_lsp_definition",
  "mlang_parser",
  "mlang_semantic",
  "mlang_syntax",

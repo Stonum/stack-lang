@@ -9,7 +9,8 @@ members = [
    "mlang_parser",
    "mlang_semantic",
    "mlang_formatter",
-   "mlang_core"
+   "mlang_core",
+   "mlang_lsp_definition"
 ]
 
 [workspace.package]
@@ -24,6 +25,7 @@ mlang_parser = { path = "mlang_parser" }
 mlang_semantic = { path = "mlang_semantic" }
 mlang_formatter = { path = "mlang_formatter" }
 mlang_core = { path = "mlang_core" }
+mlang_lsp_definition = { path = 'mlang_lsp_definition' }
 
 tokio = { version = "1.17.0", features = ["full"] }
 tower-lsp = { version = "0.20.0", features = ["proposed"] }
