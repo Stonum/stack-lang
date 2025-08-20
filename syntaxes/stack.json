@@ -1,5 +1,5 @@
 {
-   "name": "stack2",
+   "name": "stack",
    "scopeName": "source.stack",
    "fileTypes": ["prg","hdl"],
    "patterns": [

@@ -59,6 +59,18 @@ impl LanguageServer for Backend {
             })
         }
 
+        capabilities.semantic_tokens_provider = Some(
+            SemanticTokensServerCapabilities::SemanticTokensOptions(SemanticTokensOptions {
+                legend: SemanticTokensLegend {
+                    token_types: Vec::from(stack_lang_server::tokens::SEMANTIC_TOKEN_MAP),
+                    token_modifiers: Vec::from(stack_lang_server::tokens::SEMANTIC_TOKEN_MODIFIERS),
+                },
+                range: Some(true),
+                full: Some(SemanticTokensFullOptions::Delta { delta: Some(true) }),
+                ..Default::default()
+            }),
+        );
+
         Ok(InitializeResult {
             server_info: None,
             offset_encoding: None,
@@ -272,6 +284,36 @@ impl LanguageServer for Backend {
         let code_lens = self.workspace.code_lens(&file_uri).await;
 
         Ok(code_lens)
+    }
+
+    async fn semantic_tokens_full(
+        &self,
+        params: SemanticTokensParams,
+    ) -> Result<Option<SemanticTokensResult>> {
+        let file_uri = params.text_document.uri;
+        trace!("semantic_tokens_full {}", &file_uri);
+
+        match self.workspace.semantic_tokens(&file_uri, None).await {
+            Some(tokens) => Ok(Some(SemanticTokensResult::Tokens(tokens))),
+            None => Ok(None),
+        }
+    }
+
+    async fn semantic_tokens_range(
+        &self,
+        params: SemanticTokensRangeParams,
+    ) -> Result<Option<SemanticTokensRangeResult>> {
+        let file_uri = params.text_document.uri;
+        trace!("semantic_tokens_range {} {:?}", &file_uri, params.range);
+
+        match self
+            .workspace
+            .semantic_tokens(&file_uri, Some(params.range))
+            .await
+        {
+            Some(tokens) => Ok(Some(SemanticTokensRangeResult::Tokens(tokens))),
+            None => Ok(None),
+        }
     }
 }
 

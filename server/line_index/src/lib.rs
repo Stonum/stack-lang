@@ -35,8 +35,8 @@ impl WideChar {
 
 #[cfg(test)]
 mod tests {
-    use crate::LineCol;
     use crate::line_index::LineIndex;
+    use crate::{LineCol, LineColRange};
     use biome_text_size::TextSize;
 
     macro_rules! check_conversion {
@@ -100,6 +100,27 @@ mod tests {
 
         let line_index = LineIndex::new("строка1\n22с𐀁трока");
         check_conversion!(line_index: LineCol { line: 1, col: 5 } => TextSize::from(24));
+    }
+
+    #[test]
+    fn chars_count() {
+        let line_index = LineIndex::new("qwertйцуке12345\nasdfgфывап54321\nячсмиzxcvb09876");
+
+        let range = LineColRange {
+            start: LineCol { line: 1, col: 0 },
+            end: LineCol { line: 2, col: 10 },
+        };
+
+        let chars_count = line_index.chars_count(range);
+        assert_eq!(chars_count, Some(26));
+
+        let range = LineColRange {
+            start: LineCol { line: 0, col: 0 },
+            end: LineCol { line: 2, col: 5 },
+        };
+
+        let chars_count = line_index.chars_count(range);
+        assert_eq!(chars_count, Some(37));
     }
 
     #[ignore]
