@@ -1,5 +1,5 @@
 {
-   "name": "stack2",
+   "name": "stack",
    "scopeName": "source.stack",
    "fileTypes": ["prg","hdl"],
    "patterns": [
@@ -84,6 +84,9 @@
             },
             {
                "include": "#comment"
+            },
+            {
+               "include": "#literal"
             }
          ]
       },
@@ -335,7 +338,18 @@
             },
             {
                "name": "keyword.control.loop.stack",
-               "match": "(?i:(?<!\\.|\\$)\\b(пока|длявсех|для|элементов|while|forall|for|прервать|продолжить|break|continue)\\b(?!\\$))"
+               "match": "(?i:(?<!\\.|\\$)\\b(пока|для|элементов|while|for|прервать|продолжить|break|continue)\\b(?!\\$))"
+            },
+            {
+               "match": "(?i:(?<!\\.|\\$)\\b(длявсех|forall)\\b(?=.*\\([^)]*\\))|\\([^)]*\\b(в|in)\\b[^)]*\\)(?!\\$))",
+               "captures": {
+                  "1": {
+                     "name": "keyword.control.loop.stack"
+                  },
+                  "2": {
+                     "name": "keyword.control.loop.stack"
+                  }
+               }
             },
             {
                "name": "keyword.control.flow.stack",
@@ -355,6 +369,17 @@
             {
                "name": "keyword.control.switch.stack",
                "match": "(?i:(?<!\\.|\\$)\\b(выборпо|выбор|switch|case)\\b(?!\\$))"
+            },
+            {
+               "match": "(?i:(?<!\\.|\\$)\\b(если|if)\\b(?=.*\\([^)]*\\))|\\([^)]*\\b(входитв|in)\\b[^)]*\\)(?!\\$))",
+               "captures": {
+                  "1": {
+                     "name": "keyword.control.conditional.stack"
+                  },
+                  "2": {
+                     "name": "keyword.control.conditional.stack"
+                  }
+               }
             },
             {
                "name": "keyword.control.conditional.stack",
@@ -1230,10 +1255,6 @@
       "expression-operators": {
          "patterns": [
             {
-               "name": "keyword.control.flow.stack",
-               "match": "(?<!\\.|\\$)\\b(await)\\b(?!\\$)"
-            },
-            {
                "name": "keyword.operator.expression.delete.stack",
                "match": "(?i:(?<!\\.|\\$)\\b(delete|удалить)\\b(?!\\$))"
             },
@@ -1466,7 +1487,7 @@
             },
             {
                "comment": "Типы переменных",
-               "match": "(?i)\\b(int|varchar|nvarchar|char|bigint|date|datetime|tinyint)\\b",
+               "match": "(?i)\\b(int|varchar|nvarchar|char|bigint|date|datetime|tinyint|text)\\b",
                "name": "keyword.other.stack"
             },
             {
@@ -1487,15 +1508,6 @@
             {
                "comment": "числа",
                "include": "#numeric-literal"
-            },
-            {
-               "comment": "Выражения ",
-               "include": "#expression-operators"
-            },
-
-            {
-               "comment": "НЕ ) Берем предустановленный синтаксис sql",
-               "include": "NOsourcestack.sql"
             }
          ]
       },
@@ -1602,18 +1614,18 @@
          "patterns": [
             {
                "name": "constant.numeric.hex.stack",
-               "match": "\\b(?<!\\$)0(x|X)[0-9a-fA-F]+\\b(?!\\$)"
+               "match": "\\b(?<!\"|`|\\$)0(x|X)[0-9a-fA-F]+\\b(?!\"|`|\\$)"
             },
             {
                "name": "constant.numeric.binary.stack",
-               "match": "\\b(?<!\\$)0(b|B)[01]+\\b(?!\\$)"
+               "match": "\\b(?<!\"|`|\\$)0(b|B)[01]+\\b(?!\"|`|\\$)"
             },
             {
                "name": "constant.numeric.octal.stack",
-               "match": "\\b(?<!\\$)0(o|O)?[0-7]+\\b(?!\\$)"
+               "match": "\\b(?<!\"|`|\\$)0(o|O)?[0-7]+\\b(?!\"|`|\\$)"
             },
             {
-               "match": "(?x)\n(?<!\\$)(?:\n  (?:\\b[0-9]+(\\.)[0-9]+[eE][+-]?[0-9]+\\b)| # 1.1E+3\n  (?:\\b[0-9]+(\\.)[eE][+-]?[0-9]+\\b)|       # 1.E+3\n  (?:\\B(\\.)[0-9]+[eE][+-]?[0-9]+\\b)|       # .1E+3\n  (?:\\b[0-9]+[eE][+-]?[0-9]+\\b)|            # 1E+3\n  (?:\\b[0-9]+(\\.)[0-9]+\\b)|                # 1.1\n  (?:\\b[0-9]+(\\.)\\B)|                      # 1.\n  (?:\\B(\\.)[0-9]+\\b)|                      # .1\n  (?:\\b[0-9]+\\b(?!\\.))                     # 1\n)(?!\\$)",
+               "match": "(?x)\n(?<!\"|`|\\$)(?:\n  (?:\\b[0-9]+(\\.)[0-9]+[eE][+-]?[0-9]+\\b)| # 1.1E+3\n  (?:\\b[0-9]+(\\.)[eE][+-]?[0-9]+\\b)|       # 1.E+3\n  (?:\\B(\\.)[0-9]+[eE][+-]?[0-9]+\\b)|       # .1E+3\n  (?:\\b[0-9]+[eE][+-]?[0-9]+\\b)|            # 1E+3\n  (?:\\b[0-9]+(\\.)[0-9]+\\b)|                # 1.1\n  (?:\\b[0-9]+(\\.)\\B)|                      # 1.\n  (?:\\B(\\.)[0-9]+\\b)|                      # .1\n  (?:\\b[0-9]+\\b(?!\\.))                     # 1\n)(?!\"|`|\\$)",
                "captures": {
                   "0": {
                      "name": "constant.numeric.decimal.stack"
@@ -1654,7 +1666,7 @@
       },
       "null-literal": {
          "name": "constant.language.null.stack",
-         "match": "(?i:(?<![_$[:alnum:]])(?:(?<=\\.\\.\\.)|(?<!\\.))(null|nil|нуль)(?![_$[:alnum:]])(?:(?=\\.\\.\\.)|(?!\\.)))"
+         "match": "(?i)\\b(null|nil|нуль)\\b"
       },
       "this-literal": {
          "name": "variable.language.this.stack",
@@ -1711,3 +1723,4 @@
       }
    }
 }
+
