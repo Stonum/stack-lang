@@ -131,4 +131,56 @@ impl LineIndex {
         let end = self.offset(line_col_range.end)?;
         Some(TextRange::new(start, end))
     }
+
+    pub fn chars_count(&self, start: LineColRange) -> Option<u32> {
+        let (start, end) = (start.start, start.end);
+        if start.line == end.line {
+            return end.col.checked_sub(start.col);
+        }
+
+        let mut wide_chars_len = 0; //u32::from(end_offset) - u32::from(start_offset); // count ascii chars
+
+        let start_line_offset = u32::from(*self.newlines.get(start.line as usize)?);
+        let end_line_offset = u32::from(*self.newlines.get(end.line as usize)?);
+
+        let mut start_col_offset = start.col;
+        let mut end_col_offset = end.col;
+
+        // count wide chars in each line
+        for line in start.line..=end.line {
+            if let Some(wide_chars) = self.line_wide_chars.get(&line) {
+                for c in wide_chars {
+                    let (c_start, c_end) = (u32::from(c.start), u32::from(c.end));
+                    let c_delta = u32::from(c.len()) - 1; // delta between ascii and non-ascii chars
+
+                    // calculate offsets for column
+                    if line == start.line && start_col_offset > c_start {
+                        start_col_offset += c_delta;
+                    }
+                    if line == end.line && end_col_offset > c_start {
+                        end_col_offset += c_delta;
+                    }
+
+                    // calculate wide chars length
+                    if line == start.line {
+                        if c_start >= start_col_offset {
+                            wide_chars_len += c_delta;
+                        }
+                    } else if line == end.line {
+                        if c_end <= end_col_offset {
+                            wide_chars_len += c_delta;
+                        }
+                    } else {
+                        wide_chars_len += c_delta;
+                    }
+                }
+            }
+        }
+
+        Some(
+            (end_line_offset + end_col_offset)
+                - (start_line_offset + start_col_offset)
+                - wide_chars_len,
+        )
+    }
 }

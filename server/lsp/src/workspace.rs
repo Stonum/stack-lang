@@ -4,10 +4,10 @@ use dashmap::DashMap;
 use ini::Ini;
 use line_index::{LineCol, LineIndex};
 use log::{error, info};
-use mlang_core::{AnyMCoreDefinition, load_core_api};
 use serde_json::Value;
 use thiserror::Error;
 
+use mlang_core::{AnyMCoreDefinition, load_core_api};
 use mlang_lsp_definition::{
     CodeSymbolDefinition as _, LocationDefinition as _, SemanticInfo, get_hover, get_locations,
 };
@@ -18,10 +18,12 @@ use mlang_syntax::MFileSource;
 use tokio::runtime::Handle;
 use tower_lsp::lsp_types::{
     CodeLens, Command, DocumentSymbolResponse, GotoDefinitionResponse, Hover, HoverContents,
-    Position, Range, SymbolInformation, SymbolKind, TextDocumentItem, Url, WorkspaceFolder,
+    Position, Range, SemanticTokens, SymbolInformation, SymbolKind, TextDocumentItem, Url,
+    WorkspaceFolder,
 };
 
 use crate::document::CurrentDocument;
+use crate::tokens::semantic_tokens;
 
 #[derive(Debug, Error)]
 pub enum WorkspaceInitializationError {
@@ -277,6 +279,21 @@ impl Workspace {
             .collect();
 
         Some(response)
+    }
+
+    pub async fn semantic_tokens(
+        &self,
+        uri: &Url,
+        tokens_range: Option<Range>,
+    ) -> Option<SemanticTokens> {
+        let document = self.get_opened_document(uri).await?;
+        let syntax = document.syntax();
+        let line_index = document.line_index();
+
+        Some(SemanticTokens {
+            result_id: None,
+            data: semantic_tokens(syntax, &line_index, tokens_range),
+        })
     }
 }
 

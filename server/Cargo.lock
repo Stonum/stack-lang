@@ -1382,6 +1382,7 @@ name = "stack-lang-server"
 version = "0.1.0"
 dependencies = [
  "biome_diagnostics",
+ "biome_rowan",
  "dashmap 5.5.3",
  "env_logger",
  "line_index",
