@@ -1262,25 +1262,25 @@
             {
                "comment": "Ключевые слова sql",
                "name": "keyword.other.stack",
-               "match": "(?i)\\b(IS NULL|as|on|constraint|database|index|trigger|view|TABLE|USE|GO|INTO|EXEC|EXECUTE|OPENQUERY|VALUES|WHERE|GROUP|HAVING|SET|INSERT|SELECT|DELETE|UPDATE|TRUNCATE|CREATE|FROM|WITH|DECLARE|FROM|UNION|UNION ALL|INNER|LEFT|RIGHT|JOIN|OUTER APPLY|CROSS APPLY|PIVOT|UNPIVOT|ORDER|OVER|BY)\\b"
+               "match": "(?i)\\b(is null|as|on|constraint|database|index|trigger|view|table|use|go|into|exec|execute|openquery|values|where|group|having|set|insert|select|delete|update|truncate|create|from|with|declare|from|union|all|inner|left|right|join|outer apply|cross apply|pivot|unpivot|order|over|by|in|ties|fetch|next|rows|last|first|nulls|partition|lateral|true|false)\\b"
             },
             {
                "comment": "Условия sql",
                "name": "keyword.other.stack",
-               "match": "(?i)\\b(IF|CASE|THEN|WHEN|ELSE|END|BEGIN|LIKE|OR|AND|BETWEEN|NOT|EXISTS)\\b"
+               "match": "(?i)\\b(if|case|then|when|else|end|begin|like|or|and|between|not|exists)\\b"
             },
             {
                "comment": "Модификаторы sql",
                "name": "keyword.other.stack",
-               "match": "(?i)\\b(TOP|DISTINCT|limit|DESC|ASC)\\b"
+               "match": "(?i)\\b(top|distinct|limit|desc|asc)\\b"
             },
             {
-               "match": "(?i)\\b(CONCATENATE|CONVERT|LOWER|SUBSTRING|TRANSLATE|TRIM|UPPER)\\b",
+               "match": "(?i)\\b(concatenate|convert|lower|substring|translate|trim|upper)\\b",
                "name": "keyword.other.stack"
             },
             {
                "comment": "Типы переменных",
-               "match": "(?i)\\b(int|varchar|nvarchar|char|bigint|date|datetime|tinyint|text)\\b",
+               "match": "(?i)\\b(smallint|integer|bigint|decimal|numeric|real|smallserial|serial|bigserial|money|varchar|character|char|text|bytea|timestamp|date|time|interval|boolean|enum|point|line|lseg|box|path|polygon|circle|cidr|inet|macaddr|macaddr8|tsvector|tsquery|uuid|xml|json|jsonb|jsonpath|array|composite|int4range|int8range|numrange|tsrange|tstzrange|daterange|oid|regproc|regprocedure|regoper|regoperator|regclass|regtype|regrole|regnamespace|regconfig|regdictionary|any|anyelement|anyarray|anynonarray|anyenum|anyrange|cstring|internal|language_handler|fdw_handler|record|trigger|void|opaque)\\b",
                "name": "keyword.other.stack"
             },
             {
