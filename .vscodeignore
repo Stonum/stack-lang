@@ -1,4 +1,6 @@
 .vscode
+.github
+.cargo
 node_modules
 src/
 tsconfig.json
