@@ -356,17 +356,6 @@
                "match": "(?i:(?<!\\.|\\$)\\b(вернуть|return)\\b(?!\\$))"
             },
             {
-               "match": "(?<!\\.|\\$)\\b(yield)\\b(?!\\$)(?:\\s*(\\*))?",
-               "captures": {
-                  "1": {
-                     "name": "keyword.control.flow.stack"
-                  },
-                  "2": {
-                     "name": "keyword.generator.asterisk.stack"
-                  }
-               }
-            },
-            {
                "name": "keyword.control.switch.stack",
                "match": "(?i:(?<!\\.|\\$)\\b(выборпо|выбор|switch|case)\\b(?!\\$))"
             },
@@ -386,16 +375,8 @@
                "match": "(?i:(?<!\\.|\\$)\\b(если|иначе|if|else)\\b(?!\\$))"
             },
             {
-               "name": "keyword.control.with.stack",
-               "match": "(?<!\\.|\\$)\\b(with)\\b(?!\\$)"
-            },
-            {
                "name": "keyword.other.debugger.stack",
                "match": "(?i:(?<!\\.|\\$)\\b(отладить|debug|отладка)\\b(?!\\$))"
-            },
-            {
-               "name": "storage.modifier.stack",
-               "match": "(?<!\\.|\\$)\\b(declare)\\b(?!\\$)"
             }
          ]
       },
@@ -440,84 +421,6 @@
             }
          ]
       },
-      "enum-declaration": {
-         "name": "meta.enum.declaration.stack",
-         "begin": "(?<!\\.|\\$)(?:(\\bexport)\\s+)?(?:\\b(const)\\s+)?\\b(enum)\\s+([_$[:alpha:]][_$[:alnum:]]*)",
-         "beginCaptures": {
-            "1": {
-               "name": "keyword.control.export.stack"
-            },
-            "2": {
-               "name": "storage.modifier.stack"
-            },
-            "3": {
-               "name": "storage.type.enum.stack"
-            },
-            "4": {
-               "name": "entity.name.type.enum.stack"
-            }
-         },
-         "end": "(?<=\\})",
-         "patterns": [
-            {
-               "include": "#comment"
-            },
-            {
-               "begin": "\\{",
-               "beginCaptures": {
-                  "0": {
-                     "name": "punctuation.definition.block.stack"
-                  }
-               },
-               "end": "\\}",
-               "endCaptures": {
-                  "0": {
-                     "name": "punctuation.definition.block.stack"
-                  }
-               },
-               "patterns": [
-                  {
-                     "include": "#comment"
-                  },
-                  {
-                     "begin": "([_$[:alpha:]][_$[:alnum:]]*)",
-                     "beginCaptures": {
-                        "0": {
-                           "name": "variable.other.enummember.stack"
-                        }
-                     },
-                     "end": "(?=,|\\}|$)",
-                     "patterns": [
-                        {
-                           "include": "#comment"
-                        },
-                        {
-                           "include": "#variable-initializer"
-                        }
-                     ]
-                  },
-                  {
-                     "begin": "(?=(?:(?:\\'[^']*\\')|(?:\\\"[^\"]*\\\")))",
-                     "end": "(?=,|\\}|$)",
-                     "patterns": [
-                        {
-                           "include": "#string"
-                        },
-                        {
-                           "include": "#comment"
-                        },
-                        {
-                           "include": "#variable-initializer"
-                        }
-                     ]
-                  },
-                  {
-                     "include": "#punctuation-comma"
-                  }
-               ]
-            }
-         ]
-      },
       "docstring": {
          "name": "meta.docstring.stack",
          "patterns": [
@@ -547,63 +450,6 @@
             },
             {
                "include": "#function-parameters"
-            },
-            {
-               "include": "#docstring"
-            },
-            {
-               "include": "#decl-block"
-            }
-         ]
-      },
-      "function-declaration": {
-         "name": "meta.function.stack",
-         "begin": "(?i:(?<!\\.|\\$)\\b(функция|func|get|получить|set\\s+|установить)\\b(?:\\s*(\\*))?(?:(?:\\s+|(?<=\\*))([_$[:alpha:]][_$[:alnum:]]*))?\\s*)",
-         "beginCaptures": {
-            "1": {
-               "name": "storage.type.function.stack"
-            },
-            "2": {
-               "name": "keyword.generator.asterisk.stack"
-            },
-            "3": {
-               "name": "entity.name.function.stack"
-            }
-         },
-         "end": "(?=;|\\})|(?<=\\})",
-         "patterns": [
-            {
-               "include": "#comment"
-            },
-            {
-               "include": "#function-parameters"
-            },
-            {
-               "include": "#docstring"
-            },
-            {
-               "include": "#decl-block"
-            }
-         ]
-      },
-      "anonymous-class-declaration": {
-         "name": "meta.anonymous-class.stack",
-         "begin": "(?i:(class|класс)\\s+(?:(extends|расширяет)\\s+(?:([a-zа-яё0-9_]+)|('[^']+')))?\\s*)",
-         "beginCaptures": {
-            "1": {
-               "name": "storage.type.class.stack"
-            },
-            "2": {
-               "name": "storage.type.class.stack"
-            },
-            "3": {
-               "name": "entity.name.class.stack"
-            }
-         },
-         "end": "(?=;|\\})|(?<=\\})",
-         "patterns": [
-            {
-               "include": "#comment"
             },
             {
                "include": "#docstring"
@@ -858,36 +704,6 @@
             }
          ]
       },
-      "type-parameters": {
-         "name": "meta.type.parameters.stack",
-         "begin": "(<)",
-         "beginCaptures": {
-            "1": {
-               "name": "punctuation.definition.typeparameters.begin.stack"
-            }
-         },
-         "end": "(?=$)|(>)",
-         "endCaptures": {
-            "1": {
-               "name": "punctuation.definition.typeparameters.end.stack"
-            }
-         },
-         "patterns": [
-            {
-               "include": "#comment"
-            },
-            {
-               "name": "storage.modifier.stack",
-               "match": "(?<!\\.|\\$)\\b(extends)\\b(?!\\$)"
-            },
-            {
-               "include": "#type"
-            },
-            {
-               "include": "#punctuation-comma"
-            }
-         ]
-      },
       "variable-initializer": {
          "begin": "(?<!=|!)(=)(?!=)",
          "beginCaptures": {
@@ -1030,29 +846,6 @@
                "include": "#comment"
             },
             {
-               "name": "meta.type.parameters.stack",
-               "begin": "\\<",
-               "beginCaptures": {
-                  "0": {
-                     "name": "punctuation.definition.typeparameters.begin.stack"
-                  }
-               },
-               "end": "\\>",
-               "endCaptures": {
-                  "0": {
-                     "name": "punctuation.definition.typeparameters.end.stack"
-                  }
-               },
-               "patterns": [
-                  {
-                     "include": "#type"
-                  },
-                  {
-                     "include": "#punctuation-comma"
-                  }
-               ]
-            },
-            {
                "include": "#paren-expression"
             }
          ]
@@ -1133,7 +926,7 @@
       },
       "cast": {
          "name": "cast.expr.stack",
-         "begin": "(?:(?<=return|throw|yield|await|default|[=(,:>*]))\\s*(<)(?!<?\\=)",
+         "begin": "(?:(?<=return|throw|[=(,:>*]))\\s*(<)(?!<?\\=)",
          "beginCaptures": {
             "1": {
                "name": "meta.brace.angle.stack"
@@ -1503,7 +1296,12 @@
             {
                "comment": "Переменные SQL :1,:2 и тд",
                "name": "variable.assignment.stack",
-               "match": "((:\\d{1}))"
+               "match": "(:\\d+)"
+            },
+            {
+               "comment": "Переменные :par",
+               "name": "variable.assignment.stack",
+               "match": "(?<!:)(:\\w+)"
             },
             {
                "comment": "числа",

@@ -43,10 +43,7 @@
          {
             "language": "stack",
             "scopeName": "source.stack",
-            "path": "./syntaxes/stack.json",
-            "embeddedLanguages": {
-               "meta.embedded.inline.sql": "sql"
-            }
+            "path": "./syntaxes/stack.json"
          }
       ],
       "commands": [
