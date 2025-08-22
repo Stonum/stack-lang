@@ -1,5 +1,14 @@
 **Changelog**
 ===============
+**v0.3.0 - 2025-08-22**
+------------------------------------
+* **Added**:
+   + core definitions
+   + support inline functions
+* **Fixed**: 
+   + finding definition with incorrect case usage
+   + corrected syntax highlighting rules
+
 **v0.2.8 - 2025-08-04**
 ------------------------------------
 * **Added**:
