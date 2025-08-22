@@ -290,16 +290,10 @@
                "include": "#literal"
             },
             {
-               "include": "#function-declarationstack"
-            },
-            {
                "include": "#function-declaration"
             },
             {
                "include": "#class-declaration"
-            },
-            {
-               "include": "#anonymous-class-declaration"
             },
             {
                "include": "#cast"
@@ -390,19 +384,10 @@
                "include": "#var-expr"
             },
             {
-               "include": "#function-declarationstack"
-            },
-            {
                "include": "#function-declaration"
             },
             {
                "include": "#class-declaration"
-            },
-            {
-               "include": "#anonymous-class-declaration"
-            },
-            {
-               "include": "#enum-declaration"
             }
          ]
       },
@@ -432,14 +417,17 @@
             }
          ]
       },
-      "function-declarationstack": {
+      "function-declaration": {
          "name": "meta.function.stack",
-         "begin": "(?i:(функция|func|get|получить|set\\s+|установить)\\s+(?:['])([a-zа-яё0-9_()\\s]+)?[']\\s*)",
+         "begin": "(?i:(?<!\\.|\\$)\\b(функция|func|get|получить|set\\s+|установить)\\b(?:\\s*(\\*))?(?:(?:\\s+|(?<=\\*))([_$[:alpha:]][_$[:alnum:]]*))?\\s*)",
          "beginCaptures": {
             "1": {
                "name": "storage.type.function.stack"
             },
             "2": {
+               "name": "keyword.generator.asterisk.stack"
+            },
+            "3": {
                "name": "entity.name.function.stack"
             }
          },
@@ -486,9 +474,6 @@
          "patterns": [
             {
                "include": "#comment"
-            },
-            {
-               "include": "#type-parameters"
             },
             {
                "include": "#function-parameters"
@@ -552,9 +537,6 @@
             },
             {
                "include": "#numeric-literal"
-            },
-            {
-               "include": "#type-parameters"
             },
             {
                "include": "#type-operators"
