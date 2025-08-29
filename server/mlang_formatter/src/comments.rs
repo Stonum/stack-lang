@@ -567,7 +567,7 @@ fn handle_while_comment(comment: DecoratedComment<MLanguage>) -> CommentPlacemen
     // }
     // ```
     if MBlockStatement::cast_ref(following).is_some() {
-        return CommentPlacement::leading(while_statement.syntax().clone(), comment);
+        return CommentPlacement::dangling(while_statement.syntax().clone(), comment);
     }
 
     // Don't attach comments to empty statements
@@ -588,7 +588,7 @@ fn handle_while_comment(comment: DecoratedComment<MLanguage>) -> CommentPlacemen
     // ```
     if let Ok(body) = while_statement.body() {
         if body.syntax() == following {
-            return CommentPlacement::leading(while_statement.syntax().clone(), comment);
+            return CommentPlacement::dangling(while_statement.syntax().clone(), comment);
         }
     }
 
