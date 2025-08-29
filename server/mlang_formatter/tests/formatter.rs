@@ -418,3 +418,29 @@ forall( x in arr ) # comment
 "#
     );
 }
+
+#[test]
+fn format_try_catch_statement() {
+    assert_fmt!(
+        r#"#
+try
+{
+   do_something();
+}
+catch( e )
+{
+   log_exception(e);
+}
+"#
+    );
+
+    assert_fmt!(
+        r#"#
+try
+{
+   do_something();
+}
+catch( e ) {}
+"#
+    );
+}
