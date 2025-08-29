@@ -39,8 +39,19 @@ impl FormatNodeRule<MForAllInStatement> for FormatMForAllInStatement {
                 expression,
                 space(),
                 r_paren_token.format(),
+                space(),
+                format_dangling_comments(node.syntax()),
                 FormatStatementBody::new(&body?)
             ))]
         )
+    }
+
+    fn fmt_dangling_comments(
+        &self,
+        _: &MForAllInStatement,
+        _: &mut MFormatter,
+    ) -> FormatResult<()> {
+        // Formatted inside of `fmt_fields`
+        Ok(())
     }
 }

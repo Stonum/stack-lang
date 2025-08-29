@@ -1,9 +1,9 @@
 use super::prelude::*;
 use mlang_syntax::{
     AnyMRoot, AnyMStatement, MBlockStatement, MCallArguments, MCatchClause, MClassDeclaration,
-    MConditionalExpression, MEmptyStatement, MFinallyClause, MFormalParameter, MFunctionBody,
-    MIdentifierExpression, MIfStatement, MLanguage, MName, MSyntaxKind, MSyntaxNode,
-    MVariableDeclarator, MWhileStatement,
+    MConditionalExpression, MEmptyStatement, MFinallyClause, MForAllInStatement, MForAllStatement,
+    MForStatement, MFormalParameter, MFunctionBody, MIdentifierExpression, MIfStatement, MLanguage,
+    MName, MSyntaxKind, MSyntaxNode, MVariableDeclarator, MWhileStatement,
 };
 
 use biome_formatter::{
@@ -660,24 +660,12 @@ fn handle_try_comment(comment: DecoratedComment<MLanguage>) -> CommentPlacement<
 fn handle_for_comment(comment: DecoratedComment<MLanguage>) -> CommentPlacement<MLanguage> {
     let enclosing = comment.enclosing_node();
 
-    let is_for_all = matches!(
-        enclosing.kind(),
-        MSyntaxKind::M_FOR_ALL_STATEMENT | MSyntaxKind::M_FOR_ALL_IN_STATEMENT
-    );
-
-    if !is_for_all && !matches!(enclosing.kind(), MSyntaxKind::M_FOR_STATEMENT) {
-        return CommentPlacement::Default(comment);
-    }
-
-    if comment.text_position().is_own_line() && is_for_all {
-        CommentPlacement::leading(enclosing.clone(), comment)
-    }
     // Don't attach comments to empty statement
     // ```javascript
     // for /* comment */ (;;);
     // for (;;a++) /* comment */;
     // ```
-    else if comment
+    if comment
         .following_node()
         .is_some_and(|following| MEmptyStatement::can_cast(following.kind()))
     {
@@ -686,7 +674,31 @@ fn handle_for_comment(comment: DecoratedComment<MLanguage>) -> CommentPlacement<
         } else {
             CommentPlacement::dangling(comment.enclosing_node().clone(), comment)
         }
+    }
+    // Move comments coming before the `{` to leading
+    //
+    // ```javascript
+    // for (cond) // test
+    // {
+    // }
+    // ```
+    else if comment
+        .following_node()
+        .is_some_and(|following| MBlockStatement::can_cast(following.kind()))
+    {
+        CommentPlacement::dangling(enclosing.clone(), comment)
     } else {
+        let body = MForStatement::cast_ref(enclosing)
+            .map(|f| f.body())
+            .or_else(|| MForAllStatement::cast_ref(enclosing).map(|f| f.body()))
+            .or_else(|| MForAllInStatement::cast_ref(enclosing).map(|f| f.body()));
+
+        if let Some(Ok(body)) = body {
+            if Some(body.syntax()) == comment.following_node() {
+                return CommentPlacement::dangling(enclosing.clone(), comment);
+            }
+        }
+
         CommentPlacement::Default(comment)
     }
 }
