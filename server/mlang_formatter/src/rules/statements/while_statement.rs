@@ -1,9 +1,9 @@
 use crate::prelude::*;
 
 use crate::utils::FormatStatementBody;
+use biome_formatter::{format_args, write};
 use mlang_syntax::MWhileStatement;
 use mlang_syntax::MWhileStatementFields;
-use biome_formatter::{format_args, write};
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMWhileStatement;
@@ -28,8 +28,15 @@ impl FormatNodeRule<MWhileStatement> for FormatMWhileStatement {
                 group(&soft_block_indent(&test.format())),
                 space(),
                 r_paren_token.format(),
+                space(),
+                format_dangling_comments(node.syntax()),
                 FormatStatementBody::new(&body?)
             ])]
         )
+    }
+
+    fn fmt_dangling_comments(&self, _: &MWhileStatement, _: &mut MFormatter) -> FormatResult<()> {
+        // Formatted inside of `fmt_fields`
+        Ok(())
     }
 }

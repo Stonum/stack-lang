@@ -274,3 +274,39 @@ if( test ) # ifcomment
 "#
     );
 }
+
+#[test]
+fn format_while_statement_comments() {
+    assert_fmt!(
+        r#"#
+while( test ) # comment
+{
+   print(test);
+}
+"#
+    );
+
+    assert_fmt!(
+        r#"#
+while( test ) # comment
+   println(1);
+"#
+    );
+
+    assert_fmt!(
+        r#"#
+# comment before while statement
+while( test ) # comment
+   println(1);
+"#
+    );
+
+    assert_fmt!(
+        r#"#
+# comment before while statement
+while( test ) # ifcomment
+# more comments
+   println(1);
+"#
+    );
+}
