@@ -415,8 +415,21 @@ fn handle_if_statement_comment(
     fn handle_else_clause(
         comment: DecoratedComment<MLanguage>,
         consequent: MSyntaxNode,
-        if_statement: MSyntaxNode,
     ) -> CommentPlacement<MLanguage> {
+        // Make all comments before block inline to else token
+        // ```javascript
+        // if( test ) // comment 1
+        // {
+        // }
+        // else // comment 2
+        // {
+        // }
+        // ```
+        let else_clause = comment.enclosing_node();
+        if let Some(_) = comment.following_node().and_then(MBlockStatement::cast_ref) {
+            return CommentPlacement::dangling(else_clause.clone(), comment);
+        }
+
         // Handle end of line comments that aren't stretching over multiple lines.
         // Make them dangling comments of the consequent expression
         //
@@ -452,7 +465,7 @@ fn handle_if_statement_comment(
         // else // comment
         // {true}
         // ```
-        CommentPlacement::dangling(if_statement, comment)
+        CommentPlacement::dangling(else_clause.clone(), comment)
     }
 
     match (comment.enclosing_node().kind(), comment.following_node()) {
@@ -465,14 +478,13 @@ fn handle_if_statement_comment(
                     .following_token()
                     .is_some_and(|token| token.kind() == MSyntaxKind::R_PAREN)
                 {
-                    return CommentPlacement::trailing(preceding.clone(), comment);
+                    return CommentPlacement::leading(preceding.clone(), comment);
                 }
 
                 // Handle comments before `else`
                 if following.kind() == MSyntaxKind::M_ELSE_CLAUSE {
                     let consequent = preceding.clone();
-                    let if_statement = comment.enclosing_node().clone();
-                    return handle_else_clause(comment, consequent, if_statement);
+                    return handle_else_clause(comment, consequent);
                 }
             }
 
@@ -483,8 +495,8 @@ fn handle_if_statement_comment(
             // {
             // }
             // ```
-            if let Some(_block_statement) = MBlockStatement::cast_ref(following) {
-                return CommentPlacement::leading(if_statement.syntax().clone(), comment);
+            if let Some(_) = MBlockStatement::cast_ref(following) {
+                return CommentPlacement::dangling(if_statement.syntax().clone(), comment);
             }
 
             // Don't attach comments to empty statements
@@ -505,7 +517,7 @@ fn handle_if_statement_comment(
             // ```
             if let Ok(consequent) = if_statement.consequent() {
                 if consequent.syntax() == following {
-                    return CommentPlacement::leading(if_statement.syntax().clone(), comment);
+                    return CommentPlacement::dangling(if_statement.syntax().clone(), comment);
                 }
             }
         }
@@ -516,11 +528,7 @@ fn handle_if_statement_comment(
                 .and_then(MIfStatement::cast)
             {
                 if let Ok(consequent) = if_statement.consequent() {
-                    return handle_else_clause(
-                        comment,
-                        consequent.into_syntax(),
-                        if_statement.into_syntax(),
-                    );
+                    return handle_else_clause(comment, consequent.into_syntax());
                 }
             }
         }

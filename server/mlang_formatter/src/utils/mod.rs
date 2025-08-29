@@ -12,16 +12,16 @@ mod object_like;
 mod quickcheck_utils;
 
 use super::context;
-use super::context::trailing_commas::FormatTrailingCommas;
 use super::context::Semicolons;
+use super::context::trailing_commas::FormatTrailingCommas;
 use super::prelude::*;
+pub(crate) use assignment_like::{
+    AnyMAssignmentLike, AssignmentLikeLayout, with_assignment_layout,
+};
+use biome_formatter::{Buffer, format_args, write};
+use biome_rowan::AstNode;
 use mlang_syntax::{AnyMExpression, AnyMStatement, MCallExpression, MInitializerClause};
 use mlang_syntax::{MSyntaxKind, MSyntaxToken};
-pub(crate) use assignment_like::{
-    with_assignment_layout, AnyMAssignmentLike, AssignmentLikeLayout,
-};
-use biome_formatter::{format_args, write, Buffer};
-use biome_rowan::AstNode;
 
 pub(crate) use object_like::*;
 pub(crate) use string_utils::*;
@@ -95,10 +95,10 @@ impl Format<MFormatContext> for FormatStatementBody<'_> {
             if !has_block_statement(self.body) {
                 write!(f, [block_indent(&self.body.format())])
             } else {
-                write!(f, [&format_args![hard_line_break(), self.body.format()]])
+                write!(f, [hard_line_break(), self.body.format()])
             }
         } else {
-            write!(f, [&format_args![hard_line_break(), self.body.format()]])
+            write!(f, [hard_line_break(), self.body.format()])
         }
     }
 }
