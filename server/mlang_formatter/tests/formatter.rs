@@ -310,3 +310,111 @@ while( test ) # ifcomment
 "#
     );
 }
+
+#[test]
+fn format_for_statement_comments() {
+    assert_fmt!(
+        r#"#
+for(;;) # comment
+{
+   print(test);
+}
+"#
+    );
+
+    assert_fmt!(
+        r#"#
+for(;;) # comment
+   println(1);
+"#
+    );
+
+    assert_fmt!(
+        r#"#
+# comment before for statement
+for(;;) # comment
+   println(1);
+"#
+    );
+
+    assert_fmt!(
+        r#"#
+# comment before for statement
+for(;;) # comment
+# more comments
+   println(1);
+"#
+    );
+}
+
+#[test]
+fn format_forall_statement_comments() {
+    assert_fmt!(
+        r#"#
+forall( iterator(arr, ind) ) # comment
+{
+   print(test);
+}
+"#
+    );
+
+    assert_fmt!(
+        r#"#
+forall( iterator(arr, ind) ) # comment
+   println(1);
+"#
+    );
+
+    assert_fmt!(
+        r#"#
+# comment before for statement
+forall( iterator(arr, ind) ) # comment
+   println(1);
+"#
+    );
+
+    assert_fmt!(
+        r#"#
+# comment before forall statement
+forall( iterator(arr, ind) ) # comment
+# more comments
+   println(1);
+"#
+    );
+}
+
+#[test]
+fn format_forallin_statement_comments() {
+    assert_fmt!(
+        r#"#
+forall( x in arr ) # comment
+{
+   print(test);
+}
+"#
+    );
+
+    assert_fmt!(
+        r#"#
+forall( x in arr ) # comment
+   println(1);
+"#
+    );
+
+    assert_fmt!(
+        r#"#
+# comment before forall statement
+forall( x in arr ) # comment
+   println(1);
+"#
+    );
+
+    assert_fmt!(
+        r#"#
+# comment before forall statement
+forall( x in arr ) # comment
+# more comments
+   println(1);
+"#
+    );
+}

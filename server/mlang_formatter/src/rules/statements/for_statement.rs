@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use biome_formatter::{CstFormatContext, format_args, write};
+use biome_formatter::{format_args, write};
 
 use crate::utils::FormatStatementBody;
 use mlang_syntax::MForStatement;
@@ -28,20 +28,6 @@ impl FormatNodeRule<MForStatement> for FormatMForStatement {
 
         let format_body = FormatStatementBody::new(&body);
 
-        // Move dangling trivia between the `for /* this */ (` to the top of the `for` and
-        // add a line break after.
-        let comments = f.context().comments();
-        let dangling_comments = comments.dangling_comments(node.syntax());
-        if !dangling_comments.is_empty() {
-            write!(
-                f,
-                [
-                    format_dangling_comments(node.syntax()),
-                    soft_line_break_or_space()
-                ]
-            )?;
-        }
-
         if initializer.is_none() && test.is_none() && update.is_none() {
             return write!(
                 f,
@@ -51,6 +37,8 @@ impl FormatNodeRule<MForStatement> for FormatMForStatement {
                     first_semi_token.format(),
                     second_semi_token.format(),
                     r_paren_token.format(),
+                    space(),
+                    format_dangling_comments(node.syntax()),
                     format_body
                 ])]
             );
@@ -72,6 +60,8 @@ impl FormatNodeRule<MForStatement> for FormatMForStatement {
                         update.format()
                     ])),
                     r_paren_token.format(),
+                    space(),
+                    format_dangling_comments(node.syntax()),
                     format_body
                 ]
             )
