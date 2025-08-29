@@ -233,3 +233,44 @@ inline func i()
 "#
     );
 }
+
+#[test]
+fn format_if_statement_comments() {
+    assert_fmt!(
+        r#"#
+if( test ) # ifcomment
+{
+}
+else # elsecomment
+{
+   println(2);
+}
+"#
+    );
+
+    assert_fmt!(
+        r#"#
+if( test ) # ifcomment
+   println(1);
+else # else comment
+   print(2);
+"#
+    );
+
+    assert_fmt!(
+        r#"#
+# comment before if statement
+if( test ) # ifcomment
+   println(1);
+"#
+    );
+
+    assert_fmt!(
+        r#"#
+# comment before if statement
+if( test ) # ifcomment
+# more comments
+   println(1);
+"#
+    );
+}

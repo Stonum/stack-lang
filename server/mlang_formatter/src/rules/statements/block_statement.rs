@@ -1,11 +1,11 @@
 use crate::prelude::*;
+use biome_formatter::{Buffer, CstFormatContext, write};
 use mlang_syntax::MBlockStatement;
 use mlang_syntax::{AnyMStatement, MEmptyStatement};
-use biome_formatter::{write, Buffer, CstFormatContext};
 
+use biome_rowan::{AstNode, AstNodeList, SyntaxNodeOptionExt};
 use mlang_syntax::MBlockStatementFields;
 use mlang_syntax::MSyntaxKind;
-use biome_rowan::{AstNode, AstNodeList, SyntaxNodeOptionExt};
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMBlockStatement;
@@ -27,7 +27,6 @@ impl FormatNodeRule<MBlockStatement> for FormatMBlockStatement {
         let comments = f.context().comments();
         if is_empty_block(node, comments) {
             let has_dangling_comments = comments.has_dangling_comments(node.syntax());
-
             for stmt in statements
                 .iter()
                 .filter_map(|stmt| MEmptyStatement::cast(stmt.into_syntax()))

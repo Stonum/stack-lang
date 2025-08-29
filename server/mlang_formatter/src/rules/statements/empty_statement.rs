@@ -1,8 +1,8 @@
 use crate::prelude::*;
-use biome_formatter::{write, CstFormatContext};
+use biome_formatter::{CstFormatContext, write};
 
-use mlang_syntax::{MEmptyStatement, MEmptyStatementFields, MSyntaxKind};
 use biome_rowan::{AstNode, SyntaxNodeOptionExt};
+use mlang_syntax::{MEmptyStatement, MEmptyStatementFields, MSyntaxKind};
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMEmptyStatement;
@@ -18,7 +18,7 @@ impl FormatNodeRule<MEmptyStatement> for FormatMEmptyStatement {
             .comments()
             .leading_comments(node.syntax())
             .iter()
-            .any(|comment| comment.lines_before() > 0 || comment.kind().is_line());
+            .any(|comment| comment.kind().is_line());
 
         if leading_comments_with_break {
             write!(f, [hard_line_break()])?;
