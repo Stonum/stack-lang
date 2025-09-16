@@ -1170,13 +1170,10 @@
                "name": "punctuation.definition.string.begin.stack"
             }
          },
-         "end": "(\")|((?:[^\\\\\\n])$)",
+         "end": "\"",
          "endCaptures": {
             "1": {
                "name": "punctuation.definition.string.end.stack"
-            },
-            "2": {
-               "name": "invalid.illegal.newline.stack"
             }
          },
          "patterns": [
