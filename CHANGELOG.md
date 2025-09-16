@@ -1,5 +1,12 @@
 **Changelog**
 ===============
+**v0.3.2 - 2025-09-16**
+------------------------------------
+* **Fixed**: 
+   + format comments for `if`, `while`, `forall` statements
+   + format empty cache block statement
+   + syntax highlighting rules
+
 **v0.3.1 - 2025-08-22**
 ------------------------------------
 * **Fixed**: 
