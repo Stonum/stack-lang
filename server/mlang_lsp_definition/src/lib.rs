@@ -1,7 +1,16 @@
 use std::sync::Arc;
 
 use line_index::LineColRange;
-use tower_lsp::lsp_types::{Location, MarkedString, Position, Range, Url};
+use tower_lsp::lsp_types::{Location, MarkedString, Position, Range, SymbolInformation, Url};
+
+pub use tower_lsp::lsp_types::SymbolKind;
+
+pub struct StringLowerCase(String);
+impl StringLowerCase {
+    pub fn new(s: &str) -> Self {
+        StringLowerCase(s.to_lowercase())
+    }
+}
 
 pub trait CodeSymbolDefinition: Sized + PartialEq {
     fn is_function(&self) -> bool {
@@ -21,6 +30,20 @@ pub trait CodeSymbolDefinition: Sized + PartialEq {
     fn parent(&self) -> Option<&str>;
     fn compare_with(&self, another: &str) -> bool {
         unicase::eq(self.id(), another)
+    }
+    fn partial_compare_with(&self, another: &StringLowerCase) -> bool {
+        self.id().to_lowercase().contains(&another.0)
+    }
+}
+
+pub trait CodeSymbolInformation: CodeSymbolDefinition {
+    fn symbol_kind(&self) -> SymbolKind;
+    fn symbol_name(&self) -> String {
+        let mut name = self.id();
+        if name.starts_with('\'') && name.ends_with('\'') {
+            name = &name[1..name.len() - 1];
+        }
+        name.to_string()
     }
 }
 
@@ -378,4 +401,25 @@ where
             return markups;
         }
     }
+}
+
+pub fn get_symbols<'a, I, D>(uri: &Url, definitions: I) -> Vec<SymbolInformation>
+where
+    I: IntoIterator<Item = &'a D>,
+    D: CodeSymbolInformation + LocationDefinition + 'a,
+{
+    definitions
+        .into_iter()
+        .map(|def| {
+            #[allow(deprecated)]
+            SymbolInformation {
+                name: def.symbol_name(),
+                kind: def.symbol_kind(),
+                tags: None,
+                deprecated: None,
+                location: def.location(uri.clone()),
+                container_name: def.container().map(|c| c.id().to_string()),
+            }
+        })
+        .collect::<Vec<_>>()
 }

@@ -48,6 +48,7 @@ impl LanguageServer for Backend {
             }),
             definition_provider: Some(OneOf::Left(true)),
             document_symbol_provider: Some(OneOf::Left(true)),
+            workspace_symbol_provider: Some(OneOf::Left(true)),
             hover_provider: Some(HoverProviderCapability::Simple(true)),
             document_range_formatting_provider: Some(OneOf::Left(true)),
             ..ServerCapabilities::default()
@@ -231,6 +232,21 @@ impl LanguageServer for Backend {
         trace!("document_symbol {}", &file_uri);
 
         let document_symbol = self.workspace.document_symbol_response(&file_uri).await;
+
+        Ok(document_symbol)
+    }
+
+    async fn symbol(
+        &self,
+        params: WorkspaceSymbolParams,
+    ) -> Result<Option<Vec<SymbolInformation>>> {
+        let query = params.query;
+        trace!(
+            "workspace_symbol {} {:?} {:?}",
+            query, params.partial_result_params, params.work_done_progress_params
+        );
+
+        let document_symbol = self.workspace.symbol_information(&query).await;
 
         Ok(document_symbol)
     }

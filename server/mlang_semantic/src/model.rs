@@ -4,7 +4,9 @@ use biome_rowan::syntax::SyntaxTrivia;
 use biome_rowan::{AstNode, AstNodeList, SyntaxNode, TriviaPieceKind, WalkEvent};
 use line_index::{LineColRange, LineIndex};
 
-use mlang_lsp_definition::{CodeSymbolDefinition, LocationDefinition, MarkupDefinition};
+use mlang_lsp_definition::{
+    CodeSymbolDefinition, CodeSymbolInformation, LocationDefinition, MarkupDefinition, SymbolKind,
+};
 use mlang_syntax::{
     AnyMClassMember, MClassDeclaration, MFunctionDeclaration, MLanguage, MReport, MReportSection,
     MSyntaxNode,
@@ -127,6 +129,18 @@ impl LocationDefinition for AnyMDefinition {
             AnyMDefinition::MClassMemberDefinition(member) => member.id.range,
             AnyMDefinition::MReportDefinition(report) => report.id.range,
             AnyMDefinition::MReportSectionDefiniton(section) => section.id.range,
+        }
+    }
+}
+
+impl CodeSymbolInformation for AnyMDefinition {
+    fn symbol_kind(&self) -> SymbolKind {
+        match self {
+            AnyMDefinition::MFunctionDefinition(_) => SymbolKind::FUNCTION,
+            AnyMDefinition::MClassDefinition(_) => SymbolKind::CLASS,
+            AnyMDefinition::MClassMemberDefinition(_) => SymbolKind::FUNCTION,
+            AnyMDefinition::MReportDefinition(_) => SymbolKind::CONSTANT,
+            AnyMDefinition::MReportSectionDefiniton(_) => SymbolKind::FIELD,
         }
     }
 }
