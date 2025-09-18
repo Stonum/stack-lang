@@ -2,7 +2,7 @@
    "name": "stack-lang",
    "displayName": "Stack lang",
    "description": "language server for STACK software package",
-   "version": "0.3.2",
+   "version": "0.3.3",
    "repository": "https://github.com/stonum/stack-lang",
    "publisher": "stonum",
    "categories": [

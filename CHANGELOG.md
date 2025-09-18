@@ -1,5 +1,12 @@
 **Changelog**
 ===============
+**v0.3.3 - 2025-09-18**
+------------------------------------
+* **Added**:
+   + go to symbol in workspace ( `Ctrl` + `T` as default )
+* **Fixed**: 
+   + syntax highlighting rules
+
 **v0.3.2 - 2025-09-16**
 ------------------------------------
 * **Fixed**: 
