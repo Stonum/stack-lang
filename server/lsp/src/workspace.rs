@@ -9,7 +9,8 @@ use thiserror::Error;
 
 use mlang_core::{AnyMCoreDefinition, load_core_api};
 use mlang_lsp_definition::{
-    CodeSymbolDefinition as _, LocationDefinition as _, SemanticInfo, get_hover, get_locations,
+    CodeSymbolDefinition as _, LocationDefinition as _, SemanticInfo, StringLowerCase, get_hover,
+    get_locations, get_symbols,
 };
 use mlang_parser::parse;
 use mlang_semantic::{AnyMDefinition, identifier_for_offset, semantics};
@@ -226,35 +227,38 @@ impl Workspace {
         let document = self.get_opened_document(uri).await?;
 
         let definitions = document.definitions();
-        let response = definitions
-            .iter()
-            .map(|def| {
-                let kind = match def {
-                    AnyMDefinition::MFunctionDefinition(_) => SymbolKind::FUNCTION,
-                    AnyMDefinition::MClassDefinition(_) => SymbolKind::CLASS,
-                    AnyMDefinition::MClassMemberDefinition(_) => SymbolKind::FUNCTION,
-                    AnyMDefinition::MReportDefinition(_) => SymbolKind::CONSTANT,
-                    AnyMDefinition::MReportSectionDefiniton(_) => SymbolKind::FIELD,
-                };
-
-                let mut name = def.id();
-                if name.starts_with('\'') && name.ends_with('\'') {
-                    name = &name[1..name.len() - 1];
-                }
-
-                #[allow(deprecated)]
-                SymbolInformation {
-                    name: name.to_string(),
-                    kind,
-                    tags: None,
-                    deprecated: None,
-                    location: def.location(uri.clone()),
-                    container_name: def.container().map(|c| c.id().to_string()),
-                }
-            })
-            .collect();
+        let response = get_symbols(uri, definitions.iter());
 
         Some(DocumentSymbolResponse::Flat(response))
+    }
+
+    pub async fn symbol_information(&self, query: &str) -> Option<Vec<SymbolInformation>> {
+        let semantics = self.semantics.iter().filter_map(|r| match r.pair() {
+            (path, Some(definitions)) => {
+                let uri = Url::from_file_path(path).ok()?;
+                Some((uri, Arc::clone(definitions)))
+            }
+            _ => None,
+        });
+
+        let information = semantics
+            .map(|(uri, definitions)| {
+                if query != "" {
+                    let query = StringLowerCase::new(query);
+                    get_symbols(
+                        &uri,
+                        definitions
+                            .iter()
+                            .filter(|d| d.partial_compare_with(&query)),
+                    )
+                } else {
+                    get_symbols(&uri, definitions.iter())
+                }
+            })
+            .flatten()
+            .collect::<Vec<_>>();
+
+        Some(information)
     }
 
     pub async fn code_lens(&self, uri: &Url) -> Option<Vec<CodeLens>> {
