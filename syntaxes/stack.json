@@ -44,19 +44,25 @@
       },
       "var-expr": {
          "name": "meta.var.expr.stack",
-         "begin": "(?i:(?<!\\.|\\$)\\b((перем|var)(?!\\s+enum\\b))\\b(?!\\$))",
+         "begin": "(?i:(?<!\\.|\\$)\\b(перем|var)\\b(?!\\$))",
          "beginCaptures": {
             "1": {
                "name": "storage.type.stack"
             }
          },
-         "end": "(?=$|;|}|(\\s+(of|in)\\s+))",
+         "end": "(?=$|;|}|^|\\n)",
          "patterns": [
             {
-               "include": "#destructuring-variable"
+               "include": "#decorator"
             },
             {
-               "include": "#var-single-variable"
+               "include": "#object-binding-pattern"
+            },
+            {
+               "include": "#array-binding-pattern"
+            },
+            {
+               "include": "#destructuring-variable"
             },
             {
                "include": "#variable-initializer"
@@ -126,12 +132,15 @@
                "include": "#comment"
             },
             {
-               "begin": "([_$[:alpha:]][_$[:alnum:]]*)\\s*(:)",
+               "begin": "((\"\\w+\")|(\\w+))\\s*(:)",
                "beginCaptures": {
-                  "1": {
+                  "2": {
+                     "name": "string.stack"
+                  },
+                  "3": {
                      "name": "variable.object.property.stack"
                   },
-                  "2": {
+                  "4": {
                      "name": "punctuation.destructuring.stack"
                   }
                },
@@ -144,8 +153,7 @@
                      "include": "#array-binding-pattern"
                   },
                   {
-                     "name": "variable.other.readwrite.stack",
-                     "match": "([_$[:alpha:]][_$[:alnum:]]*)"
+                     "include": "#expression"
                   },
                   {
                      "include": "#variable-initializer"
@@ -189,7 +197,7 @@
          ]
       },
       "destructuring-variable-rest": {
-         "match": "(?:(\\.\\.\\.)\\s*)?([_$[:alpha:]][_$[:alnum:]]*)",
+         "match": "(?:(\\.\\.\\.)\\s*)?(\\w)",
          "captures": {
             "1": {
                "name": "keyword.operator.rest.stack"
@@ -288,6 +296,12 @@
             },
             {
                "include": "#literal"
+            },
+            {
+               "include": "#object-binding-pattern"
+            },
+            {
+               "include": "#array-binding-pattern"
             },
             {
                "include": "#function-declaration"
