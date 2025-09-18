@@ -17,10 +17,12 @@ use mlang_semantic::{AnyMDefinition, identifier_for_offset, semantics};
 use mlang_syntax::MFileSource;
 
 use tokio::runtime::Handle;
+use tokio::sync::Semaphore;
+use tokio::task::JoinError;
+
 use tower_lsp::lsp_types::{
     CodeLens, Command, DocumentSymbolResponse, GotoDefinitionResponse, Hover, HoverContents,
-    Position, Range, SemanticTokens, SymbolInformation, SymbolKind, TextDocumentItem, Url,
-    WorkspaceFolder,
+    Position, Range, SemanticTokens, SymbolInformation, TextDocumentItem, Url, WorkspaceFolder,
 };
 
 use crate::document::CurrentDocument;
@@ -44,6 +46,8 @@ pub enum WorkspaceError {
     UrlConvertation(Url),
     #[error("{0}")]
     FileSource(#[from] mlang_syntax::FileSourceError),
+    #[error("{0}")]
+    JoinHandle(#[from] JoinError),
 }
 
 pub struct Workspace {
@@ -134,11 +138,20 @@ impl Workspace {
 
     pub async fn update_semantic_information(&self) {
         let mut handles = vec![];
+
+        let num_cores = std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(1);
+
         let current = Handle::current();
-        for (_i, document) in self.semantics.iter().enumerate() {
+        let semaphore = Arc::new(Semaphore::new(num_cores * 2));
+
+        for document in self.semantics.iter() {
             let path = document.key().to_path_buf();
+            let permit = semaphore.clone().acquire_owned().await.unwrap();
 
             let handle = current.spawn_blocking(move || {
+                let _ = permit;
                 let text = std::fs::read_to_string(&path).ok()?;
                 let parsed = parse(&text, MFileSource::module());
                 let semantics = semantics(&text, parsed.syntax());
@@ -313,7 +326,12 @@ impl Workspace {
             .or(Err(WorkspaceError::UrlConvertation(uri.clone())))?;
         let file_source = MFileSource::try_from(path.as_path())?;
 
-        let document = CurrentDocument::new(uri.clone(), &document.text, file_source);
+        let document_uri = uri.clone();
+        let handle = tokio::task::spawn_blocking(move || {
+            CurrentDocument::new(document_uri, &document.text, file_source)
+        });
+
+        let document = handle.await?;
         let diagnostics = document.diagnostics();
 
         self.opened_files.insert(uri, Arc::new(document));
@@ -336,18 +354,26 @@ impl Workspace {
             .or(Err(WorkspaceError::UrlConvertation(uri.clone())))?;
         let file_source = MFileSource::try_from(path.as_path())?;
 
-        let parsed = parse(&document.text, file_source);
-        let semantics = semantics(&document.text, parsed.syntax());
+        let document_uri = uri.clone();
+        let handle = tokio::task::spawn_blocking(move || {
+            let parsed = parse(&document.text, file_source);
+            let semantics = semantics(&document.text, parsed.syntax());
 
-        let mut diagnostics = vec![];
-
-        if let Some(mut opened_file) = self.opened_files.get_mut(&uri) {
             let document = CurrentDocument::from_root(
-                uri,
+                document_uri,
                 &document.text,
                 parsed.syntax(),
                 parsed.diagnostics(),
             );
+
+            (document, semantics)
+        });
+
+        let (document, semantics) = handle.await?;
+
+        let mut diagnostics = vec![];
+
+        if let Some(mut opened_file) = self.opened_files.get_mut(&uri) {
             diagnostics = document.diagnostics();
             *opened_file = Arc::new(document);
         }
