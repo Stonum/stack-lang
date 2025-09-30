@@ -9,8 +9,8 @@ use thiserror::Error;
 
 use mlang_core::{AnyMCoreDefinition, load_core_api};
 use mlang_lsp_definition::{
-    CodeSymbolDefinition as _, LocationDefinition as _, SemanticInfo, StringLowerCase, get_hover,
-    get_locations, get_symbols,
+    CodeSymbolDefinition as _, CodeSymbolInformation as _, LocationDefinition as _, SemanticInfo,
+    StringLowerCase, get_hover, get_locations, get_symbols,
 };
 use mlang_parser::parse;
 use mlang_semantic::{AnyMDefinition, identifier_for_offset, semantics};
@@ -153,8 +153,12 @@ impl Workspace {
             let handle = current.spawn_blocking(move || {
                 let _ = permit;
                 let text = std::fs::read_to_string(&path).ok()?;
+
+                let file_extension = path.extension()?;
+                let file_source = MFileSource::try_from_extension(file_extension).ok()?;
+
                 let parsed = parse(&text, MFileSource::module());
-                let semantics = semantics(&text, parsed.syntax());
+                let semantics = semantics(&text, parsed.syntax(), file_source);
                 Some((path, semantics))
             });
 
@@ -283,7 +287,7 @@ impl Workspace {
             .iter()
             .filter_map(|def| {
                 let container = def.container()?;
-                let title = container.id().to_string();
+                let title = container.symbol_name();
                 let line = container.range().start.line;
                 let args = vec![Value::Number(line.into())];
 
@@ -357,10 +361,11 @@ impl Workspace {
         let document_uri = uri.clone();
         let handle = tokio::task::spawn_blocking(move || {
             let parsed = parse(&document.text, file_source);
-            let semantics = semantics(&document.text, parsed.syntax());
+            let semantics = semantics(&document.text, parsed.syntax(), file_source);
 
             let document = CurrentDocument::from_root(
                 document_uri,
+                file_source,
                 &document.text,
                 parsed.syntax(),
                 parsed.diagnostics(),

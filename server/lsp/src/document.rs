@@ -21,16 +21,17 @@ impl CurrentDocument {
         let parsed = parse(&text, file_source);
         let diagnostics = parsed.diagnostics();
 
-        Self::from_root(uri, text, parsed.syntax(), diagnostics)
+        Self::from_root(uri, file_source, text, parsed.syntax(), diagnostics)
     }
 
     pub fn from_root(
         uri: Url,
+        file_source: MFileSource,
         text: &String,
         root: MSyntaxNode,
         diagnostics: &[ParseDiagnostic],
     ) -> CurrentDocument {
-        let semantics = semantics(&text, root.clone());
+        let semantics = semantics(&text, root.clone(), file_source);
         let root = root.as_send().unwrap_or_else(|| {
             panic!(
                 "could not upcast root node from language {}",
