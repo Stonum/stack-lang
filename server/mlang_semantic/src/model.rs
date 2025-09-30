@@ -490,7 +490,7 @@ fn handler_event_definition(
 
     Some(MHandlerEventDefinition {
         id: DefinitionId {
-            name: event_id.text().to_string(),
+            name: event_id.text_trimmed().to_string(),
             range: event_id_range,
         },
         handler,
