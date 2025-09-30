@@ -413,8 +413,10 @@ impl Workspace {
                         continue;
                     }
 
-                    // only modules needs to definitions
-                    if MFileSource::try_from(entry.as_path()).is_ok_and(|m| m.is_module()) {
+                    // only modules and handlers needs to definitions
+                    if MFileSource::try_from(entry.as_path())
+                        .is_ok_and(|m| m.is_module() || m.is_handler())
+                    {
                         files.push(entry);
                     }
                 }

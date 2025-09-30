@@ -67,6 +67,10 @@ impl MFileSource {
         self.module_kind.is_module()
     }
 
+    pub const fn is_handler(&self) -> bool {
+        self.module_kind.is_handler()
+    }
+
     pub const fn is_script(&self) -> bool {
         self.module_kind.is_script()
     }
