@@ -42,6 +42,8 @@ pub trait CodeSymbolInformation: CodeSymbolDefinition {
         let mut name = self.id();
         if name.starts_with('\'') && name.ends_with('\'') {
             name = &name[1..name.len() - 1];
+        } else if name.starts_with('\"') && name.ends_with('\"') {
+            name = &name[1..name.len() - 1];
         }
         name.to_string()
     }
@@ -418,7 +420,7 @@ where
                 tags: None,
                 deprecated: None,
                 location: def.location(uri.clone()),
-                container_name: def.container().map(|c| c.id().to_string()),
+                container_name: def.container().map(|c| c.symbol_name()),
             }
         })
         .collect::<Vec<_>>()

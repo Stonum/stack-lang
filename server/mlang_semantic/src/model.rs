@@ -8,11 +8,16 @@ use mlang_lsp_definition::{
     CodeSymbolDefinition, CodeSymbolInformation, LocationDefinition, MarkupDefinition, SymbolKind,
 };
 use mlang_syntax::{
-    AnyMClassMember, MClassDeclaration, MFunctionDeclaration, MLanguage, MReport, MReportSection,
+    AnyMClassMember, AnyMExpression, AnyMLiteralExpression, AnyMStatement, AnyMSwitchClause,
+    MClassDeclaration, MFileSource, MFunctionDeclaration, MLanguage, MReport, MReportSection,
     MSyntaxNode,
 };
 
-pub fn semantics(text: &str, root: SyntaxNode<MLanguage>) -> Vec<AnyMDefinition> {
+pub fn semantics(
+    text: &str,
+    root: SyntaxNode<MLanguage>,
+    source_type: MFileSource,
+) -> Vec<AnyMDefinition> {
     let mut collector = SemanticModel {
         definitions: vec![],
     };
@@ -21,7 +26,7 @@ pub fn semantics(text: &str, root: SyntaxNode<MLanguage>) -> Vec<AnyMDefinition>
 
     for event in root.preorder() {
         if let WalkEvent::Enter(node) = event {
-            collector.visit_node(&line_index, node);
+            collector.visit_node(source_type, &line_index, node);
         }
     }
 
@@ -46,6 +51,8 @@ pub enum AnyMDefinition {
     MClassMemberDefinition(MClassMemberDefinition),
     MReportDefinition(Arc<MReportDefinition>),
     MReportSectionDefiniton(MReportSectionDefiniton),
+    MHandlerDefinition(Arc<MHandlerDefinition>),
+    MHandlerEventDefinition(MHandlerEventDefinition),
 }
 
 #[derive(Debug, Default, Eq, PartialEq)]
@@ -88,6 +95,8 @@ impl CodeSymbolDefinition for AnyMDefinition {
             AnyMDefinition::MClassMemberDefinition(m) => &m.id.name,
             AnyMDefinition::MReportDefinition(r) => &r.id.name,
             AnyMDefinition::MReportSectionDefiniton(s) => &s.id.name,
+            AnyMDefinition::MHandlerDefinition(h) => &h.id.name,
+            AnyMDefinition::MHandlerEventDefinition(e) => &e.id.name,
         }
     }
 
@@ -100,6 +109,10 @@ impl CodeSymbolDefinition for AnyMDefinition {
                 .report
                 .upgrade()
                 .map(AnyMDefinition::MReportDefinition),
+            AnyMDefinition::MHandlerEventDefinition(event) => event
+                .handler
+                .upgrade()
+                .map(AnyMDefinition::MHandlerDefinition),
             _ => None,
         }
     }
@@ -120,6 +133,8 @@ impl LocationDefinition for AnyMDefinition {
             AnyMDefinition::MClassMemberDefinition(member) => member.range,
             AnyMDefinition::MReportDefinition(report) => report.range,
             AnyMDefinition::MReportSectionDefiniton(section) => section.range,
+            AnyMDefinition::MHandlerDefinition(handler) => handler.range,
+            AnyMDefinition::MHandlerEventDefinition(event) => event.range,
         }
     }
     fn id_range(&self) -> LineColRange {
@@ -129,6 +144,8 @@ impl LocationDefinition for AnyMDefinition {
             AnyMDefinition::MClassMemberDefinition(member) => member.id.range,
             AnyMDefinition::MReportDefinition(report) => report.id.range,
             AnyMDefinition::MReportSectionDefiniton(section) => section.id.range,
+            AnyMDefinition::MHandlerDefinition(handler) => handler.id.range,
+            AnyMDefinition::MHandlerEventDefinition(event) => event.id.range,
         }
     }
 }
@@ -141,6 +158,8 @@ impl CodeSymbolInformation for AnyMDefinition {
             AnyMDefinition::MClassMemberDefinition(_) => SymbolKind::FUNCTION,
             AnyMDefinition::MReportDefinition(_) => SymbolKind::CONSTANT,
             AnyMDefinition::MReportSectionDefiniton(_) => SymbolKind::FIELD,
+            AnyMDefinition::MHandlerDefinition(_) => SymbolKind::FUNCTION,
+            AnyMDefinition::MHandlerEventDefinition(_) => SymbolKind::EVENT,
         }
     }
 }
@@ -187,6 +206,12 @@ impl MarkupDefinition for AnyMDefinition {
             }
             AnyMDefinition::MReportSectionDefiniton(section) => {
                 format!("```{} {}```", section.type_keyword(), section.id.name,)
+            }
+            AnyMDefinition::MHandlerDefinition(handler) => {
+                format!("```{} {}```", handler.type_keyword(), handler.id.name,)
+            }
+            AnyMDefinition::MHandlerEventDefinition(event) => {
+                format!("```{} {}```", event.type_keyword(), event.id.name,)
             }
         }
     }
@@ -292,12 +317,56 @@ impl PartialEq for MReportSectionDefiniton {
 }
 impl Eq for MReportSectionDefiniton {}
 
+#[derive(Debug, Default, Eq, PartialEq)]
+pub struct MHandlerDefinition {
+    id: DefinitionId,
+    params: String,
+    events: Vec<Arc<MHandlerEventDefinition>>,
+    range: LineColRange,
+}
+impl MHandlerDefinition {
+    fn type_keyword(&self) -> &'static str {
+        "function"
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct MHandlerEventDefinition {
+    id: DefinitionId,
+    handler: Weak<MHandlerDefinition>,
+    range: LineColRange,
+}
+impl MHandlerEventDefinition {
+    fn type_keyword(&self) -> &'static str {
+        ""
+    }
+}
+
+impl PartialEq for MHandlerEventDefinition {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id && self.range == other.range
+    }
+}
+impl Eq for MHandlerEventDefinition {}
+
 impl SemanticModel {
-    fn visit_node(&mut self, index: &LineIndex, node: MSyntaxNode) {
+    fn visit_node(&mut self, source_type: MFileSource, index: &LineIndex, node: MSyntaxNode) {
         if let Some(func) = MFunctionDeclaration::cast(node.clone()) {
-            if let Some(def) = function_definition(func, index) {
-                self.definitions
-                    .push(AnyMDefinition::MFunctionDefinition(def));
+            if source_type.is_handler() {
+                if let Some((handler, events)) = handler_definition(func, index) {
+                    let mut events = events
+                        .into_iter()
+                        .map(|m| AnyMDefinition::MHandlerEventDefinition(m))
+                        .collect();
+                    self.definitions
+                        .push(AnyMDefinition::MHandlerDefinition(handler));
+                    self.definitions.append(&mut events);
+                }
+            } else {
+                if let Some(def) = function_definition(func, index) {
+                    self.definitions
+                        .push(AnyMDefinition::MFunctionDefinition(def));
+                }
             }
         }
 
@@ -351,6 +420,82 @@ fn function_definition(
         range: func_range,
     };
     Some(func)
+}
+
+fn handler_definition(
+    func: MFunctionDeclaration,
+    index: &LineIndex,
+) -> Option<(Arc<MHandlerDefinition>, Vec<MHandlerEventDefinition>)> {
+    let func_id = func.id().ok()?;
+    let func_id_range = index.line_col_range(func_id.range())?;
+    let func_range = index.line_col_range(func.range())?;
+
+    let hdlr = Arc::new(MHandlerDefinition {
+        id: DefinitionId {
+            name: func_id.text(),
+            range: func_id_range,
+        },
+        params: func
+            .parameters()
+            .map(|params| params.to_string().trim().to_string())
+            .unwrap_or_default(),
+        range: func_range,
+        events: vec![],
+    });
+
+    if let Ok(body) = func.body() {
+        let events = body
+            .statements()
+            .iter()
+            .filter_map(|statement| {
+                let switch_statement = statement.as_m_switch_statement()?;
+                let events = switch_statement
+                    .cases()
+                    .iter()
+                    .filter_map(|case| handler_event_definition(case, Arc::downgrade(&hdlr), index))
+                    .collect::<Vec<_>>();
+                Some(events)
+            })
+            .flatten()
+            .collect::<Vec<_>>();
+
+        return Some((hdlr, events));
+    }
+
+    Some((hdlr, vec![]))
+}
+
+fn handler_event_definition(
+    clause: AnyMSwitchClause,
+    handler: Weak<MHandlerDefinition>,
+    index: &LineIndex,
+) -> Option<MHandlerEventDefinition> {
+    let event_range = index.line_col_range(clause.range())?;
+
+    let event_id = match clause {
+        AnyMSwitchClause::MCaseClause(m_case_clause) => {
+            let test = m_case_clause.test().ok()?;
+            let literal = test.as_any_m_literal_expression()?;
+            match literal {
+                AnyMLiteralExpression::MStringLiteralExpression(string) => string.value_token(),
+                AnyMLiteralExpression::MLongStringLiteralExpression(string) => string.value_token(),
+                _ => return None,
+            }
+        }
+        AnyMSwitchClause::MDefaultClause(m_default_clause) => m_default_clause.else_token(),
+    };
+
+    let event_id = event_id.ok()?;
+    let event_id_range = index.line_col_range(event_id.text_range())?;
+
+    Some(MHandlerEventDefinition {
+        id: DefinitionId {
+            name: event_id.text().to_string(),
+            range: event_id_range,
+        },
+        handler,
+        range: event_range,
+    })
 }
 
 fn class_definition(
@@ -565,9 +710,10 @@ mod tests {
         }
     },
     "#;
-        let parsed = parse(&text, MFileSource::module());
+        let file_source = MFileSource::module();
+        let parsed = parse(&text, file_source);
 
-        let definitions = semantics(text, parsed.syntax());
+        let definitions = semantics(text, parsed.syntax(), file_source);
 
         assert!(!definitions.is_empty());
 
@@ -684,9 +830,10 @@ mod tests {
     print("hey");
 }
 "#;
-        let parsed = parse(&text, MFileSource::report());
+        let file_source = MFileSource::report();
+        let parsed = parse(&text, file_source);
 
-        let definitions = semantics(text, parsed.syntax());
+        let definitions = semantics(text, parsed.syntax(), file_source);
 
         assert!(!definitions.is_empty());
 
