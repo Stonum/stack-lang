@@ -69,7 +69,7 @@ impl CodeSymbolDefinition for AnyMDefinition {
     }
 
     fn is_class(&self) -> bool {
-        matches!(self, AnyMDefinition::MClassMemberDefinition(_))
+        matches!(self, AnyMDefinition::MClassDefinition(_))
     }
 
     fn is_constructor(&self) -> bool {
