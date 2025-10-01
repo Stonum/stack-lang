@@ -1,3 +1,4 @@
+use rustc_hash::FxHashMap;
 use std::sync::{Arc, Weak};
 
 use biome_rowan::syntax::SyntaxTrivia;
@@ -8,18 +9,18 @@ use mlang_lsp_definition::{
     CodeSymbolDefinition, CodeSymbolInformation, LocationDefinition, MarkupDefinition, SymbolKind,
 };
 use mlang_syntax::{
-    AnyMClassMember, AnyMExpression, AnyMLiteralExpression, AnyMStatement, AnyMSwitchClause,
-    MClassDeclaration, MFileSource, MFunctionDeclaration, MLanguage, MReport, MReportSection,
-    MSyntaxNode,
+    AnyMClassMember, AnyMLiteralExpression, AnyMSwitchClause, MClassDeclaration, MFileSource,
+    MFunctionDeclaration, MLanguage, MReport, MReportSection, MSyntaxNode,
 };
 
 pub fn semantics(
     text: &str,
     root: SyntaxNode<MLanguage>,
     source_type: MFileSource,
-) -> Vec<AnyMDefinition> {
+) -> SemanticModel {
     let mut collector = SemanticModel {
         definitions: vec![],
+        _references: FxHashMap::default(),
     };
 
     let line_index = LineIndex::new(text);
@@ -30,17 +31,18 @@ pub fn semantics(
         }
     }
 
-    collector.definitions
+    collector
 }
 
 #[derive(Debug, Default)]
 pub struct SemanticModel {
     definitions: Vec<AnyMDefinition>,
+    _references: FxHashMap<String, line_index::LineColRange>,
 }
 
 impl SemanticModel {
-    pub fn definitions<'a>(&'a self) -> Vec<&'a AnyMDefinition> {
-        self.definitions.iter().collect()
+    pub fn definitions<'a>(&'a self) -> core::slice::Iter<'a, AnyMDefinition> {
+        self.definitions.iter()
     }
 }
 
@@ -713,12 +715,13 @@ mod tests {
         let file_source = MFileSource::module();
         let parsed = parse(&text, file_source);
 
-        let definitions = semantics(text, parsed.syntax(), file_source);
+        let semantic_model = semantics(text, parsed.syntax(), file_source);
+        let mut definitions = semantic_model.definitions();
 
-        assert!(!definitions.is_empty());
+        assert_ne!(definitions.len(), 0);
 
         assert_eq!(
-            definitions[0],
+            *definitions.next().unwrap(),
             AnyMDefinition::MFunctionDefinition(MFunctionDefinition {
                 id: DefinitionId {
                     name: String::from("a"),
@@ -734,7 +737,7 @@ mod tests {
         );
 
         assert_eq!(
-            definitions[1],
+            *definitions.next().unwrap(),
             AnyMDefinition::MFunctionDefinition(MFunctionDefinition {
                 id: DefinitionId {
                     name: String::from("b"),
@@ -748,7 +751,7 @@ mod tests {
         );
 
         assert_eq!(
-            definitions[2],
+            *definitions.next().unwrap(),
             AnyMDefinition::MClassDefinition(Arc::new(MClassDefinition {
                 id: DefinitionId {
                     name: String::from("x"),
@@ -763,7 +766,7 @@ mod tests {
         );
 
         assert_eq!(
-            definitions[3],
+            *definitions.next().unwrap(),
             AnyMDefinition::MClassMemberDefinition(MClassMemberDefinition {
                 id: DefinitionId {
                     name: String::from("constructor"),
@@ -778,7 +781,7 @@ mod tests {
         );
 
         assert_eq!(
-            definitions[4],
+            *definitions.next().unwrap(),
             AnyMDefinition::MClassMemberDefinition(MClassMemberDefinition {
                 id: DefinitionId {
                     name: String::from("x"),
@@ -793,7 +796,7 @@ mod tests {
         );
 
         assert_eq!(
-            definitions[5],
+            *definitions.next().unwrap(),
             AnyMDefinition::MClassMemberDefinition(MClassMemberDefinition {
                 id: DefinitionId {
                     name: String::from("calc"),
@@ -833,12 +836,13 @@ mod tests {
         let file_source = MFileSource::report();
         let parsed = parse(&text, file_source);
 
-        let definitions = semantics(text, parsed.syntax(), file_source);
+        let semantic_model = semantics(text, parsed.syntax(), file_source);
+        let mut definitions = semantic_model.definitions();
 
-        assert!(!definitions.is_empty());
+        assert_ne!(!definitions.len(), 0);
 
         assert_eq!(
-            definitions[0],
+            *definitions.next().unwrap(),
             AnyMDefinition::MReportDefinition(Arc::new(MReportDefinition {
                 id: DefinitionId {
                     name: String::from("CommonReport"),
@@ -850,7 +854,7 @@ mod tests {
         );
 
         assert_eq!(
-            definitions[1],
+            *definitions.next().unwrap(),
             AnyMDefinition::MReportSectionDefiniton(MReportSectionDefiniton {
                 id: DefinitionId {
                     name: String::from("Function declaration"),
@@ -862,7 +866,7 @@ mod tests {
         );
 
         assert_eq!(
-            definitions[2],
+            *definitions.next().unwrap(),
             AnyMDefinition::MReportSectionDefiniton(MReportSectionDefiniton {
                 id: DefinitionId {
                     name: String::from("print"),

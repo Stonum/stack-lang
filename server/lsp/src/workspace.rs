@@ -13,7 +13,7 @@ use mlang_lsp_definition::{
     StringLowerCase, get_hover, get_locations, get_symbols,
 };
 use mlang_parser::parse;
-use mlang_semantic::{AnyMDefinition, identifier_for_offset, semantics};
+use mlang_semantic::{SemanticModel, identifier_for_offset, semantics};
 use mlang_syntax::MFileSource;
 
 use tokio::runtime::Handle;
@@ -52,7 +52,7 @@ pub enum WorkspaceError {
 
 pub struct Workspace {
     opened_files: DashMap<Url, Arc<CurrentDocument>>,
-    semantics: DashMap<PathBuf, Option<Arc<Vec<AnyMDefinition>>>>,
+    mlang_semantics: DashMap<PathBuf, Option<Arc<SemanticModel>>>,
     core: Vec<AnyMCoreDefinition>,
 }
 
@@ -60,7 +60,7 @@ impl Workspace {
     pub fn new() -> Workspace {
         Workspace {
             opened_files: DashMap::new(),
-            semantics: DashMap::new(),
+            mlang_semantics: DashMap::new(),
             core: load_core_api(),
         }
     }
@@ -80,12 +80,12 @@ impl Workspace {
 
         let files = self.get_files(folders).await?;
 
-        self.semantics.clear();
+        self.mlang_semantics.clear();
         for path in files {
-            self.semantics.insert(path, None);
+            self.mlang_semantics.insert(path, None);
         }
 
-        info!("Found {} files", self.semantics.len());
+        info!("Found {} files", self.mlang_semantics.len());
         Ok(())
     }
 
@@ -126,12 +126,12 @@ impl Workspace {
 
         let files = self.get_files(folders).await?;
 
-        self.semantics.clear();
+        self.mlang_semantics.clear();
         for path in files {
-            self.semantics.insert(path, None);
+            self.mlang_semantics.insert(path, None);
         }
 
-        info!("Found {} files", self.semantics.len());
+        info!("Found {} files", self.mlang_semantics.len());
 
         Ok(())
     }
@@ -146,7 +146,7 @@ impl Workspace {
         let current = Handle::current();
         let semaphore = Arc::new(Semaphore::new(num_cores * 2));
 
-        for document in self.semantics.iter() {
+        for document in self.mlang_semantics.iter() {
             let path = document.key().to_path_buf();
             let permit = semaphore.clone().acquire_owned().await.unwrap();
 
@@ -167,7 +167,7 @@ impl Workspace {
 
         for handle in handles {
             if let Ok(Some((path, semantics))) = handle.await {
-                self.semantics.insert(path, Some(Arc::new(semantics)));
+                self.mlang_semantics.insert(path, Some(Arc::new(semantics)));
             }
         }
     }
@@ -203,7 +203,7 @@ impl Workspace {
         }
 
         let semantics = self
-            .semantics
+            .mlang_semantics
             .iter()
             .filter_map(|r| match r.pair() {
                 (_path, Some(definitions)) => Some(Arc::clone(definitions)),
@@ -211,7 +211,7 @@ impl Workspace {
             })
             .collect::<Vec<_>>();
 
-        let definitions = semantics.iter().flat_map(|arc| arc.iter());
+        let definitions = semantics.iter().flat_map(|arc| arc.definitions());
 
         let markups = get_hover(&semantic_info, definitions);
         Some(Hover {
@@ -227,16 +227,25 @@ impl Workspace {
     ) -> Option<GotoDefinitionResponse> {
         let semantic_info = self.identifier_from_position(uri, position).await?;
 
-        let semantics = self.semantics.iter().filter_map(|r| match r.pair() {
-            (path, Some(definitions)) => {
-                let uri = Url::from_file_path(path).ok()?;
-                Some((uri, Arc::clone(definitions)))
-            }
-            _ => None,
-        });
+        let semantics = self
+            .mlang_semantics
+            .iter()
+            .filter_map(|r| match r.pair() {
+                (path, Some(semantics)) => {
+                    let uri = Url::from_file_path(path).ok()?;
+                    let semantics = Arc::clone(semantics);
+                    Some((uri, semantics))
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>();
 
-        let locations = get_locations(&semantic_info, semantics);
+        let definitions = semantics
+            .iter()
+            .map(|(uri, arc)| arc.definitions().map(|d| (uri.clone(), d)))
+            .flatten();
 
+        let locations = get_locations(&semantic_info, definitions);
         Some(GotoDefinitionResponse::Array(locations))
     }
 
@@ -244,13 +253,13 @@ impl Workspace {
         let document = self.get_opened_document(uri).await?;
 
         let definitions = document.definitions();
-        let response = get_symbols(uri, definitions.iter());
+        let response = get_symbols(uri, definitions);
 
         Some(DocumentSymbolResponse::Flat(response))
     }
 
     pub async fn symbol_information(&self, query: &str) -> Option<Vec<SymbolInformation>> {
-        let semantics = self.semantics.iter().filter_map(|r| match r.pair() {
+        let semantics = self.mlang_semantics.iter().filter_map(|r| match r.pair() {
             (path, Some(definitions)) => {
                 let uri = Url::from_file_path(path).ok()?;
                 Some((uri, Arc::clone(definitions)))
@@ -259,17 +268,17 @@ impl Workspace {
         });
 
         let information = semantics
-            .map(|(uri, definitions)| {
+            .map(|(uri, semantics)| {
                 if query != "" {
                     let query = StringLowerCase::new(query);
                     get_symbols(
                         &uri,
-                        definitions
-                            .iter()
+                        semantics
+                            .definitions()
                             .filter(|d| d.partial_compare_with(&query)),
                     )
                 } else {
-                    get_symbols(&uri, definitions.iter())
+                    get_symbols(&uri, semantics.definitions())
                 }
             })
             .flatten()
@@ -284,7 +293,6 @@ impl Workspace {
 
         let definitions = document.definitions();
         let response = definitions
-            .iter()
             .filter_map(|def| {
                 let container = def.container()?;
                 let title = container.symbol_name();
@@ -384,7 +392,7 @@ impl Workspace {
         }
 
         if file_source.is_module() {
-            self.semantics.insert(path, Some(Arc::new(semantics)));
+            self.mlang_semantics.insert(path, Some(Arc::new(semantics)));
         }
 
         Ok(diagnostics)
@@ -394,7 +402,7 @@ impl Workspace {
 
         let path = document_url.to_file_path();
         if let Ok(path) = path {
-            self.semantics.remove(&path);
+            self.mlang_semantics.remove(&path);
         }
     }
 }
