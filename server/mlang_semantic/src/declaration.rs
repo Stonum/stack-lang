@@ -1,8 +1,7 @@
-use rustc_hash::FxHashMap;
+use biome_rowan::syntax::SyntaxTrivia;
+use biome_rowan::{AstNode, AstNodeList, TriviaPieceKind};
 use std::sync::{Arc, Weak};
 
-use biome_rowan::syntax::SyntaxTrivia;
-use biome_rowan::{AstNode, AstNodeList, SyntaxNode, TriviaPieceKind, WalkEvent};
 use line_index::{LineColRange, LineIndex};
 
 use mlang_lsp_definition::{
@@ -13,38 +12,7 @@ use mlang_syntax::{
     MFunctionDeclaration, MLanguage, MReport, MReportSection, MSyntaxNode,
 };
 
-pub fn semantics(
-    text: &str,
-    root: SyntaxNode<MLanguage>,
-    source_type: MFileSource,
-) -> SemanticModel {
-    let mut collector = SemanticModel {
-        definitions: vec![],
-        _references: FxHashMap::default(),
-    };
-
-    let line_index = LineIndex::new(text);
-
-    for event in root.preorder() {
-        if let WalkEvent::Enter(node) = event {
-            collector.visit_node(source_type, &line_index, node);
-        }
-    }
-
-    collector
-}
-
-#[derive(Debug, Default)]
-pub struct SemanticModel {
-    definitions: Vec<AnyMDefinition>,
-    _references: FxHashMap<String, line_index::LineColRange>,
-}
-
-impl SemanticModel {
-    pub fn definitions<'a>(&'a self) -> core::slice::Iter<'a, AnyMDefinition> {
-        self.definitions.iter()
-    }
-}
+use crate::SemanticModel;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum AnyMDefinition {
@@ -351,49 +319,58 @@ impl PartialEq for MHandlerEventDefinition {
 }
 impl Eq for MHandlerEventDefinition {}
 
-impl SemanticModel {
-    fn visit_node(&mut self, source_type: MFileSource, index: &LineIndex, node: MSyntaxNode) {
-        if let Some(func) = MFunctionDeclaration::cast(node.clone()) {
-            if source_type.is_handler() {
-                if let Some((handler, events)) = handler_definition(func, index) {
-                    let mut events = events
-                        .into_iter()
-                        .map(|m| AnyMDefinition::MHandlerEventDefinition(m))
-                        .collect();
-                    self.definitions
-                        .push(AnyMDefinition::MHandlerDefinition(handler));
-                    self.definitions.append(&mut events);
-                }
-            } else {
-                if let Some(def) = function_definition(func, index) {
-                    self.definitions
-                        .push(AnyMDefinition::MFunctionDefinition(def));
-                }
+impl SemanticModel {}
+
+pub(crate) fn prepare_definitions(
+    model: &mut SemanticModel,
+    source_type: MFileSource,
+    index: &LineIndex,
+    node: &MSyntaxNode,
+) {
+    if let Some(func) = MFunctionDeclaration::cast(node.clone()) {
+        if source_type.is_handler() {
+            if let Some((handler, events)) = handler_definition(func, index) {
+                let mut events = events
+                    .into_iter()
+                    .map(|m| AnyMDefinition::MHandlerEventDefinition(m))
+                    .collect();
+                model
+                    .definitions
+                    .push(AnyMDefinition::MHandlerDefinition(handler));
+                model.definitions.append(&mut events);
+            }
+        } else {
+            if let Some(def) = function_definition(func, index) {
+                model
+                    .definitions
+                    .push(AnyMDefinition::MFunctionDefinition(def));
             }
         }
+    }
 
-        if let Some(class) = MClassDeclaration::cast(node.clone()) {
-            if let Some((class, metohds)) = class_definition(class, index) {
-                let mut metohds = metohds
-                    .into_iter()
-                    .map(|m| AnyMDefinition::MClassMemberDefinition(m))
-                    .collect();
-                self.definitions
-                    .push(AnyMDefinition::MClassDefinition(class));
-                self.definitions.append(&mut metohds);
-            }
+    if let Some(class) = MClassDeclaration::cast(node.clone()) {
+        if let Some((class, metohds)) = class_definition(class, index) {
+            let mut metohds = metohds
+                .into_iter()
+                .map(|m| AnyMDefinition::MClassMemberDefinition(m))
+                .collect();
+            model
+                .definitions
+                .push(AnyMDefinition::MClassDefinition(class));
+            model.definitions.append(&mut metohds);
         }
+    }
 
-        if let Some(report) = MReport::cast(node.clone()) {
-            if let Some((report, sections)) = report_definition(report, index) {
-                let mut sections = sections
-                    .into_iter()
-                    .map(|m| AnyMDefinition::MReportSectionDefiniton(m))
-                    .collect();
-                self.definitions
-                    .push(AnyMDefinition::MReportDefinition(report));
-                self.definitions.append(&mut sections);
-            }
+    if let Some(report) = MReport::cast(node.clone()) {
+        if let Some((report, sections)) = report_definition(report, index) {
+            let mut sections = sections
+                .into_iter()
+                .map(|m| AnyMDefinition::MReportSectionDefiniton(m))
+                .collect();
+            model
+                .definitions
+                .push(AnyMDefinition::MReportDefinition(report));
+            model.definitions.append(&mut sections);
         }
     }
 }
@@ -664,6 +641,7 @@ mod tests {
     use mlang_syntax::MFileSource;
 
     use super::*;
+    use crate::semantics;
 
     #[inline]
     fn line_col_range(

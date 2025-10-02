@@ -10,7 +10,7 @@ use thiserror::Error;
 use mlang_core::{AnyMCoreDefinition, load_core_api};
 use mlang_lsp_definition::{
     CodeSymbolDefinition as _, CodeSymbolInformation as _, LocationDefinition as _, SemanticInfo,
-    StringLowerCase, get_hover, get_locations, get_symbols,
+    StringLowerCase, get_declaration, get_hover, get_reference, get_symbols,
 };
 use mlang_parser::parse;
 use mlang_semantic::{SemanticModel, identifier_for_offset, semantics};
@@ -22,7 +22,8 @@ use tokio::task::JoinError;
 
 use tower_lsp::lsp_types::{
     CodeLens, Command, DocumentSymbolResponse, GotoDefinitionResponse, Hover, HoverContents,
-    Position, Range, SemanticTokens, SymbolInformation, TextDocumentItem, Url, WorkspaceFolder,
+    Location, Position, Range, SemanticTokens, SymbolInformation, TextDocumentItem, Url,
+    WorkspaceFolder,
 };
 
 use crate::document::CurrentDocument;
@@ -245,8 +246,30 @@ impl Workspace {
             .map(|(uri, arc)| arc.definitions().map(|d| (uri.clone(), d)))
             .flatten();
 
-        let locations = get_locations(&semantic_info, definitions);
+        let locations = get_declaration(&semantic_info, definitions);
         Some(GotoDefinitionResponse::Array(locations))
+    }
+
+    pub async fn references(&self, uri: &Url, position: Position) -> Option<Vec<Location>> {
+        let semantic_info = self.identifier_from_position(uri, position).await?;
+
+        let locations = self
+            .mlang_semantics
+            .iter()
+            .filter_map(|r| match r.pair() {
+                (path, Some(semantics)) => {
+                    let uri = Url::from_file_path(path).ok()?;
+                    let references = semantics.references();
+
+                    let locations = get_reference(&semantic_info, &uri, references);
+                    Some(locations)
+                }
+                _ => None,
+            })
+            .flatten()
+            .collect::<Vec<_>>();
+
+        Some(locations)
     }
 
     pub async fn document_symbol_response(&self, uri: &Url) -> Option<DocumentSymbolResponse> {

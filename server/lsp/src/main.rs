@@ -49,6 +49,7 @@ impl LanguageServer for Backend {
             definition_provider: Some(OneOf::Left(true)),
             document_symbol_provider: Some(OneOf::Left(true)),
             workspace_symbol_provider: Some(OneOf::Left(true)),
+            references_provider: Some(OneOf::Left(true)),
             hover_provider: Some(HoverProviderCapability::Simple(true)),
             document_range_formatting_provider: Some(OneOf::Left(true)),
             ..ServerCapabilities::default()
@@ -262,6 +263,16 @@ impl LanguageServer for Backend {
         let definition = self.workspace.goto_definition(&file_uri, pos).await;
 
         Ok(definition)
+    }
+
+    async fn references(&self, params: ReferenceParams) -> Result<Option<Vec<Location>>> {
+        let file_uri = params.text_document_position.text_document.uri;
+        let pos = params.text_document_position.position;
+        trace!("references {} {:?}", &file_uri, &pos);
+
+        let references = self.workspace.references(&file_uri, pos).await;
+
+        Ok(references)
     }
 
     async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {

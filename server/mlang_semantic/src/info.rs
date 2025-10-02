@@ -36,7 +36,19 @@ pub fn identifier_for_offset(
                 for n in node.ancestors().take(3) {
                     match n.kind() {
                         MSyntaxKind::M_FUNCTION_DECLARATION => {
-                            return Some(SemanticInfo::FunctionCall(ident));
+                            return Some(SemanticInfo::FunctionDeclaration(ident));
+                        }
+                        MSyntaxKind::M_CLASS_DECLARATION => {
+                            return Some(SemanticInfo::ClassDeclaration(ident));
+                        }
+                        MSyntaxKind::M_METHOD_CLASS_MEMBER => {
+                            let class_member_list_node = n.parent()?;
+                            let class_node = class_member_list_node.parent()?;
+
+                            let class = MClassDeclaration::cast(class_node)?;
+                            let class_id = class.id().ok()?.text();
+
+                            return Some(SemanticInfo::MethodDeclaration(ident, class_id));
                         }
                         MSyntaxKind::M_STATIC_MEMBER_EXPRESSION => {
                             if let Some(child) = n.first_child() {
