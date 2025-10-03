@@ -1006,6 +1006,7 @@ dependencies = [
  "mlang_lsp_definition",
  "mlang_parser",
  "mlang_syntax",
+ "rustc-hash 2.1.1",
  "unicase",
 ]
 

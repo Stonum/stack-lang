@@ -12,3 +12,4 @@ mlang_lsp_definition = { workspace = true }
 
 biome_rowan = { workspace = true }
 unicase = { workspace = true }
+rustc-hash = { workspace = true }

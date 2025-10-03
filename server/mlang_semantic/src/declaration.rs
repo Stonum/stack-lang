@@ -1,48 +1,18 @@
+use biome_rowan::syntax::SyntaxTrivia;
+use biome_rowan::{AstNode, AstNodeList, TriviaPieceKind};
 use std::sync::{Arc, Weak};
 
-use biome_rowan::syntax::SyntaxTrivia;
-use biome_rowan::{AstNode, AstNodeList, SyntaxNode, TriviaPieceKind, WalkEvent};
 use line_index::{LineColRange, LineIndex};
 
 use mlang_lsp_definition::{
     CodeSymbolDefinition, CodeSymbolInformation, LocationDefinition, MarkupDefinition, SymbolKind,
 };
 use mlang_syntax::{
-    AnyMClassMember, AnyMExpression, AnyMLiteralExpression, AnyMStatement, AnyMSwitchClause,
-    MClassDeclaration, MFileSource, MFunctionDeclaration, MLanguage, MReport, MReportSection,
-    MSyntaxNode,
+    AnyMClassMember, AnyMLiteralExpression, AnyMSwitchClause, MClassDeclaration, MFileSource,
+    MFunctionDeclaration, MLanguage, MReport, MReportSection, MSyntaxNode,
 };
 
-pub fn semantics(
-    text: &str,
-    root: SyntaxNode<MLanguage>,
-    source_type: MFileSource,
-) -> Vec<AnyMDefinition> {
-    let mut collector = SemanticModel {
-        definitions: vec![],
-    };
-
-    let line_index = LineIndex::new(text);
-
-    for event in root.preorder() {
-        if let WalkEvent::Enter(node) = event {
-            collector.visit_node(source_type, &line_index, node);
-        }
-    }
-
-    collector.definitions
-}
-
-#[derive(Debug, Default)]
-pub struct SemanticModel {
-    definitions: Vec<AnyMDefinition>,
-}
-
-impl SemanticModel {
-    pub fn definitions<'a>(&'a self) -> Vec<&'a AnyMDefinition> {
-        self.definitions.iter().collect()
-    }
-}
+use crate::SemanticModel;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum AnyMDefinition {
@@ -67,7 +37,7 @@ impl CodeSymbolDefinition for AnyMDefinition {
     }
 
     fn is_class(&self) -> bool {
-        matches!(self, AnyMDefinition::MClassMemberDefinition(_))
+        matches!(self, AnyMDefinition::MClassDefinition(_))
     }
 
     fn is_constructor(&self) -> bool {
@@ -349,49 +319,58 @@ impl PartialEq for MHandlerEventDefinition {
 }
 impl Eq for MHandlerEventDefinition {}
 
-impl SemanticModel {
-    fn visit_node(&mut self, source_type: MFileSource, index: &LineIndex, node: MSyntaxNode) {
-        if let Some(func) = MFunctionDeclaration::cast(node.clone()) {
-            if source_type.is_handler() {
-                if let Some((handler, events)) = handler_definition(func, index) {
-                    let mut events = events
-                        .into_iter()
-                        .map(|m| AnyMDefinition::MHandlerEventDefinition(m))
-                        .collect();
-                    self.definitions
-                        .push(AnyMDefinition::MHandlerDefinition(handler));
-                    self.definitions.append(&mut events);
-                }
-            } else {
-                if let Some(def) = function_definition(func, index) {
-                    self.definitions
-                        .push(AnyMDefinition::MFunctionDefinition(def));
-                }
+impl SemanticModel {}
+
+pub(crate) fn prepare_definitions(
+    model: &mut SemanticModel,
+    source_type: MFileSource,
+    index: &LineIndex,
+    node: &MSyntaxNode,
+) {
+    if let Some(func) = MFunctionDeclaration::cast(node.clone()) {
+        if source_type.is_handler() {
+            if let Some((handler, events)) = handler_definition(func, index) {
+                let mut events = events
+                    .into_iter()
+                    .map(|m| AnyMDefinition::MHandlerEventDefinition(m))
+                    .collect();
+                model
+                    .definitions
+                    .push(AnyMDefinition::MHandlerDefinition(handler));
+                model.definitions.append(&mut events);
+            }
+        } else {
+            if let Some(def) = function_definition(func, index) {
+                model
+                    .definitions
+                    .push(AnyMDefinition::MFunctionDefinition(def));
             }
         }
+    }
 
-        if let Some(class) = MClassDeclaration::cast(node.clone()) {
-            if let Some((class, metohds)) = class_definition(class, index) {
-                let mut metohds = metohds
-                    .into_iter()
-                    .map(|m| AnyMDefinition::MClassMemberDefinition(m))
-                    .collect();
-                self.definitions
-                    .push(AnyMDefinition::MClassDefinition(class));
-                self.definitions.append(&mut metohds);
-            }
+    if let Some(class) = MClassDeclaration::cast(node.clone()) {
+        if let Some((class, metohds)) = class_definition(class, index) {
+            let mut metohds = metohds
+                .into_iter()
+                .map(|m| AnyMDefinition::MClassMemberDefinition(m))
+                .collect();
+            model
+                .definitions
+                .push(AnyMDefinition::MClassDefinition(class));
+            model.definitions.append(&mut metohds);
         }
+    }
 
-        if let Some(report) = MReport::cast(node.clone()) {
-            if let Some((report, sections)) = report_definition(report, index) {
-                let mut sections = sections
-                    .into_iter()
-                    .map(|m| AnyMDefinition::MReportSectionDefiniton(m))
-                    .collect();
-                self.definitions
-                    .push(AnyMDefinition::MReportDefinition(report));
-                self.definitions.append(&mut sections);
-            }
+    if let Some(report) = MReport::cast(node.clone()) {
+        if let Some((report, sections)) = report_definition(report, index) {
+            let mut sections = sections
+                .into_iter()
+                .map(|m| AnyMDefinition::MReportSectionDefiniton(m))
+                .collect();
+            model
+                .definitions
+                .push(AnyMDefinition::MReportDefinition(report));
+            model.definitions.append(&mut sections);
         }
     }
 }
@@ -662,6 +641,7 @@ mod tests {
     use mlang_syntax::MFileSource;
 
     use super::*;
+    use crate::semantics;
 
     #[inline]
     fn line_col_range(
@@ -713,12 +693,13 @@ mod tests {
         let file_source = MFileSource::module();
         let parsed = parse(&text, file_source);
 
-        let definitions = semantics(text, parsed.syntax(), file_source);
+        let semantic_model = semantics(text, parsed.syntax(), file_source);
+        let mut definitions = semantic_model.definitions();
 
-        assert!(!definitions.is_empty());
+        assert_ne!(definitions.len(), 0);
 
         assert_eq!(
-            definitions[0],
+            *definitions.next().unwrap(),
             AnyMDefinition::MFunctionDefinition(MFunctionDefinition {
                 id: DefinitionId {
                     name: String::from("a"),
@@ -734,7 +715,7 @@ mod tests {
         );
 
         assert_eq!(
-            definitions[1],
+            *definitions.next().unwrap(),
             AnyMDefinition::MFunctionDefinition(MFunctionDefinition {
                 id: DefinitionId {
                     name: String::from("b"),
@@ -748,7 +729,7 @@ mod tests {
         );
 
         assert_eq!(
-            definitions[2],
+            *definitions.next().unwrap(),
             AnyMDefinition::MClassDefinition(Arc::new(MClassDefinition {
                 id: DefinitionId {
                     name: String::from("x"),
@@ -763,7 +744,7 @@ mod tests {
         );
 
         assert_eq!(
-            definitions[3],
+            *definitions.next().unwrap(),
             AnyMDefinition::MClassMemberDefinition(MClassMemberDefinition {
                 id: DefinitionId {
                     name: String::from("constructor"),
@@ -778,7 +759,7 @@ mod tests {
         );
 
         assert_eq!(
-            definitions[4],
+            *definitions.next().unwrap(),
             AnyMDefinition::MClassMemberDefinition(MClassMemberDefinition {
                 id: DefinitionId {
                     name: String::from("x"),
@@ -793,7 +774,7 @@ mod tests {
         );
 
         assert_eq!(
-            definitions[5],
+            *definitions.next().unwrap(),
             AnyMDefinition::MClassMemberDefinition(MClassMemberDefinition {
                 id: DefinitionId {
                     name: String::from("calc"),
@@ -833,12 +814,13 @@ mod tests {
         let file_source = MFileSource::report();
         let parsed = parse(&text, file_source);
 
-        let definitions = semantics(text, parsed.syntax(), file_source);
+        let semantic_model = semantics(text, parsed.syntax(), file_source);
+        let mut definitions = semantic_model.definitions();
 
-        assert!(!definitions.is_empty());
+        assert_ne!(!definitions.len(), 0);
 
         assert_eq!(
-            definitions[0],
+            *definitions.next().unwrap(),
             AnyMDefinition::MReportDefinition(Arc::new(MReportDefinition {
                 id: DefinitionId {
                     name: String::from("CommonReport"),
@@ -850,7 +832,7 @@ mod tests {
         );
 
         assert_eq!(
-            definitions[1],
+            *definitions.next().unwrap(),
             AnyMDefinition::MReportSectionDefiniton(MReportSectionDefiniton {
                 id: DefinitionId {
                     name: String::from("Function declaration"),
@@ -862,7 +844,7 @@ mod tests {
         );
 
         assert_eq!(
-            definitions[2],
+            *definitions.next().unwrap(),
             AnyMDefinition::MReportSectionDefiniton(MReportSectionDefiniton {
                 id: DefinitionId {
                     name: String::from("print"),

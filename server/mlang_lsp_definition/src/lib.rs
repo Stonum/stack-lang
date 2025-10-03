@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use line_index::LineColRange;
 use tower_lsp::lsp_types::{Location, MarkedString, Position, Range, SymbolInformation, Url};
 
@@ -89,8 +87,20 @@ pub trait MarkupDefinition {
 pub type Identifier = String;
 pub type Class = String;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Hash)]
 pub enum SemanticInfo {
+    // function zzzzz();
+    // contains function name
+    FunctionDeclaration(Identifier),
+
+    // function class x {}
+    // contains class name
+    ClassDeclaration(Identifier),
+
+    // cmenthod() { }
+    // contains method and class name
+    MethodDeclaration(Identifier, Class),
+
     // like zzzzz();
     // contains function name
     FunctionCall(Identifier),
@@ -112,154 +122,202 @@ pub enum SemanticInfo {
     SuperCall(Identifier, Class),
 }
 
-pub fn get_locations<'a, I, D>(semantic_info: &SemanticInfo, semantics: I) -> Vec<Location>
+pub fn get_declaration<'a, I, D>(semantic_info: &SemanticInfo, definitions: I) -> Vec<Location>
 where
-    I: IntoIterator<Item = (Url, Arc<Vec<D>>)>,
+    I: IntoIterator<Item = (Url, &'a D)>,
     D: CodeSymbolDefinition + LocationDefinition + 'a,
 {
     let mut locations = vec![];
 
     match semantic_info {
-        SemanticInfo::FunctionCall(ident) => {
-            for (uri, definitions) in semantics.into_iter() {
-                let mut functions = definitions
+        SemanticInfo::FunctionCall(ident) | SemanticInfo::FunctionDeclaration(ident) => {
+            return definitions
+                .into_iter()
+                .filter(|(_, d)| d.is_function() && d.compare_with(ident))
+                .map(|(uri, d)| d.id_location(uri.clone()))
+                .collect::<Vec<_>>();
+        }
+        SemanticInfo::NewExpression(ident) | SemanticInfo::ClassDeclaration(ident) => {
+            let definitions = Vec::from_iter(definitions);
+            let classes = definitions
+                .iter()
+                .filter(|(_, d)| d.is_class() && d.compare_with(ident));
+            for (uri, class) in classes {
+                let mut constructors = definitions
                     .iter()
-                    .filter(|d| d.is_function() && d.compare_with(ident))
-                    .map(|d| d.id_location(uri.clone()))
+                    .filter_map(|(uri, d)| {
+                        if !d.is_constructor() {
+                            return None;
+                        }
+                        let container = d.container()?;
+                        if &&container != class {
+                            return None;
+                        }
+
+                        Some(d.id_location(uri.clone()))
+                    })
                     .collect::<Vec<_>>();
 
-                locations.append(&mut functions);
-            }
-        }
-        SemanticInfo::NewExpression(ident) => {
-            for (uri, definitions) in semantics.into_iter() {
-                let classes = definitions
-                    .iter()
-                    .filter(|d| d.is_class() && d.compare_with(ident));
-
-                for c in classes {
-                    let mut constructors = definitions
-                        .iter()
-                        .filter_map(|d| {
-                            if !d.is_constructor() {
-                                return None;
-                            }
-                            let container = d.container()?;
-                            if &container != c {
-                                return None;
-                            }
-
-                            Some(d.id_location(uri.clone()))
-                        })
-                        .collect::<Vec<_>>();
-
-                    if constructors.len() > 0 {
-                        locations.append(&mut constructors);
-                    } else {
-                        locations.push(c.id_location(uri.clone()));
-                    }
+                if constructors.len() > 0 {
+                    locations.append(&mut constructors);
+                } else {
+                    locations.push(class.id_location(uri.clone()));
                 }
             }
+            return locations;
         }
         SemanticInfo::ClassExtends(ident) => {
-            for (uri, definitions) in semantics.into_iter() {
-                let mut classes = definitions
-                    .iter()
-                    .filter(|d| d.is_class() && d.compare_with(ident))
-                    .map(|d| d.id_location(uri.clone()))
-                    .collect::<Vec<_>>();
-
-                locations.append(&mut classes);
-            }
+            return definitions
+                .into_iter()
+                .filter(|(_, d)| d.is_class() && d.compare_with(ident))
+                .map(|(uri, d)| d.id_location(uri.clone()))
+                .collect::<Vec<_>>();
         }
         SemanticInfo::MethodCall(ident, None) => {
-            for (uri, definitions) in semantics.into_iter() {
-                let mut methods = definitions
-                    .iter()
-                    .filter(|d| d.is_method() && d.compare_with(ident))
-                    .map(|d| d.id_location(uri.clone()))
-                    .collect::<Vec<_>>();
-
-                locations.append(&mut methods);
-            }
+            return definitions
+                .into_iter()
+                .filter(|(_, d)| d.is_method() && d.compare_with(ident))
+                .map(|(uri, d)| d.id_location(uri.clone()))
+                .collect::<Vec<_>>();
         }
-        SemanticInfo::MethodCall(ident, Some(class_name)) => {
-            let semantics = semantics.into_iter().collect::<Vec<_>>();
-            let mut class_names: Vec<&str> = vec![class_name];
+        SemanticInfo::MethodCall(ident, Some(class_name))
+        | SemanticInfo::MethodDeclaration(ident, class_name) => {
+            let mut class_names: Vec<String> = vec![class_name.to_owned()];
+
+            // local copy
+            let definitions = Vec::from_iter(definitions);
 
             while !class_names.is_empty() {
                 let classes_for_filter = class_names.clone();
                 class_names.clear();
 
-                for (uri, definitions) in semantics.iter() {
-                    let mut methods = definitions
-                        .iter()
-                        // find by method name
-                        .filter(|d| d.is_method() && d.compare_with(ident))
-                        // find by class name
-                        .filter(|d| {
-                            d.container().is_some_and(|c| {
-                                classes_for_filter.iter().any(|cff| c.compare_with(cff))
-                            })
+                let mut methods = definitions
+                    .iter()
+                    // find by method name
+                    .filter(|(_, d)| d.is_method() && d.compare_with(ident))
+                    // find by class name
+                    .filter(|(_, d)| {
+                        d.container().is_some_and(|c| {
+                            classes_for_filter.iter().any(|cff| c.compare_with(cff))
                         })
-                        .map(|d| d.id_location(uri.clone()))
-                        .collect::<Vec<_>>();
+                    })
+                    .map(|(uri, d)| d.id_location(uri.clone()))
+                    .collect::<Vec<_>>();
 
-                    if methods.len() > 0 {
-                        locations.append(&mut methods);
-                        break;
-                    }
-
-                    // append super classes
-                    let mut super_classes = definitions
-                        .iter()
-                        .filter_map(|d| {
-                            if d.is_class()
-                                && classes_for_filter.iter().any(|cff| d.compare_with(cff))
-                            {
-                                return d.parent();
-                            }
-                            None
-                        })
-                        .collect::<Vec<_>>();
-                    super_classes.dedup();
-                    class_names.append(&mut super_classes);
+                if methods.len() > 0 {
+                    locations.append(&mut methods);
+                    break;
                 }
+
+                // append super classes
+                let mut super_classes = definitions
+                    .iter()
+                    .filter_map(|(_, d)| {
+                        if d.is_class() && classes_for_filter.iter().any(|cff| d.compare_with(cff))
+                        {
+                            return d.parent().map(str::to_string);
+                        }
+                        None
+                    })
+                    .collect::<Vec<_>>();
+
+                super_classes.dedup();
+                class_names.append(&mut super_classes);
             }
+
+            return locations;
         }
         SemanticInfo::SuperCall(_ident, class_name) => {
-            for (uri, definitions) in semantics.into_iter() {
-                let classes = definitions
+            // local copy
+            let definitions = Vec::from_iter(definitions);
+
+            let classes = definitions
+                .iter()
+                .filter(|(_, d)| d.is_class() && d.compare_with(class_name));
+
+            for (uri, class) in classes {
+                let mut constructors = definitions
                     .iter()
-                    .filter(|d| d.is_class() && d.compare_with(class_name));
+                    .filter_map(|(uri, d)| {
+                        if !d.is_constructor() {
+                            return None;
+                        }
+                        let container = d.container()?;
+                        if &&container != class {
+                            return None;
+                        }
 
-                for c in classes {
-                    let mut constructors = definitions
-                        .iter()
-                        .filter_map(|d| {
-                            if !d.is_constructor() {
-                                return None;
-                            }
-                            let container = d.container()?;
-                            if &container != c {
-                                return None;
-                            }
+                        Some(d.id_location(uri.clone()))
+                    })
+                    .collect::<Vec<_>>();
 
-                            Some(d.id_location(uri.clone()))
-                        })
-                        .collect::<Vec<_>>();
-
-                    if constructors.len() > 0 {
-                        locations.append(&mut constructors);
-                    } else {
-                        locations.push(c.id_location(uri.clone()));
-                    }
+                if constructors.len() > 0 {
+                    locations.append(&mut constructors);
+                } else {
+                    locations.push(class.id_location(uri.clone()));
                 }
             }
+
+            return locations;
         }
     }
+}
 
-    locations
+pub fn get_reference<'a, I, R>(
+    semantic_info: &SemanticInfo,
+    uri: &Url,
+    references: I,
+) -> Vec<Location>
+where
+    I: IntoIterator<Item = (&'a SemanticInfo, &'a Vec<R>)>,
+    R: LocationDefinition + 'a,
+{
+    match semantic_info {
+        SemanticInfo::FunctionCall(ident) | SemanticInfo::FunctionDeclaration(ident) => {
+            let call_info = SemanticInfo::FunctionCall(ident.clone());
+            return references
+                .into_iter()
+                .filter(|(info, _)| info.eq(&&call_info))
+                .map(|(_, refs)| refs.iter().map(|r| r.location(uri.clone())))
+                .flatten()
+                .collect::<Vec<_>>();
+        }
+
+        SemanticInfo::NewExpression(ident) | SemanticInfo::ClassDeclaration(ident) => {
+            let call_info = SemanticInfo::NewExpression(ident.clone());
+            return references
+                .into_iter()
+                .filter(|(info, _)| info.eq(&&call_info))
+                .map(|(_, refs)| refs.iter().map(|r| r.location(uri.clone())))
+                .flatten()
+                .collect::<Vec<_>>();
+        }
+
+        SemanticInfo::MethodCall(ident, Some(class_name))
+        | SemanticInfo::MethodDeclaration(ident, class_name) => {
+            let call_info = (
+                SemanticInfo::MethodCall(ident.clone(), None),
+                SemanticInfo::MethodCall(ident.clone(), Some(class_name.clone())),
+            );
+            return references
+                .into_iter()
+                .filter(|(info, _)| info.eq(&&call_info.0) || info.eq(&&call_info.1))
+                .map(|(_, refs)| refs.iter().map(|r| r.location(uri.clone())))
+                .flatten()
+                .collect::<Vec<_>>();
+        }
+
+        SemanticInfo::MethodCall(ident, None) => {
+            let call_info = SemanticInfo::MethodCall(ident.clone(), None);
+            return references
+                .into_iter()
+                .filter(|(info, _)| info.eq(&&call_info) || info.eq(&semantic_info))
+                .map(|(_, refs)| refs.iter().map(|r| r.location(uri.clone())))
+                .flatten()
+                .collect::<Vec<_>>();
+        }
+        _ => return vec![],
+    };
 }
 
 pub fn get_hover<'a, I, D>(semantic_info: &SemanticInfo, definitions: I) -> Vec<MarkedString>
@@ -268,7 +326,7 @@ where
     D: CodeSymbolDefinition + MarkupDefinition + 'a,
 {
     match semantic_info {
-        SemanticInfo::FunctionCall(ident) => {
+        SemanticInfo::FunctionCall(ident) | SemanticInfo::FunctionDeclaration(ident) => {
             let functions = definitions
                 .into_iter()
                 .filter(|d| d.is_function() && d.compare_with(ident))
@@ -277,7 +335,7 @@ where
 
             return functions;
         }
-        SemanticInfo::NewExpression(ident) => {
+        SemanticInfo::NewExpression(ident) | SemanticInfo::ClassDeclaration(ident) => {
             let mut markups = vec![];
 
             let definitions = definitions.into_iter().collect::<Vec<_>>();
@@ -326,7 +384,8 @@ where
 
             return methods;
         }
-        SemanticInfo::MethodCall(ident, Some(class_name)) => {
+        SemanticInfo::MethodCall(ident, Some(class_name))
+        | SemanticInfo::MethodDeclaration(ident, class_name) => {
             let mut markups = vec![];
 
             let definitions = definitions.into_iter().collect::<Vec<_>>();
