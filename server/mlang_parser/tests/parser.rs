@@ -372,6 +372,8 @@ fn test_constant_expression() {
             перем стр = к"Строка";
             перем к = 1;
             перем стр = к;
+            к++;
+            к = к + 1;
         "#,
         MFileSource::script(),
     );
