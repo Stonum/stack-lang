@@ -1,3 +1,4 @@
+use std::time::Duration;
 use std::{path::PathBuf, sync::Arc};
 
 use dashmap::DashMap;
@@ -174,6 +175,11 @@ impl Workspace {
     }
 
     pub async fn get_opened_document(&self, uri: &Url) -> Option<Arc<CurrentDocument>> {
+        // deadlock guard
+        while self.opened_files.try_get(uri).is_locked() {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+
         if let Some(document) = self.opened_files.get(uri) {
             return Some(Arc::clone(document.value()));
         }
@@ -389,6 +395,9 @@ impl Workspace {
             .or(Err(WorkspaceError::UrlConvertation(uri.clone())))?;
         let file_source = MFileSource::try_from(path.as_path())?;
 
+        // block file to read another treads
+        let opened_file = self.opened_files.get_mut(&uri);
+
         let document_uri = uri.clone();
         let handle = tokio::task::spawn_blocking(move || {
             let parsed = parse(&document.text, file_source);
@@ -407,15 +416,14 @@ impl Workspace {
 
         let (document, semantics) = handle.await?;
 
-        let mut diagnostics = vec![];
-
-        if let Some(mut opened_file) = self.opened_files.get_mut(&uri) {
-            diagnostics = document.diagnostics();
-            *opened_file = Arc::new(document);
+        if file_source.is_module() || file_source.is_handler() {
+            self.mlang_semantics.insert(path, Some(Arc::new(semantics)));
         }
 
-        if file_source.is_module() {
-            self.mlang_semantics.insert(path, Some(Arc::new(semantics)));
+        let mut diagnostics = vec![];
+        if let Some(mut opened_file) = opened_file {
+            diagnostics = document.diagnostics();
+            *opened_file = Arc::new(document);
         }
 
         Ok(diagnostics)
