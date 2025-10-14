@@ -1,4 +1,3 @@
-use std::time::Duration;
 use std::{path::PathBuf, sync::Arc};
 
 use dashmap::DashMap;
@@ -18,7 +17,7 @@ use mlang_semantic::{SemanticModel, identifier_for_offset, semantics};
 use mlang_syntax::MFileSource;
 
 use tokio::runtime::Handle;
-use tokio::sync::Semaphore;
+use tokio::sync::{OwnedRwLockReadGuard, RwLock, Semaphore};
 use tokio::task::JoinError;
 
 use tower_lsp::lsp_types::{
@@ -53,7 +52,7 @@ pub enum WorkspaceError {
 }
 
 pub struct Workspace {
-    opened_files: DashMap<Url, Arc<CurrentDocument>>,
+    opened_files: DashMap<Url, Arc<RwLock<CurrentDocument>>>,
     mlang_semantics: DashMap<PathBuf, Option<Arc<SemanticModel>>>,
     core: Vec<AnyMCoreDefinition>,
 }
@@ -174,14 +173,12 @@ impl Workspace {
         }
     }
 
-    pub async fn get_opened_document(&self, uri: &Url) -> Option<Arc<CurrentDocument>> {
-        // deadlock guard
-        while self.opened_files.try_get(uri).is_locked() {
-            tokio::time::sleep(Duration::from_millis(100)).await;
-        }
-
+    pub async fn get_opened_document(
+        &self,
+        uri: &Url,
+    ) -> Option<OwnedRwLockReadGuard<CurrentDocument>> {
         if let Some(document) = self.opened_files.get(uri) {
-            return Some(Arc::clone(document.value()));
+            return Some(Arc::clone(document.value()).read_owned().await);
         }
 
         let path = uri
@@ -191,11 +188,15 @@ impl Workspace {
         let file_source = MFileSource::try_from(path.as_path()).ok()?;
 
         let text = tokio::fs::read_to_string(&path).await.ok()?;
-        let document = Arc::new(CurrentDocument::new(uri.clone(), &text, file_source));
+        let document = Arc::new(RwLock::new(CurrentDocument::new(
+            uri.clone(),
+            &text,
+            file_source,
+        )));
 
         self.opened_files.insert(uri.clone(), Arc::clone(&document));
 
-        Some(document)
+        Some(document.read_owned().await)
     }
 
     pub async fn hover(&self, uri: &Url, position: Position) -> Option<Hover> {
@@ -375,7 +376,8 @@ impl Workspace {
         let document = handle.await?;
         let diagnostics = document.diagnostics();
 
-        self.opened_files.insert(uri, Arc::new(document));
+        self.opened_files
+            .insert(uri, Arc::new(RwLock::new(document)));
 
         Ok(diagnostics)
     }
@@ -395,8 +397,13 @@ impl Workspace {
             .or(Err(WorkspaceError::UrlConvertation(uri.clone())))?;
         let file_source = MFileSource::try_from(path.as_path())?;
 
-        // block file to read another treads
-        let opened_file = self.opened_files.get_mut(&uri);
+        // lock file for read
+        let guard = self.opened_files.get(&uri);
+        let opened_file = if let Some(guard) = guard {
+            Some(Arc::clone(guard.value()).write_owned().await)
+        } else {
+            None
+        };
 
         let document_uri = uri.clone();
         let handle = tokio::task::spawn_blocking(move || {
@@ -420,13 +427,16 @@ impl Workspace {
             self.mlang_semantics.insert(path, Some(Arc::new(semantics)));
         }
 
-        let mut diagnostics = vec![];
         if let Some(mut opened_file) = opened_file {
-            diagnostics = document.diagnostics();
-            *opened_file = Arc::new(document);
+            let diagnostics = document.diagnostics();
+
+            *opened_file = document;
+
+            // show diagnostics only for opened files
+            return Ok(diagnostics);
         }
 
-        Ok(diagnostics)
+        Ok(vec![])
     }
     pub async fn delete_document(&self, document_url: &Url) {
         self.opened_files.remove(&document_url);
