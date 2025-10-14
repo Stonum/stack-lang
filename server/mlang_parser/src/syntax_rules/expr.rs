@@ -5,8 +5,8 @@ use std::ops::{BitOr, BitOrAssign, Sub};
 
 use crate::lexer::MReLexContext;
 
-use super::rewrite::rewrite_events;
 use super::rewrite::RewriteParseEvents;
+use super::rewrite::rewrite_events;
 use super::rewrite_parser::{RewriteMarker, RewriteParser};
 use super::{MParserCheckpoint, RecoveryResult};
 
@@ -22,16 +22,16 @@ use super::m_parse_error::{
 use super::object::{parse_hashmap_expression, parse_object_expression};
 use super::stmt::STMT_RECOVERY_SET;
 
-use mlang_syntax::{MSyntaxKind::*, *};
 use super::ParsedSyntax::{Absent, Present};
 use super::{MParser, ParseRecoveryTokenSet, ParsedSyntax};
+use mlang_syntax::{MSyntaxKind::*, *};
 
+use biome_parser::ParserProgress;
 use biome_parser::diagnostic::expected_token;
 use biome_parser::parse_lists::ParseSeparatedList;
 use biome_parser::prelude::*;
-use biome_parser::ParserProgress;
 
-use enumflags2::{bitflags, make_bitflags, BitFlags};
+use enumflags2::{BitFlags, bitflags, make_bitflags};
 
 pub const EXPR_RECOVERY_SET: TokenSet<MSyntaxKind> =
     token_set![VAR_KW, R_PAREN, L_PAREN, L_BRACK, R_BRACK];
@@ -412,6 +412,8 @@ fn parse_binary_or_logical_expression_recursive(
                 // a or b
                 // a and b
                 T![||] | T![&&] | T![and] | T![or] => M_LOGICAL_EXPRESSION,
+                // a instanceof b
+                T![instanceof] => M_INSTANCEOF_EXPRESSION,
                 // x in @[1,2,3]
                 T![in] | T![include] => M_IN_EXPRESSION,
                 _ => M_BINARY_EXPRESSION,
@@ -781,6 +783,7 @@ pub(crate) fn is_nth_at_expression(p: &mut MParser, n: usize) -> bool {
             | T![this]
             | T![function]
             | T![class]
+            | T![classof]
             | T![super]
             | T![<]
             | T![/]
@@ -1126,7 +1129,8 @@ fn parse_postfix_expr(p: &mut MParser, context: ExpressionContext) -> ParsedSynt
 
 /// A unary expression such as `!foo` or `++bar`
 pub(crate) fn parse_unary_expr(p: &mut MParser, context: ExpressionContext) -> ParsedSyntax {
-    const UNARY_SINGLE: TokenSet<MSyntaxKind> = token_set![T![delete], T![+], T![-], T![!]];
+    const UNARY_SINGLE: TokenSet<MSyntaxKind> =
+        token_set![T![delete], T![+], T![-], T![!], T![classof]];
 
     // test pre_update_expr
     // ++foo
@@ -1163,14 +1167,6 @@ pub(crate) fn parse_unary_expr(p: &mut MParser, context: ExpressionContext) -> P
         let m = p.start();
         let op = p.cur();
 
-        let is_delete = op == T![delete];
-
-        if is_delete {
-            p.expect(T![delete]);
-        } else {
-            p.bump_any();
-        }
-
         // test unary_delete
         // delete obj.key;
         // delete (obj).key;
@@ -1206,16 +1202,27 @@ pub(crate) fn parse_unary_expr(p: &mut MParser, context: ExpressionContext) -> P
 
         let kind = M_UNARY_EXPRESSION;
 
-        if is_delete {
-            let checkpoint = p.checkpoint();
-            parse_unary_expr(p, context).ok();
+        match op {
+            T![delete] => {
+                p.expect(T![delete]);
 
-            let mut rewriter = DeleteExpressionRewriter::default();
-            rewrite_events(&mut rewriter, checkpoint, p);
+                let checkpoint = p.checkpoint();
+                parse_unary_expr(p, context).ok();
 
-            rewriter.result.take()
-        } else {
-            parse_unary_expr(p, context).ok()
+                let mut rewriter = DeleteExpressionRewriter::default();
+                rewrite_events(&mut rewriter, checkpoint, p);
+
+                rewriter.result.take()
+            }
+            T![classof] => {
+                p.expect(T![classof]);
+
+                parse_unary_expr(p, context).ok()
+            }
+            _ => {
+                p.bump_any();
+                parse_unary_expr(p, context).ok()
+            }
         };
 
         return Present(m.complete(p, kind));

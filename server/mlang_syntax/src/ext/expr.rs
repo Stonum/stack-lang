@@ -194,6 +194,8 @@ pub enum MUnaryOperator {
     Minus,
     /// `!`
     LogicalNot,
+    /// 'classof'
+    Classof,
 }
 
 impl MUnaryOperator {
@@ -211,6 +213,7 @@ impl MUnaryExpression {
             T![-] => MUnaryOperator::Minus,
             T![!] => MUnaryOperator::LogicalNot,
             T![delete] => MUnaryOperator::Delete,
+            T![classof] => MUnaryOperator::Classof,
             _ => unreachable!(),
         })
     }
@@ -341,7 +344,9 @@ impl AnyMExpression {
             AnyMExpression::MSequenceExpression(_) => OperatorPrecedence::Comma,
             AnyMExpression::MConditionalExpression(_) => OperatorPrecedence::Conditional,
             AnyMExpression::MAssignmentExpression(_) => OperatorPrecedence::Assignment,
-            AnyMExpression::MInExpression(_) => OperatorPrecedence::Relational,
+            AnyMExpression::MInExpression(_) | AnyMExpression::MInstanceofExpression(_) => {
+                OperatorPrecedence::Relational
+            }
             AnyMExpression::MLogicalExpression(expression) => expression.operator()?.precedence(),
             AnyMExpression::MBinaryExpression(expression) => expression.operator()?.precedence(),
             AnyMExpression::MUnaryExpression(_) => OperatorPrecedence::Unary,

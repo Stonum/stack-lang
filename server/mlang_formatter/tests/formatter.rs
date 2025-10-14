@@ -444,3 +444,34 @@ catch( e ) {}
 "#
     );
 }
+
+#[test]
+fn format_instanceof_expressions() {
+    assert_fmt!(
+        r#"#
+class S {}
+class D extends S {}
+
+var si = new S();
+var di = new D();
+
+si instanceof S; # true
+di instanceof S; # true
+"#
+    );
+}
+
+#[test]
+fn format_classof_expressions() {
+    assert_fmt!(
+        r#"#
+class C {}
+var x = new C();
+
+classof x;
+
+var isObject = true;
+var str = isObject ? (classof x).name : typeof(x);
+"#
+    );
+}

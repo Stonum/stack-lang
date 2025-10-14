@@ -1073,6 +1073,20 @@ pub fn m_initializer_clause(
         ],
     ))
 }
+pub fn m_instanceof_expression(
+    left: AnyMExpression,
+    instanceof_token: SyntaxToken,
+    right: AnyMExpression,
+) -> MInstanceofExpression {
+    MInstanceofExpression::unwrap_cast(SyntaxNode::new_detached(
+        MSyntaxKind::M_INSTANCEOF_EXPRESSION,
+        [
+            Some(SyntaxElement::Node(left.into_syntax())),
+            Some(SyntaxElement::Token(instanceof_token)),
+            Some(SyntaxElement::Node(right.into_syntax())),
+        ],
+    ))
+}
 pub fn m_literal_member_name(value_token: SyntaxToken) -> MLiteralMemberName {
     MLiteralMemberName::unwrap_cast(SyntaxNode::new_detached(
         MSyntaxKind::M_LITERAL_MEMBER_NAME,

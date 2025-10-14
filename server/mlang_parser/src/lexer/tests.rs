@@ -1232,6 +1232,7 @@ fn keywords() {
         "case", "выбор",
         "catch", "исключение", "перехват",
         "class", "класс",
+        "classof", "получитьКласс",
         "continue", "продолжить",
         "debug", "отладить",
         "delete", "удалить",
@@ -1244,6 +1245,7 @@ fn keywords() {
         "func", "функция",
         "if", "если",
         "in", "в", "входитв",
+        "instanceof", "экземпляр",
         "new", "новый",
         "null", "nil", "нуль",
         "return", "вернуть",
@@ -1262,7 +1264,7 @@ fn keywords() {
         "get", "получить",
         "set", "установить",
         "k", "к",
-        "static"
+        "static", "статический",
     ];
 
     for keyword in keywords {

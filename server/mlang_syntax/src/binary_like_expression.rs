@@ -6,16 +6,16 @@
 
 use crate::{
     AnyMExpression, MBinaryExpression, MBinaryOperator, MIfStatement, MInExpression,
-    MLogicalExpression, MLogicalOperator, MSwitchStatement, MSyntaxKind, MSyntaxNode, MSyntaxToken,
-    MWhileStatement, OperatorPrecedence,
+    MInstanceofExpression, MLogicalExpression, MLogicalOperator, MSwitchStatement, MSyntaxKind,
+    MSyntaxNode, MSyntaxToken, MWhileStatement, OperatorPrecedence,
 };
 
-use biome_rowan::{declare_node_union, AstNode, AstSeparatedList, SyntaxResult};
+use biome_rowan::{AstNode, AstSeparatedList, SyntaxResult, declare_node_union};
 use std::fmt::Debug;
 use std::hash::Hash;
 
 declare_node_union! {
-    pub AnyMBinaryLikeExpression = MLogicalExpression | MBinaryExpression | MInExpression
+    pub AnyMBinaryLikeExpression = MLogicalExpression | MBinaryExpression | MInExpression | MInstanceofExpression
 }
 
 impl AnyMBinaryLikeExpression {
@@ -30,6 +30,9 @@ impl AnyMBinaryLikeExpression {
             Self::MInExpression(in_expression) => in_expression
                 .property()
                 .map(AnyMBinaryLikeLeftExpression::from),
+            Self::MInstanceofExpression(instanceof) => instanceof
+                .left()
+                .map(AnyMBinaryLikeLeftExpression::AnyMExpression),
         }
     }
 
@@ -38,6 +41,7 @@ impl AnyMBinaryLikeExpression {
             Self::MLogicalExpression(logical) => logical.operator_token(),
             Self::MBinaryExpression(binary) => binary.operator_token(),
             Self::MInExpression(in_expression) => in_expression.in_token(),
+            Self::MInstanceofExpression(instanceof) => instanceof.instanceof_token(),
         }
     }
 
@@ -48,6 +52,7 @@ impl AnyMBinaryLikeExpression {
             }
             Self::MBinaryExpression(binary) => binary.operator().map(BinaryLikeOperator::Binary),
             Self::MInExpression(_) => Ok(BinaryLikeOperator::In),
+            Self::MInstanceofExpression(_) => Ok(BinaryLikeOperator::Instanceof),
         }
     }
 
@@ -57,6 +62,7 @@ impl AnyMBinaryLikeExpression {
             Self::MLogicalExpression(logical) => logical.right(),
             Self::MBinaryExpression(binary) => binary.right(),
             Self::MInExpression(in_expression) => in_expression.object(),
+            Self::MInstanceofExpression(instanceof) => instanceof.right(),
         }
     }
 
@@ -171,6 +177,7 @@ impl From<AnyMBinaryLikeExpression> for AnyMExpression {
             AnyMBinaryLikeExpression::MLogicalExpression(expr) => expr.into(),
             AnyMBinaryLikeExpression::MBinaryExpression(expr) => expr.into(),
             AnyMBinaryLikeExpression::MInExpression(expr) => expr.into(),
+            AnyMBinaryLikeExpression::MInstanceofExpression(expr) => expr.into(),
         }
     }
 }
@@ -193,6 +200,7 @@ impl AnyMBinaryLikeLeftExpression {
 pub enum BinaryLikeOperator {
     Logical(MLogicalOperator),
     Binary(MBinaryOperator),
+    Instanceof,
     In,
 }
 
@@ -201,7 +209,7 @@ impl BinaryLikeOperator {
         match self {
             Self::Logical(logical) => logical.precedence(),
             Self::Binary(binary) => binary.precedence(),
-            Self::In => OperatorPrecedence::Relational,
+            Self::In | Self::Instanceof => OperatorPrecedence::Relational,
         }
     }
 

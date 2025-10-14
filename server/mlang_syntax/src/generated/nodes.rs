@@ -2549,6 +2549,51 @@ pub struct MInitializerClauseFields {
     pub expression: SyntaxResult<AnyMExpression>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
+pub struct MInstanceofExpression {
+    pub(crate) syntax: SyntaxNode,
+}
+impl MInstanceofExpression {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> MInstanceofExpressionFields {
+        MInstanceofExpressionFields {
+            left: self.left(),
+            instanceof_token: self.instanceof_token(),
+            right: self.right(),
+        }
+    }
+    pub fn left(&self) -> SyntaxResult<AnyMExpression> {
+        support::required_node(&self.syntax, 0usize)
+    }
+    pub fn instanceof_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 1usize)
+    }
+    pub fn right(&self) -> SyntaxResult<AnyMExpression> {
+        support::required_node(&self.syntax, 2usize)
+    }
+}
+impl Serialize for MInstanceofExpression {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct MInstanceofExpressionFields {
+    pub left: SyntaxResult<AnyMExpression>,
+    pub instanceof_token: SyntaxResult<SyntaxToken>,
+    pub right: SyntaxResult<AnyMExpression>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct MLiteralMemberName {
     pub(crate) syntax: SyntaxNode,
 }
@@ -4745,6 +4790,7 @@ pub enum AnyMExpression {
     MHashSetExpression(MHashSetExpression),
     MIdentifierExpression(MIdentifierExpression),
     MInExpression(MInExpression),
+    MInstanceofExpression(MInstanceofExpression),
     MLogicalExpression(MLogicalExpression),
     MNewExpression(MNewExpression),
     MObjectExpression(MObjectExpression),
@@ -4839,6 +4885,12 @@ impl AnyMExpression {
     pub fn as_m_in_expression(&self) -> Option<&MInExpression> {
         match &self {
             AnyMExpression::MInExpression(item) => Some(item),
+            _ => None,
+        }
+    }
+    pub fn as_m_instanceof_expression(&self) -> Option<&MInstanceofExpression> {
+        match &self {
+            Self::MInstanceofExpression(item) => Some(item),
             _ => None,
         }
     }
@@ -7834,6 +7886,58 @@ impl From<MInitializerClause> for SyntaxElement {
         n.syntax.into()
     }
 }
+impl AstNode for MInstanceofExpression {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(M_INSTANCEOF_EXPRESSION as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == M_INSTANCEOF_EXPRESSION
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for MInstanceofExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        thread_local! { static DEPTH : std :: cell :: Cell < u8 > = const { std :: cell :: Cell :: new (0) } };
+        let current_depth = DEPTH.get();
+        let result = if current_depth < 16 {
+            DEPTH.set(current_depth + 1);
+            f.debug_struct("MInstanceofExpression")
+                .field("left", &support::DebugSyntaxResult(self.left()))
+                .field(
+                    "instanceof_token",
+                    &support::DebugSyntaxResult(self.instanceof_token()),
+                )
+                .field("right", &support::DebugSyntaxResult(self.right()))
+                .finish()
+        } else {
+            f.debug_struct("MInstanceofExpression").finish()
+        };
+        DEPTH.set(current_depth);
+        result
+    }
+}
+impl From<MInstanceofExpression> for SyntaxNode {
+    fn from(n: MInstanceofExpression) -> Self {
+        n.syntax
+    }
+}
+impl From<MInstanceofExpression> for SyntaxElement {
+    fn from(n: MInstanceofExpression) -> Self {
+        n.syntax.into()
+    }
+}
 impl AstNode for MLiteralMemberName {
     type Language = Language;
     const KIND_SET: SyntaxKindSet<Language> =
@@ -10656,6 +10760,11 @@ impl From<MInExpression> for AnyMExpression {
         AnyMExpression::MInExpression(node)
     }
 }
+impl From<MInstanceofExpression> for AnyMExpression {
+    fn from(node: MInstanceofExpression) -> AnyMExpression {
+        AnyMExpression::MInstanceofExpression(node)
+    }
+}
 impl From<MLogicalExpression> for AnyMExpression {
     fn from(node: MLogicalExpression) -> AnyMExpression {
         AnyMExpression::MLogicalExpression(node)
@@ -10727,6 +10836,7 @@ impl AstNode for AnyMExpression {
         .union(MHashSetExpression::KIND_SET)
         .union(MIdentifierExpression::KIND_SET)
         .union(MInExpression::KIND_SET)
+        .union(MInstanceofExpression::KIND_SET)
         .union(MLogicalExpression::KIND_SET)
         .union(MNewExpression::KIND_SET)
         .union(MObjectExpression::KIND_SET)
@@ -10753,6 +10863,7 @@ impl AstNode for AnyMExpression {
             | M_HASH_SET_EXPRESSION
             | M_IDENTIFIER_EXPRESSION
             | M_IN_EXPRESSION
+            | M_INSTANCEOF_EXPRESSION
             | M_LOGICAL_EXPRESSION
             | M_NEW_EXPRESSION
             | M_OBJECT_EXPRESSION
@@ -10799,6 +10910,9 @@ impl AstNode for AnyMExpression {
                 AnyMExpression::MIdentifierExpression(MIdentifierExpression { syntax })
             }
             M_IN_EXPRESSION => AnyMExpression::MInExpression(MInExpression { syntax }),
+            M_INSTANCEOF_EXPRESSION => {
+                AnyMExpression::MInstanceofExpression(MInstanceofExpression { syntax })
+            }
             M_LOGICAL_EXPRESSION => {
                 AnyMExpression::MLogicalExpression(MLogicalExpression { syntax })
             }
@@ -10848,6 +10962,7 @@ impl AstNode for AnyMExpression {
             AnyMExpression::MHashSetExpression(it) => &it.syntax,
             AnyMExpression::MIdentifierExpression(it) => &it.syntax,
             AnyMExpression::MInExpression(it) => &it.syntax,
+            AnyMExpression::MInstanceofExpression(it) => &it.syntax,
             AnyMExpression::MLogicalExpression(it) => &it.syntax,
             AnyMExpression::MNewExpression(it) => &it.syntax,
             AnyMExpression::MObjectExpression(it) => &it.syntax,
@@ -10877,6 +10992,7 @@ impl AstNode for AnyMExpression {
             AnyMExpression::MHashSetExpression(it) => it.syntax,
             AnyMExpression::MIdentifierExpression(it) => it.syntax,
             AnyMExpression::MInExpression(it) => it.syntax,
+            AnyMExpression::MInstanceofExpression(it) => it.syntax,
             AnyMExpression::MLogicalExpression(it) => it.syntax,
             AnyMExpression::MNewExpression(it) => it.syntax,
             AnyMExpression::MObjectExpression(it) => it.syntax,
@@ -10909,6 +11025,7 @@ impl std::fmt::Debug for AnyMExpression {
             AnyMExpression::MHashSetExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MIdentifierExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MInExpression(it) => std::fmt::Debug::fmt(it, f),
+            AnyMExpression::MInstanceofExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MLogicalExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MNewExpression(it) => std::fmt::Debug::fmt(it, f),
             AnyMExpression::MObjectExpression(it) => std::fmt::Debug::fmt(it, f),
@@ -10940,6 +11057,7 @@ impl From<AnyMExpression> for SyntaxNode {
             AnyMExpression::MHashSetExpression(it) => it.into(),
             AnyMExpression::MIdentifierExpression(it) => it.into(),
             AnyMExpression::MInExpression(it) => it.into(),
+            AnyMExpression::MInstanceofExpression(it) => it.into(),
             AnyMExpression::MLogicalExpression(it) => it.into(),
             AnyMExpression::MNewExpression(it) => it.into(),
             AnyMExpression::MObjectExpression(it) => it.into(),
@@ -12542,6 +12660,11 @@ impl std::fmt::Display for MInExpression {
     }
 }
 impl std::fmt::Display for MInitializerClause {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for MInstanceofExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }

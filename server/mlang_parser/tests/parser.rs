@@ -546,3 +546,34 @@ fn test_err_computed_class_member_name() {
 
     assert!(res.has_errors());
 }
+
+#[test]
+fn test_use_instanceof_keyword() {
+    let res = parse(
+        r#"
+          class S {}
+          var si = new S()
+
+          si instanceof S 
+          @[] instanceof S
+          si instanceof @[] 
+
+        "#,
+        MFileSource::script(),
+    );
+    assert_parser!(res);
+}
+
+#[test]
+fn test_use_classof_keyword() {
+    let res = parse(
+        r#"
+          class C {}
+          var x = new C();
+          classof x;
+          classof(x);
+        "#,
+        MFileSource::script(),
+    );
+    assert_parser!(res);
+}
