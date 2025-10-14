@@ -291,6 +291,7 @@ AnyMExpression =
 	| MFunctionExpression
 	| MIdentifierExpression
 	| MInExpression
+	| MInstanceofExpression
 	| MLogicalExpression
 	| MNewExpression
 	| MObjectExpression
@@ -393,6 +394,11 @@ MBinaryExpression =
 		)
     right: AnyMExpression
 
+MInstanceofExpression =
+	left: AnyMExpression
+	'instanceof'
+	right: AnyMExpression
+
 MInExpression =
 	property: AnyMExpression
 	'in'
@@ -405,7 +411,7 @@ MLogicalExpression =
 
 // unary expression
 MUnaryExpression =
-  operator_token: ('delete' | '+' | '-' | '~' | '!')
+  operator_token: ('delete' | '+' | '-' | '~' | '!' | 'classof')
   argument: AnyMExpression
 
 MPreUpdateExpression =

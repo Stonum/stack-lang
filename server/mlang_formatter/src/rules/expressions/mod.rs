@@ -14,6 +14,7 @@ pub(crate) mod hash_map_expression;
 pub(crate) mod hash_set_expression;
 pub(crate) mod identifier_expression;
 pub(crate) mod in_expression;
+pub(crate) mod instanceof_expression;
 pub(crate) mod literal_expression;
 pub(crate) mod logical_expression;
 pub(crate) mod new_expression;

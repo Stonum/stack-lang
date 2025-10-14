@@ -1,23 +1,23 @@
 use std::borrow::Cow;
 
-use biome_rowan::{match_ast, AstNode};
+use biome_rowan::{AstNode, match_ast};
 
 use crate::{
-    binary_like_expression::{
-        should_flatten, AnyMBinaryLikeExpression, AnyMBinaryLikeLeftExpression,
-    },
-    expression_left_side::AnyMExpressionLeftSide,
     AnyMComputedMember, AnyMExpression, AnyMForInitializer, AnyMLiteralExpression, AnyMStatement,
     MArrayExpression, MAssignmentExpression, MBinaryExpression, MBooleanLiteralExpression,
     MCallExpression, MComputedMemberAssignment, MComputedMemberExpression, MComputedMemberName,
     MConditionalExpression, MConstantExpression, MDateLiteralExpression, MExpressionStatement,
     MForStatement, MFunctionExpression, MHashMapExpression, MHashSetExpression,
-    MIdentifierExpression, MInExpression, MInitializerClause, MLogicalExpression,
-    MLongStringLiteralExpression, MNewExpression, MNullLiteralExpression, MNumberLiteralExpression,
-    MObjectExpression, MParenthesizedExpression, MPostUpdateExpression, MPreUpdateExpression,
-    MPreUpdateOperator, MSequenceExpression, MStaticMemberExpression, MStringLiteralExpression,
-    MSuperExpression, MSyntaxKind, MSyntaxNode, MThisExpression, MTimeLiteralExpression,
-    MUnaryExpression, MUnaryOperator,
+    MIdentifierExpression, MInExpression, MInitializerClause, MInstanceofExpression,
+    MLogicalExpression, MLongStringLiteralExpression, MNewExpression, MNullLiteralExpression,
+    MNumberLiteralExpression, MObjectExpression, MParenthesizedExpression, MPostUpdateExpression,
+    MPreUpdateExpression, MPreUpdateOperator, MSequenceExpression, MStaticMemberExpression,
+    MStringLiteralExpression, MSuperExpression, MSyntaxKind, MSyntaxNode, MThisExpression,
+    MTimeLiteralExpression, MUnaryExpression, MUnaryOperator,
+    binary_like_expression::{
+        AnyMBinaryLikeExpression, AnyMBinaryLikeLeftExpression, should_flatten,
+    },
+    expression_left_side::AnyMExpressionLeftSide,
 };
 
 use super::NeedsParentheses;
@@ -36,6 +36,7 @@ impl NeedsParentheses for AnyMExpression {
             Self::MFunctionExpression(expr) => expr.needs_parentheses(),
             Self::MIdentifierExpression(expr) => expr.needs_parentheses(),
             Self::MInExpression(expr) => expr.needs_parentheses(),
+            Self::MInstanceofExpression(expr) => expr.needs_parentheses(),
             Self::MLogicalExpression(expr) => expr.needs_parentheses(),
             Self::MNewExpression(expr) => expr.needs_parentheses(),
             Self::MObjectExpression(expr) => expr.needs_parentheses(),
@@ -240,6 +241,14 @@ impl NeedsParentheses for MInExpression {
         is_in_for_initializer(self) || binary_like_needs_parens(self.syntax())
     }
 }
+
+impl NeedsParentheses for MInstanceofExpression {
+    #[inline]
+    fn needs_parentheses(&self) -> bool {
+        binary_like_needs_parens(self.syntax())
+    }
+}
+
 /// Add parentheses if the `in` is inside of a `for` initializer (see tests).
 fn is_in_for_initializer(expression: &MInExpression) -> bool {
     let statement = expression

@@ -21,6 +21,7 @@ impl FormatRule<AnyMExpression> for FormatAnyMExpression {
             AnyMExpression::MFunctionExpression(node) => node.format().fmt(f),
             AnyMExpression::MIdentifierExpression(node) => node.format().fmt(f),
             AnyMExpression::MInExpression(node) => node.format().fmt(f),
+            AnyMExpression::MInstanceofExpression(node) => node.format().fmt(f),
             AnyMExpression::MLogicalExpression(node) => node.format().fmt(f),
             AnyMExpression::MNewExpression(node) => node.format().fmt(f),
             AnyMExpression::MObjectExpression(node) => node.format().fmt(f),

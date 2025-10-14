@@ -54,11 +54,11 @@
 //! and right side of each Right side.
 
 use crate::prelude::*;
+use biome_formatter::{Buffer, CstFormatContext, format_args, write};
 use mlang_syntax::binary_like_expression::{
     AnyMBinaryLikeExpression, AnyMBinaryLikeLeftExpression,
 };
 use mlang_syntax::{MSyntaxKind, MSyntaxNode, MUnaryExpression};
-use biome_formatter::{format_args, write, Buffer, CstFormatContext};
 
 use crate::rules::expressions::static_member_expression::AnyMStaticMemberLike;
 use biome_rowan::{AstNode, SyntaxResult};
@@ -334,10 +334,13 @@ fn is_same_binary_expression_kind(binary: &AnyMBinaryLikeExpression, other: &MSy
             matches!(other.kind(), MSyntaxKind::M_LOGICAL_EXPRESSION)
         }
         AnyMBinaryLikeExpression::MBinaryExpression(_)
+        | AnyMBinaryLikeExpression::MInstanceofExpression(_)
         | AnyMBinaryLikeExpression::MInExpression(_) => {
             matches!(
                 other.kind(),
-                MSyntaxKind::M_BINARY_EXPRESSION | MSyntaxKind::M_IN_EXPRESSION
+                MSyntaxKind::M_BINARY_EXPRESSION
+                    | MSyntaxKind::M_IN_EXPRESSION
+                    | MSyntaxKind::M_INSTANCEOF_EXPRESSION
             )
         }
     }

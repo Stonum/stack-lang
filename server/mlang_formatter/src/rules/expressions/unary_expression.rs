@@ -1,9 +1,9 @@
 use crate::prelude::*;
 
-use mlang_syntax::parentheses::NeedsParentheses;
-use mlang_syntax::MUnaryExpression;
-use mlang_syntax::{MUnaryExpressionFields, MUnaryOperator};
 use biome_formatter::{format_args, write};
+use mlang_syntax::MUnaryExpression;
+use mlang_syntax::parentheses::NeedsParentheses;
+use mlang_syntax::{MUnaryExpressionFields, MUnaryOperator};
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMUnaryExpression;
@@ -22,7 +22,8 @@ impl FormatNodeRule<MUnaryExpression> for FormatMUnaryExpression {
 
         write!(f, [operator_token.format()])?;
 
-        let is_keyword_operator = matches!(operation, MUnaryOperator::Delete);
+        let is_keyword_operator =
+            matches!(operation, MUnaryOperator::Delete | MUnaryOperator::Classof);
 
         if is_keyword_operator {
             write!(f, [space()])?;

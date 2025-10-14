@@ -1941,6 +1941,39 @@ impl SyntaxFactory for MSyntaxFactory {
                 }
                 slots.into_node(M_INITIALIZER_CLAUSE, children)
             }
+            M_INSTANCEOF_EXPRESSION => {
+                let mut elements = (&children).into_iter();
+                let mut slots: RawNodeSlots<3usize> = RawNodeSlots::default();
+                let mut current_element = elements.next();
+                if let Some(element) = &current_element {
+                    if AnyMExpression::can_cast(element.kind()) {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if let Some(element) = &current_element {
+                    if element.kind() == T![instanceof] {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if let Some(element) = &current_element {
+                    if AnyMExpression::can_cast(element.kind()) {
+                        slots.mark_present();
+                        current_element = elements.next();
+                    }
+                }
+                slots.next_slot();
+                if current_element.is_some() {
+                    return RawSyntaxNode::new(
+                        M_INSTANCEOF_EXPRESSION.to_bogus(),
+                        children.into_iter().map(Some),
+                    );
+                }
+                slots.into_node(M_INSTANCEOF_EXPRESSION, children)
+            }
             M_LITERAL_MEMBER_NAME => {
                 let mut elements = (&children).into_iter();
                 let mut slots: RawNodeSlots<1usize> = RawNodeSlots::default();
@@ -3109,7 +3142,10 @@ impl SyntaxFactory for MSyntaxFactory {
                 let mut slots: RawNodeSlots<2usize> = RawNodeSlots::default();
                 let mut current_element = elements.next();
                 if let Some(element) = &current_element {
-                    if matches!(element.kind(), T![delete] | T ! [+] | T ! [-] | T![!]) {
+                    if matches!(
+                        element.kind(),
+                        T![delete] | T ! [+] | T ! [-] | T![!] | T![classof]
+                    ) {
                         slots.mark_present();
                         current_element = elements.next();
                     }
