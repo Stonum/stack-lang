@@ -3,6 +3,18 @@
 **v0.3.3 - 2025-09-18**
 ------------------------------------
 * **Added**:
+   + handlers in workspace symbols
+   + code symbol for events in handler
+   + symbol references
+   + support keywords ( classof, instanceof, static )
+* **Fixed**: 
+   + definition for class declaration
+   + parsing expressions with variable `k`. for example `k++`
+   + invalid syntax highlighting when document was changed
+
+**v0.3.3 - 2025-09-18**
+------------------------------------
+* **Added**:
    + go to symbol in workspace ( `Ctrl` + `T` as default )
 * **Fixed**: 
    + syntax highlighting rules
