@@ -112,6 +112,9 @@ impl LanguageServer for Backend {
             })
         };
 
+        self.send_status_bar_notofication("Workspace initialization - getting files")
+            .await;
+
         match settings_path {
             Some(path) if path != "" => {
                 if let Err(error) = self.workspace.init_with_settings_file(&path).await {
