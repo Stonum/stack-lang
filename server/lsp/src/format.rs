@@ -7,7 +7,7 @@ use tower_lsp::lsp_types::{Range, TextEdit};
 
 use crate::document::CurrentDocument;
 
-pub async fn format(
+pub fn format(
     document: &CurrentDocument,
     options: FormattingOptions,
     range: Range,

@@ -297,7 +297,14 @@ impl LanguageServer for Backend {
         let edited = async {
             let document = self.workspace.get_opened_document(&file_uri).await?;
 
-            format(&document, options, range).await
+            let handle = tokio::task::spawn_blocking(move || format(&document, options, range));
+            match handle.await {
+                Ok(edited) => edited,
+                Err(e) => {
+                    error!("Range formatting: {e}");
+                    None
+                }
+            }
         }
         .await;
 
