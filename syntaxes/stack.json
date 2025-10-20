@@ -1235,7 +1235,7 @@
             {
                "comment": "комментарии sql",
                "name": "punctuation.definition.comment.stack",
-               "match": "--[^\\n*`\"]*"
+               "match": "--[^\\n*`\"]*$"
             },
             {
                "comment": "Названия БД Stack",
