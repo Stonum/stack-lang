@@ -1200,6 +1200,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "psql_factory"
+version = "0.0.1"
+dependencies = [
+ "biome_rowan",
+ "psql_syntax",
+]
+
+[[package]]
+name = "psql_syntax"
+version = "0.0.1"
+dependencies = [
+ "biome_rowan",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
