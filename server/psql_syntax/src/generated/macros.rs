@@ -37,6 +37,14 @@ macro_rules! map_syntax_node {
                     let $pattern = unsafe { $crate::PsqlDataBaseName::new_unchecked(node) };
                     $body
                 }
+                $crate::PsqlSyntaxKind::PSQL_DELETE_STMT => {
+                    let $pattern = unsafe { $crate::PsqlDeleteStmt::new_unchecked(node) };
+                    $body
+                }
+                $crate::PsqlSyntaxKind::PSQL_DELETE_USING_CLAUSE => {
+                    let $pattern = unsafe { $crate::PsqlDeleteUsingClause::new_unchecked(node) };
+                    $body
+                }
                 $crate::PsqlSyntaxKind::PSQL_FROM_CLAUSE => {
                     let $pattern = unsafe { $crate::PsqlFromClause::new_unchecked(node) };
                     $body
@@ -51,6 +59,18 @@ macro_rules! map_syntax_node {
                 }
                 $crate::PsqlSyntaxKind::PSQL_HAVING_CLAUSE => {
                     let $pattern = unsafe { $crate::PsqlHavingClause::new_unchecked(node) };
+                    $body
+                }
+                $crate::PsqlSyntaxKind::PSQL_INSERT_COLUMNS => {
+                    let $pattern = unsafe { $crate::PsqlInsertColumns::new_unchecked(node) };
+                    $body
+                }
+                $crate::PsqlSyntaxKind::PSQL_INSERT_STMT => {
+                    let $pattern = unsafe { $crate::PsqlInsertStmt::new_unchecked(node) };
+                    $body
+                }
+                $crate::PsqlSyntaxKind::PSQL_INSERT_VALUES => {
+                    let $pattern = unsafe { $crate::PsqlInsertValues::new_unchecked(node) };
                     $body
                 }
                 $crate::PsqlSyntaxKind::PSQL_LIMIT_CLAUSE => {
@@ -104,16 +124,20 @@ macro_rules! map_syntax_node {
                     let $pattern = unsafe { $crate::PsqlSelectStmt::new_unchecked(node) };
                     $body
                 }
+                $crate::PsqlSyntaxKind::PSQL_SET_CLAUSE => {
+                    let $pattern = unsafe { $crate::PsqlSetClause::new_unchecked(node) };
+                    $body
+                }
+                $crate::PsqlSyntaxKind::PSQL_SET_ITEM => {
+                    let $pattern = unsafe { $crate::PsqlSetItem::new_unchecked(node) };
+                    $body
+                }
                 $crate::PsqlSyntaxKind::PSQL_SHEMA_NAME => {
                     let $pattern = unsafe { $crate::PsqlShemaName::new_unchecked(node) };
                     $body
                 }
                 $crate::PsqlSyntaxKind::PSQL_STAR => {
                     let $pattern = unsafe { $crate::PsqlStar::new_unchecked(node) };
-                    $body
-                }
-                $crate::PsqlSyntaxKind::PSQL_STMT => {
-                    let $pattern = unsafe { $crate::PsqlStmt::new_unchecked(node) };
                     $body
                 }
                 $crate::PsqlSyntaxKind::PSQL_STRING_LITERAL_EXPRESSION => {
@@ -135,6 +159,10 @@ macro_rules! map_syntax_node {
                 }
                 $crate::PsqlSyntaxKind::PSQL_TABLE_NAME => {
                     let $pattern = unsafe { $crate::PsqlTableName::new_unchecked(node) };
+                    $body
+                }
+                $crate::PsqlSyntaxKind::PSQL_UPDATE_STMT => {
+                    let $pattern = unsafe { $crate::PsqlUpdateStmt::new_unchecked(node) };
                     $body
                 }
                 $crate::PsqlSyntaxKind::PSQL_WHERE_CLAUSE => {
@@ -169,12 +197,16 @@ macro_rules! map_syntax_node {
                     let $pattern = unsafe { $crate::PsqlBogusStatement::new_unchecked(node) };
                     $body
                 }
-                $crate::PsqlSyntaxKind::PSQL_ARGUMENT_LIST => {
-                    let $pattern = unsafe { $crate::PsqlArgumentList::new_unchecked(node) };
+                $crate::PsqlSyntaxKind::PSQL_EXPRESSION_LIST => {
+                    let $pattern = unsafe { $crate::PsqlExpressionList::new_unchecked(node) };
                     $body
                 }
                 $crate::PsqlSyntaxKind::PSQL_GROUP_BY_ITEM_LIST => {
                     let $pattern = unsafe { $crate::PsqlGroupByItemList::new_unchecked(node) };
+                    $body
+                }
+                $crate::PsqlSyntaxKind::PSQL_INSERT_COLUMN_LIST => {
+                    let $pattern = unsafe { $crate::PsqlInsertColumnList::new_unchecked(node) };
                     $body
                 }
                 $crate::PsqlSyntaxKind::PSQL_ORDER_BY_EXPRESSION_LIST => {
@@ -184,6 +216,10 @@ macro_rules! map_syntax_node {
                 }
                 $crate::PsqlSyntaxKind::PSQL_SELECT_ITEM_LIST => {
                     let $pattern = unsafe { $crate::PsqlSelectItemList::new_unchecked(node) };
+                    $body
+                }
+                $crate::PsqlSyntaxKind::PSQL_SET_ITEM_LIST => {
+                    let $pattern = unsafe { $crate::PsqlSetItemList::new_unchecked(node) };
                     $body
                 }
                 $crate::PsqlSyntaxKind::PSQL_STMT_LIST => {

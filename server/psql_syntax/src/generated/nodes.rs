@@ -220,6 +220,106 @@ pub struct PsqlDataBaseNameFields {
     pub dot_token: SyntaxResult<SyntaxToken>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
+pub struct PsqlDeleteStmt {
+    pub(crate) syntax: SyntaxNode,
+}
+impl PsqlDeleteStmt {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> PsqlDeleteStmtFields {
+        PsqlDeleteStmtFields {
+            delete_token: self.delete_token(),
+            from_token: self.from_token(),
+            table: self.table(),
+            using: self.using(),
+            where_clause: self.where_clause(),
+            semicolon_token: self.semicolon_token(),
+        }
+    }
+    pub fn delete_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 0usize)
+    }
+    pub fn from_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 1usize)
+    }
+    pub fn table(&self) -> SyntaxResult<PsqlTableBinding> {
+        support::required_node(&self.syntax, 2usize)
+    }
+    pub fn using(&self) -> Option<PsqlDeleteUsingClause> {
+        support::node(&self.syntax, 3usize)
+    }
+    pub fn where_clause(&self) -> Option<PsqlWhereClause> {
+        support::node(&self.syntax, 4usize)
+    }
+    pub fn semicolon_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, 5usize)
+    }
+}
+impl Serialize for PsqlDeleteStmt {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct PsqlDeleteStmtFields {
+    pub delete_token: SyntaxResult<SyntaxToken>,
+    pub from_token: SyntaxResult<SyntaxToken>,
+    pub table: SyntaxResult<PsqlTableBinding>,
+    pub using: Option<PsqlDeleteUsingClause>,
+    pub where_clause: Option<PsqlWhereClause>,
+    pub semicolon_token: Option<SyntaxToken>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct PsqlDeleteUsingClause {
+    pub(crate) syntax: SyntaxNode,
+}
+impl PsqlDeleteUsingClause {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> PsqlDeleteUsingClauseFields {
+        PsqlDeleteUsingClauseFields {
+            using_token: self.using_token(),
+            any_psql_from_expression: self.any_psql_from_expression(),
+        }
+    }
+    pub fn using_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 0usize)
+    }
+    pub fn any_psql_from_expression(&self) -> SyntaxResult<AnyPsqlFromExpression> {
+        support::required_node(&self.syntax, 1usize)
+    }
+}
+impl Serialize for PsqlDeleteUsingClause {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct PsqlDeleteUsingClauseFields {
+    pub using_token: SyntaxResult<SyntaxToken>,
+    pub any_psql_from_expression: SyntaxResult<AnyPsqlFromExpression>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct PsqlFromClause {
     pub(crate) syntax: SyntaxNode,
 }
@@ -236,13 +336,13 @@ impl PsqlFromClause {
     pub fn as_fields(&self) -> PsqlFromClauseFields {
         PsqlFromClauseFields {
             from_token: self.from_token(),
-            any_psql_from_expression: self.any_psql_from_expression(),
+            clause: self.clause(),
         }
     }
     pub fn from_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 0usize)
     }
-    pub fn any_psql_from_expression(&self) -> SyntaxResult<AnyPsqlFromExpression> {
+    pub fn clause(&self) -> SyntaxResult<AnyPsqlFromExpression> {
         support::required_node(&self.syntax, 1usize)
     }
 }
@@ -257,7 +357,7 @@ impl Serialize for PsqlFromClause {
 #[derive(Serialize)]
 pub struct PsqlFromClauseFields {
     pub from_token: SyntaxResult<SyntaxToken>,
-    pub any_psql_from_expression: SyntaxResult<AnyPsqlFromExpression>,
+    pub clause: SyntaxResult<AnyPsqlFromExpression>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct PsqlFunctionBinding {
@@ -292,7 +392,7 @@ impl PsqlFunctionBinding {
     pub fn l_paren_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 2usize)
     }
-    pub fn arguments(&self) -> PsqlArgumentList {
+    pub fn arguments(&self) -> PsqlExpressionList {
         support::list(&self.syntax, 3usize)
     }
     pub fn r_paren_token(&self) -> SyntaxResult<SyntaxToken> {
@@ -315,7 +415,7 @@ pub struct PsqlFunctionBindingFields {
     pub schema: Option<PsqlShemaName>,
     pub name: SyntaxResult<PsqlName>,
     pub l_paren_token: SyntaxResult<SyntaxToken>,
-    pub arguments: PsqlArgumentList,
+    pub arguments: PsqlExpressionList,
     pub r_paren_token: SyntaxResult<SyntaxToken>,
     pub alias: Option<PsqlAlias>,
 }
@@ -336,13 +436,13 @@ impl PsqlGroupByClause {
     pub fn as_fields(&self) -> PsqlGroupByClauseFields {
         PsqlGroupByClauseFields {
             group_by_token: self.group_by_token(),
-            list: self.list(),
+            items: self.items(),
         }
     }
     pub fn group_by_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 0usize)
     }
-    pub fn list(&self) -> PsqlGroupByItemList {
+    pub fn items(&self) -> PsqlGroupByItemList {
         support::list(&self.syntax, 1usize)
     }
 }
@@ -357,7 +457,7 @@ impl Serialize for PsqlGroupByClause {
 #[derive(Serialize)]
 pub struct PsqlGroupByClauseFields {
     pub group_by_token: SyntaxResult<SyntaxToken>,
-    pub list: PsqlGroupByItemList,
+    pub items: PsqlGroupByItemList,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct PsqlHavingClause {
@@ -376,13 +476,13 @@ impl PsqlHavingClause {
     pub fn as_fields(&self) -> PsqlHavingClauseFields {
         PsqlHavingClauseFields {
             having_token: self.having_token(),
-            any_psql_expression: self.any_psql_expression(),
+            condition: self.condition(),
         }
     }
     pub fn having_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 0usize)
     }
-    pub fn any_psql_expression(&self) -> SyntaxResult<AnyPsqlExpression> {
+    pub fn condition(&self) -> SyntaxResult<AnyPsqlExpression> {
         support::required_node(&self.syntax, 1usize)
     }
 }
@@ -397,7 +497,162 @@ impl Serialize for PsqlHavingClause {
 #[derive(Serialize)]
 pub struct PsqlHavingClauseFields {
     pub having_token: SyntaxResult<SyntaxToken>,
-    pub any_psql_expression: SyntaxResult<AnyPsqlExpression>,
+    pub condition: SyntaxResult<AnyPsqlExpression>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct PsqlInsertColumns {
+    pub(crate) syntax: SyntaxNode,
+}
+impl PsqlInsertColumns {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> PsqlInsertColumnsFields {
+        PsqlInsertColumnsFields {
+            l_paren_token: self.l_paren_token(),
+            items: self.items(),
+            r_paren_token: self.r_paren_token(),
+        }
+    }
+    pub fn l_paren_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 0usize)
+    }
+    pub fn items(&self) -> PsqlInsertColumnList {
+        support::list(&self.syntax, 1usize)
+    }
+    pub fn r_paren_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 2usize)
+    }
+}
+impl Serialize for PsqlInsertColumns {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct PsqlInsertColumnsFields {
+    pub l_paren_token: SyntaxResult<SyntaxToken>,
+    pub items: PsqlInsertColumnList,
+    pub r_paren_token: SyntaxResult<SyntaxToken>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct PsqlInsertStmt {
+    pub(crate) syntax: SyntaxNode,
+}
+impl PsqlInsertStmt {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> PsqlInsertStmtFields {
+        PsqlInsertStmtFields {
+            insert_token: self.insert_token(),
+            into_token: self.into_token(),
+            table: self.table(),
+            columns: self.columns(),
+            source: self.source(),
+            semicolon_token: self.semicolon_token(),
+        }
+    }
+    pub fn insert_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 0usize)
+    }
+    pub fn into_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 1usize)
+    }
+    pub fn table(&self) -> SyntaxResult<PsqlTableBinding> {
+        support::required_node(&self.syntax, 2usize)
+    }
+    pub fn columns(&self) -> Option<PsqlInsertColumns> {
+        support::node(&self.syntax, 3usize)
+    }
+    pub fn source(&self) -> SyntaxResult<AnyPsqlInsertSource> {
+        support::required_node(&self.syntax, 4usize)
+    }
+    pub fn semicolon_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, 5usize)
+    }
+}
+impl Serialize for PsqlInsertStmt {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct PsqlInsertStmtFields {
+    pub insert_token: SyntaxResult<SyntaxToken>,
+    pub into_token: SyntaxResult<SyntaxToken>,
+    pub table: SyntaxResult<PsqlTableBinding>,
+    pub columns: Option<PsqlInsertColumns>,
+    pub source: SyntaxResult<AnyPsqlInsertSource>,
+    pub semicolon_token: Option<SyntaxToken>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct PsqlInsertValues {
+    pub(crate) syntax: SyntaxNode,
+}
+impl PsqlInsertValues {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> PsqlInsertValuesFields {
+        PsqlInsertValuesFields {
+            values_token: self.values_token(),
+            l_paren_token: self.l_paren_token(),
+            items: self.items(),
+            r_paren_token: self.r_paren_token(),
+        }
+    }
+    pub fn values_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 0usize)
+    }
+    pub fn l_paren_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 1usize)
+    }
+    pub fn items(&self) -> PsqlExpressionList {
+        support::list(&self.syntax, 2usize)
+    }
+    pub fn r_paren_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 3usize)
+    }
+}
+impl Serialize for PsqlInsertValues {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct PsqlInsertValuesFields {
+    pub values_token: SyntaxResult<SyntaxToken>,
+    pub l_paren_token: SyntaxResult<SyntaxToken>,
+    pub items: PsqlExpressionList,
+    pub r_paren_token: SyntaxResult<SyntaxToken>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct PsqlLimitClause {
@@ -646,13 +901,13 @@ impl PsqlOrderByClause {
     pub fn as_fields(&self) -> PsqlOrderByClauseFields {
         PsqlOrderByClauseFields {
             order_by_token: self.order_by_token(),
-            list: self.list(),
+            items: self.items(),
         }
     }
     pub fn order_by_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 0usize)
     }
-    pub fn list(&self) -> PsqlOrderByExpressionList {
+    pub fn items(&self) -> PsqlOrderByExpressionList {
         support::list(&self.syntax, 1usize)
     }
 }
@@ -667,7 +922,7 @@ impl Serialize for PsqlOrderByClause {
 #[derive(Serialize)]
 pub struct PsqlOrderByClauseFields {
     pub order_by_token: SyntaxResult<SyntaxToken>,
-    pub list: PsqlOrderByExpressionList,
+    pub items: PsqlOrderByExpressionList,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct PsqlOrderByExpression {
@@ -858,6 +1113,7 @@ impl PsqlSelectStmt {
             order_by_clause: self.order_by_clause(),
             limit_clause: self.limit_clause(),
             offset_clause: self.offset_clause(),
+            semicolon_token: self.semicolon_token(),
         }
     }
     pub fn select_clause(&self) -> SyntaxResult<PsqlSelectClause> {
@@ -884,6 +1140,9 @@ impl PsqlSelectStmt {
     pub fn offset_clause(&self) -> Option<PsqlOffsetClause> {
         support::node(&self.syntax, 7usize)
     }
+    pub fn semicolon_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, 8usize)
+    }
 }
 impl Serialize for PsqlSelectStmt {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -903,6 +1162,92 @@ pub struct PsqlSelectStmtFields {
     pub order_by_clause: Option<PsqlOrderByClause>,
     pub limit_clause: Option<PsqlLimitClause>,
     pub offset_clause: Option<PsqlOffsetClause>,
+    pub semicolon_token: Option<SyntaxToken>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct PsqlSetClause {
+    pub(crate) syntax: SyntaxNode,
+}
+impl PsqlSetClause {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> PsqlSetClauseFields {
+        PsqlSetClauseFields {
+            set_token: self.set_token(),
+            items: self.items(),
+        }
+    }
+    pub fn set_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 0usize)
+    }
+    pub fn items(&self) -> PsqlSetItemList {
+        support::list(&self.syntax, 1usize)
+    }
+}
+impl Serialize for PsqlSetClause {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct PsqlSetClauseFields {
+    pub set_token: SyntaxResult<SyntaxToken>,
+    pub items: PsqlSetItemList,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct PsqlSetItem {
+    pub(crate) syntax: SyntaxNode,
+}
+impl PsqlSetItem {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> PsqlSetItemFields {
+        PsqlSetItemFields {
+            column: self.column(),
+            eq_token: self.eq_token(),
+            expr: self.expr(),
+        }
+    }
+    pub fn column(&self) -> SyntaxResult<PsqlName> {
+        support::required_node(&self.syntax, 0usize)
+    }
+    pub fn eq_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 1usize)
+    }
+    pub fn expr(&self) -> SyntaxResult<AnyPsqlExpression> {
+        support::required_node(&self.syntax, 2usize)
+    }
+}
+impl Serialize for PsqlSetItem {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct PsqlSetItemFields {
+    pub column: SyntaxResult<PsqlName>,
+    pub eq_token: SyntaxResult<SyntaxToken>,
+    pub expr: SyntaxResult<AnyPsqlExpression>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct PsqlShemaName {
@@ -983,41 +1328,6 @@ impl Serialize for PsqlStar {
 #[derive(Serialize)]
 pub struct PsqlStarFields {
     pub value_token: SyntaxResult<SyntaxToken>,
-}
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub struct PsqlStmt {
-    pub(crate) syntax: SyntaxNode,
-}
-impl PsqlStmt {
-    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
-    #[doc = r""]
-    #[doc = r" # Safety"]
-    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
-    #[doc = r" or a match on [SyntaxNode::kind]"]
-    #[inline]
-    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
-        Self { syntax }
-    }
-    pub fn as_fields(&self) -> PsqlStmtFields {
-        PsqlStmtFields {
-            psql_select_stmt: self.psql_select_stmt(),
-        }
-    }
-    pub fn psql_select_stmt(&self) -> SyntaxResult<PsqlSelectStmt> {
-        support::required_node(&self.syntax, 0usize)
-    }
-}
-impl Serialize for PsqlStmt {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.as_fields().serialize(serializer)
-    }
-}
-#[derive(Serialize)]
-pub struct PsqlStmtFields {
-    pub psql_select_stmt: SyntaxResult<PsqlSelectStmt>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct PsqlStringLiteralExpression {
@@ -1235,6 +1545,61 @@ pub struct PsqlTableNameFields {
     pub name: SyntaxResult<PsqlName>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
+pub struct PsqlUpdateStmt {
+    pub(crate) syntax: SyntaxNode,
+}
+impl PsqlUpdateStmt {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub const unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self { syntax }
+    }
+    pub fn as_fields(&self) -> PsqlUpdateStmtFields {
+        PsqlUpdateStmtFields {
+            update_token: self.update_token(),
+            table: self.table(),
+            set_clause: self.set_clause(),
+            where_clause: self.where_clause(),
+            semicolon_token: self.semicolon_token(),
+        }
+    }
+    pub fn update_token(&self) -> SyntaxResult<SyntaxToken> {
+        support::required_token(&self.syntax, 0usize)
+    }
+    pub fn table(&self) -> SyntaxResult<PsqlTableBinding> {
+        support::required_node(&self.syntax, 1usize)
+    }
+    pub fn set_clause(&self) -> SyntaxResult<PsqlSetClause> {
+        support::required_node(&self.syntax, 2usize)
+    }
+    pub fn where_clause(&self) -> Option<PsqlWhereClause> {
+        support::node(&self.syntax, 3usize)
+    }
+    pub fn semicolon_token(&self) -> Option<SyntaxToken> {
+        support::token(&self.syntax, 4usize)
+    }
+}
+impl Serialize for PsqlUpdateStmt {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.as_fields().serialize(serializer)
+    }
+}
+#[derive(Serialize)]
+pub struct PsqlUpdateStmtFields {
+    pub update_token: SyntaxResult<SyntaxToken>,
+    pub table: SyntaxResult<PsqlTableBinding>,
+    pub set_clause: SyntaxResult<PsqlSetClause>,
+    pub where_clause: Option<PsqlWhereClause>,
+    pub semicolon_token: Option<SyntaxToken>,
+}
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct PsqlWhereClause {
     pub(crate) syntax: SyntaxNode,
 }
@@ -1251,13 +1616,13 @@ impl PsqlWhereClause {
     pub fn as_fields(&self) -> PsqlWhereClauseFields {
         PsqlWhereClauseFields {
             where_token: self.where_token(),
-            any_psql_expression: self.any_psql_expression(),
+            condition: self.condition(),
         }
     }
     pub fn where_token(&self) -> SyntaxResult<SyntaxToken> {
         support::required_token(&self.syntax, 0usize)
     }
-    pub fn any_psql_expression(&self) -> SyntaxResult<AnyPsqlExpression> {
+    pub fn condition(&self) -> SyntaxResult<AnyPsqlExpression> {
         support::required_node(&self.syntax, 1usize)
     }
 }
@@ -1272,7 +1637,7 @@ impl Serialize for PsqlWhereClause {
 #[derive(Serialize)]
 pub struct PsqlWhereClauseFields {
     pub where_token: SyntaxResult<SyntaxToken>,
-    pub any_psql_expression: SyntaxResult<AnyPsqlExpression>,
+    pub condition: SyntaxResult<AnyPsqlExpression>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, Serialize)]
 pub enum AnyPsqlExpression {
@@ -1355,6 +1720,25 @@ impl AnyPsqlFromExpression {
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, Serialize)]
+pub enum AnyPsqlInsertSource {
+    PsqlInsertValues(PsqlInsertValues),
+    PsqlSelectStmt(PsqlSelectStmt),
+}
+impl AnyPsqlInsertSource {
+    pub fn as_psql_insert_values(&self) -> Option<&PsqlInsertValues> {
+        match &self {
+            Self::PsqlInsertValues(item) => Some(item),
+            _ => None,
+        }
+    }
+    pub fn as_psql_select_stmt(&self) -> Option<&PsqlSelectStmt> {
+        match &self {
+            Self::PsqlSelectStmt(item) => Some(item),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, Serialize)]
 pub enum AnyPsqlSelectItem {
     AnyPsqlExpression(AnyPsqlExpression),
     PsqlStar(PsqlStar),
@@ -1369,6 +1753,39 @@ impl AnyPsqlSelectItem {
     pub fn as_psql_star(&self) -> Option<&PsqlStar> {
         match &self {
             Self::PsqlStar(item) => Some(item),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, Serialize)]
+pub enum AnyPsqlStmt {
+    PsqlDeleteStmt(PsqlDeleteStmt),
+    PsqlInsertStmt(PsqlInsertStmt),
+    PsqlSelectStmt(PsqlSelectStmt),
+    PsqlUpdateStmt(PsqlUpdateStmt),
+}
+impl AnyPsqlStmt {
+    pub fn as_psql_delete_stmt(&self) -> Option<&PsqlDeleteStmt> {
+        match &self {
+            Self::PsqlDeleteStmt(item) => Some(item),
+            _ => None,
+        }
+    }
+    pub fn as_psql_insert_stmt(&self) -> Option<&PsqlInsertStmt> {
+        match &self {
+            Self::PsqlInsertStmt(item) => Some(item),
+            _ => None,
+        }
+    }
+    pub fn as_psql_select_stmt(&self) -> Option<&PsqlSelectStmt> {
+        match &self {
+            Self::PsqlSelectStmt(item) => Some(item),
+            _ => None,
+        }
+    }
+    pub fn as_psql_update_stmt(&self) -> Option<&PsqlUpdateStmt> {
+        match &self {
+            Self::PsqlUpdateStmt(item) => Some(item),
             _ => None,
         }
     }
@@ -1616,6 +2033,121 @@ impl From<PsqlDataBaseName> for SyntaxElement {
         n.syntax.into()
     }
 }
+impl AstNode for PsqlDeleteStmt {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(PSQL_DELETE_STMT as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == PSQL_DELETE_STMT
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for PsqlDeleteStmt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        thread_local! { static DEPTH : std :: cell :: Cell < u8 > = const { std :: cell :: Cell :: new (0) } };
+        let current_depth = DEPTH.get();
+        let result = if current_depth < 16 {
+            DEPTH.set(current_depth + 1);
+            f.debug_struct("PsqlDeleteStmt")
+                .field(
+                    "delete_token",
+                    &support::DebugSyntaxResult(self.delete_token()),
+                )
+                .field("from_token", &support::DebugSyntaxResult(self.from_token()))
+                .field("table", &support::DebugSyntaxResult(self.table()))
+                .field("using", &support::DebugOptionalElement(self.using()))
+                .field(
+                    "where_clause",
+                    &support::DebugOptionalElement(self.where_clause()),
+                )
+                .field(
+                    "semicolon_token",
+                    &support::DebugOptionalElement(self.semicolon_token()),
+                )
+                .finish()
+        } else {
+            f.debug_struct("PsqlDeleteStmt").finish()
+        };
+        DEPTH.set(current_depth);
+        result
+    }
+}
+impl From<PsqlDeleteStmt> for SyntaxNode {
+    fn from(n: PsqlDeleteStmt) -> Self {
+        n.syntax
+    }
+}
+impl From<PsqlDeleteStmt> for SyntaxElement {
+    fn from(n: PsqlDeleteStmt) -> Self {
+        n.syntax.into()
+    }
+}
+impl AstNode for PsqlDeleteUsingClause {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(PSQL_DELETE_USING_CLAUSE as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == PSQL_DELETE_USING_CLAUSE
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for PsqlDeleteUsingClause {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        thread_local! { static DEPTH : std :: cell :: Cell < u8 > = const { std :: cell :: Cell :: new (0) } };
+        let current_depth = DEPTH.get();
+        let result = if current_depth < 16 {
+            DEPTH.set(current_depth + 1);
+            f.debug_struct("PsqlDeleteUsingClause")
+                .field(
+                    "using_token",
+                    &support::DebugSyntaxResult(self.using_token()),
+                )
+                .field(
+                    "any_psql_from_expression",
+                    &support::DebugSyntaxResult(self.any_psql_from_expression()),
+                )
+                .finish()
+        } else {
+            f.debug_struct("PsqlDeleteUsingClause").finish()
+        };
+        DEPTH.set(current_depth);
+        result
+    }
+}
+impl From<PsqlDeleteUsingClause> for SyntaxNode {
+    fn from(n: PsqlDeleteUsingClause) -> Self {
+        n.syntax
+    }
+}
+impl From<PsqlDeleteUsingClause> for SyntaxElement {
+    fn from(n: PsqlDeleteUsingClause) -> Self {
+        n.syntax.into()
+    }
+}
 impl AstNode for PsqlFromClause {
     type Language = Language;
     const KIND_SET: SyntaxKindSet<Language> =
@@ -1645,10 +2177,7 @@ impl std::fmt::Debug for PsqlFromClause {
             DEPTH.set(current_depth + 1);
             f.debug_struct("PsqlFromClause")
                 .field("from_token", &support::DebugSyntaxResult(self.from_token()))
-                .field(
-                    "any_psql_from_expression",
-                    &support::DebugSyntaxResult(self.any_psql_from_expression()),
-                )
+                .field("clause", &support::DebugSyntaxResult(self.clause()))
                 .finish()
         } else {
             f.debug_struct("PsqlFromClause").finish()
@@ -1757,7 +2286,7 @@ impl std::fmt::Debug for PsqlGroupByClause {
                     "group_by_token",
                     &support::DebugSyntaxResult(self.group_by_token()),
                 )
-                .field("list", &self.list())
+                .field("items", &self.items())
                 .finish()
         } else {
             f.debug_struct("PsqlGroupByClause").finish()
@@ -1808,10 +2337,7 @@ impl std::fmt::Debug for PsqlHavingClause {
                     "having_token",
                     &support::DebugSyntaxResult(self.having_token()),
                 )
-                .field(
-                    "any_psql_expression",
-                    &support::DebugSyntaxResult(self.any_psql_expression()),
-                )
+                .field("condition", &support::DebugSyntaxResult(self.condition()))
                 .finish()
         } else {
             f.debug_struct("PsqlHavingClause").finish()
@@ -1827,6 +2353,178 @@ impl From<PsqlHavingClause> for SyntaxNode {
 }
 impl From<PsqlHavingClause> for SyntaxElement {
     fn from(n: PsqlHavingClause) -> Self {
+        n.syntax.into()
+    }
+}
+impl AstNode for PsqlInsertColumns {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(PSQL_INSERT_COLUMNS as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == PSQL_INSERT_COLUMNS
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for PsqlInsertColumns {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        thread_local! { static DEPTH : std :: cell :: Cell < u8 > = const { std :: cell :: Cell :: new (0) } };
+        let current_depth = DEPTH.get();
+        let result = if current_depth < 16 {
+            DEPTH.set(current_depth + 1);
+            f.debug_struct("PsqlInsertColumns")
+                .field(
+                    "l_paren_token",
+                    &support::DebugSyntaxResult(self.l_paren_token()),
+                )
+                .field("items", &self.items())
+                .field(
+                    "r_paren_token",
+                    &support::DebugSyntaxResult(self.r_paren_token()),
+                )
+                .finish()
+        } else {
+            f.debug_struct("PsqlInsertColumns").finish()
+        };
+        DEPTH.set(current_depth);
+        result
+    }
+}
+impl From<PsqlInsertColumns> for SyntaxNode {
+    fn from(n: PsqlInsertColumns) -> Self {
+        n.syntax
+    }
+}
+impl From<PsqlInsertColumns> for SyntaxElement {
+    fn from(n: PsqlInsertColumns) -> Self {
+        n.syntax.into()
+    }
+}
+impl AstNode for PsqlInsertStmt {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(PSQL_INSERT_STMT as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == PSQL_INSERT_STMT
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for PsqlInsertStmt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        thread_local! { static DEPTH : std :: cell :: Cell < u8 > = const { std :: cell :: Cell :: new (0) } };
+        let current_depth = DEPTH.get();
+        let result = if current_depth < 16 {
+            DEPTH.set(current_depth + 1);
+            f.debug_struct("PsqlInsertStmt")
+                .field(
+                    "insert_token",
+                    &support::DebugSyntaxResult(self.insert_token()),
+                )
+                .field("into_token", &support::DebugSyntaxResult(self.into_token()))
+                .field("table", &support::DebugSyntaxResult(self.table()))
+                .field("columns", &support::DebugOptionalElement(self.columns()))
+                .field("source", &support::DebugSyntaxResult(self.source()))
+                .field(
+                    "semicolon_token",
+                    &support::DebugOptionalElement(self.semicolon_token()),
+                )
+                .finish()
+        } else {
+            f.debug_struct("PsqlInsertStmt").finish()
+        };
+        DEPTH.set(current_depth);
+        result
+    }
+}
+impl From<PsqlInsertStmt> for SyntaxNode {
+    fn from(n: PsqlInsertStmt) -> Self {
+        n.syntax
+    }
+}
+impl From<PsqlInsertStmt> for SyntaxElement {
+    fn from(n: PsqlInsertStmt) -> Self {
+        n.syntax.into()
+    }
+}
+impl AstNode for PsqlInsertValues {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(PSQL_INSERT_VALUES as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == PSQL_INSERT_VALUES
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for PsqlInsertValues {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        thread_local! { static DEPTH : std :: cell :: Cell < u8 > = const { std :: cell :: Cell :: new (0) } };
+        let current_depth = DEPTH.get();
+        let result = if current_depth < 16 {
+            DEPTH.set(current_depth + 1);
+            f.debug_struct("PsqlInsertValues")
+                .field(
+                    "values_token",
+                    &support::DebugSyntaxResult(self.values_token()),
+                )
+                .field(
+                    "l_paren_token",
+                    &support::DebugSyntaxResult(self.l_paren_token()),
+                )
+                .field("items", &self.items())
+                .field(
+                    "r_paren_token",
+                    &support::DebugSyntaxResult(self.r_paren_token()),
+                )
+                .finish()
+        } else {
+            f.debug_struct("PsqlInsertValues").finish()
+        };
+        DEPTH.set(current_depth);
+        result
+    }
+}
+impl From<PsqlInsertValues> for SyntaxNode {
+    fn from(n: PsqlInsertValues) -> Self {
+        n.syntax
+    }
+}
+impl From<PsqlInsertValues> for SyntaxElement {
+    fn from(n: PsqlInsertValues) -> Self {
         n.syntax.into()
     }
 }
@@ -2169,7 +2867,7 @@ impl std::fmt::Debug for PsqlOrderByClause {
                     "order_by_token",
                     &support::DebugSyntaxResult(self.order_by_token()),
                 )
-                .field("list", &self.list())
+                .field("items", &self.items())
                 .finish()
         } else {
             f.debug_struct("PsqlOrderByClause").finish()
@@ -2450,6 +3148,10 @@ impl std::fmt::Debug for PsqlSelectStmt {
                     "offset_clause",
                     &support::DebugOptionalElement(self.offset_clause()),
                 )
+                .field(
+                    "semicolon_token",
+                    &support::DebugOptionalElement(self.semicolon_token()),
+                )
                 .finish()
         } else {
             f.debug_struct("PsqlSelectStmt").finish()
@@ -2465,6 +3167,103 @@ impl From<PsqlSelectStmt> for SyntaxNode {
 }
 impl From<PsqlSelectStmt> for SyntaxElement {
     fn from(n: PsqlSelectStmt) -> Self {
+        n.syntax.into()
+    }
+}
+impl AstNode for PsqlSetClause {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(PSQL_SET_CLAUSE as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == PSQL_SET_CLAUSE
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for PsqlSetClause {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        thread_local! { static DEPTH : std :: cell :: Cell < u8 > = const { std :: cell :: Cell :: new (0) } };
+        let current_depth = DEPTH.get();
+        let result = if current_depth < 16 {
+            DEPTH.set(current_depth + 1);
+            f.debug_struct("PsqlSetClause")
+                .field("set_token", &support::DebugSyntaxResult(self.set_token()))
+                .field("items", &self.items())
+                .finish()
+        } else {
+            f.debug_struct("PsqlSetClause").finish()
+        };
+        DEPTH.set(current_depth);
+        result
+    }
+}
+impl From<PsqlSetClause> for SyntaxNode {
+    fn from(n: PsqlSetClause) -> Self {
+        n.syntax
+    }
+}
+impl From<PsqlSetClause> for SyntaxElement {
+    fn from(n: PsqlSetClause) -> Self {
+        n.syntax.into()
+    }
+}
+impl AstNode for PsqlSetItem {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(PSQL_SET_ITEM as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == PSQL_SET_ITEM
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for PsqlSetItem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        thread_local! { static DEPTH : std :: cell :: Cell < u8 > = const { std :: cell :: Cell :: new (0) } };
+        let current_depth = DEPTH.get();
+        let result = if current_depth < 16 {
+            DEPTH.set(current_depth + 1);
+            f.debug_struct("PsqlSetItem")
+                .field("column", &support::DebugSyntaxResult(self.column()))
+                .field("eq_token", &support::DebugSyntaxResult(self.eq_token()))
+                .field("expr", &support::DebugSyntaxResult(self.expr()))
+                .finish()
+        } else {
+            f.debug_struct("PsqlSetItem").finish()
+        };
+        DEPTH.set(current_depth);
+        result
+    }
+}
+impl From<PsqlSetItem> for SyntaxNode {
+    fn from(n: PsqlSetItem) -> Self {
+        n.syntax
+    }
+}
+impl From<PsqlSetItem> for SyntaxElement {
+    fn from(n: PsqlSetItem) -> Self {
         n.syntax.into()
     }
 }
@@ -2564,56 +3363,6 @@ impl From<PsqlStar> for SyntaxNode {
 }
 impl From<PsqlStar> for SyntaxElement {
     fn from(n: PsqlStar) -> Self {
-        n.syntax.into()
-    }
-}
-impl AstNode for PsqlStmt {
-    type Language = Language;
-    const KIND_SET: SyntaxKindSet<Language> =
-        SyntaxKindSet::from_raw(RawSyntaxKind(PSQL_STMT as u16));
-    fn can_cast(kind: SyntaxKind) -> bool {
-        kind == PSQL_STMT
-    }
-    fn cast(syntax: SyntaxNode) -> Option<Self> {
-        if Self::can_cast(syntax.kind()) {
-            Some(Self { syntax })
-        } else {
-            None
-        }
-    }
-    fn syntax(&self) -> &SyntaxNode {
-        &self.syntax
-    }
-    fn into_syntax(self) -> SyntaxNode {
-        self.syntax
-    }
-}
-impl std::fmt::Debug for PsqlStmt {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        thread_local! { static DEPTH : std :: cell :: Cell < u8 > = const { std :: cell :: Cell :: new (0) } };
-        let current_depth = DEPTH.get();
-        let result = if current_depth < 16 {
-            DEPTH.set(current_depth + 1);
-            f.debug_struct("PsqlStmt")
-                .field(
-                    "psql_select_stmt",
-                    &support::DebugSyntaxResult(self.psql_select_stmt()),
-                )
-                .finish()
-        } else {
-            f.debug_struct("PsqlStmt").finish()
-        };
-        DEPTH.set(current_depth);
-        result
-    }
-}
-impl From<PsqlStmt> for SyntaxNode {
-    fn from(n: PsqlStmt) -> Self {
-        n.syntax
-    }
-}
-impl From<PsqlStmt> for SyntaxElement {
-    fn from(n: PsqlStmt) -> Self {
         n.syntax.into()
     }
 }
@@ -2872,6 +3621,66 @@ impl From<PsqlTableName> for SyntaxElement {
         n.syntax.into()
     }
 }
+impl AstNode for PsqlUpdateStmt {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(PSQL_UPDATE_STMT as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == PSQL_UPDATE_STMT
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self { syntax })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        &self.syntax
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax
+    }
+}
+impl std::fmt::Debug for PsqlUpdateStmt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        thread_local! { static DEPTH : std :: cell :: Cell < u8 > = const { std :: cell :: Cell :: new (0) } };
+        let current_depth = DEPTH.get();
+        let result = if current_depth < 16 {
+            DEPTH.set(current_depth + 1);
+            f.debug_struct("PsqlUpdateStmt")
+                .field(
+                    "update_token",
+                    &support::DebugSyntaxResult(self.update_token()),
+                )
+                .field("table", &support::DebugSyntaxResult(self.table()))
+                .field("set_clause", &support::DebugSyntaxResult(self.set_clause()))
+                .field(
+                    "where_clause",
+                    &support::DebugOptionalElement(self.where_clause()),
+                )
+                .field(
+                    "semicolon_token",
+                    &support::DebugOptionalElement(self.semicolon_token()),
+                )
+                .finish()
+        } else {
+            f.debug_struct("PsqlUpdateStmt").finish()
+        };
+        DEPTH.set(current_depth);
+        result
+    }
+}
+impl From<PsqlUpdateStmt> for SyntaxNode {
+    fn from(n: PsqlUpdateStmt) -> Self {
+        n.syntax
+    }
+}
+impl From<PsqlUpdateStmt> for SyntaxElement {
+    fn from(n: PsqlUpdateStmt) -> Self {
+        n.syntax.into()
+    }
+}
 impl AstNode for PsqlWhereClause {
     type Language = Language;
     const KIND_SET: SyntaxKindSet<Language> =
@@ -2904,10 +3713,7 @@ impl std::fmt::Debug for PsqlWhereClause {
                     "where_token",
                     &support::DebugSyntaxResult(self.where_token()),
                 )
-                .field(
-                    "any_psql_expression",
-                    &support::DebugSyntaxResult(self.any_psql_expression()),
-                )
+                .field("condition", &support::DebugSyntaxResult(self.condition()))
                 .finish()
         } else {
             f.debug_struct("PsqlWhereClause").finish()
@@ -3130,6 +3936,66 @@ impl From<AnyPsqlFromExpression> for SyntaxElement {
         node.into()
     }
 }
+impl From<PsqlInsertValues> for AnyPsqlInsertSource {
+    fn from(node: PsqlInsertValues) -> Self {
+        Self::PsqlInsertValues(node)
+    }
+}
+impl From<PsqlSelectStmt> for AnyPsqlInsertSource {
+    fn from(node: PsqlSelectStmt) -> Self {
+        Self::PsqlSelectStmt(node)
+    }
+}
+impl AstNode for AnyPsqlInsertSource {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        PsqlInsertValues::KIND_SET.union(PsqlSelectStmt::KIND_SET);
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(kind, PSQL_INSERT_VALUES | PSQL_SELECT_STMT)
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        let res = match syntax.kind() {
+            PSQL_INSERT_VALUES => Self::PsqlInsertValues(PsqlInsertValues { syntax }),
+            PSQL_SELECT_STMT => Self::PsqlSelectStmt(PsqlSelectStmt { syntax }),
+            _ => return None,
+        };
+        Some(res)
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        match self {
+            Self::PsqlInsertValues(it) => &it.syntax,
+            Self::PsqlSelectStmt(it) => &it.syntax,
+        }
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        match self {
+            Self::PsqlInsertValues(it) => it.syntax,
+            Self::PsqlSelectStmt(it) => it.syntax,
+        }
+    }
+}
+impl std::fmt::Debug for AnyPsqlInsertSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::PsqlInsertValues(it) => std::fmt::Debug::fmt(it, f),
+            Self::PsqlSelectStmt(it) => std::fmt::Debug::fmt(it, f),
+        }
+    }
+}
+impl From<AnyPsqlInsertSource> for SyntaxNode {
+    fn from(n: AnyPsqlInsertSource) -> Self {
+        match n {
+            AnyPsqlInsertSource::PsqlInsertValues(it) => it.into(),
+            AnyPsqlInsertSource::PsqlSelectStmt(it) => it.into(),
+        }
+    }
+}
+impl From<AnyPsqlInsertSource> for SyntaxElement {
+    fn from(n: AnyPsqlInsertSource) -> Self {
+        let node: SyntaxNode = n.into();
+        node.into()
+    }
+}
 impl From<PsqlStar> for AnyPsqlSelectItem {
     fn from(node: PsqlStar) -> Self {
         Self::PsqlStar(node)
@@ -3192,6 +4058,91 @@ impl From<AnyPsqlSelectItem> for SyntaxElement {
         node.into()
     }
 }
+impl From<PsqlDeleteStmt> for AnyPsqlStmt {
+    fn from(node: PsqlDeleteStmt) -> Self {
+        Self::PsqlDeleteStmt(node)
+    }
+}
+impl From<PsqlInsertStmt> for AnyPsqlStmt {
+    fn from(node: PsqlInsertStmt) -> Self {
+        Self::PsqlInsertStmt(node)
+    }
+}
+impl From<PsqlSelectStmt> for AnyPsqlStmt {
+    fn from(node: PsqlSelectStmt) -> Self {
+        Self::PsqlSelectStmt(node)
+    }
+}
+impl From<PsqlUpdateStmt> for AnyPsqlStmt {
+    fn from(node: PsqlUpdateStmt) -> Self {
+        Self::PsqlUpdateStmt(node)
+    }
+}
+impl AstNode for AnyPsqlStmt {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> = PsqlDeleteStmt::KIND_SET
+        .union(PsqlInsertStmt::KIND_SET)
+        .union(PsqlSelectStmt::KIND_SET)
+        .union(PsqlUpdateStmt::KIND_SET);
+    fn can_cast(kind: SyntaxKind) -> bool {
+        matches!(
+            kind,
+            PSQL_DELETE_STMT | PSQL_INSERT_STMT | PSQL_SELECT_STMT | PSQL_UPDATE_STMT
+        )
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        let res = match syntax.kind() {
+            PSQL_DELETE_STMT => Self::PsqlDeleteStmt(PsqlDeleteStmt { syntax }),
+            PSQL_INSERT_STMT => Self::PsqlInsertStmt(PsqlInsertStmt { syntax }),
+            PSQL_SELECT_STMT => Self::PsqlSelectStmt(PsqlSelectStmt { syntax }),
+            PSQL_UPDATE_STMT => Self::PsqlUpdateStmt(PsqlUpdateStmt { syntax }),
+            _ => return None,
+        };
+        Some(res)
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        match self {
+            Self::PsqlDeleteStmt(it) => &it.syntax,
+            Self::PsqlInsertStmt(it) => &it.syntax,
+            Self::PsqlSelectStmt(it) => &it.syntax,
+            Self::PsqlUpdateStmt(it) => &it.syntax,
+        }
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        match self {
+            Self::PsqlDeleteStmt(it) => it.syntax,
+            Self::PsqlInsertStmt(it) => it.syntax,
+            Self::PsqlSelectStmt(it) => it.syntax,
+            Self::PsqlUpdateStmt(it) => it.syntax,
+        }
+    }
+}
+impl std::fmt::Debug for AnyPsqlStmt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::PsqlDeleteStmt(it) => std::fmt::Debug::fmt(it, f),
+            Self::PsqlInsertStmt(it) => std::fmt::Debug::fmt(it, f),
+            Self::PsqlSelectStmt(it) => std::fmt::Debug::fmt(it, f),
+            Self::PsqlUpdateStmt(it) => std::fmt::Debug::fmt(it, f),
+        }
+    }
+}
+impl From<AnyPsqlStmt> for SyntaxNode {
+    fn from(n: AnyPsqlStmt) -> Self {
+        match n {
+            AnyPsqlStmt::PsqlDeleteStmt(it) => it.into(),
+            AnyPsqlStmt::PsqlInsertStmt(it) => it.into(),
+            AnyPsqlStmt::PsqlSelectStmt(it) => it.into(),
+            AnyPsqlStmt::PsqlUpdateStmt(it) => it.into(),
+        }
+    }
+}
+impl From<AnyPsqlStmt> for SyntaxElement {
+    fn from(n: AnyPsqlStmt) -> Self {
+        let node: SyntaxNode = n.into();
+        node.into()
+    }
+}
 impl std::fmt::Display for AnyPsqlExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
@@ -3202,7 +4153,17 @@ impl std::fmt::Display for AnyPsqlFromExpression {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
+impl std::fmt::Display for AnyPsqlInsertSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
 impl std::fmt::Display for AnyPsqlSelectItem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for AnyPsqlStmt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
@@ -3232,6 +4193,16 @@ impl std::fmt::Display for PsqlDataBaseName {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
+impl std::fmt::Display for PsqlDeleteStmt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for PsqlDeleteUsingClause {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
 impl std::fmt::Display for PsqlFromClause {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
@@ -3248,6 +4219,21 @@ impl std::fmt::Display for PsqlGroupByClause {
     }
 }
 impl std::fmt::Display for PsqlHavingClause {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for PsqlInsertColumns {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for PsqlInsertStmt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for PsqlInsertValues {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
@@ -3312,17 +4298,22 @@ impl std::fmt::Display for PsqlSelectStmt {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
+impl std::fmt::Display for PsqlSetClause {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for PsqlSetItem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
 impl std::fmt::Display for PsqlShemaName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
 }
 impl std::fmt::Display for PsqlStar {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(self.syntax(), f)
-    }
-}
-impl std::fmt::Display for PsqlStmt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
@@ -3348,6 +4339,11 @@ impl std::fmt::Display for PsqlTableColReference {
     }
 }
 impl std::fmt::Display for PsqlTableName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self.syntax(), f)
+    }
+}
+impl std::fmt::Display for PsqlUpdateStmt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self.syntax(), f)
     }
@@ -3751,10 +4747,10 @@ impl From<PsqlBogusStatement> for SyntaxElement {
 }
 biome_rowan::declare_node_union! { pub AnyPsqlBogusNode = PsqlBogus | PsqlBogusAssignment | PsqlBogusBinding | PsqlBogusExpression | PsqlBogusMember | PsqlBogusParameter | PsqlBogusStatement }
 #[derive(Clone, Eq, PartialEq, Hash)]
-pub struct PsqlArgumentList {
+pub struct PsqlExpressionList {
     syntax_list: SyntaxList,
 }
-impl PsqlArgumentList {
+impl PsqlExpressionList {
     #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
     #[doc = r""]
     #[doc = r" # Safety"]
@@ -3767,12 +4763,12 @@ impl PsqlArgumentList {
         }
     }
 }
-impl AstNode for PsqlArgumentList {
+impl AstNode for PsqlExpressionList {
     type Language = Language;
     const KIND_SET: SyntaxKindSet<Language> =
-        SyntaxKindSet::from_raw(RawSyntaxKind(PSQL_ARGUMENT_LIST as u16));
+        SyntaxKindSet::from_raw(RawSyntaxKind(PSQL_EXPRESSION_LIST as u16));
     fn can_cast(kind: SyntaxKind) -> bool {
-        kind == PSQL_ARGUMENT_LIST
+        kind == PSQL_EXPRESSION_LIST
     }
     fn cast(syntax: SyntaxNode) -> Option<Self> {
         if Self::can_cast(syntax.kind()) {
@@ -3790,7 +4786,7 @@ impl AstNode for PsqlArgumentList {
         self.syntax_list.into_node()
     }
 }
-impl Serialize for PsqlArgumentList {
+impl Serialize for PsqlExpressionList {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -3802,7 +4798,7 @@ impl Serialize for PsqlArgumentList {
         seq.end()
     }
 }
-impl AstSeparatedList for PsqlArgumentList {
+impl AstSeparatedList for PsqlExpressionList {
     type Language = Language;
     type Node = AnyPsqlExpression;
     fn syntax_list(&self) -> &SyntaxList {
@@ -3812,20 +4808,20 @@ impl AstSeparatedList for PsqlArgumentList {
         self.syntax_list
     }
 }
-impl Debug for PsqlArgumentList {
+impl Debug for PsqlExpressionList {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str("PsqlArgumentList ")?;
+        f.write_str("PsqlExpressionList ")?;
         f.debug_list().entries(self.elements()).finish()
     }
 }
-impl IntoIterator for PsqlArgumentList {
+impl IntoIterator for PsqlExpressionList {
     type Item = SyntaxResult<AnyPsqlExpression>;
     type IntoIter = AstSeparatedListNodesIterator<Language, AnyPsqlExpression>;
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }
 }
-impl IntoIterator for &PsqlArgumentList {
+impl IntoIterator for &PsqlExpressionList {
     type Item = SyntaxResult<AnyPsqlExpression>;
     type IntoIter = AstSeparatedListNodesIterator<Language, AnyPsqlExpression>;
     fn into_iter(self) -> Self::IntoIter {
@@ -3910,6 +4906,88 @@ impl IntoIterator for PsqlGroupByItemList {
 impl IntoIterator for &PsqlGroupByItemList {
     type Item = SyntaxResult<AnyPsqlExpression>;
     type IntoIter = AstSeparatedListNodesIterator<Language, AnyPsqlExpression>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+#[derive(Clone, Eq, PartialEq, Hash)]
+pub struct PsqlInsertColumnList {
+    syntax_list: SyntaxList,
+}
+impl PsqlInsertColumnList {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self {
+            syntax_list: syntax.into_list(),
+        }
+    }
+}
+impl AstNode for PsqlInsertColumnList {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(PSQL_INSERT_COLUMN_LIST as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == PSQL_INSERT_COLUMN_LIST
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self {
+                syntax_list: syntax.into_list(),
+            })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        self.syntax_list.node()
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax_list.into_node()
+    }
+}
+impl Serialize for PsqlInsertColumnList {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.len()))?;
+        for e in self.iter() {
+            seq.serialize_element(&e)?;
+        }
+        seq.end()
+    }
+}
+impl AstSeparatedList for PsqlInsertColumnList {
+    type Language = Language;
+    type Node = PsqlName;
+    fn syntax_list(&self) -> &SyntaxList {
+        &self.syntax_list
+    }
+    fn into_syntax_list(self) -> SyntaxList {
+        self.syntax_list
+    }
+}
+impl Debug for PsqlInsertColumnList {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("PsqlInsertColumnList ")?;
+        f.debug_list().entries(self.elements()).finish()
+    }
+}
+impl IntoIterator for PsqlInsertColumnList {
+    type Item = SyntaxResult<PsqlName>;
+    type IntoIter = AstSeparatedListNodesIterator<Language, PsqlName>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+impl IntoIterator for &PsqlInsertColumnList {
+    type Item = SyntaxResult<PsqlName>;
+    type IntoIter = AstSeparatedListNodesIterator<Language, PsqlName>;
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }
@@ -4079,6 +5157,88 @@ impl IntoIterator for &PsqlSelectItemList {
     }
 }
 #[derive(Clone, Eq, PartialEq, Hash)]
+pub struct PsqlSetItemList {
+    syntax_list: SyntaxList,
+}
+impl PsqlSetItemList {
+    #[doc = r" Create an AstNode from a SyntaxNode without checking its kind"]
+    #[doc = r""]
+    #[doc = r" # Safety"]
+    #[doc = r" This function must be guarded with a call to [AstNode::can_cast]"]
+    #[doc = r" or a match on [SyntaxNode::kind]"]
+    #[inline]
+    pub unsafe fn new_unchecked(syntax: SyntaxNode) -> Self {
+        Self {
+            syntax_list: syntax.into_list(),
+        }
+    }
+}
+impl AstNode for PsqlSetItemList {
+    type Language = Language;
+    const KIND_SET: SyntaxKindSet<Language> =
+        SyntaxKindSet::from_raw(RawSyntaxKind(PSQL_SET_ITEM_LIST as u16));
+    fn can_cast(kind: SyntaxKind) -> bool {
+        kind == PSQL_SET_ITEM_LIST
+    }
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        if Self::can_cast(syntax.kind()) {
+            Some(Self {
+                syntax_list: syntax.into_list(),
+            })
+        } else {
+            None
+        }
+    }
+    fn syntax(&self) -> &SyntaxNode {
+        self.syntax_list.node()
+    }
+    fn into_syntax(self) -> SyntaxNode {
+        self.syntax_list.into_node()
+    }
+}
+impl Serialize for PsqlSetItemList {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.len()))?;
+        for e in self.iter() {
+            seq.serialize_element(&e)?;
+        }
+        seq.end()
+    }
+}
+impl AstSeparatedList for PsqlSetItemList {
+    type Language = Language;
+    type Node = PsqlSetItem;
+    fn syntax_list(&self) -> &SyntaxList {
+        &self.syntax_list
+    }
+    fn into_syntax_list(self) -> SyntaxList {
+        self.syntax_list
+    }
+}
+impl Debug for PsqlSetItemList {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("PsqlSetItemList ")?;
+        f.debug_list().entries(self.elements()).finish()
+    }
+}
+impl IntoIterator for PsqlSetItemList {
+    type Item = SyntaxResult<PsqlSetItem>;
+    type IntoIter = AstSeparatedListNodesIterator<Language, PsqlSetItem>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+impl IntoIterator for &PsqlSetItemList {
+    type Item = SyntaxResult<PsqlSetItem>;
+    type IntoIter = AstSeparatedListNodesIterator<Language, PsqlSetItem>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub struct PsqlStmtList {
     syntax_list: SyntaxList,
 }
@@ -4132,7 +5292,7 @@ impl Serialize for PsqlStmtList {
 }
 impl AstNodeList for PsqlStmtList {
     type Language = Language;
-    type Node = PsqlStmt;
+    type Node = AnyPsqlStmt;
     fn syntax_list(&self) -> &SyntaxList {
         &self.syntax_list
     }
@@ -4147,15 +5307,15 @@ impl Debug for PsqlStmtList {
     }
 }
 impl IntoIterator for &PsqlStmtList {
-    type Item = PsqlStmt;
-    type IntoIter = AstNodeListIterator<Language, PsqlStmt>;
+    type Item = AnyPsqlStmt;
+    type IntoIter = AstNodeListIterator<Language, AnyPsqlStmt>;
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }
 }
 impl IntoIterator for PsqlStmtList {
-    type Item = PsqlStmt;
-    type IntoIter = AstNodeListIterator<Language, PsqlStmt>;
+    type Item = AnyPsqlStmt;
+    type IntoIter = AstNodeListIterator<Language, AnyPsqlStmt>;
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }
