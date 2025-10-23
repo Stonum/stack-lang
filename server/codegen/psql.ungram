@@ -1,0 +1,199 @@
+// Psql Un-Grammar.
+//
+// This grammar specifies the structure of Rust's concrete syntax tree.
+// It does not specify parsing rules (ambiguities, precedence, etc are out of scope).
+// Tokens are processed -- contextual keywords are recognised, compound operators glued.
+//
+// Legend:
+//
+//   //          				-- comment
+//   Name =      				-- non-terminal definition
+//   'ident'     				-- token (terminal)
+//   A B         				-- sequence
+//   A | B       				-- alternation
+//   A*          				-- zero or Psqlore repetition
+//   (A (',' A)* ','?)	        -- repetition of node A separated by ',' and allowing a trailing comma
+//   (A (',' A)*)	            -- repetition of node A separated by ',' without a trailing comma
+//   A?          				-- zero or one repetition
+//   (A)         				-- same as A
+//   label:A     				-- suggested name for field of AST node
+
+// NOTES
+//
+// - SyntaxNode, SyntaxToken and SyntaxElement will be stripped from the codegen
+// - Bogus nodes are special nodes used to keep track of broken code; they are
+//   not part of the grammar but they will appear inside the green tree
+//
+
+
+///////////////
+// Bogus NODES
+///////////////
+// SyntaxElement is a generic data structure that is Psqleant to track nodes and tokens
+// in cases where we care about both types
+//
+// As Bogus* node will need to yield both tokens and nodes without discrimination,
+// and their children will need to yield nodes and tokens as well.
+// For this reason, SyntaxElement = SyntaxElement
+SyntaxElement = SyntaxElement
+
+PsqlBogus = SyntaxElement*
+PsqlBogusStatement = SyntaxElement*
+PsqlBogusExpression = SyntaxElement*
+PsqlBogusMember = SyntaxElement*
+PsqlBogusBinding = SyntaxElement*
+PsqlBogusAssignment = SyntaxElement*
+PsqlBogusParameter = SyntaxElement*
+
+// Literals
+PsqlStringLiteralExpression = value: 'Psql_string_literal'
+PsqlNumberLiteralExpression = value: 'Psql_number_literal'
+PsqlBooleanLiteralExpression = value: ( 'true' | 'false' )
+PsqlNullLiteralExpression = value: 'null'
+
+PsqlName = value: 'ident'
+PsqlStar = value: '*'
+
+PsqlRoot = 
+   stmt: PsqlStmtList
+   eof: 'EOF'
+
+PsqlStmtList = PsqlStmt*
+
+PsqlStmt =
+   PsqlSelectStmt
+
+PsqlSelectStmt =
+   select_clause: PsqlSelectClause
+   from_clause: PsqlFromClause?
+   where_clause: PsqlWhereClause?
+   group_by_clause: PsqlGroupByClause?
+   having_clause: PsqlHavingClause?
+   order_by_clause: PsqlOrderByClause?
+   limit_clause: PsqlLimitClause?
+   offset_clause: PsqlOffsetClause?
+
+PsqlSelectClause = 
+   'select'
+   list: PsqlSelectItemList
+
+PsqlSelectItemList = (AnyPsqlSelectItem (',' AnyPsqlSelectItem)* ','?)
+
+AnyPsqlSelectItem =
+   PsqlStar
+   | AnyPsqlExpression
+
+PsqlFromClause =
+   'from'
+   AnyPsqlFromExpression
+
+AnyPsqlFromExpression =
+   PsqlTableBinding
+   | PsqlFunctionBinding
+   | PsqlSubQuery
+
+PsqlWhereClause =
+   'where'
+   AnyPsqlExpression
+
+PsqlGroupByClause = 
+   'group_by' 
+   list: PsqlGroupByItemList
+
+PsqlGroupByItemList = (AnyPsqlExpression (',' AnyPsqlExpression)* ','?)
+
+PsqlHavingClause =
+   'having'
+   AnyPsqlExpression
+
+PsqlLimitClause =
+   'limit'
+   limit_count: PsqlNumberLiteralExpression
+
+PsqlOrderByClause =
+   'order_by'
+   list: PsqlOrderByExpressionList
+
+PsqlOrderByExpressionList = (PsqlOrderByExpression (',' PsqlOrderByExpression)*)
+
+PsqlOrderByExpression = 
+   item: AnyPsqlExpression
+   order: ('asc' | 'desc')?
+
+PsqlOffsetClause =
+   'offset'
+   start: PsqlNumberLiteralExpression
+
+PsqlTableColReference =
+   table: PsqlTableName
+   '.'
+   name: PsqlName
+   alias: PsqlAlias?
+
+PsqlColReference =
+   name: PsqlName
+   alias: PsqlAlias?
+
+PsqlSubQuery =
+   '('
+   PsqlSelectStmt
+   ')'
+   alias: PsqlAlias
+
+PsqlAlias = 
+   'as'?
+   value: PsqlName
+
+PsqlDataBaseName =
+   name: PsqlName
+   '.'
+
+PsqlShemaName =
+   base: PsqlDataBaseName?
+   name: PsqlName
+   '.'
+
+PsqlTableName =
+   schema: PsqlShemaName?
+   name: PsqlName
+
+PsqlTableBinding = 
+   table: PsqlTableName
+   alias: PsqlAlias?
+
+PsqlFunctionBinding =
+   schema: PsqlShemaName?
+   name: PsqlName
+   '('
+   arguments: PsqlArgumentList
+   ')'
+   alias: PsqlAlias?
+
+PsqlArgumentList = (AnyPsqlExpression (',' AnyPsqlExpression)* )
+
+AnyPsqlExpression =
+   PsqlName
+   | PsqlTableColReference
+   | PsqlColReference
+   | PsqlSubQuery
+   | PsqlBinaryExpression
+   | PsqlLogicalExpression
+   | PsqlParenthesizedExpression
+
+PsqlBinaryExpression =
+   left: AnyPsqlExpression
+   operator_token: (
+   '<' | '>' | '<=' | '>=' | '=' | '!='
+   | '+' | '-' | '*' | '/' | '%'
+   | '&' | '|'
+   )
+   right: AnyPsqlExpression
+
+PsqlLogicalExpression =
+	left: AnyPsqlExpression
+	operator_token: ('and' | 'or')
+	right: AnyPsqlExpression
+
+PsqlParenthesizedExpression =
+	'(' expression: AnyPsqlExpression ')'
+
