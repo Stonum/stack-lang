@@ -45,7 +45,9 @@ PsqlBogusBinding = SyntaxElement*
 PsqlBogusAssignment = SyntaxElement*
 PsqlBogusParameter = SyntaxElement*
 
+///////////////
 // Literals
+///////////////
 PsqlStringLiteralExpression = value: 'Psql_string_literal'
 PsqlNumberLiteralExpression = value: 'Psql_number_literal'
 PsqlBooleanLiteralExpression = value: ( 'true' | 'false' )
@@ -58,10 +60,17 @@ PsqlRoot =
    stmt: PsqlStmtList
    eof: 'EOF'
 
-PsqlStmtList = PsqlStmt*
+PsqlStmtList = AnyPsqlStmt*
 
-PsqlStmt =
+AnyPsqlStmt =
    PsqlSelectStmt
+   | PsqlInsertStmt
+   | PsqlDeleteStmt
+   | PsqlUpdateStmt
+
+///////////////
+// Statements
+///////////////
 
 PsqlSelectStmt =
    select_clause: PsqlSelectClause
@@ -72,6 +81,7 @@ PsqlSelectStmt =
    order_by_clause: PsqlOrderByClause?
    limit_clause: PsqlLimitClause?
    offset_clause: PsqlOffsetClause?
+   ';'?
 
 PsqlSelectClause = 
    'select'
@@ -85,7 +95,7 @@ AnyPsqlSelectItem =
 
 PsqlFromClause =
    'from'
-   AnyPsqlFromExpression
+   clause: AnyPsqlFromExpression
 
 AnyPsqlFromExpression =
    PsqlTableBinding
@@ -94,17 +104,17 @@ AnyPsqlFromExpression =
 
 PsqlWhereClause =
    'where'
-   AnyPsqlExpression
+   condition: AnyPsqlExpression
 
 PsqlGroupByClause = 
    'group_by' 
-   list: PsqlGroupByItemList
+   items: PsqlGroupByItemList
 
 PsqlGroupByItemList = (AnyPsqlExpression (',' AnyPsqlExpression)* ','?)
 
 PsqlHavingClause =
    'having'
-   AnyPsqlExpression
+   condition: AnyPsqlExpression
 
 PsqlLimitClause =
    'limit'
@@ -112,7 +122,7 @@ PsqlLimitClause =
 
 PsqlOrderByClause =
    'order_by'
-   list: PsqlOrderByExpressionList
+   items: PsqlOrderByExpressionList
 
 PsqlOrderByExpressionList = (PsqlOrderByExpression (',' PsqlOrderByExpression)*)
 
@@ -123,6 +133,65 @@ PsqlOrderByExpression =
 PsqlOffsetClause =
    'offset'
    start: PsqlNumberLiteralExpression
+
+PsqlInsertStmt =
+   'insert'
+   'into'
+   table: PsqlTableBinding
+   columns: PsqlInsertColumns?
+   source: AnyPsqlInsertSource
+   ';'?
+
+PsqlInsertColumns = 
+   '('
+   items: PsqlInsertColumnList
+   ')'
+
+PsqlInsertColumnList = (PsqlName (',' PsqlName)*)
+
+AnyPsqlInsertSource =
+   PsqlInsertValues 
+   | PsqlSelectStmt
+
+PsqlInsertValues = 
+   'values'
+   '('
+   items: PsqlExpressionList
+   ')'
+
+PsqlDeleteStmt = 
+   'delete'
+   'from'
+   table: PsqlTableBinding
+   using: PsqlDeleteUsingClause?
+   where_clause: PsqlWhereClause?
+   ';'?
+
+PsqlDeleteUsingClause = 
+   'using'
+   AnyPsqlFromExpression
+
+PsqlUpdateStmt = 
+   'update'
+   table: PsqlTableBinding
+   set_clause: PsqlSetClause
+   where_clause: PsqlWhereClause?
+   ';'?
+
+PsqlSetClause = 
+   'set'
+   items: PsqlSetItemList
+
+PsqlSetItemList = (PsqlSetItem (',' PsqlSetItem)*)
+
+PsqlSetItem = 
+   column: PsqlName
+   '='
+   expr: AnyPsqlExpression
+
+///////////////////////
+// Parts of expressions
+///////////////////////
 
 PsqlTableColReference =
    table: PsqlTableName
@@ -165,11 +234,11 @@ PsqlFunctionBinding =
    schema: PsqlShemaName?
    name: PsqlName
    '('
-   arguments: PsqlArgumentList
+   arguments: PsqlExpressionList
    ')'
    alias: PsqlAlias?
 
-PsqlArgumentList = (AnyPsqlExpression (',' AnyPsqlExpression)* )
+PsqlExpressionList = (AnyPsqlExpression (',' AnyPsqlExpression)* )
 
 AnyPsqlExpression =
    PsqlName

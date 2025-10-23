@@ -83,22 +83,83 @@ pub fn psql_data_base_name(name: PsqlName, dot_token: SyntaxToken) -> PsqlDataBa
         ],
     ))
 }
-pub fn psql_from_clause(
+pub fn psql_delete_stmt(
+    delete_token: SyntaxToken,
     from_token: SyntaxToken,
+    table: PsqlTableBinding,
+) -> PsqlDeleteStmtBuilder {
+    PsqlDeleteStmtBuilder {
+        delete_token,
+        from_token,
+        table,
+        using: None,
+        where_clause: None,
+        semicolon_token: None,
+    }
+}
+pub struct PsqlDeleteStmtBuilder {
+    delete_token: SyntaxToken,
+    from_token: SyntaxToken,
+    table: PsqlTableBinding,
+    using: Option<PsqlDeleteUsingClause>,
+    where_clause: Option<PsqlWhereClause>,
+    semicolon_token: Option<SyntaxToken>,
+}
+impl PsqlDeleteStmtBuilder {
+    pub fn with_using(mut self, using: PsqlDeleteUsingClause) -> Self {
+        self.using = Some(using);
+        self
+    }
+    pub fn with_where_clause(mut self, where_clause: PsqlWhereClause) -> Self {
+        self.where_clause = Some(where_clause);
+        self
+    }
+    pub fn with_semicolon_token(mut self, semicolon_token: SyntaxToken) -> Self {
+        self.semicolon_token = Some(semicolon_token);
+        self
+    }
+    pub fn build(self) -> PsqlDeleteStmt {
+        PsqlDeleteStmt::unwrap_cast(SyntaxNode::new_detached(
+            PsqlSyntaxKind::PSQL_DELETE_STMT,
+            [
+                Some(SyntaxElement::Token(self.delete_token)),
+                Some(SyntaxElement::Token(self.from_token)),
+                Some(SyntaxElement::Node(self.table.into_syntax())),
+                self.using
+                    .map(|token| SyntaxElement::Node(token.into_syntax())),
+                self.where_clause
+                    .map(|token| SyntaxElement::Node(token.into_syntax())),
+                self.semicolon_token
+                    .map(|token| SyntaxElement::Token(token)),
+            ],
+        ))
+    }
+}
+pub fn psql_delete_using_clause(
+    using_token: SyntaxToken,
     any_psql_from_expression: AnyPsqlFromExpression,
-) -> PsqlFromClause {
+) -> PsqlDeleteUsingClause {
+    PsqlDeleteUsingClause::unwrap_cast(SyntaxNode::new_detached(
+        PsqlSyntaxKind::PSQL_DELETE_USING_CLAUSE,
+        [
+            Some(SyntaxElement::Token(using_token)),
+            Some(SyntaxElement::Node(any_psql_from_expression.into_syntax())),
+        ],
+    ))
+}
+pub fn psql_from_clause(from_token: SyntaxToken, clause: AnyPsqlFromExpression) -> PsqlFromClause {
     PsqlFromClause::unwrap_cast(SyntaxNode::new_detached(
         PsqlSyntaxKind::PSQL_FROM_CLAUSE,
         [
             Some(SyntaxElement::Token(from_token)),
-            Some(SyntaxElement::Node(any_psql_from_expression.into_syntax())),
+            Some(SyntaxElement::Node(clause.into_syntax())),
         ],
     ))
 }
 pub fn psql_function_binding(
     name: PsqlName,
     l_paren_token: SyntaxToken,
-    arguments: PsqlArgumentList,
+    arguments: PsqlExpressionList,
     r_paren_token: SyntaxToken,
 ) -> PsqlFunctionBindingBuilder {
     PsqlFunctionBindingBuilder {
@@ -113,7 +174,7 @@ pub fn psql_function_binding(
 pub struct PsqlFunctionBindingBuilder {
     name: PsqlName,
     l_paren_token: SyntaxToken,
-    arguments: PsqlArgumentList,
+    arguments: PsqlExpressionList,
     r_paren_token: SyntaxToken,
     schema: Option<PsqlShemaName>,
     alias: Option<PsqlAlias>,
@@ -145,25 +206,103 @@ impl PsqlFunctionBindingBuilder {
 }
 pub fn psql_group_by_clause(
     group_by_token: SyntaxToken,
-    list: PsqlGroupByItemList,
+    items: PsqlGroupByItemList,
 ) -> PsqlGroupByClause {
     PsqlGroupByClause::unwrap_cast(SyntaxNode::new_detached(
         PsqlSyntaxKind::PSQL_GROUP_BY_CLAUSE,
         [
             Some(SyntaxElement::Token(group_by_token)),
-            Some(SyntaxElement::Node(list.into_syntax())),
+            Some(SyntaxElement::Node(items.into_syntax())),
         ],
     ))
 }
 pub fn psql_having_clause(
     having_token: SyntaxToken,
-    any_psql_expression: AnyPsqlExpression,
+    condition: AnyPsqlExpression,
 ) -> PsqlHavingClause {
     PsqlHavingClause::unwrap_cast(SyntaxNode::new_detached(
         PsqlSyntaxKind::PSQL_HAVING_CLAUSE,
         [
             Some(SyntaxElement::Token(having_token)),
-            Some(SyntaxElement::Node(any_psql_expression.into_syntax())),
+            Some(SyntaxElement::Node(condition.into_syntax())),
+        ],
+    ))
+}
+pub fn psql_insert_columns(
+    l_paren_token: SyntaxToken,
+    items: PsqlInsertColumnList,
+    r_paren_token: SyntaxToken,
+) -> PsqlInsertColumns {
+    PsqlInsertColumns::unwrap_cast(SyntaxNode::new_detached(
+        PsqlSyntaxKind::PSQL_INSERT_COLUMNS,
+        [
+            Some(SyntaxElement::Token(l_paren_token)),
+            Some(SyntaxElement::Node(items.into_syntax())),
+            Some(SyntaxElement::Token(r_paren_token)),
+        ],
+    ))
+}
+pub fn psql_insert_stmt(
+    insert_token: SyntaxToken,
+    into_token: SyntaxToken,
+    table: PsqlTableBinding,
+    source: AnyPsqlInsertSource,
+) -> PsqlInsertStmtBuilder {
+    PsqlInsertStmtBuilder {
+        insert_token,
+        into_token,
+        table,
+        source,
+        columns: None,
+        semicolon_token: None,
+    }
+}
+pub struct PsqlInsertStmtBuilder {
+    insert_token: SyntaxToken,
+    into_token: SyntaxToken,
+    table: PsqlTableBinding,
+    source: AnyPsqlInsertSource,
+    columns: Option<PsqlInsertColumns>,
+    semicolon_token: Option<SyntaxToken>,
+}
+impl PsqlInsertStmtBuilder {
+    pub fn with_columns(mut self, columns: PsqlInsertColumns) -> Self {
+        self.columns = Some(columns);
+        self
+    }
+    pub fn with_semicolon_token(mut self, semicolon_token: SyntaxToken) -> Self {
+        self.semicolon_token = Some(semicolon_token);
+        self
+    }
+    pub fn build(self) -> PsqlInsertStmt {
+        PsqlInsertStmt::unwrap_cast(SyntaxNode::new_detached(
+            PsqlSyntaxKind::PSQL_INSERT_STMT,
+            [
+                Some(SyntaxElement::Token(self.insert_token)),
+                Some(SyntaxElement::Token(self.into_token)),
+                Some(SyntaxElement::Node(self.table.into_syntax())),
+                self.columns
+                    .map(|token| SyntaxElement::Node(token.into_syntax())),
+                Some(SyntaxElement::Node(self.source.into_syntax())),
+                self.semicolon_token
+                    .map(|token| SyntaxElement::Token(token)),
+            ],
+        ))
+    }
+}
+pub fn psql_insert_values(
+    values_token: SyntaxToken,
+    l_paren_token: SyntaxToken,
+    items: PsqlExpressionList,
+    r_paren_token: SyntaxToken,
+) -> PsqlInsertValues {
+    PsqlInsertValues::unwrap_cast(SyntaxNode::new_detached(
+        PsqlSyntaxKind::PSQL_INSERT_VALUES,
+        [
+            Some(SyntaxElement::Token(values_token)),
+            Some(SyntaxElement::Token(l_paren_token)),
+            Some(SyntaxElement::Node(items.into_syntax())),
+            Some(SyntaxElement::Token(r_paren_token)),
         ],
     ))
 }
@@ -225,13 +364,13 @@ pub fn psql_offset_clause(
 }
 pub fn psql_order_by_clause(
     order_by_token: SyntaxToken,
-    list: PsqlOrderByExpressionList,
+    items: PsqlOrderByExpressionList,
 ) -> PsqlOrderByClause {
     PsqlOrderByClause::unwrap_cast(SyntaxNode::new_detached(
         PsqlSyntaxKind::PSQL_ORDER_BY_CLAUSE,
         [
             Some(SyntaxElement::Token(order_by_token)),
-            Some(SyntaxElement::Node(list.into_syntax())),
+            Some(SyntaxElement::Node(items.into_syntax())),
         ],
     ))
 }
@@ -302,6 +441,7 @@ pub fn psql_select_stmt(select_clause: PsqlSelectClause) -> PsqlSelectStmtBuilde
         order_by_clause: None,
         limit_clause: None,
         offset_clause: None,
+        semicolon_token: None,
     }
 }
 pub struct PsqlSelectStmtBuilder {
@@ -313,6 +453,7 @@ pub struct PsqlSelectStmtBuilder {
     order_by_clause: Option<PsqlOrderByClause>,
     limit_clause: Option<PsqlLimitClause>,
     offset_clause: Option<PsqlOffsetClause>,
+    semicolon_token: Option<SyntaxToken>,
 }
 impl PsqlSelectStmtBuilder {
     pub fn with_from_clause(mut self, from_clause: PsqlFromClause) -> Self {
@@ -343,6 +484,10 @@ impl PsqlSelectStmtBuilder {
         self.offset_clause = Some(offset_clause);
         self
     }
+    pub fn with_semicolon_token(mut self, semicolon_token: SyntaxToken) -> Self {
+        self.semicolon_token = Some(semicolon_token);
+        self
+    }
     pub fn build(self) -> PsqlSelectStmt {
         PsqlSelectStmt::unwrap_cast(SyntaxNode::new_detached(
             PsqlSyntaxKind::PSQL_SELECT_STMT,
@@ -362,9 +507,34 @@ impl PsqlSelectStmtBuilder {
                     .map(|token| SyntaxElement::Node(token.into_syntax())),
                 self.offset_clause
                     .map(|token| SyntaxElement::Node(token.into_syntax())),
+                self.semicolon_token
+                    .map(|token| SyntaxElement::Token(token)),
             ],
         ))
     }
+}
+pub fn psql_set_clause(set_token: SyntaxToken, items: PsqlSetItemList) -> PsqlSetClause {
+    PsqlSetClause::unwrap_cast(SyntaxNode::new_detached(
+        PsqlSyntaxKind::PSQL_SET_CLAUSE,
+        [
+            Some(SyntaxElement::Token(set_token)),
+            Some(SyntaxElement::Node(items.into_syntax())),
+        ],
+    ))
+}
+pub fn psql_set_item(
+    column: PsqlName,
+    eq_token: SyntaxToken,
+    expr: AnyPsqlExpression,
+) -> PsqlSetItem {
+    PsqlSetItem::unwrap_cast(SyntaxNode::new_detached(
+        PsqlSyntaxKind::PSQL_SET_ITEM,
+        [
+            Some(SyntaxElement::Node(column.into_syntax())),
+            Some(SyntaxElement::Token(eq_token)),
+            Some(SyntaxElement::Node(expr.into_syntax())),
+        ],
+    ))
 }
 pub fn psql_shema_name(name: PsqlName, dot_token: SyntaxToken) -> PsqlShemaNameBuilder {
     PsqlShemaNameBuilder {
@@ -399,12 +569,6 @@ pub fn psql_star(value_token: SyntaxToken) -> PsqlStar {
     PsqlStar::unwrap_cast(SyntaxNode::new_detached(
         PsqlSyntaxKind::PSQL_STAR,
         [Some(SyntaxElement::Token(value_token))],
-    ))
-}
-pub fn psql_stmt(psql_select_stmt: PsqlSelectStmt) -> PsqlStmt {
-    PsqlStmt::unwrap_cast(SyntaxNode::new_detached(
-        PsqlSyntaxKind::PSQL_STMT,
-        [Some(SyntaxElement::Node(psql_select_stmt.into_syntax()))],
     ))
 }
 pub fn psql_string_literal_expression(value_token: SyntaxToken) -> PsqlStringLiteralExpression {
@@ -511,19 +675,63 @@ impl PsqlTableNameBuilder {
         ))
     }
 }
+pub fn psql_update_stmt(
+    update_token: SyntaxToken,
+    table: PsqlTableBinding,
+    set_clause: PsqlSetClause,
+) -> PsqlUpdateStmtBuilder {
+    PsqlUpdateStmtBuilder {
+        update_token,
+        table,
+        set_clause,
+        where_clause: None,
+        semicolon_token: None,
+    }
+}
+pub struct PsqlUpdateStmtBuilder {
+    update_token: SyntaxToken,
+    table: PsqlTableBinding,
+    set_clause: PsqlSetClause,
+    where_clause: Option<PsqlWhereClause>,
+    semicolon_token: Option<SyntaxToken>,
+}
+impl PsqlUpdateStmtBuilder {
+    pub fn with_where_clause(mut self, where_clause: PsqlWhereClause) -> Self {
+        self.where_clause = Some(where_clause);
+        self
+    }
+    pub fn with_semicolon_token(mut self, semicolon_token: SyntaxToken) -> Self {
+        self.semicolon_token = Some(semicolon_token);
+        self
+    }
+    pub fn build(self) -> PsqlUpdateStmt {
+        PsqlUpdateStmt::unwrap_cast(SyntaxNode::new_detached(
+            PsqlSyntaxKind::PSQL_UPDATE_STMT,
+            [
+                Some(SyntaxElement::Token(self.update_token)),
+                Some(SyntaxElement::Node(self.table.into_syntax())),
+                Some(SyntaxElement::Node(self.set_clause.into_syntax())),
+                self.where_clause
+                    .map(|token| SyntaxElement::Node(token.into_syntax())),
+                self.semicolon_token
+                    .map(|token| SyntaxElement::Token(token)),
+            ],
+        ))
+    }
+}
 pub fn psql_where_clause(
     where_token: SyntaxToken,
-    any_psql_expression: AnyPsqlExpression,
+    condition: AnyPsqlExpression,
 ) -> PsqlWhereClause {
     PsqlWhereClause::unwrap_cast(SyntaxNode::new_detached(
         PsqlSyntaxKind::PSQL_WHERE_CLAUSE,
         [
             Some(SyntaxElement::Token(where_token)),
-            Some(SyntaxElement::Node(any_psql_expression.into_syntax())),
+            Some(SyntaxElement::Node(condition.into_syntax())),
         ],
     ))
 }
-pub fn psql_argument_list<I, S>(items: I, separators: S) -> PsqlArgumentList
+pub fn psql_expression_list<I, S>(items: I, separators: S) -> PsqlExpressionList
 where
     I: IntoIterator<Item = AnyPsqlExpression>,
     I::IntoIter: ExactSizeIterator,
@@ -533,8 +741,8 @@ where
     let mut items = items.into_iter();
     let mut separators = separators.into_iter();
     let length = items.len() + separators.len();
-    PsqlArgumentList::unwrap_cast(SyntaxNode::new_detached(
-        PsqlSyntaxKind::PSQL_ARGUMENT_LIST,
+    PsqlExpressionList::unwrap_cast(SyntaxNode::new_detached(
+        PsqlSyntaxKind::PSQL_EXPRESSION_LIST,
         (0..length).map(|index| {
             if index % 2 == 0 {
                 Some(items.next()?.into_syntax().into())
@@ -556,6 +764,27 @@ where
     let length = items.len() + separators.len();
     PsqlGroupByItemList::unwrap_cast(SyntaxNode::new_detached(
         PsqlSyntaxKind::PSQL_GROUP_BY_ITEM_LIST,
+        (0..length).map(|index| {
+            if index % 2 == 0 {
+                Some(items.next()?.into_syntax().into())
+            } else {
+                Some(separators.next()?.into())
+            }
+        }),
+    ))
+}
+pub fn psql_insert_column_list<I, S>(items: I, separators: S) -> PsqlInsertColumnList
+where
+    I: IntoIterator<Item = PsqlName>,
+    I::IntoIter: ExactSizeIterator,
+    S: IntoIterator<Item = PsqlSyntaxToken>,
+    S::IntoIter: ExactSizeIterator,
+{
+    let mut items = items.into_iter();
+    let mut separators = separators.into_iter();
+    let length = items.len() + separators.len();
+    PsqlInsertColumnList::unwrap_cast(SyntaxNode::new_detached(
+        PsqlSyntaxKind::PSQL_INSERT_COLUMN_LIST,
         (0..length).map(|index| {
             if index % 2 == 0 {
                 Some(items.next()?.into_syntax().into())
@@ -607,9 +836,30 @@ where
         }),
     ))
 }
+pub fn psql_set_item_list<I, S>(items: I, separators: S) -> PsqlSetItemList
+where
+    I: IntoIterator<Item = PsqlSetItem>,
+    I::IntoIter: ExactSizeIterator,
+    S: IntoIterator<Item = PsqlSyntaxToken>,
+    S::IntoIter: ExactSizeIterator,
+{
+    let mut items = items.into_iter();
+    let mut separators = separators.into_iter();
+    let length = items.len() + separators.len();
+    PsqlSetItemList::unwrap_cast(SyntaxNode::new_detached(
+        PsqlSyntaxKind::PSQL_SET_ITEM_LIST,
+        (0..length).map(|index| {
+            if index % 2 == 0 {
+                Some(items.next()?.into_syntax().into())
+            } else {
+                Some(separators.next()?.into())
+            }
+        }),
+    ))
+}
 pub fn psql_stmt_list<I>(items: I) -> PsqlStmtList
 where
-    I: IntoIterator<Item = PsqlStmt>,
+    I: IntoIterator<Item = AnyPsqlStmt>,
     I::IntoIter: ExactSizeIterator,
 {
     PsqlStmtList::unwrap_cast(SyntaxNode::new_detached(

@@ -135,7 +135,6 @@ pub enum PsqlSyntaxKind {
     COMMENT,
     PSQL_ROOT,
     PSQL_STMT_LIST,
-    PSQL_STMT,
     PSQL_SELECT_STMT,
     PSQL_SELECT_CLAUSE,
     PSQL_SELECT_ITEM_LIST,
@@ -150,6 +149,16 @@ pub enum PsqlSyntaxKind {
     PSQL_ORDER_BY_EXPRESSION,
     PSQL_OFFSET_CLAUSE,
     PSQL_LIMIT_CLAUSE,
+    PSQL_INSERT_STMT,
+    PSQL_INSERT_COLUMNS,
+    PSQL_INSERT_COLUMN_LIST,
+    PSQL_INSERT_VALUES,
+    PSQL_DELETE_STMT,
+    PSQL_DELETE_USING_CLAUSE,
+    PSQL_UPDATE_STMT,
+    PSQL_SET_CLAUSE,
+    PSQL_SET_ITEM_LIST,
+    PSQL_SET_ITEM,
     PSQL_DATA_BASE_NAME,
     PSQL_SHEMA_NAME,
     PSQL_TABLE_NAME,
@@ -159,7 +168,7 @@ pub enum PsqlSyntaxKind {
     PSQL_STAR,
     PSQL_ALIAS,
     PSQL_SUB_QUERY,
-    PSQL_ARGUMENT_LIST,
+    PSQL_EXPRESSION_LIST,
     PSQL_TABLE_COL_REFERENCE,
     PSQL_COL_REFERENCE,
     PSQL_BINARY_EXPRESSION,
@@ -223,7 +232,9 @@ impl PsqlSyntaxKind {
                 | PSQL_SELECT_ITEM_LIST
                 | PSQL_GROUP_BY_ITEM_LIST
                 | PSQL_ORDER_BY_EXPRESSION_LIST
-                | PSQL_ARGUMENT_LIST
+                | PSQL_INSERT_COLUMN_LIST
+                | PSQL_SET_ITEM_LIST
+                | PSQL_EXPRESSION_LIST
         )
     }
     pub fn from_keyword(ident: &str) -> Option<Self> {
