@@ -42,7 +42,7 @@ unicase = "2.8.1"
 
 log = "0.4.14"
 rust-ini = "0.21.3"
-thiserror = "2.0.12"
+thiserror = "2.0.17"
 
 biome_text_size = "0.5.8"
 biome_rowan = { version = "=0.5.8", features = ["serde"] }
