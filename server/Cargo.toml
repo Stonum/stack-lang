@@ -40,7 +40,7 @@ env_logger = "0.11.8"
 dashmap = "6.1.0"
 unicase = "2.8.1"
 
-log = "0.4.14"
+log = "0.4.28"
 rust-ini = "0.21.3"
 thiserror = "2.0.17"
 
