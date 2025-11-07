@@ -103,7 +103,6 @@
       "vscode-languageclient": "9.0.1"
    },
    "devDependencies": {
-      "@types/glob": "^9.0.0",
       "@types/node": "^24.10.0",
       "@typescript-eslint/eslint-plugin": "^3.8.0",
       "@typescript-eslint/parser": "^3.8.0",
