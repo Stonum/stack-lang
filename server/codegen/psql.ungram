@@ -252,9 +252,9 @@ AnyPsqlExpression =
 PsqlBinaryExpression =
    left: AnyPsqlExpression
    operator_token: (
-   '<' | '>' | '<=' | '>=' | '=' | '!='
-   | '+' | '-' | '*' | '/' | '%'
-   | '&' | '|'
+   '<' | '>' | '<=' | '>=' | '=' | '!=' | '<>'
+   | '+' | '-' | '*' | '/' | '%' | '~'  | '!~'
+   | '&' | '|' | '^' | '>>' | '<<' | '~*' | '!~*'
    )
    right: AnyPsqlExpression
 
