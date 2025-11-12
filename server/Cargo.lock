@@ -1208,6 +1208,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "psql_parser"
+version = "0.0.1"
+dependencies = [
+ "biome_parser",
+ "biome_rowan",
+ "biome_unicode_table",
+ "psql_factory",
+ "psql_syntax",
+]
+
+[[package]]
 name = "psql_syntax"
 version = "0.0.1"
 dependencies = [
