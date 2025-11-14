@@ -1,5 +1,11 @@
 **Changelog**
 ===============
+**v0.3.5 - 2025-11-14**
+------------------------------------
+* **Fixed**: 
+   + syntax highlighting for comments with quotes
+   + temporarily format the query arguments "as is"
+
 **v0.3.4 - 2025-10-15**
 ------------------------------------
 * **Added**:
