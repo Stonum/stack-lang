@@ -48,11 +48,18 @@ PsqlBogusParameter = SyntaxElement*
 ///////////////
 // Literals
 ///////////////
+AnyPsqlLiteralExpression =
+	PsqlStringLiteralExpression
+	| PsqlNumberLiteralExpression
+	| PsqlBooleanLiteralExpression
+	| PsqlNullLiteralExpression
+
 PsqlStringLiteralExpression = value: 'Psql_string_literal'
 PsqlNumberLiteralExpression = value: 'Psql_number_literal'
 PsqlBooleanLiteralExpression = value: ( 'true' | 'false' )
 PsqlNullLiteralExpression = value: 'null'
 
+///////////////
 PsqlName = value: 'ident'
 PsqlStar = value: '*'
 
@@ -248,6 +255,7 @@ AnyPsqlExpression =
    | PsqlBinaryExpression
    | PsqlLogicalExpression
    | PsqlParenthesizedExpression
+   | AnyPsqlLiteralExpression
 
 PsqlBinaryExpression =
    left: AnyPsqlExpression

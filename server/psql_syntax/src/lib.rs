@@ -1,5 +1,6 @@
 #[macro_use]
 mod generated;
+mod file_source;
 mod syntax_node;
 
 use biome_rowan::RawSyntaxKind;
@@ -8,6 +9,7 @@ pub use biome_rowan::{
     TokenText, TriviaPieceKind, WalkEvent,
 };
 
+pub use crate::file_source::*;
 use crate::generated::kind::PsqlSyntaxKind::*;
 pub use crate::generated::*;
 pub use crate::syntax_node::*;
