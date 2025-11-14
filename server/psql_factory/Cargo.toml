@@ -1,0 +1,8 @@
+[package]
+name = "psql_factory"
+version = "0.0.1"
+edition.workspace = true
+
+[dependencies]
+biome_rowan ={ workspace = true }
+psql_syntax = { workspace = true }
