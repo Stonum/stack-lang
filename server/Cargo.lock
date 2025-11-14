@@ -1214,6 +1214,7 @@ dependencies = [
  "biome_parser",
  "biome_rowan",
  "biome_unicode_table",
+ "enumflags2",
  "psql_factory",
  "psql_syntax",
 ]
