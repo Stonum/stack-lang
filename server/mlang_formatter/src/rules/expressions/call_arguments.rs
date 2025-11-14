@@ -7,14 +7,14 @@ use crate::rules::lists::array_element_list::can_concisely_print_array_list;
 use crate::utils::function_body::FunctionBodyCacheMode;
 use crate::utils::member_chain::SimpleArgument;
 use crate::utils::{is_long_curried_call, write_arguments_multi_line};
+use biome_formatter::{VecBuffer, format_args, format_element, write};
+use biome_rowan::{AstSeparatedElement, AstSeparatedList, SyntaxResult};
 use mlang_syntax::{
     AnyMCallArgument, AnyMExpression, MBinaryExpressionFields, MCallArgumentList, MCallArguments,
     MCallArgumentsFields, MCallExpression, MFunctionExpression, MLanguage,
     MLogicalExpressionFields, MLongStringLiteralExpression, MStringLiteralExpression,
     MSyntaxKind::{M_LONG_STRING_LITERAL, M_STRING_LITERAL},
 };
-use biome_formatter::{format_args, format_element, write, VecBuffer};
-use biome_rowan::{AstSeparatedElement, AstSeparatedList, SyntaxResult};
 
 use super::string_expression::FormatStringLiteralOptions;
 
@@ -74,14 +74,15 @@ impl FormatNodeRule<MCallArguments> for FormatMCallArguments {
             .collect();
 
         if first_is_string && is_query_like_call(call_expression.as_ref()) {
-            return write!(
-                f,
-                [FormatQueryLikeArguments {
-                    l_paren: &l_paren_token.format(),
-                    args: &arguments,
-                    r_paren: &r_paren_token.format(),
-                }]
-            );
+            return format_verbatim_node(node.syntax()).fmt(f);
+            // return write!(
+            //     f,
+            //     [FormatQueryLikeArguments {
+            //         l_paren: &l_paren_token.format(),
+            //         args: &arguments,
+            //         r_paren: &r_paren_token.format(),
+            //     }]
+            // );
         }
 
         if has_empty_line || is_function_composition_args(node) {
@@ -896,54 +897,54 @@ fn is_query_like_call(expression: Option<&MCallExpression>) -> bool {
     false
 }
 
-struct FormatQueryLikeArguments<'a> {
-    l_paren: &'a dyn Format<MFormatContext>,
-    args: &'a [FormatCallArgument],
-    r_paren: &'a dyn Format<MFormatContext>,
-}
+// struct FormatQueryLikeArguments<'a> {
+//     l_paren: &'a dyn Format<MFormatContext>,
+//     args: &'a [FormatCallArgument],
+//     r_paren: &'a dyn Format<MFormatContext>,
+// }
 
-impl Format<MFormatContext> for FormatQueryLikeArguments<'_> {
-    fn fmt(&self, f: &mut Formatter<MFormatContext>) -> FormatResult<()> {
-        let first = self.args.first().ok_or(FormatError::SyntaxError)?;
-        let text_query = first.element().node()?.text();
-        let multi_line_query = text_query.lines().count() > 1;
+// impl Format<MFormatContext> for FormatQueryLikeArguments<'_> {
+//     fn fmt(&self, f: &mut Formatter<MFormatContext>) -> FormatResult<()> {
+//         let first = self.args.first().ok_or(FormatError::SyntaxError)?;
+//         let text_query = first.element().node()?.text();
+//         let multi_line_query = text_query.lines().count() > 1;
 
-        write!(
-            f,
-            [group(&format_args![
-                self.l_paren,
-                &format_with(|f| {
-                    for (index, entry) in self.args.iter().enumerate() {
-                        match index {
-                            0 => {
-                                if multi_line_query {
-                                    write!(f, [entry])?
-                                } else {
-                                    write!(
-                                        f,
-                                        [indent(&format_args![
-                                            soft_line_break(),
-                                            entry,
-                                            soft_line_break(),
-                                        ],)]
-                                    )?
-                                }
-                            }
-                            _ => write!(f, [space(), entry])?,
-                        }
-                    }
+//         write!(
+//             f,
+//             [group(&format_args![
+//                 self.l_paren,
+//                 &format_with(|f| {
+//                     for (index, entry) in self.args.iter().enumerate() {
+//                         match index {
+//                             0 => {
+//                                 if multi_line_query {
+//                                     write!(f, [entry])?
+//                                 } else {
+//                                     write!(
+//                                         f,
+//                                         [indent(&format_args![
+//                                             soft_line_break(),
+//                                             entry,
+//                                             soft_line_break(),
+//                                         ],)]
+//                                     )?
+//                                 }
+//                             }
+//                             _ => write!(f, [space(), entry])?,
+//                         }
+//                     }
 
-                    write!(f, [FormatTrailingCommas::All])?;
+//                     write!(f, [FormatTrailingCommas::All])?;
 
-                    Ok(())
-                }),
-            ])]
-        )?;
+//                     Ok(())
+//                 }),
+//             ])]
+//         )?;
 
-        if multi_line_query {
-            write!(f, [self.r_paren])
-        } else {
-            write!(f, [soft_line_break(), self.r_paren])
-        }
-    }
-}
+//         if multi_line_query {
+//             write!(f, [self.r_paren])
+//         } else {
+//             write!(f, [soft_line_break(), self.r_paren])
+//         }
+//     }
+// }
