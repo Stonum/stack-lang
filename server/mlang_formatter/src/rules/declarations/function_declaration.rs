@@ -95,7 +95,7 @@ impl FormatFunction {
         options: &FormatFunctionOptions,
     ) -> FormatResult<()> {
         if let Some(annotation) = self.annotation() {
-            write!(f, [annotation.format()])?;
+            write!(f, [annotation.format(), hard_line_break()])?;
         }
 
         if let Some(inline_token) = self.inline_token() {

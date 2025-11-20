@@ -202,6 +202,47 @@ class foo
 }
 
 #[test]
+fn format_class_with_annotations() {
+    assert_fmt!(
+        r#"#
+:[Report(Name = "report name")]
+class rep extends report
+{
+   :[test]
+   constructor()
+   {
+      super();
+   }
+
+   :[method]
+   met()
+   {
+      do_something();
+   }
+
+   m2()
+   {
+      do_something();
+   }
+}
+"#
+    );
+}
+
+#[test]
+fn format_func_with_annotations() {
+    assert_fmt!(
+        r#"#
+:[fun]
+func do()
+{
+   do_something();
+}
+"#
+    );
+}
+
+#[test]
 fn format_bit_operations() {
     assert_fmt!(
         r#"#

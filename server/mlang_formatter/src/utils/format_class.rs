@@ -1,6 +1,6 @@
 use crate::prelude::*;
-use mlang_syntax::MClassDeclaration;
 use biome_formatter::{format_args, write};
+use mlang_syntax::MClassDeclaration;
 
 pub struct FormatClass<'a> {
     class: &'a MClassDeclaration,
@@ -30,6 +30,8 @@ impl<'a> From<&'a MClassDeclaration> for FormatClass<'a> {
 
 impl Format<MFormatContext> for FormatClass<'_> {
     fn fmt(&self, f: &mut Formatter<MFormatContext>) -> FormatResult<()> {
+        write!(f, [self.class.annotation().format(), hard_line_break()])?;
+
         let id = self.class.id();
         let extends = self.class.extends_clause();
         let class_token = self.class.class_token()?;

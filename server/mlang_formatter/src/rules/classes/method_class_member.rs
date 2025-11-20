@@ -1,9 +1,11 @@
 use crate::prelude::*;
 
-use mlang_syntax::{AnyMStringLiteralExpression, MClassMemberName, MMethodClassMember};
-use mlang_syntax::{MConstructorClassMember, MConstructorParameters, MFunctionBody, MParameters};
 use biome_formatter::write;
-use biome_rowan::{declare_node_union, SyntaxResult};
+use biome_rowan::{SyntaxResult, declare_node_union};
+use mlang_syntax::{
+    AnyMStringLiteralExpression, MAnnotationGroupList, MClassMemberName, MMethodClassMember,
+};
+use mlang_syntax::{MConstructorClassMember, MConstructorParameters, MFunctionBody, MParameters};
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMMethodClassMember;
@@ -24,6 +26,8 @@ declare_node_union! {
 
 impl Format<MFormatContext> for FormatAnyMMethodMember {
     fn fmt(&self, f: &mut Formatter<MFormatContext>) -> FormatResult<()> {
+        write!(f, [self.annotation().format(), hard_line_break()])?;
+
         write!(f, [self.name().format()])?;
 
         write!(
@@ -51,6 +55,13 @@ impl Format<MFormatContext> for FormatAnyMMethodMember {
 }
 
 impl FormatAnyMMethodMember {
+    fn annotation(&self) -> MAnnotationGroupList {
+        match self {
+            FormatAnyMMethodMember::MMethodClassMember(member) => member.annotation(),
+            FormatAnyMMethodMember::MConstructorClassMember(member) => member.annotation(),
+        }
+    }
+
     fn name(&self) -> SyntaxResult<MClassMemberName> {
         Ok(match self {
             FormatAnyMMethodMember::MMethodClassMember(member) => member.name()?,
