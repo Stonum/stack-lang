@@ -1,11 +1,10 @@
 use crate::prelude::*;
-use mlang_syntax::{MClassMemberName, MClassMemberNameFields};
 use biome_formatter::write;
+use mlang_syntax::{MClassMemberName, MClassMemberNameFields};
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMClassMemberName;
 impl_format_with_rule!(MClassMemberName, FormatMClassMemberName);
-// impl_format!(MClassMemberName, FormatMClassMemberName);
 
 impl FormatNodeRule<MClassMemberName> for FormatMClassMemberName {
     fn fmt_fields(&self, node: &MClassMemberName, f: &mut MFormatter) -> FormatResult<()> {
