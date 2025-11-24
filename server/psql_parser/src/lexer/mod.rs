@@ -264,7 +264,7 @@ impl<'src> PsqlLexer<'src> {
         idx
     }
 
-    fn consume_str_literal(&mut self) -> bool {
+    fn consume_quoted_literal(&mut self) -> bool {
         let quote = self.current_byte().unwrap();
         self.advance(1);
         while let Some(b) = self.current_byte() {
@@ -282,10 +282,19 @@ impl<'src> PsqlLexer<'src> {
                 self.advance_byte_or_char(b);
             }
         }
-        self.push_diagnostic(ParseDiagnostic::new(
-            "unterminated string literal",
-            self.position..self.position,
-        ));
+
+        if quote == b'\'' {
+            self.push_diagnostic(ParseDiagnostic::new(
+                "unterminated string literal",
+                self.position..self.position,
+            ));
+        } else {
+            self.push_diagnostic(ParseDiagnostic::new(
+                "unterminated quoted identifier",
+                self.position..self.position,
+            ));
+        }
+
         false
     }
 
@@ -426,8 +435,15 @@ impl<'src> PsqlLexer<'src> {
         match dispatched {
             WHS => self.consume_newline_or_whitespaces(),
             QOT if byte == b'\'' => {
-                if self.consume_str_literal() {
+                if self.consume_quoted_literal() {
                     PSQL_STRING_LITERAL
+                } else {
+                    ERROR_TOKEN
+                }
+            }
+            QOT if byte == b'"' => {
+                if self.consume_quoted_literal() {
+                    IDENT
                 } else {
                     ERROR_TOKEN
                 }
