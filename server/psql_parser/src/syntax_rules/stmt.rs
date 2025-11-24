@@ -81,11 +81,14 @@ fn parse_select_statement(p: &mut PsqlParser) -> ParsedSyntax {
         return Absent;
     }
 
-    let select = p.start();
+    let select_stmt = p.start();
+
+    let select_clause = p.start();
     p.expect(T![select]);
     PsqlSelectItemList.parse_list(p);
+    select_clause.complete(p, PSQL_SELECT_CLAUSE);
 
-    Present(select.complete(p, PSQL_SELECT_STMT))
+    Present(select_stmt.complete(p, PSQL_SELECT_STMT))
 }
 
 struct PsqlSelectItemList;
