@@ -6,6 +6,16 @@ macro_rules! assert_parser {
         assert!(!$res.has_errors());
         assert!(!helper::has_bogus_nodes_or_empty_slots(&$res.syntax()));
     };
+
+    ($res:expr, debug) => {
+        dbg!(&$res.syntax());
+
+        assert!($res.try_tree().is_some());
+        dbg!($res.try_tree(), $res.diagnostics());
+
+        assert!(!$res.has_errors());
+        assert!(!helper::has_bogus_nodes_or_empty_slots(&$res.syntax()));
+    };
 }
 
 pub(crate) fn has_bogus_nodes_or_empty_slots<L: biome_rowan::Language>(

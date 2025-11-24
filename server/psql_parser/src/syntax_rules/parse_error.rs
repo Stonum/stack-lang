@@ -13,3 +13,7 @@ pub fn expected_statement(p: &PsqlParser, range: TextRange) -> ParseDiagnostic {
 pub fn expected_expression(p: &PsqlParser, range: TextRange) -> ParseDiagnostic {
     expected_node("expression", range, p)
 }
+
+pub fn expected_identifier(p: &PsqlParser, range: TextRange) -> ParseDiagnostic {
+    expected_node("identifier", range, p)
+}
