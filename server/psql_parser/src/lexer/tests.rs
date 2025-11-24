@@ -65,13 +65,13 @@ fn empty() {
 
 #[test]
 fn identifiers() {
-    // assert_lex! { "my_table", IDENT:8 }
-    // assert_lex! { "user_name", IDENT:9 }
-    // assert_lex! { "id", IDENT:2 }
-    // assert_lex! { "column1", IDENT:7 }
-    // assert_lex! { "CamelCase", IDENT:9 }
-    // assert_lex! { "with_underscore", IDENT:15 }
-    // assert_lex! { "_starts_with_underscore", IDENT:23 }
+    assert_lex! { "my_table", IDENT:8 }
+    assert_lex! { "user_name", IDENT:9 }
+    assert_lex! { "id", IDENT:2 }
+    assert_lex! { "column1", IDENT:7 }
+    assert_lex! { "CamelCase", IDENT:9 }
+    assert_lex! { "with_underscore", IDENT:15 }
+    assert_lex! { "_starts_with_underscore", IDENT:23 }
     assert_lex! { "\"quoted\"", IDENT:8 }
     assert_lex! { "\"quoted with space\"", IDENT:19 }
 }
