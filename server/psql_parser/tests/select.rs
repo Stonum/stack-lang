@@ -11,6 +11,5 @@ fn test_select_literal_list() {
         PsqlFileSource::script(),
     );
 
-    dbg!(&res);
     assert_parser!(res);
 }
