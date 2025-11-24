@@ -51,28 +51,11 @@ pub fn psql_boolean_literal_expression(value_token: SyntaxToken) -> PsqlBooleanL
         [Some(SyntaxElement::Token(value_token))],
     ))
 }
-pub fn psql_col_reference(name: PsqlName) -> PsqlColReferenceBuilder {
-    PsqlColReferenceBuilder { name, alias: None }
-}
-pub struct PsqlColReferenceBuilder {
-    name: PsqlName,
-    alias: Option<PsqlAlias>,
-}
-impl PsqlColReferenceBuilder {
-    pub fn with_alias(mut self, alias: PsqlAlias) -> Self {
-        self.alias = Some(alias);
-        self
-    }
-    pub fn build(self) -> PsqlColReference {
-        PsqlColReference::unwrap_cast(SyntaxNode::new_detached(
-            PsqlSyntaxKind::PSQL_COL_REFERENCE,
-            [
-                Some(SyntaxElement::Node(self.name.into_syntax())),
-                self.alias
-                    .map(|token| SyntaxElement::Node(token.into_syntax())),
-            ],
-        ))
-    }
+pub fn psql_col_reference(name: PsqlName) -> PsqlColReference {
+    PsqlColReference::unwrap_cast(SyntaxNode::new_detached(
+        PsqlSyntaxKind::PSQL_COL_REFERENCE,
+        [Some(SyntaxElement::Node(name.into_syntax()))],
+    ))
 }
 pub fn psql_data_base_name(name: PsqlName, dot_token: SyntaxToken) -> PsqlDataBaseName {
     PsqlDataBaseName::unwrap_cast(SyntaxNode::new_detached(
@@ -83,12 +66,12 @@ pub fn psql_data_base_name(name: PsqlName, dot_token: SyntaxToken) -> PsqlDataBa
         ],
     ))
 }
-pub fn psql_delete_stmt(
+pub fn psql_delete_statement(
     delete_token: SyntaxToken,
     from_token: SyntaxToken,
     table: PsqlTableBinding,
-) -> PsqlDeleteStmtBuilder {
-    PsqlDeleteStmtBuilder {
+) -> PsqlDeleteStatementBuilder {
+    PsqlDeleteStatementBuilder {
         delete_token,
         from_token,
         table,
@@ -97,7 +80,7 @@ pub fn psql_delete_stmt(
         semicolon_token: None,
     }
 }
-pub struct PsqlDeleteStmtBuilder {
+pub struct PsqlDeleteStatementBuilder {
     delete_token: SyntaxToken,
     from_token: SyntaxToken,
     table: PsqlTableBinding,
@@ -105,7 +88,7 @@ pub struct PsqlDeleteStmtBuilder {
     where_clause: Option<PsqlWhereClause>,
     semicolon_token: Option<SyntaxToken>,
 }
-impl PsqlDeleteStmtBuilder {
+impl PsqlDeleteStatementBuilder {
     pub fn with_using(mut self, using: PsqlDeleteUsingClause) -> Self {
         self.using = Some(using);
         self
@@ -118,9 +101,9 @@ impl PsqlDeleteStmtBuilder {
         self.semicolon_token = Some(semicolon_token);
         self
     }
-    pub fn build(self) -> PsqlDeleteStmt {
-        PsqlDeleteStmt::unwrap_cast(SyntaxNode::new_detached(
-            PsqlSyntaxKind::PSQL_DELETE_STMT,
+    pub fn build(self) -> PsqlDeleteStatement {
+        PsqlDeleteStatement::unwrap_cast(SyntaxNode::new_detached(
+            PsqlSyntaxKind::PSQL_DELETE_STATEMENT,
             [
                 Some(SyntaxElement::Token(self.delete_token)),
                 Some(SyntaxElement::Token(self.from_token)),
@@ -242,13 +225,13 @@ pub fn psql_insert_columns(
         ],
     ))
 }
-pub fn psql_insert_stmt(
+pub fn psql_insert_statement(
     insert_token: SyntaxToken,
     into_token: SyntaxToken,
     table: PsqlTableBinding,
     source: AnyPsqlInsertSource,
-) -> PsqlInsertStmtBuilder {
-    PsqlInsertStmtBuilder {
+) -> PsqlInsertStatementBuilder {
+    PsqlInsertStatementBuilder {
         insert_token,
         into_token,
         table,
@@ -257,7 +240,7 @@ pub fn psql_insert_stmt(
         semicolon_token: None,
     }
 }
-pub struct PsqlInsertStmtBuilder {
+pub struct PsqlInsertStatementBuilder {
     insert_token: SyntaxToken,
     into_token: SyntaxToken,
     table: PsqlTableBinding,
@@ -265,7 +248,7 @@ pub struct PsqlInsertStmtBuilder {
     columns: Option<PsqlInsertColumns>,
     semicolon_token: Option<SyntaxToken>,
 }
-impl PsqlInsertStmtBuilder {
+impl PsqlInsertStatementBuilder {
     pub fn with_columns(mut self, columns: PsqlInsertColumns) -> Self {
         self.columns = Some(columns);
         self
@@ -274,9 +257,9 @@ impl PsqlInsertStmtBuilder {
         self.semicolon_token = Some(semicolon_token);
         self
     }
-    pub fn build(self) -> PsqlInsertStmt {
-        PsqlInsertStmt::unwrap_cast(SyntaxNode::new_detached(
-            PsqlSyntaxKind::PSQL_INSERT_STMT,
+    pub fn build(self) -> PsqlInsertStatement {
+        PsqlInsertStatement::unwrap_cast(SyntaxNode::new_detached(
+            PsqlSyntaxKind::PSQL_INSERT_STATEMENT,
             [
                 Some(SyntaxElement::Token(self.insert_token)),
                 Some(SyntaxElement::Token(self.into_token)),
@@ -413,7 +396,7 @@ pub fn psql_parenthesized_expression(
         ],
     ))
 }
-pub fn psql_root(stmt: PsqlStmtList, eof_token: SyntaxToken) -> PsqlRoot {
+pub fn psql_root(stmt: PsqlStatementList, eof_token: SyntaxToken) -> PsqlRoot {
     PsqlRoot::unwrap_cast(SyntaxNode::new_detached(
         PsqlSyntaxKind::PSQL_ROOT,
         [
@@ -431,8 +414,31 @@ pub fn psql_select_clause(select_token: SyntaxToken, list: PsqlSelectItemList) -
         ],
     ))
 }
-pub fn psql_select_stmt(select_clause: PsqlSelectClause) -> PsqlSelectStmtBuilder {
-    PsqlSelectStmtBuilder {
+pub fn psql_select_expression(expr: AnyPsqlExpression) -> PsqlSelectExpressionBuilder {
+    PsqlSelectExpressionBuilder { expr, alias: None }
+}
+pub struct PsqlSelectExpressionBuilder {
+    expr: AnyPsqlExpression,
+    alias: Option<PsqlAlias>,
+}
+impl PsqlSelectExpressionBuilder {
+    pub fn with_alias(mut self, alias: PsqlAlias) -> Self {
+        self.alias = Some(alias);
+        self
+    }
+    pub fn build(self) -> PsqlSelectExpression {
+        PsqlSelectExpression::unwrap_cast(SyntaxNode::new_detached(
+            PsqlSyntaxKind::PSQL_SELECT_EXPRESSION,
+            [
+                Some(SyntaxElement::Node(self.expr.into_syntax())),
+                self.alias
+                    .map(|token| SyntaxElement::Node(token.into_syntax())),
+            ],
+        ))
+    }
+}
+pub fn psql_select_statement(select_clause: PsqlSelectClause) -> PsqlSelectStatementBuilder {
+    PsqlSelectStatementBuilder {
         select_clause,
         from_clause: None,
         where_clause: None,
@@ -444,7 +450,7 @@ pub fn psql_select_stmt(select_clause: PsqlSelectClause) -> PsqlSelectStmtBuilde
         semicolon_token: None,
     }
 }
-pub struct PsqlSelectStmtBuilder {
+pub struct PsqlSelectStatementBuilder {
     select_clause: PsqlSelectClause,
     from_clause: Option<PsqlFromClause>,
     where_clause: Option<PsqlWhereClause>,
@@ -455,7 +461,7 @@ pub struct PsqlSelectStmtBuilder {
     offset_clause: Option<PsqlOffsetClause>,
     semicolon_token: Option<SyntaxToken>,
 }
-impl PsqlSelectStmtBuilder {
+impl PsqlSelectStatementBuilder {
     pub fn with_from_clause(mut self, from_clause: PsqlFromClause) -> Self {
         self.from_clause = Some(from_clause);
         self
@@ -488,9 +494,9 @@ impl PsqlSelectStmtBuilder {
         self.semicolon_token = Some(semicolon_token);
         self
     }
-    pub fn build(self) -> PsqlSelectStmt {
-        PsqlSelectStmt::unwrap_cast(SyntaxNode::new_detached(
-            PsqlSyntaxKind::PSQL_SELECT_STMT,
+    pub fn build(self) -> PsqlSelectStatement {
+        PsqlSelectStatement::unwrap_cast(SyntaxNode::new_detached(
+            PsqlSyntaxKind::PSQL_SELECT_STATEMENT,
             [
                 Some(SyntaxElement::Node(self.select_clause.into_syntax())),
                 self.from_clause
@@ -577,22 +583,6 @@ pub fn psql_string_literal_expression(value_token: SyntaxToken) -> PsqlStringLit
         [Some(SyntaxElement::Token(value_token))],
     ))
 }
-pub fn psql_sub_query(
-    l_paren_token: SyntaxToken,
-    psql_select_stmt: PsqlSelectStmt,
-    r_paren_token: SyntaxToken,
-    alias: PsqlAlias,
-) -> PsqlSubQuery {
-    PsqlSubQuery::unwrap_cast(SyntaxNode::new_detached(
-        PsqlSyntaxKind::PSQL_SUB_QUERY,
-        [
-            Some(SyntaxElement::Token(l_paren_token)),
-            Some(SyntaxElement::Node(psql_select_stmt.into_syntax())),
-            Some(SyntaxElement::Token(r_paren_token)),
-            Some(SyntaxElement::Node(alias.into_syntax())),
-        ],
-    ))
-}
 pub fn psql_table_binding(table: PsqlTableName) -> PsqlTableBindingBuilder {
     PsqlTableBindingBuilder { table, alias: None }
 }
@@ -620,37 +610,15 @@ pub fn psql_table_col_reference(
     table: PsqlTableName,
     dot_token: SyntaxToken,
     name: PsqlName,
-) -> PsqlTableColReferenceBuilder {
-    PsqlTableColReferenceBuilder {
-        table,
-        dot_token,
-        name,
-        alias: None,
-    }
-}
-pub struct PsqlTableColReferenceBuilder {
-    table: PsqlTableName,
-    dot_token: SyntaxToken,
-    name: PsqlName,
-    alias: Option<PsqlAlias>,
-}
-impl PsqlTableColReferenceBuilder {
-    pub fn with_alias(mut self, alias: PsqlAlias) -> Self {
-        self.alias = Some(alias);
-        self
-    }
-    pub fn build(self) -> PsqlTableColReference {
-        PsqlTableColReference::unwrap_cast(SyntaxNode::new_detached(
-            PsqlSyntaxKind::PSQL_TABLE_COL_REFERENCE,
-            [
-                Some(SyntaxElement::Node(self.table.into_syntax())),
-                Some(SyntaxElement::Token(self.dot_token)),
-                Some(SyntaxElement::Node(self.name.into_syntax())),
-                self.alias
-                    .map(|token| SyntaxElement::Node(token.into_syntax())),
-            ],
-        ))
-    }
+) -> PsqlTableColReference {
+    PsqlTableColReference::unwrap_cast(SyntaxNode::new_detached(
+        PsqlSyntaxKind::PSQL_TABLE_COL_REFERENCE,
+        [
+            Some(SyntaxElement::Node(table.into_syntax())),
+            Some(SyntaxElement::Token(dot_token)),
+            Some(SyntaxElement::Node(name.into_syntax())),
+        ],
+    ))
 }
 pub fn psql_table_name(name: PsqlName) -> PsqlTableNameBuilder {
     PsqlTableNameBuilder { name, schema: None }
@@ -675,12 +643,12 @@ impl PsqlTableNameBuilder {
         ))
     }
 }
-pub fn psql_update_stmt(
+pub fn psql_update_statement(
     update_token: SyntaxToken,
     table: PsqlTableBinding,
     set_clause: PsqlSetClause,
-) -> PsqlUpdateStmtBuilder {
-    PsqlUpdateStmtBuilder {
+) -> PsqlUpdateStatementBuilder {
+    PsqlUpdateStatementBuilder {
         update_token,
         table,
         set_clause,
@@ -688,14 +656,14 @@ pub fn psql_update_stmt(
         semicolon_token: None,
     }
 }
-pub struct PsqlUpdateStmtBuilder {
+pub struct PsqlUpdateStatementBuilder {
     update_token: SyntaxToken,
     table: PsqlTableBinding,
     set_clause: PsqlSetClause,
     where_clause: Option<PsqlWhereClause>,
     semicolon_token: Option<SyntaxToken>,
 }
-impl PsqlUpdateStmtBuilder {
+impl PsqlUpdateStatementBuilder {
     pub fn with_where_clause(mut self, where_clause: PsqlWhereClause) -> Self {
         self.where_clause = Some(where_clause);
         self
@@ -704,9 +672,9 @@ impl PsqlUpdateStmtBuilder {
         self.semicolon_token = Some(semicolon_token);
         self
     }
-    pub fn build(self) -> PsqlUpdateStmt {
-        PsqlUpdateStmt::unwrap_cast(SyntaxNode::new_detached(
-            PsqlSyntaxKind::PSQL_UPDATE_STMT,
+    pub fn build(self) -> PsqlUpdateStatement {
+        PsqlUpdateStatement::unwrap_cast(SyntaxNode::new_detached(
+            PsqlSyntaxKind::PSQL_UPDATE_STATEMENT,
             [
                 Some(SyntaxElement::Token(self.update_token)),
                 Some(SyntaxElement::Node(self.table.into_syntax())),
@@ -857,13 +825,13 @@ where
         }),
     ))
 }
-pub fn psql_stmt_list<I>(items: I) -> PsqlStmtList
+pub fn psql_statement_list<I>(items: I) -> PsqlStatementList
 where
-    I: IntoIterator<Item = AnyPsqlStmt>,
+    I: IntoIterator<Item = AnyPsqlStatement>,
     I::IntoIter: ExactSizeIterator,
 {
-    PsqlStmtList::unwrap_cast(SyntaxNode::new_detached(
-        PsqlSyntaxKind::PSQL_STMT_LIST,
+    PsqlStatementList::unwrap_cast(SyntaxNode::new_detached(
+        PsqlSyntaxKind::PSQL_STATEMENT_LIST,
         items
             .into_iter()
             .map(|item| Some(item.into_syntax().into())),
