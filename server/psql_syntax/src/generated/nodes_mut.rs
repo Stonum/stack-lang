@@ -52,12 +52,6 @@ impl PsqlColReference {
                 .splice_slots(0usize..=0usize, once(Some(element.into_syntax().into()))),
         )
     }
-    pub fn with_alias(self, element: Option<PsqlAlias>) -> Self {
-        Self::unwrap_cast(self.syntax.splice_slots(
-            1usize..=1usize,
-            once(element.map(|element| element.into_syntax().into())),
-        ))
-    }
 }
 impl PsqlDataBaseName {
     pub fn with_name(self, element: PsqlName) -> Self {
@@ -73,7 +67,7 @@ impl PsqlDataBaseName {
         )
     }
 }
-impl PsqlDeleteStmt {
+impl PsqlDeleteStatement {
     pub fn with_delete_token(self, element: SyntaxToken) -> Self {
         Self::unwrap_cast(
             self.syntax
@@ -225,7 +219,7 @@ impl PsqlInsertColumns {
         )
     }
 }
-impl PsqlInsertStmt {
+impl PsqlInsertStatement {
     pub fn with_insert_token(self, element: SyntaxToken) -> Self {
         Self::unwrap_cast(
             self.syntax
@@ -410,7 +404,7 @@ impl PsqlParenthesizedExpression {
     }
 }
 impl PsqlRoot {
-    pub fn with_stmt(self, element: PsqlStmtList) -> Self {
+    pub fn with_stmt(self, element: PsqlStatementList) -> Self {
         Self::unwrap_cast(
             self.syntax
                 .splice_slots(0usize..=0usize, once(Some(element.into_syntax().into()))),
@@ -437,7 +431,21 @@ impl PsqlSelectClause {
         )
     }
 }
-impl PsqlSelectStmt {
+impl PsqlSelectExpression {
+    pub fn with_expr(self, element: AnyPsqlExpression) -> Self {
+        Self::unwrap_cast(
+            self.syntax
+                .splice_slots(0usize..=0usize, once(Some(element.into_syntax().into()))),
+        )
+    }
+    pub fn with_alias(self, element: Option<PsqlAlias>) -> Self {
+        Self::unwrap_cast(self.syntax.splice_slots(
+            1usize..=1usize,
+            once(element.map(|element| element.into_syntax().into())),
+        ))
+    }
+}
+impl PsqlSelectStatement {
     pub fn with_select_clause(self, element: PsqlSelectClause) -> Self {
         Self::unwrap_cast(
             self.syntax
@@ -563,32 +571,6 @@ impl PsqlStringLiteralExpression {
         )
     }
 }
-impl PsqlSubQuery {
-    pub fn with_l_paren_token(self, element: SyntaxToken) -> Self {
-        Self::unwrap_cast(
-            self.syntax
-                .splice_slots(0usize..=0usize, once(Some(element.into()))),
-        )
-    }
-    pub fn with_psql_select_stmt(self, element: PsqlSelectStmt) -> Self {
-        Self::unwrap_cast(
-            self.syntax
-                .splice_slots(1usize..=1usize, once(Some(element.into_syntax().into()))),
-        )
-    }
-    pub fn with_r_paren_token(self, element: SyntaxToken) -> Self {
-        Self::unwrap_cast(
-            self.syntax
-                .splice_slots(2usize..=2usize, once(Some(element.into()))),
-        )
-    }
-    pub fn with_alias(self, element: PsqlAlias) -> Self {
-        Self::unwrap_cast(
-            self.syntax
-                .splice_slots(3usize..=3usize, once(Some(element.into_syntax().into()))),
-        )
-    }
-}
 impl PsqlTableBinding {
     pub fn with_table(self, element: PsqlTableName) -> Self {
         Self::unwrap_cast(
@@ -622,12 +604,6 @@ impl PsqlTableColReference {
                 .splice_slots(2usize..=2usize, once(Some(element.into_syntax().into()))),
         )
     }
-    pub fn with_alias(self, element: Option<PsqlAlias>) -> Self {
-        Self::unwrap_cast(self.syntax.splice_slots(
-            3usize..=3usize,
-            once(element.map(|element| element.into_syntax().into())),
-        ))
-    }
 }
 impl PsqlTableName {
     pub fn with_schema(self, element: Option<PsqlShemaName>) -> Self {
@@ -643,7 +619,7 @@ impl PsqlTableName {
         )
     }
 }
-impl PsqlUpdateStmt {
+impl PsqlUpdateStatement {
     pub fn with_update_token(self, element: SyntaxToken) -> Self {
         Self::unwrap_cast(
             self.syntax
