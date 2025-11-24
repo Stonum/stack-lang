@@ -13,3 +13,13 @@ fn test_select_literal_list() {
 
     assert_parser!(res);
 }
+
+#[test]
+fn test_select_asliased_literals() {
+    let res = parse(
+        "select 1 as x, 2 as y, 3 z, 4 \"as\"",
+        PsqlFileSource::script(),
+    );
+
+    assert_parser!(res, debug);
+}

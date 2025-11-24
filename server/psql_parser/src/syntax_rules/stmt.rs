@@ -7,6 +7,7 @@ use biome_parser::prelude::*;
 use super::expr::{EXPR_RECOVERY_SET, parse_expression};
 use super::parse_error::*;
 use crate::PsqlParser;
+use crate::syntax_rules::expr::parse_alias;
 use psql_syntax::{PsqlSyntaxKind::*, T, *};
 
 pub const STMT_RECOVERY_SET: TokenSet<PsqlSyntaxKind> = token_set![T![;]];
@@ -29,7 +30,7 @@ pub(crate) fn parse_statements(p: &mut PsqlParser, statement_list: Marker) {
         }
     }
 
-    statement_list.complete(p, PSQL_STMT_LIST);
+    statement_list.complete(p, PSQL_STATEMENT_LIST);
 }
 
 pub(crate) fn parse_statement(p: &mut PsqlParser, context: StatementContext) -> ParsedSyntax {
@@ -88,7 +89,7 @@ fn parse_select_statement(p: &mut PsqlParser) -> ParsedSyntax {
     PsqlSelectItemList.parse_list(p);
     select_clause.complete(p, PSQL_SELECT_CLAUSE);
 
-    Present(select_stmt.complete(p, PSQL_SELECT_STMT))
+    Present(select_stmt.complete(p, PSQL_SELECT_STATEMENT))
 }
 
 struct PsqlSelectItemList;
@@ -124,11 +125,14 @@ impl ParseSeparatedList for PsqlSelectItemList {
 }
 
 fn parse_select_item(p: &mut PsqlParser) -> ParsedSyntax {
+    let m = p.start();
     if p.at(T![*]) {
-        let m = p.start();
         p.bump(T![*]);
         Present(m.complete(p, PSQL_STAR))
     } else {
-        parse_expression(p)
+        if parse_expression(p).is_present() {
+            parse_alias(p);
+        }
+        Present(m.complete(p, PSQL_SELECT_EXPRESSION))
     }
 }
