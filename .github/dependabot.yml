@@ -10,9 +10,9 @@ updates:
       - "/"
       - "/client"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
 
   - package-ecosystem: "cargo"
     directory: "/server"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
