@@ -80,8 +80,29 @@ pub trait LocationDefinition {
     }
 }
 
+const SPECIAL_CHARS: [char; 2] = ['\\', '#'];
+
 pub trait MarkupDefinition {
     fn markdown(&self) -> String;
+
+    fn escape_markdown_with_newlines(&self, s: &str) -> String {
+        let mut result = String::with_capacity(s.len() * 2);
+
+        for c in s.chars() {
+            match c {
+                '\r' => {}
+                '\n' => {
+                    result.push_str("  \n");
+                }
+                _ if SPECIAL_CHARS.contains(&c) => {
+                    result.push('\\');
+                    result.push(c);
+                }
+                _ => result.push(c),
+            }
+        }
+        result
+    }
 }
 
 pub type Identifier = String;
