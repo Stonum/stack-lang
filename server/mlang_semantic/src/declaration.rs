@@ -142,13 +142,21 @@ impl MarkupDefinition for AnyMDefinition {
                 function.type_keyword(),
                 function.id.name,
                 function.params,
-                function.description.as_deref().unwrap_or_default()
+                function
+                    .description
+                    .as_deref()
+                    .and_then(|s| Some(self.escape_markdown_with_newlines(s)))
+                    .unwrap_or_default()
             ),
             AnyMDefinition::MClassDefinition(class) => format!(
                 "```{} {}```  \n{}",
                 class.type_keyword(),
                 class.id.name,
-                class.description.as_deref().unwrap_or_default()
+                class
+                    .description
+                    .as_deref()
+                    .and_then(|s| Some(self.escape_markdown_with_newlines(s)))
+                    .unwrap_or_default()
             ),
             AnyMDefinition::MClassMemberDefinition(member) => match member.m_type {
                 MClassMethodType::Method if member.class.upgrade().is_some() => {
@@ -160,7 +168,11 @@ impl MarkupDefinition for AnyMDefinition {
                         class.id.name,
                         member.id.name,
                         member.params,
-                        member.description.as_deref().unwrap_or_default()
+                        member
+                            .description
+                            .as_deref()
+                            .and_then(|s| Some(self.escape_markdown_with_newlines(s)))
+                            .unwrap_or_default()
                     )
                 }
                 _ => format!(
@@ -168,7 +180,11 @@ impl MarkupDefinition for AnyMDefinition {
                     member.type_keyword(),
                     member.id.name,
                     member.params,
-                    member.description.as_deref().unwrap_or_default()
+                    member
+                        .description
+                        .as_deref()
+                        .and_then(|s| Some(self.escape_markdown_with_newlines(s)))
+                        .unwrap_or_default()
                 ),
             },
             AnyMDefinition::MReportDefinition(report) => {
@@ -604,8 +620,8 @@ fn format_description(
             for piece in trivia.pieces().rev() {
                 match piece.kind() {
                     TriviaPieceKind::SingleLineComment => {
-                        pieces.push(piece.text().replace("#", "\\#"));
-                        pieces.push(String::from("  \n"));
+                        pieces.push(piece.text().to_string());
+                        pieces.push(String::from("\n"));
                         newline_count = 0;
                     }
                     TriviaPieceKind::Newline => {
@@ -622,11 +638,11 @@ fn format_description(
         });
 
     // doc string after function name
-    let doc_string = doc_string.map(|s| s[1..s.len() - 1].replace("\r\n", "  \n"));
+    let doc_string = doc_string.map(|s| s[1..s.len() - 1].to_string());
 
     if let Some(doc_string) = doc_string {
         return description
-            .map(|s| format!("{s}  \n{doc_string}"))
+            .map(|s| format!("{s}\n{doc_string}"))
             .or(Some(doc_string));
     }
 
@@ -707,9 +723,7 @@ mod tests {
                 },
 
                 params: String::from("(x, y, z = 5, ...)"),
-                description: Some(String::from(
-                    "  \n\\# something else  \n\\# about function a"
-                )),
+                description: Some(String::from("\n# something else\n# about function a")),
                 range: line_col_range(5, 4, 7, 5),
             })
         );
@@ -723,7 +737,7 @@ mod tests {
                 },
 
                 params: String::from("()"),
-                description: Some(String::from("  \n\\# about function b")),
+                description: Some(String::from("\n# about function b")),
                 range: line_col_range(10, 4, 12, 5)
             })
         );
@@ -767,7 +781,7 @@ mod tests {
                 },
                 class: Weak::new(),
                 params: String::from("()"),
-                description: Some(String::from("  \n\\# getter description")),
+                description: Some(String::from("\n# getter description")),
                 range: line_col_range(18, 8, 20, 9),
                 m_type: MClassMethodType::Getter
             }),
