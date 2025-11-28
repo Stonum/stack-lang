@@ -7,6 +7,14 @@ use biome_rowan::{AstNode, SyntaxResult, syntax::SyntaxTrivia};
 // use mlang_factory::make::m_parameter_list;
 
 impl AnyMClassMember {
+    pub fn token(&self) -> SyntaxResult<Option<MSyntaxToken>> {
+        match self {
+            AnyMClassMember::MGetterClassMember(getter) => getter.get_token().map(Some),
+            AnyMClassMember::MSetterClassMember(setter) => setter.set_token().map(Some),
+            _ => Ok(None),
+        }
+    }
+
     /// Returns the `name` of the member if it has any.
     pub fn name(&self) -> SyntaxResult<Option<MClassMemberName>> {
         match self {

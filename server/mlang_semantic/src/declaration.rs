@@ -138,8 +138,8 @@ impl MarkupDefinition for AnyMDefinition {
     fn markdown(&self) -> String {
         match self {
             AnyMDefinition::MFunctionDefinition(function) => format!(
-                "```{} {}{}```  \n{}",
-                function.type_keyword(),
+                "```\n{} {}{}\n```  \n{}",
+                function.keyword,
                 function.id.name,
                 function.params,
                 function
@@ -149,8 +149,8 @@ impl MarkupDefinition for AnyMDefinition {
                     .unwrap_or_default()
             ),
             AnyMDefinition::MClassDefinition(class) => format!(
-                "```{} {}```  \n{}",
-                class.type_keyword(),
+                "```\n{} {}\n```  \n{}",
+                class.keyword,
                 class.id.name,
                 class
                     .description
@@ -163,8 +163,8 @@ impl MarkupDefinition for AnyMDefinition {
                     let class = member.class.upgrade().unwrap();
 
                     format!(
-                        "```{} {}```  \n```{}{}```  \n{}",
-                        class.type_keyword(),
+                        "```\n{} {}\n```  \n{}{}  \n{}",
+                        class.keyword,
                         class.id.name,
                         member.id.name,
                         member.params,
@@ -176,8 +176,8 @@ impl MarkupDefinition for AnyMDefinition {
                     )
                 }
                 _ => format!(
-                    "```{} {}{}```  \n{}",
-                    member.type_keyword(),
+                    "```\n{} {}{}\n```  \n{}",
+                    member.keyword.as_deref().unwrap_or_default(),
                     member.id.name,
                     member.params,
                     member
@@ -188,23 +188,22 @@ impl MarkupDefinition for AnyMDefinition {
                 ),
             },
             AnyMDefinition::MReportDefinition(report) => {
-                format!("```{} {}```", report.type_keyword(), report.id.name,)
+                format!("{}", report.id.name)
             }
             AnyMDefinition::MReportSectionDefiniton(section) => {
-                format!("```{} {}```", section.type_keyword(), section.id.name,)
+                format!("{}", section.id.name)
             }
             AnyMDefinition::MHandlerDefinition(handler) => {
-                format!("```{} {}```", handler.type_keyword(), handler.id.name,)
+                format!("```\n{} {}\n```", handler.keyword, handler.id.name)
             }
-            AnyMDefinition::MHandlerEventDefinition(event) => {
-                format!("```{} {}```", event.type_keyword(), event.id.name,)
-            }
+            AnyMDefinition::MHandlerEventDefinition(event) => format!("{}", event.id.name),
         }
     }
 }
 
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct MFunctionDefinition {
+    keyword: String,
     id: DefinitionId,
     params: String,
     description: Option<String>,
@@ -218,6 +217,7 @@ impl MFunctionDefinition {
 
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct MClassDefinition {
+    keyword: String,
     id: DefinitionId,
     methods: Vec<Arc<MClassMemberDefinition>>,
     description: Option<String>,
@@ -232,6 +232,7 @@ impl MClassDefinition {
 
 #[derive(Debug, Default)]
 pub struct MClassMemberDefinition {
+    keyword: Option<String>,
     id: DefinitionId,
     class: Weak<MClassDefinition>,
     params: String,
@@ -305,6 +306,7 @@ impl Eq for MReportSectionDefiniton {}
 
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct MHandlerDefinition {
+    keyword: String,
     id: DefinitionId,
     params: String,
     events: Vec<Arc<MHandlerEventDefinition>>,
@@ -395,11 +397,13 @@ fn function_definition(
     func: MFunctionDeclaration,
     index: &LineIndex,
 ) -> Option<MFunctionDefinition> {
+    let func_token = func.function_token().ok()?;
     let func_id = func.id().ok()?;
     let func_id_range = index.line_col_range(func_id.range())?;
     let func_range = index.line_col_range(func.range())?;
 
     let func = MFunctionDefinition {
+        keyword: func_token.text_trimmed().to_string(),
         id: DefinitionId {
             name: func_id.text(),
             range: func_id_range,
@@ -421,11 +425,13 @@ fn handler_definition(
     func: MFunctionDeclaration,
     index: &LineIndex,
 ) -> Option<(Arc<MHandlerDefinition>, Vec<MHandlerEventDefinition>)> {
+    let func_token = func.function_token().ok()?;
     let func_id = func.id().ok()?;
     let func_id_range = index.line_col_range(func_id.range())?;
     let func_range = index.line_col_range(func.range())?;
 
     let hdlr = Arc::new(MHandlerDefinition {
+        keyword: func_token.text_trimmed().to_string(),
         id: DefinitionId {
             name: func_id.text(),
             range: func_id_range,
@@ -497,11 +503,13 @@ fn class_definition(
     class: MClassDeclaration,
     index: &LineIndex,
 ) -> Option<(Arc<MClassDefinition>, Vec<MClassMemberDefinition>)> {
+    let class_token = class.class_token().ok()?;
     let class_id = class.id().ok()?;
     let class_id_range = index.line_col_range(class_id.range())?;
     let class_range = index.line_col_range(class.range())?;
 
     let class_def = Arc::new(MClassDefinition {
+        keyword: class_token.text_trimmed().to_string(),
         id: DefinitionId {
             name: class_id.text(),
             range: class_id_range,
@@ -531,11 +539,13 @@ fn class_member_definition(
     class: Weak<MClassDefinition>,
     index: &LineIndex,
 ) -> Option<MClassMemberDefinition> {
+    let member_token = member.token().ok()?;
     let member_id = member.name().ok()??;
     let member_id_range = index.line_col_range(member_id.range())?;
     let member_range = index.line_col_range(member.range())?;
 
     Some(MClassMemberDefinition {
+        keyword: member_token.map(|s| s.to_string()),
         id: DefinitionId {
             name: member_id.text(),
             range: member_id_range,
@@ -717,6 +727,7 @@ mod tests {
         assert_eq!(
             *definitions.next().unwrap(),
             AnyMDefinition::MFunctionDefinition(MFunctionDefinition {
+                keyword: String::from("func"),
                 id: DefinitionId {
                     name: String::from("a"),
                     range: line_col_range(5, 9, 5, 10)
@@ -731,6 +742,7 @@ mod tests {
         assert_eq!(
             *definitions.next().unwrap(),
             AnyMDefinition::MFunctionDefinition(MFunctionDefinition {
+                keyword: String::from("func"),
                 id: DefinitionId {
                     name: String::from("b"),
                     range: line_col_range(10, 9, 10, 10)
@@ -745,6 +757,7 @@ mod tests {
         assert_eq!(
             *definitions.next().unwrap(),
             AnyMDefinition::MClassDefinition(Arc::new(MClassDefinition {
+                keyword: String::from("class"),
                 id: DefinitionId {
                     name: String::from("x"),
                     range: line_col_range(14, 10, 14, 11)
@@ -760,6 +773,7 @@ mod tests {
         assert_eq!(
             *definitions.next().unwrap(),
             AnyMDefinition::MClassMemberDefinition(MClassMemberDefinition {
+                keyword: None,
                 id: DefinitionId {
                     name: String::from("constructor"),
                     range: line_col_range(15, 8, 15, 19)
@@ -775,6 +789,7 @@ mod tests {
         assert_eq!(
             *definitions.next().unwrap(),
             AnyMDefinition::MClassMemberDefinition(MClassMemberDefinition {
+                keyword: None,
                 id: DefinitionId {
                     name: String::from("x"),
                     range: line_col_range(18, 12, 18, 13)
@@ -790,6 +805,7 @@ mod tests {
         assert_eq!(
             *definitions.next().unwrap(),
             AnyMDefinition::MClassMemberDefinition(MClassMemberDefinition {
+                keyword: None,
                 id: DefinitionId {
                     name: String::from("calc"),
                     range: line_col_range(21, 8, 21, 12)

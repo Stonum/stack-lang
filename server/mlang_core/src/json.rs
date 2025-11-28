@@ -38,7 +38,7 @@ impl Into<AnyMCoreDefinition> for FreeFunction {
         AnyMCoreDefinition::MCoreFunctionDefinition(MCoreFunctionDefinition {
             id: self.name,
             description: format!(
-                "```{}```  \n{}",
+                "```\n{}\n```  \n{}",
                 self.brief_description, self.detailed_description.text,
             ),
         })
@@ -111,7 +111,7 @@ fn convert_entity_method(
     }
 
     let descr = format!(
-        "{} {}",
+        "```\n{}\n```   \n{}",
         inner[0].brief_description, inner[0].detailed_description.text,
     );
 
