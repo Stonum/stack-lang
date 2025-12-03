@@ -125,7 +125,12 @@ impl CodeSymbolInformation for AnyMDefinition {
         match self {
             AnyMDefinition::MFunctionDefinition(_) => SymbolKind::FUNCTION,
             AnyMDefinition::MClassDefinition(_) => SymbolKind::CLASS,
-            AnyMDefinition::MClassMemberDefinition(_) => SymbolKind::FUNCTION,
+            AnyMDefinition::MClassMemberDefinition(member) => match member.m_type {
+                MClassMethodType::Constructor => SymbolKind::CONSTRUCTOR,
+                MClassMethodType::Getter => SymbolKind::PROPERTY,
+                MClassMethodType::Setter => SymbolKind::PROPERTY,
+                MClassMethodType::Method => SymbolKind::METHOD,
+            },
             AnyMDefinition::MReportDefinition(_) => SymbolKind::CONSTANT,
             AnyMDefinition::MReportSectionDefiniton(_) => SymbolKind::FIELD,
             AnyMDefinition::MHandlerDefinition(_) => SymbolKind::FUNCTION,
