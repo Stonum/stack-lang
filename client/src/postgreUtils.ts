@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 
 
 const toPostgresTable = /~\$?([А-яёЁ0-9A-Za-z_\-\(\) ]+)~/g
-const toPostgresArray = /~(\[.*\])~/g;
+const toPostgresArray = /~(\[([^\]])*\])~/g;
 
 export function togglePostgreSQL(
    namespace: string = 'stack',
@@ -35,12 +35,13 @@ function convertFromPostgreSQL(
    }
 
    editor.edit(b => {
-      const re1 = new RegExp(namespace + '\\."([^"]*)"', 'g')
-      const re2 = new RegExp(namespace + '\\.([^\\s\\(]*)', 'g')
+      const re1 = new RegExp(namespace + '\\.\\[([^\\]]*)\\]', 'gi')
+      const re2 = new RegExp(namespace + '\\."([^"]*)"', 'g')
+      const re3 = new RegExp(namespace + '\\.([^\\s\\(]*)', 'g')
       const repl = addDollar ? '~$$$1~' : '~$1~'
 
       forAllSelections(editor, (range, text) => {
-         b.replace(range, text.replace(re1, repl).replace(re2, repl).replace(/(\[.*\])/g, "~$1~"))
+         b.replace(range, text.replace(re1, repl).replace(re2, repl).replace(re3, repl).replace(/(\[([^\]])*\])/g, "~$1~"))
       })
    })
 }
