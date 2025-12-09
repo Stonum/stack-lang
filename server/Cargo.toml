@@ -39,6 +39,7 @@ chrono = "0.4.42"
 env_logger = "0.11.8"
 dashmap = "6.1.0"
 unicase = "2.8.1"
+walkdir= "2"
 
 log = "0.4.28"
 rust-ini = "0.21.3"

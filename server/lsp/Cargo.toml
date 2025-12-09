@@ -26,5 +26,6 @@ rust-ini = { workspace = true }
 thiserror = { workspace = true }
 biome_diagnostics = { workspace = true }
 unicase = { workspace = true }
+walkdir = { workspace = true }
 
 biome_rowan = { workspace = true }

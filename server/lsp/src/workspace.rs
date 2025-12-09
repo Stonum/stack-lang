@@ -6,6 +6,7 @@ use line_index::{LineCol, LineIndex};
 use log::{error, info};
 use serde_json::Value;
 use thiserror::Error;
+use walkdir::WalkDir;
 
 use mlang_core::{AnyMCoreDefinition, load_core_api};
 use mlang_lsp_definition::{
@@ -450,30 +451,23 @@ impl Workspace {
 
 impl Workspace {
     async fn get_files(&self, to_visit: Vec<(PathBuf, bool)>) -> std::io::Result<Vec<PathBuf>> {
-        let mut files = vec![];
-        let mut to_visit = to_visit;
+        let mut files = Vec::with_capacity(1000);
 
-        while let Some((path, recursively)) = to_visit.pop() {
-            if path.is_dir() {
-                let mut dir = tokio::fs::read_dir(path).await?;
-                while let Some(entry) = dir.next_entry().await? {
-                    let entry = entry.path();
+        for (path, recursively) in to_visit {
+            let depth = if recursively { usize::MAX } else { 0 };
+            let walker = WalkDir::new(path).max_depth(depth);
 
-                    if entry.is_dir() {
-                        // visit nested dirs only with recursively flag
-                        if recursively {
-                            to_visit.push((entry, recursively));
-                        }
-                        continue;
-                    }
-
-                    // only modules and handlers needs to definitions
-                    if MFileSource::try_from(entry.as_path())
+            let entries = walker
+                .into_iter()
+                .filter_map(|e| e.ok())
+                .filter(|entry| entry.file_type().is_file())
+                .filter(|entry| {
+                    MFileSource::try_from(entry.path())
                         .is_ok_and(|m| m.is_module() || m.is_handler())
-                    {
-                        files.push(entry);
-                    }
-                }
+                });
+
+            for entry in entries {
+                files.push(entry.into_path());
             }
         }
 
