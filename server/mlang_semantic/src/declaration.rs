@@ -214,11 +214,6 @@ pub struct MFunctionDefinition {
     description: Option<String>,
     range: LineColRange,
 }
-impl MFunctionDefinition {
-    fn type_keyword(&self) -> &'static str {
-        "function"
-    }
-}
 
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct MClassDefinition {
@@ -228,11 +223,6 @@ pub struct MClassDefinition {
     description: Option<String>,
     range: LineColRange,
     extends: Option<String>,
-}
-impl MClassDefinition {
-    fn type_keyword(&self) -> &'static str {
-        "class"
-    }
 }
 
 #[derive(Debug, Default)]
@@ -255,16 +245,6 @@ enum MClassMethodType {
     Method,
 }
 
-impl MClassMemberDefinition {
-    fn type_keyword(&self) -> &'static str {
-        match self.m_type {
-            MClassMethodType::Getter => "get",
-            MClassMethodType::Setter => "set",
-            _ => "",
-        }
-    }
-}
-
 impl PartialEq for MClassMemberDefinition {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
@@ -283,23 +263,11 @@ pub struct MReportDefinition {
     range: LineColRange,
 }
 
-impl MReportDefinition {
-    fn type_keyword(&self) -> &'static str {
-        "report"
-    }
-}
-
 #[derive(Debug, Default)]
 pub struct MReportSectionDefiniton {
     id: DefinitionId,
     report: Weak<MReportDefinition>,
     range: LineColRange,
-}
-
-impl MReportSectionDefiniton {
-    fn type_keyword(&self) -> &'static str {
-        "section"
-    }
 }
 
 impl PartialEq for MReportSectionDefiniton {
@@ -317,22 +285,12 @@ pub struct MHandlerDefinition {
     events: Vec<Arc<MHandlerEventDefinition>>,
     range: LineColRange,
 }
-impl MHandlerDefinition {
-    fn type_keyword(&self) -> &'static str {
-        "function"
-    }
-}
 
 #[derive(Debug, Default)]
 pub struct MHandlerEventDefinition {
     id: DefinitionId,
     handler: Weak<MHandlerDefinition>,
     range: LineColRange,
-}
-impl MHandlerEventDefinition {
-    fn type_keyword(&self) -> &'static str {
-        ""
-    }
 }
 
 impl PartialEq for MHandlerEventDefinition {
