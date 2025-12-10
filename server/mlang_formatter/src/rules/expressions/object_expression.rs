@@ -1,9 +1,9 @@
 use crate::prelude::*;
 
 use crate::utils::MObjectLike;
-use mlang_syntax::parentheses::NeedsParentheses;
-use mlang_syntax::MObjectExpression;
 use biome_formatter::write;
+use mlang_syntax::MObjectExpression;
+use mlang_syntax::parentheses::NeedsParentheses;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMObjectExpression;

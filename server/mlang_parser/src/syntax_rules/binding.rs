@@ -6,8 +6,8 @@ use super::expr::{parse_any_name, parse_identifier};
 use biome_parser::prelude::ParsedSyntax::Present;
 
 use super::m_parse_error::expected_identifier;
-use mlang_syntax::MSyntaxKind::*;
 use super::{MParser, ParsedSyntax};
+use mlang_syntax::MSyntaxKind::*;
 
 pub(crate) fn parse_identifier_binding(p: &mut MParser) -> ParsedSyntax {
     parse_identifier(p, M_IDENTIFIER_BINDING)

@@ -1,13 +1,13 @@
-use crate::prelude::*;
 use crate::MLabels;
+use crate::prelude::*;
 
+use biome_formatter::{format_args, write};
+use biome_rowan::{AstNode, SyntaxResult, declare_node_union};
 use mlang_syntax::parentheses::NeedsParentheses;
 use mlang_syntax::{
     AnyMAssignment, AnyMComputedMember, AnyMExpression, MAssignmentExpression, MInitializerClause,
     MName, MStaticMemberAssignment, MStaticMemberExpression, MSyntaxToken,
 };
-use biome_formatter::{format_args, write};
-use biome_rowan::{declare_node_union, AstNode, SyntaxResult};
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMStaticMemberExpression;

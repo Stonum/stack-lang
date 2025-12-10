@@ -105,15 +105,15 @@ mod simple_argument;
 
 use super::context::TabWidth;
 use super::{is_call_like_expression, is_long_curried_call};
-use crate::{prelude::*, MLabels};
+use crate::{MLabels, prelude::*};
+use biome_formatter::{Buffer, write};
+use biome_rowan::{AstNode, SyntaxResult};
+use chain_member::{CallExpressionPosition, ChainMember};
+use groups::{MemberChainGroup, MemberChainGroupsBuilder, TailChainGroups};
 use mlang_syntax::{
     AnyMCallArgument, AnyMExpression, AnyMLiteralExpression, MCallExpression,
     MIdentifierExpression, MSyntaxKind, MSyntaxNode, MSyntaxToken, MThisExpression,
 };
-use biome_formatter::{write, Buffer};
-use biome_rowan::{AstNode, SyntaxResult};
-use chain_member::{CallExpressionPosition, ChainMember};
-use groups::{MemberChainGroup, MemberChainGroupsBuilder, TailChainGroups};
 pub use simple_argument::SimpleArgument;
 use std::iter::FusedIterator;
 
@@ -328,9 +328,10 @@ impl MemberChain {
         let mut members = self.members();
 
         if let Some(first) = members.next()
-            && comments.has_trailing_comments(first.syntax()) {
-                return true;
-            }
+            && comments.has_trailing_comments(first.syntax())
+        {
+            return true;
+        }
 
         // Ignore the root member because comments are printed before/after the member chain.
         members.next_back();

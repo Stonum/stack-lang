@@ -5,15 +5,15 @@ use super::m_parse_error::{
     expected_binding, expected_block_statement, expected_identifier, expected_statement,
 };
 use super::stmt::{
-    parse_block_impl, parse_expression_statement, parse_global_statement, STMT_RECOVERY_SET,
+    STMT_RECOVERY_SET, parse_block_impl, parse_expression_statement, parse_global_statement,
 };
-use mlang_syntax::{MSyntaxKind::*, T};
 use super::{Absent, MParser, ParsedSyntax, Present};
+use mlang_syntax::{MSyntaxKind::*, T};
 
+use biome_parser::ParserProgress;
 use biome_parser::parse_lists::ParseNodeList;
 use biome_parser::parse_recovery::{ParseRecoveryTokenSet, RecoveryResult};
 use biome_parser::prelude::*;
-use biome_parser::ParserProgress;
 use biome_rowan::TextRange;
 
 const REPORT_TOKEN_SET: TokenSet<MSyntaxKind> = token_set!(T![ff2], T![ff], T!['{'], T![EOF]);

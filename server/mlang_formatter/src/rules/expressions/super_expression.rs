@@ -1,9 +1,9 @@
 use crate::prelude::*;
 
-use mlang_syntax::parentheses::NeedsParentheses;
+use biome_formatter::write;
 use mlang_syntax::MSuperExpression;
 use mlang_syntax::MSuperExpressionFields;
-use biome_formatter::write;
+use mlang_syntax::parentheses::NeedsParentheses;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMSuperExpression;

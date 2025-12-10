@@ -1,10 +1,10 @@
 use crate::prelude::*;
 
-use mlang_syntax::parentheses::NeedsParentheses;
-use mlang_syntax::MSyntaxKind::M_SEQUENCE_EXPRESSION;
-use mlang_syntax::{MSequenceExpression, MSequenceExpressionFields, MSyntaxKind};
 use biome_formatter::{format_args, write};
 use biome_rowan::AstNode;
+use mlang_syntax::MSyntaxKind::M_SEQUENCE_EXPRESSION;
+use mlang_syntax::parentheses::NeedsParentheses;
+use mlang_syntax::{MSequenceExpression, MSequenceExpressionFields, MSyntaxKind};
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMSequenceExpression;
@@ -36,17 +36,18 @@ impl FormatNodeRule<MSequenceExpression> for FormatMSequenceExpression {
                 && matches!(
                     parent.kind(),
                     MSyntaxKind::M_EXPRESSION_STATEMENT | MSyntaxKind::M_FOR_STATEMENT
-                ) {
-                    return write!(
-                        f,
-                        [
-                            left.format(),
-                            comma_token.format(),
-                            line_suffix_boundary(),
-                            indent(&format_args![soft_line_break_or_space(), right.format()])
-                        ]
-                    );
-                }
+                )
+            {
+                return write!(
+                    f,
+                    [
+                        left.format(),
+                        comma_token.format(),
+                        line_suffix_boundary(),
+                        indent(&format_args![soft_line_break_or_space(), right.format()])
+                    ]
+                );
+            }
 
             write!(
                 f,

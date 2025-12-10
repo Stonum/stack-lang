@@ -1,6 +1,6 @@
 use crate::prelude::*;
-use mlang_syntax::MAnnotationBinding;
 use biome_rowan::AstNode;
+use mlang_syntax::MAnnotationBinding;
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMAnnotationBinding;
 impl_format_with_rule!(MAnnotationBinding, FormatMAnnotationBinding);

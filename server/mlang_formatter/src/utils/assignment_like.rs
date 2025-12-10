@@ -2,14 +2,14 @@ use super::member_chain::is_member_call_chain;
 use super::object::write_member_name;
 use super::{FormatLiteralStringToken, StringLiteralParentKind};
 use crate::prelude::*;
+use biome_formatter::{CstFormatContext, FormatOptions, VecBuffer, format_args, write};
+use biome_rowan::{AstNode, SyntaxNodeOptionExt, SyntaxResult, declare_node_union};
 use mlang_syntax::binary_like_expression::AnyMBinaryLikeExpression;
 use mlang_syntax::{
     AnyMAssignment, AnyMCallArgument, AnyMExpression, MAssignmentExpression, MInitializerClause,
     MPropertyObjectMember, MSyntaxKind, MVariableDeclarator,
 };
 use mlang_syntax::{AnyMLiteralExpression, MUnaryExpression};
-use biome_formatter::{format_args, write, CstFormatContext, FormatOptions, VecBuffer};
-use biome_rowan::{declare_node_union, AstNode, SyntaxNodeOptionExt, SyntaxResult};
 use std::iter;
 
 declare_node_union! {
@@ -274,9 +274,10 @@ impl AnyMAssignmentLike {
         let right = self.right()?;
 
         if let RightAssignmentLike::MInitializerClause(initializer) = &right
-            && f.context().comments().is_suppressed(initializer.syntax()) {
-                return Ok(AssignmentLikeLayout::SuppressedInitializer);
-            }
+            && f.context().comments().is_suppressed(initializer.syntax())
+        {
+            return Ok(AssignmentLikeLayout::SuppressedInitializer);
+        }
         let right_expression = right.as_expression();
 
         if let Some(layout) = self.chain_formatting_layout(right_expression.as_ref())? {
@@ -284,9 +285,10 @@ impl AnyMAssignmentLike {
         }
 
         if let Some(AnyMExpression::MCallExpression(call_expression)) = &right_expression
-            && call_expression.callee()?.syntax().text() == "require" {
-                return Ok(AssignmentLikeLayout::NeverBreakAfterOperator);
-            }
+            && call_expression.callee()?.syntax().text() == "require"
+        {
+            return Ok(AssignmentLikeLayout::NeverBreakAfterOperator);
+        }
 
         if self.should_break_left_hand_side()? {
             return Ok(AssignmentLikeLayout::BreakLeftHandSide);

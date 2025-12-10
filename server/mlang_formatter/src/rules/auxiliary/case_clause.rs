@@ -1,9 +1,9 @@
 use crate::prelude::*;
+use biome_formatter::{format_args, write};
+use biome_rowan::AstNodeList;
 use mlang_syntax::AnyMStatement;
 use mlang_syntax::MCaseClause;
 use mlang_syntax::MCaseClauseFields;
-use biome_formatter::{format_args, write};
-use biome_rowan::AstNodeList;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMCaseClause;

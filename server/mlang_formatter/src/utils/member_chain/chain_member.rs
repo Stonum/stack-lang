@@ -1,11 +1,11 @@
 use crate::prelude::*;
 use crate::rules::expressions::computed_member_expression::FormatComputedMemberLookup;
+use biome_formatter::write;
+use biome_rowan::AstNode;
 use mlang_syntax::{
     MCallExpression, MCallExpressionFields, MComputedMemberExpression, MStaticMemberExpression,
     MStaticMemberExpressionFields, MSyntaxNode,
 };
-use biome_formatter::write;
-use biome_rowan::AstNode;
 use std::fmt::Debug;
 
 #[derive(Copy, Clone, Debug)]

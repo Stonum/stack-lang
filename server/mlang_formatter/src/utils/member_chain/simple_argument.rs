@@ -1,10 +1,10 @@
 use super::is_call_like_expression;
+use biome_rowan::{AstSeparatedList, SyntaxResult};
 use mlang_syntax::{
     AnyMArrayElement, AnyMAssignment, AnyMCallArgument, AnyMExpression, AnyMObjectMember,
     AnyMObjectMemberName, MComputedMemberExpressionFields, MPostUpdateOperator, MPreUpdateOperator,
     MSpread, MStaticMemberExpressionFields, MUnaryOperator,
 };
-use biome_rowan::{AstSeparatedList, SyntaxResult};
 
 /// This enum tracks the arguments inside a call expressions and checks if they are
 /// simple or not.

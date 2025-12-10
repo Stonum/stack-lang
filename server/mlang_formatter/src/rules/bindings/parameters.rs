@@ -1,13 +1,13 @@
 use crate::prelude::*;
-use biome_formatter::{write, CstFormatContext};
+use biome_formatter::{CstFormatContext, write};
 
 use crate::rules::lists::parameter_list::FormatMAnyParameterList;
+use biome_rowan::{AstNode, SyntaxResult, declare_node_union};
 use mlang_syntax::{
     AnyMBinding, AnyMConstructorParameter, AnyMExpression, AnyMFormalParameter, AnyMParameter,
     AnyMParameterList, AnyParameter, MConstructorParameters, MParameters, MSyntaxNode,
     MSyntaxToken,
 };
-use biome_rowan::{declare_node_union, AstNode, SyntaxResult};
 
 #[derive(Debug, Copy, Clone, Default)]
 pub(crate) struct FormatMParameters();
@@ -199,16 +199,12 @@ pub(crate) fn should_hug_function_parameters(
                     }
                 },
 
-                Some(initializer) => {
-                    
-
-                    match initializer.expression()? {
-                        AnyMExpression::MObjectExpression(object) => object.members().is_empty(),
-                        AnyMExpression::MArrayExpression(array) => array.elements().is_empty(),
-                        AnyMExpression::MIdentifierExpression(_) => true,
-                        _ => false,
-                    }
-                }
+                Some(initializer) => match initializer.expression()? {
+                    AnyMExpression::MObjectExpression(object) => object.members().is_empty(),
+                    AnyMExpression::MArrayExpression(array) => array.elements().is_empty(),
+                    AnyMExpression::MIdentifierExpression(_) => true,
+                    _ => false,
+                },
             },
             AnyMFormalParameter::MBogusParameter(_) => return Err(FormatError::SyntaxError),
         };

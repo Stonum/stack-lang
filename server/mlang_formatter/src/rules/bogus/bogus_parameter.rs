@@ -1,7 +1,7 @@
 use biome_formatter::{FormatOwnedWithRule, FormatRefWithRule};
 
-use crate::prelude::*;
 use crate::FormatBogusNodeRule;
+use crate::prelude::*;
 use mlang_syntax::MBogusParameter;
 
 #[derive(Debug, Clone, Default)]

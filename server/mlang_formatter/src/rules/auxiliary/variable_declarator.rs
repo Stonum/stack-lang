@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use crate::utils::AnyMAssignmentLike;
-use mlang_syntax::MVariableDeclarator;
 use biome_formatter::write;
+use mlang_syntax::MVariableDeclarator;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMVariableDeclarator;

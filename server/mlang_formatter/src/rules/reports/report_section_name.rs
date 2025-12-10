@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
+use biome_formatter::write;
 use mlang_syntax::MReportSectionName;
 use mlang_syntax::MReportSectionNameFields;
-use biome_formatter::write;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMReportSectionName;

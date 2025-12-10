@@ -1,6 +1,6 @@
 use crate::prelude::*;
-use mlang_syntax::MAnnotationGroup;
 use biome_rowan::AstNode;
+use mlang_syntax::MAnnotationGroup;
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMAnnotationGroup;
 impl_format_with_rule!(MAnnotationGroup, FormatMAnnotationGroup);

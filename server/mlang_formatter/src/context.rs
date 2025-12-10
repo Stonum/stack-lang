@@ -1,12 +1,12 @@
 pub mod trailing_commas;
 
 use super::comments::{FormatMLeadingComment, MCommentStyle, MComments};
-use mlang_syntax::{AnyMFunctionBody, MFileSource, MLanguage};
 use biome_formatter::printer::PrinterOptions;
 use biome_formatter::{
     AttributePosition, BracketSpacing, CstFormatContext, FormatContext, FormatElement,
     FormatOptions, IndentStyle, IndentWidth, LineEnding, LineWidth, QuoteStyle, TransformSourceMap,
 };
+use mlang_syntax::{AnyMFunctionBody, MFileSource, MLanguage};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::fmt::Debug;
@@ -417,7 +417,9 @@ impl FromStr for Semicolons {
         match s {
             "as-needed" | "AsNeeded" => Ok(Self::AsNeeded),
             "always" | "Always" => Ok(Self::Always),
-            _ => Err("Value not supported for Semicolons. Supported values are 'as-needed' and 'always'."),
+            _ => Err(
+                "Value not supported for Semicolons. Supported values are 'as-needed' and 'always'.",
+            ),
         }
     }
 }

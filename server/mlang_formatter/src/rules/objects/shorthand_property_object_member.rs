@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
+use biome_formatter::write;
 use mlang_syntax::MShorthandPropertyObjectMember;
 use mlang_syntax::MShorthandPropertyObjectMemberFields;
-use biome_formatter::write;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMShorthandPropertyObjectMember;

@@ -710,24 +710,23 @@ fn parse_variable_declarator(p: &mut MParser, context: &VariableDeclaratorContex
         let is_in_for_loop = context.parent == VariableDeclarationParent::For && context.is_first;
         let is_in_for_in = is_in_for_loop && p.at_ts(token_set!(T![in], T![in2]));
 
-        if is_in_for_in
-            && let Some(initializer) = initializer {
-                // Initializers are disallowed for `for..in`,
-                // except for `for(var ... in ...)` in loose mode
+        if is_in_for_in && let Some(initializer) = initializer {
+            // Initializers are disallowed for `for..in`,
+            // except for `for(var ... in ...)` in loose mode
 
-                // test for_in_initializer_loose_mode
-                // // SCRIPT
-                // for (var i = 0 in []) {}
+            // test for_in_initializer_loose_mode
+            // // SCRIPT
+            // for (var i = 0 in []) {}
 
-                if !is_in_for_in || !context.is_var() {
-                    let err = p.err_builder(
-                        "`for..in` statement declarators cannot have an initializer expression",
-                        initializer.range(p),
-                    );
+            if !is_in_for_in || !context.is_var() {
+                let err = p.err_builder(
+                    "`for..in` statement declarators cannot have an initializer expression",
+                    initializer.range(p),
+                );
 
-                    p.error(err);
-                }
+                p.error(err);
             }
+        }
 
         m.complete(p, M_VARIABLE_DECLARATOR)
     })
@@ -1026,9 +1025,11 @@ impl ParseNodeList for SwitchCasesList {
         let clause = parse_switch_clause(p, &mut self.first_default);
 
         if let Present(marker) = &clause
-            && marker.kind(p) == M_DEFAULT_CLAUSE && self.first_default.is_none() {
-                self.first_default = Some(marker.range(p));
-            }
+            && marker.kind(p) == M_DEFAULT_CLAUSE
+            && self.first_default.is_none()
+        {
+            self.first_default = Some(marker.range(p));
+        }
 
         clause
     }

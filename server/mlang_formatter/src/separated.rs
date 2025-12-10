@@ -1,10 +1,10 @@
+use super::AsFormat;
 use super::prelude::*;
 use super::rules::tokens::FormatMSyntaxToken;
-use super::AsFormat;
-use mlang_syntax::{MLanguage, MSyntaxToken};
-use biome_formatter::separated::{FormatSeparatedElementRule, FormatSeparatedIter};
 use biome_formatter::FormatRefWithRule;
+use biome_formatter::separated::{FormatSeparatedElementRule, FormatSeparatedIter};
 use biome_rowan::{AstNode, AstSeparatedList, AstSeparatedListElementsIterator};
+use mlang_syntax::{MLanguage, MSyntaxToken};
 use std::marker::PhantomData;
 
 #[derive(Clone)]

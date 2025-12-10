@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
+use biome_formatter::{format_args, write};
 use mlang_syntax::MCatchDeclaration;
 use mlang_syntax::MCatchDeclarationFields;
-use biome_formatter::{format_args, write};
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMCatchDeclaration;

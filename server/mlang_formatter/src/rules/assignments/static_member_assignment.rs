@@ -1,8 +1,8 @@
 use crate::prelude::*;
 use crate::rules::expressions::static_member_expression::AnyMStaticMemberLike;
 
-use mlang_syntax::parentheses::NeedsParentheses;
 use mlang_syntax::MStaticMemberAssignment;
+use mlang_syntax::parentheses::NeedsParentheses;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMStaticMemberAssignment;

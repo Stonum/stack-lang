@@ -1,8 +1,8 @@
-use biome_rowan::{declare_node_union, AstNode};
+use biome_rowan::{AstNode, declare_node_union};
 
 use crate::{
-    binary_like_expression::{AnyMBinaryLikeExpression, AnyMBinaryLikeLeftExpression},
     AnyMAssignment, AnyMExpression,
+    binary_like_expression::{AnyMBinaryLikeExpression, AnyMBinaryLikeLeftExpression},
 };
 
 declare_node_union! {

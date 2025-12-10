@@ -1,9 +1,9 @@
 use crate::prelude::*;
 use crate::utils::member_chain::MemberChain;
 
+use biome_formatter::write;
 use mlang_syntax::parentheses::NeedsParentheses;
 use mlang_syntax::{AnyMExpression, MCallExpression, MCallExpressionFields};
-use biome_formatter::write;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMCallExpression;

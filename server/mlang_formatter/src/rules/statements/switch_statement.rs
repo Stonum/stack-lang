@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
-use mlang_syntax::{MSwitchStatement, MSwitchStatementFields};
 use biome_formatter::write;
 use biome_rowan::AstNodeList;
+use mlang_syntax::{MSwitchStatement, MSwitchStatementFields};
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMSwitchStatement;

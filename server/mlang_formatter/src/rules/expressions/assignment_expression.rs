@@ -1,9 +1,9 @@
 use crate::prelude::*;
 use crate::utils::AnyMAssignmentLike;
 
-use mlang_syntax::parentheses::NeedsParentheses;
-use mlang_syntax::MAssignmentExpression;
 use biome_formatter::write;
+use mlang_syntax::MAssignmentExpression;
+use mlang_syntax::parentheses::NeedsParentheses;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMAssignmentExpression;

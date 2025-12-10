@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use crate::utils::write_arguments_multi_line;
-use mlang_syntax::MCallArgumentList;
 use biome_formatter::write;
+use mlang_syntax::MCallArgumentList;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMCallArgumentList;

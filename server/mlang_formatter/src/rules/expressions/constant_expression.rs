@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
+use biome_formatter::write;
 use mlang_syntax::MConstantExpression;
 use mlang_syntax::MConstantExpressionFields;
-use biome_formatter::write;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMConstantExpression;

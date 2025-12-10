@@ -62,9 +62,7 @@ impl MarkupDefinition for AnyMCoreDefinition {
             AnyMCoreDefinition::MCoreFunctionDefinition(function) => {
                 function.description.to_string()
             }
-            AnyMCoreDefinition::MCoreEntityDefinition(entity) => {
-                entity.description.to_string()
-            }
+            AnyMCoreDefinition::MCoreEntityDefinition(entity) => entity.description.to_string(),
             AnyMCoreDefinition::MCoreEntityMemberDefinition(member) => {
                 member.description.to_string()
             }

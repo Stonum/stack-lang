@@ -1,14 +1,14 @@
 //! Implements the parsing logic for ES Module syntax
 
 use super::m_parse_error::expected_statement;
-use super::stmt::{parse_statement, StatementContext, STMT_RECOVERY_SET};
+use super::stmt::{STMT_RECOVERY_SET, StatementContext, parse_statement};
 
-use mlang_syntax::{MSyntaxKind::*, T};
 use super::{MParser, ParsedSyntax};
+use mlang_syntax::{MSyntaxKind::*, T};
 
+use biome_parser::ParserProgress;
 use biome_parser::parse_recovery::ParseRecoveryTokenSet;
 use biome_parser::prelude::*;
-use biome_parser::ParserProgress;
 
 pub fn parse_module_body(p: &mut MParser, statement_list: Marker) {
     parse_module_item_list(p, ModuleItemListParent::Module, statement_list);

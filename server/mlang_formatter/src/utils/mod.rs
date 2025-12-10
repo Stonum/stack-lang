@@ -34,17 +34,17 @@ pub(crate) use string_utils::*;
 pub(crate) fn is_long_curried_call(expression: Option<&MCallExpression>) -> bool {
     if let Some(expression) = expression
         && let Some(parent_call) = expression.parent::<MCallExpression>()
-            && let (Ok(arguments), Ok(parent_arguments)) =
-                (expression.arguments(), parent_call.arguments())
-            {
-                let is_callee = matches!(
-                    parent_call.syntax().kind(),
-                    MSyntaxKind::M_CALL_EXPRESSION | MSyntaxKind::M_NEW_EXPRESSION
-                );
-                return is_callee
-                    && arguments.args().len() > parent_arguments.args().len()
-                    && !parent_arguments.args().is_empty();
-            }
+        && let (Ok(arguments), Ok(parent_arguments)) =
+            (expression.arguments(), parent_call.arguments())
+    {
+        let is_callee = matches!(
+            parent_call.syntax().kind(),
+            MSyntaxKind::M_CALL_EXPRESSION | MSyntaxKind::M_NEW_EXPRESSION
+        );
+        return is_callee
+            && arguments.args().len() > parent_arguments.args().len()
+            && !parent_arguments.args().is_empty();
+    }
 
     false
 }

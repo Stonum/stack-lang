@@ -1,7 +1,5 @@
 use crate::prelude::*;
-use crate::utils::{
-    FormatLiteralStringToken, FormatSqlStringToken, StringLiteralParentKind,
-};
+use crate::utils::{FormatLiteralStringToken, FormatSqlStringToken, StringLiteralParentKind};
 use biome_formatter::FormatRuleWithOptions;
 use biome_rowan::declare_node_union;
 

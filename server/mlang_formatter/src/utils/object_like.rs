@@ -1,8 +1,8 @@
 use crate::prelude::*;
-use mlang_syntax::{MHashMapExpression, MObjectExpression, MSyntaxToken};
 use biome_formatter::write;
 use biome_formatter::{Format, FormatResult};
-use biome_rowan::{declare_node_union, AstNode, AstSeparatedList, SyntaxResult};
+use biome_rowan::{AstNode, AstSeparatedList, SyntaxResult, declare_node_union};
+use mlang_syntax::{MHashMapExpression, MObjectExpression, MSyntaxToken};
 
 declare_node_union! {
     pub (crate) MObjectLike = MObjectExpression | MHashMapExpression

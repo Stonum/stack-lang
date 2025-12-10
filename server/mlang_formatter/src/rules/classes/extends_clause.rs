@@ -1,9 +1,9 @@
 use crate::prelude::*;
 
+use biome_formatter::{format_args, write};
 use mlang_syntax::MExtendsClause;
 use mlang_syntax::MExtendsClauseFields;
 use mlang_syntax::MSyntaxKind::M_ASSIGNMENT_EXPRESSION;
-use biome_formatter::{format_args, write};
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMExtendsClause;
@@ -26,7 +26,8 @@ impl FormatNodeRule<MExtendsClause> for FormatMExtendsClause {
 
             if node
                 .syntax()
-                .grand_parent().is_some_and(|p| p.kind() == M_ASSIGNMENT_EXPRESSION)
+                .grand_parent()
+                .is_some_and(|p| p.kind() == M_ASSIGNMENT_EXPRESSION)
             {
                 if comments.has_leading_comments(super_class.syntax()) || has_trailing_comments {
                     write!(f, [text("("), &content, text(")")])

@@ -1,9 +1,9 @@
 use crate::prelude::*;
 
-use mlang_syntax::parentheses::NeedsParentheses;
+use biome_formatter::write;
 use mlang_syntax::MBooleanLiteralExpression;
 use mlang_syntax::MBooleanLiteralExpressionFields;
-use biome_formatter::write;
+use mlang_syntax::parentheses::NeedsParentheses;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMBooleanLiteralExpression;

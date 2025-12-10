@@ -1,8 +1,8 @@
-use crate::prelude::*;
 use crate::MLabels;
+use crate::prelude::*;
 
-use mlang_syntax::MExtendedBinding;
 use biome_formatter::write;
+use mlang_syntax::MExtendedBinding;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMExtendedBinding;

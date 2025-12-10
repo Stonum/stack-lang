@@ -1,9 +1,9 @@
 use crate::prelude::*;
 
 use super::context::trailing_commas::FormatTrailingCommas;
-use mlang_syntax::{AnyMArrayElement, MLanguage};
 use biome_formatter::write;
 use biome_rowan::{AstNode, AstSeparatedList};
+use mlang_syntax::{AnyMArrayElement, MLanguage};
 
 /// Utility function to print array-like nodes (array expressions, array bindings and assignment patterns)
 pub(crate) fn write_array_node<N, I>(node: &N, f: &mut MFormatter) -> FormatResult<()>

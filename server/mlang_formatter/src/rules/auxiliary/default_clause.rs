@@ -1,8 +1,8 @@
 use crate::prelude::*;
-use mlang_syntax::MDefaultClause;
-use mlang_syntax::{AnyMStatement, MDefaultClauseFields};
 use biome_formatter::{format_args, write};
 use biome_rowan::AstNodeList;
+use mlang_syntax::MDefaultClause;
+use mlang_syntax::{AnyMStatement, MDefaultClauseFields};
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMDefaultClause;

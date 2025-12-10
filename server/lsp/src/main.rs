@@ -28,9 +28,10 @@ impl LanguageServer for Backend {
 
         // Get initial settings from initialization_options if available
         if let Some(opts) = params.initialization_options
-            && let Ok(new_settings) = serde_json::from_value(opts) {
-                settings = new_settings;
-            }
+            && let Ok(new_settings) = serde_json::from_value(opts)
+        {
+            settings = new_settings;
+        }
 
         let mut capabilities = ServerCapabilities {
             text_document_sync: Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::FULL)),

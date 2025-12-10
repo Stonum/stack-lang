@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
+use biome_formatter::write;
 use mlang_syntax::MIdentifierBinding;
 use mlang_syntax::MIdentifierBindingFields;
-use biome_formatter::write;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMIdentifierBinding;

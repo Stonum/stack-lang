@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
+use biome_formatter::{format_args, write};
 use mlang_syntax::MSyntaxKind::{M_LONG_STRING_LITERAL, M_STRING_LITERAL};
 use mlang_syntax::MSyntaxToken;
-use biome_formatter::{format_args, write};
 use std::borrow::Cow;
 
 #[derive(Eq, PartialEq, Debug)]
@@ -133,13 +133,14 @@ impl<'token> LiteralStringNormaliser<'token> {
                 // If the next character is escaped
                 b'\\' => {
                     if let Some((escaped_index, escaped)) = bytes.next()
-                        && escaped == b'\r' {
-                            // If we encounter the sequence "\r\n", then skip '\r'
-                            if let Some((next_byte_index, b'\n')) = bytes.next() {
-                                reduced_string.push_str(&raw_content[copy_start..escaped_index]);
-                                copy_start = next_byte_index;
-                            }
+                        && escaped == b'\r'
+                    {
+                        // If we encounter the sequence "\r\n", then skip '\r'
+                        if let Some((next_byte_index, b'\n')) = bytes.next() {
+                            reduced_string.push_str(&raw_content[copy_start..escaped_index]);
+                            copy_start = next_byte_index;
                         }
+                    }
                 }
                 // If we encounter the sequence "\r\n", then skip '\r'
                 b'\r' => {

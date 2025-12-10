@@ -2,10 +2,10 @@ use super::FormatLiteralStringToken;
 use super::StringLiteralParentKind;
 
 use crate::prelude::*;
-use mlang_syntax::AnyMObjectMemberName;
-use mlang_syntax::MSyntaxKind::M_STRING_LITERAL;
 use biome_formatter::write;
 use biome_rowan::AstNode;
+use mlang_syntax::AnyMObjectMemberName;
+use mlang_syntax::MSyntaxKind::M_STRING_LITERAL;
 
 impl Format<MFormatContext> for AnyMObjectMemberName {
     fn fmt(&self, f: &mut Formatter<MFormatContext>) -> FormatResult<()> {

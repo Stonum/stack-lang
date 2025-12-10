@@ -1,10 +1,10 @@
 use crate::prelude::*;
 
-use mlang_syntax::parentheses::NeedsParentheses;
-use mlang_syntax::MArrayExpression;
-use mlang_syntax::{AnyMArrayElement, AnyMExpression, MArrayElementList, MArrayExpressionFields};
-use biome_formatter::{write, FormatRuleWithOptions};
+use biome_formatter::{FormatRuleWithOptions, write};
 use biome_rowan::SyntaxResult;
+use mlang_syntax::MArrayExpression;
+use mlang_syntax::parentheses::NeedsParentheses;
+use mlang_syntax::{AnyMArrayElement, AnyMExpression, MArrayElementList, MArrayExpressionFields};
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMArrayExpression {

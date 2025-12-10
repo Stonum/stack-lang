@@ -151,13 +151,11 @@ where
     let mut locations = vec![];
 
     match semantic_info {
-        SemanticInfo::FunctionCall(ident) | SemanticInfo::FunctionDeclaration(ident) => {
-            definitions
-                .into_iter()
-                .filter(|(_, d)| d.is_function() && d.compare_with(ident))
-                .map(|(uri, d)| d.id_location(uri.clone()))
-                .collect::<Vec<_>>()
-        }
+        SemanticInfo::FunctionCall(ident) | SemanticInfo::FunctionDeclaration(ident) => definitions
+            .into_iter()
+            .filter(|(_, d)| d.is_function() && d.compare_with(ident))
+            .map(|(uri, d)| d.id_location(uri.clone()))
+            .collect::<Vec<_>>(),
         SemanticInfo::NewExpression(ident) | SemanticInfo::ClassDeclaration(ident) => {
             let definitions = Vec::from_iter(definitions);
             let classes = definitions
@@ -187,20 +185,16 @@ where
             }
             locations
         }
-        SemanticInfo::ClassExtends(ident) => {
-            definitions
-                .into_iter()
-                .filter(|(_, d)| d.is_class() && d.compare_with(ident))
-                .map(|(uri, d)| d.id_location(uri.clone()))
-                .collect::<Vec<_>>()
-        }
-        SemanticInfo::MethodCall(ident, None) => {
-            definitions
-                .into_iter()
-                .filter(|(_, d)| d.is_method() && d.compare_with(ident))
-                .map(|(uri, d)| d.id_location(uri.clone()))
-                .collect::<Vec<_>>()
-        }
+        SemanticInfo::ClassExtends(ident) => definitions
+            .into_iter()
+            .filter(|(_, d)| d.is_class() && d.compare_with(ident))
+            .map(|(uri, d)| d.id_location(uri.clone()))
+            .collect::<Vec<_>>(),
+        SemanticInfo::MethodCall(ident, None) => definitions
+            .into_iter()
+            .filter(|(_, d)| d.is_method() && d.compare_with(ident))
+            .map(|(uri, d)| d.id_location(uri.clone()))
+            .collect::<Vec<_>>(),
         SemanticInfo::MethodCall(ident, Some(class_name))
         | SemanticInfo::MethodDeclaration(ident, class_name) => {
             let mut class_names: Vec<String> = vec![class_name.to_owned()];
@@ -343,15 +337,11 @@ where
     D: CodeSymbolDefinition + MarkupDefinition + 'a,
 {
     match semantic_info {
-        SemanticInfo::FunctionCall(ident) | SemanticInfo::FunctionDeclaration(ident) => {
-            
-
-            definitions
-                .into_iter()
-                .filter(|d| d.is_function() && d.compare_with(ident))
-                .map(|d| MarkedString::String(d.markdown()))
-                .collect::<Vec<_>>()
-        }
+        SemanticInfo::FunctionCall(ident) | SemanticInfo::FunctionDeclaration(ident) => definitions
+            .into_iter()
+            .filter(|d| d.is_function() && d.compare_with(ident))
+            .map(|d| MarkedString::String(d.markdown()))
+            .collect::<Vec<_>>(),
         SemanticInfo::NewExpression(ident) | SemanticInfo::ClassDeclaration(ident) => {
             let mut markups = vec![];
 
@@ -383,24 +373,16 @@ where
             }
             markups
         }
-        SemanticInfo::ClassExtends(ident) => {
-            
-
-            definitions
-                .into_iter()
-                .filter(|d| d.is_class() && d.compare_with(ident))
-                .map(|d| MarkedString::String(d.markdown()))
-                .collect::<Vec<_>>()
-        }
-        SemanticInfo::MethodCall(ident, None) => {
-            
-
-            definitions
-                .into_iter()
-                .filter(|d| d.is_method() && d.compare_with(ident))
-                .map(|d| MarkedString::String(d.markdown()))
-                .collect::<Vec<_>>()
-        }
+        SemanticInfo::ClassExtends(ident) => definitions
+            .into_iter()
+            .filter(|d| d.is_class() && d.compare_with(ident))
+            .map(|d| MarkedString::String(d.markdown()))
+            .collect::<Vec<_>>(),
+        SemanticInfo::MethodCall(ident, None) => definitions
+            .into_iter()
+            .filter(|d| d.is_method() && d.compare_with(ident))
+            .map(|d| MarkedString::String(d.markdown()))
+            .collect::<Vec<_>>(),
         SemanticInfo::MethodCall(ident, Some(class_name))
         | SemanticInfo::MethodDeclaration(ident, class_name) => {
             let mut markups = vec![];

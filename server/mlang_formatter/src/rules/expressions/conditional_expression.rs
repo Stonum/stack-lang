@@ -1,7 +1,7 @@
 use crate::prelude::*;
-use mlang_syntax::parentheses::NeedsParentheses;
-use biome_formatter::{write, CstFormatContext, FormatOptions};
+use biome_formatter::{CstFormatContext, FormatOptions, write};
 use biome_rowan::AstNode;
+use mlang_syntax::parentheses::NeedsParentheses;
 
 use mlang_syntax::{
     AnyMExpression, MAssignmentExpression, MConditionalExpression, MInitializerClause,

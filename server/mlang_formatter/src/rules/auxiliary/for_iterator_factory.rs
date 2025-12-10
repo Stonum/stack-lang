@@ -1,6 +1,6 @@
 use crate::prelude::*;
-use mlang_syntax::{MForIteratorFactory, MForIteratorFactoryFields};
 use biome_formatter::{format_args, write};
+use mlang_syntax::{MForIteratorFactory, MForIteratorFactoryFields};
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMForIteratorFactory;
 impl_format_with_rule!(MForIteratorFactory, FormatMForIteratorFactory);

@@ -287,10 +287,10 @@ impl<'src> MLexer<'src> {
     fn re_lex_key_value(&mut self) -> MSyntaxKind {
         if self.byte_at(2) == Some(b':')
             && let (Some(b'0'..=b'9'), Some(b'0'..=b'9')) = (self.current_byte(), self.peek_byte())
-            {
-                self.advance(2);
-                return M_NUMBER_LITERAL;
-            }
+        {
+            self.advance(2);
+            return M_NUMBER_LITERAL;
+        }
         self.current_kind
     }
 
@@ -832,9 +832,10 @@ impl<'src> MLexer<'src> {
                 break;
             }
             if let Some(byte) = self.current_byte()
-                && is_linebreak(byte as char) {
-                    break;
-                }
+                && is_linebreak(byte as char)
+            {
+                break;
+            }
         }
         self.after_ff = false;
         T![ident]
@@ -1107,10 +1108,11 @@ impl<'src> MLexer<'src> {
 
         let mut size = 3;
         if self.byte_at(3) == Some(b':')
-            && let Some(seconds) = self.byte_at(4).zip(self.byte_at(5)) {
-                (s1, s2) = seconds;
-                size = 6;
-            }
+            && let Some(seconds) = self.byte_at(4).zip(self.byte_at(5))
+        {
+            (s1, s2) = seconds;
+            size = 6;
+        }
 
         // check - all are digits
         let bytes = [h1, h2, m1, m2, s1, s2];
@@ -1317,14 +1319,10 @@ impl<'src> MLexer<'src> {
         // to do more aggressive optimizations on the match regarding how to map it to instructions
         let dispatched = lookup_byte(byte);
         match dispatched {
-            WHS => {
-                
-
-                match byte {
-                    12 => self.consume_ff(),
-                    _ => self.consume_newline_or_whitespaces(),
-                }
-            }
+            WHS => match byte {
+                12 => self.consume_ff(),
+                _ => self.consume_newline_or_whitespaces(),
+            },
             EXL => self.resolve_bang(),
             PRC => self.bin_or_assign(T![%], T![%=]),
             Dispatch::AMP => self.resolve_amp(),
@@ -1381,10 +1379,11 @@ impl<'src> MLexer<'src> {
                 // A BOM can only appear at the start of a file, so if we haven't advanced at all yet,
                 // perform the check. At any other position, the BOM is just considered plain whitespace.
                 if self.position == 0
-                    && let Some((bom, bom_size)) = self.consume_potential_bom(UNICODE_BOM) {
-                        self.unicode_bom_length = bom_size;
-                        return bom;
-                    }
+                    && let Some((bom, bom_size)) = self.consume_potential_bom(UNICODE_BOM)
+                {
+                    self.unicode_bom_length = bom_size;
+                    return bom;
+                }
 
                 let chr = self.current_char_unchecked();
                 if is_linebreak(chr)

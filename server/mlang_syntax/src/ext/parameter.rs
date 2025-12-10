@@ -3,7 +3,7 @@ use crate::{
     MParameterList,
 };
 use biome_rowan::{
-    declare_node_union, AstNode, AstSeparatedList, AstSeparatedListNodesIterator, SyntaxResult,
+    AstNode, AstSeparatedList, AstSeparatedListNodesIterator, SyntaxResult, declare_node_union,
 };
 
 /// An enumeration representing different types of parameter lists.

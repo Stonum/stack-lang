@@ -196,10 +196,12 @@ fn handle_class_comment(comment: DecoratedComment<MLanguage>) -> CommentPlacemen
         comment.enclosing_node().kind(),
         MSyntaxKind::M_EXTENDS_CLAUSE
     ) {
-        if comment.preceding_node().is_none() && !comment.text_position().is_same_line()
-            && let Some(sibling) = comment.enclosing_node().prev_sibling() {
-                return CommentPlacement::trailing(sibling, comment);
-            }
+        if comment.preceding_node().is_none()
+            && !comment.text_position().is_same_line()
+            && let Some(sibling) = comment.enclosing_node().prev_sibling()
+        {
+            return CommentPlacement::trailing(sibling, comment);
+        }
 
         return CommentPlacement::Default(comment);
     }
@@ -234,9 +236,10 @@ fn handle_class_comment(comment: DecoratedComment<MLanguage>) -> CommentPlacemen
         // }
         // ```
         if let Some(member) = first_member
-            && following == &member {
-                return CommentPlacement::leading(member, comment);
-            }
+            && following == &member
+        {
+            return CommentPlacement::leading(member, comment);
+        }
     } else if first_member.is_none() {
         // Handle the case where there are no members, attach the comments as dangling comments.
         // ```javascript
@@ -273,21 +276,22 @@ fn handle_method_comment(comment: DecoratedComment<MLanguage>) -> CommentPlaceme
     // }
     // ```
     if let Some(following) = comment.following_node()
-        && let Some(body) = MFunctionBody::cast_ref(following) {
-            if let Some(directive) = body.directives().first() {
-                return CommentPlacement::leading(directive.into_syntax(), comment);
-            }
-
-            let first_non_empty = body
-                .statements()
-                .iter()
-                .find(|statement| !matches!(statement, AnyMStatement::MEmptyStatement(_)));
-
-            return match first_non_empty {
-                None => CommentPlacement::dangling(body.into_syntax(), comment),
-                Some(statement) => CommentPlacement::leading(statement.into_syntax(), comment),
-            };
+        && let Some(body) = MFunctionBody::cast_ref(following)
+    {
+        if let Some(directive) = body.directives().first() {
+            return CommentPlacement::leading(directive.into_syntax(), comment);
         }
+
+        let first_non_empty = body
+            .statements()
+            .iter()
+            .find(|statement| !matches!(statement, AnyMStatement::MEmptyStatement(_)));
+
+        return match first_non_empty {
+            None => CommentPlacement::dangling(body.into_syntax(), comment),
+            Some(statement) => CommentPlacement::leading(statement.into_syntax(), comment),
+        };
+    }
 
     CommentPlacement::Default(comment)
 }
@@ -501,9 +505,10 @@ fn handle_if_statement_comment(
             // if (cond) /* test */ ;
             // ```
             if let Some(preceding) = comment.preceding_node()
-                && MEmptyStatement::can_cast(following.kind()) {
-                    return CommentPlacement::trailing(preceding.clone(), comment);
-                }
+                && MEmptyStatement::can_cast(following.kind())
+            {
+                return CommentPlacement::trailing(preceding.clone(), comment);
+            }
 
             // Make all comments after the condition's `)` leading comments
             // ```javascript
@@ -512,18 +517,20 @@ fn handle_if_statement_comment(
             //
             // ```
             if let Ok(consequent) = if_statement.consequent()
-                && consequent.syntax() == following {
-                    return CommentPlacement::dangling(if_statement.syntax().clone(), comment);
-                }
+                && consequent.syntax() == following
+            {
+                return CommentPlacement::dangling(if_statement.syntax().clone(), comment);
+            }
         }
         (MSyntaxKind::M_ELSE_CLAUSE, _) => {
             if let Some(if_statement) = comment
                 .enclosing_node()
                 .parent()
                 .and_then(MIfStatement::cast)
-                && let Ok(consequent) = if_statement.consequent() {
-                    return handle_else_clause(comment, consequent.into_syntax());
-                }
+                && let Ok(consequent) = if_statement.consequent()
+            {
+                return handle_else_clause(comment, consequent.into_syntax());
+            }
         }
         _ => {
             // fall through
@@ -568,9 +575,10 @@ fn handle_while_comment(comment: DecoratedComment<MLanguage>) -> CommentPlacemen
     // if (cond) // test  ;
     // ```
     if let Some(preceding) = comment.preceding_node()
-        && MEmptyStatement::can_cast(following.kind()) {
-            return CommentPlacement::trailing(preceding.clone(), comment);
-        }
+        && MEmptyStatement::can_cast(following.kind())
+    {
+        return CommentPlacement::trailing(preceding.clone(), comment);
+    }
 
     // Make all comments after the condition's `)` leading comments
     // ```javascript
@@ -579,9 +587,10 @@ fn handle_while_comment(comment: DecoratedComment<MLanguage>) -> CommentPlacemen
     //
     // ```
     if let Ok(body) = while_statement.body()
-        && body.syntax() == following {
-            return CommentPlacement::dangling(while_statement.syntax().clone(), comment);
-        }
+        && body.syntax() == following
+    {
+        return CommentPlacement::dangling(while_statement.syntax().clone(), comment);
+    }
 
     CommentPlacement::Default(comment)
 }
@@ -685,9 +694,10 @@ fn handle_for_comment(comment: DecoratedComment<MLanguage>) -> CommentPlacement<
             .or_else(|| MForAllInStatement::cast_ref(enclosing).map(|f| f.body()));
 
         if let Some(Ok(body)) = body
-            && Some(body.syntax()) == comment.following_node() {
-                return CommentPlacement::dangling(enclosing.clone(), comment);
-            }
+            && Some(body.syntax()) == comment.following_node()
+        {
+            return CommentPlacement::dangling(enclosing.clone(), comment);
+        }
 
         CommentPlacement::Default(comment)
     }
@@ -763,9 +773,10 @@ fn handle_variable_declarator_comment(
                     && !MCommentStyle::is_suppression(comment.piece().text())
                     && comment.kind().is_line()
                     && comment.preceding_node().is_none()
-                    && let Some(prev_node) = enclosing.prev_sibling() {
-                        return CommentPlacement::trailing(prev_node, comment);
-                    }
+                    && let Some(prev_node) = enclosing.prev_sibling()
+                {
+                    return CommentPlacement::trailing(prev_node, comment);
+                }
             }
         }
         _ => {

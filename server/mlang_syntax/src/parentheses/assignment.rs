@@ -1,6 +1,6 @@
 use crate::{
-    parentheses::NeedsParentheses, AnyMAssignment, MComputedMemberAssignment,
-    MIdentifierAssignment, MStaticMemberAssignment,
+    AnyMAssignment, MComputedMemberAssignment, MIdentifierAssignment, MStaticMemberAssignment,
+    parentheses::NeedsParentheses,
 };
 
 impl NeedsParentheses for AnyMAssignment {

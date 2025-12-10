@@ -1,7 +1,7 @@
 use crate::prelude::*;
-use mlang_syntax::MDirectiveList;
 use biome_formatter::write;
 use biome_rowan::{AstNode, AstNodeList};
+use mlang_syntax::MDirectiveList;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMDirectiveList;

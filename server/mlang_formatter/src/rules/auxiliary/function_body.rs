@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
+use biome_formatter::{CstFormatContext, format_args, write};
 use mlang_syntax::MFunctionBody;
 use mlang_syntax::MFunctionBodyFields;
-use biome_formatter::{format_args, write, CstFormatContext};
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMFunctionBody;

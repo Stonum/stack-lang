@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
+use biome_formatter::write;
 use mlang_syntax::MSetterClassMember;
 use mlang_syntax::MSetterClassMemberFields;
-use biome_formatter::write;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMSetterClassMember;

@@ -106,12 +106,13 @@ fn parse_function(p: &mut MParser, m: Marker, kind: FunctionKind) -> CompletedMa
     parse_parameter_list(p, flags).or_add_diagnostic(p, m_parse_error::expected_parameters);
 
     if let Present(expr) = parse_doc_string_expression(p)
-        && let FunctionKind::Expression = kind {
-            p.error(p.err_builder(
-                "expected function body, but found string expression",
-                expr.range(p),
-            ));
-        }
+        && let FunctionKind::Expression = kind
+    {
+        p.error(p.err_builder(
+            "expected function body, but found string expression",
+            expr.range(p),
+        ));
+    }
 
     let body = parse_function_body(p, flags);
 

@@ -55,9 +55,11 @@ impl<'parser, 'source> RewriteParser<'parser, 'source> {
 
         // If the parser originally skipped this token as trivia, then make sure to also consume the trivia.
         if let Some(trivia) = self.inner.source().trivia_list.get(self.trivia_offset)
-            && trivia.kind().is_skipped() && trivia.offset() == self.offset {
-                self.trivia_offset += 1;
-            }
+            && trivia.kind().is_skipped()
+            && trivia.offset() == self.offset
+        {
+            self.trivia_offset += 1;
+        }
 
         self.offset = token.end;
         self.skip_trivia(true);

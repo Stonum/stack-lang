@@ -1,9 +1,9 @@
 use crate::prelude::*;
 
-use mlang_syntax::parentheses::NeedsParentheses;
+use biome_formatter::write;
 use mlang_syntax::MPostUpdateExpression;
 use mlang_syntax::MPostUpdateExpressionFields;
-use biome_formatter::write;
+use mlang_syntax::parentheses::NeedsParentheses;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMPostUpdateExpression;

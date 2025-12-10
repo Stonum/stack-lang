@@ -1,7 +1,7 @@
 use crate::context::trailing_commas::FormatTrailingCommas;
 use crate::prelude::*;
-use mlang_syntax::MHashMapMemberList;
 use biome_rowan::{AstNode, AstSeparatedList};
+use mlang_syntax::MHashMapMemberList;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMHashMapMemberList;

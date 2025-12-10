@@ -1,7 +1,7 @@
 //! Provides factory function to create common diagnostics for the JavaScript syntax
 
-use super::span::Span;
 use super::MParser;
+use super::span::Span;
 
 use biome_parser::diagnostic::{expected_any, expected_node};
 use biome_parser::prelude::*;

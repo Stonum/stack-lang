@@ -1,8 +1,8 @@
 use crate::prelude::*;
 use crate::utils::AnyMAssignmentLike;
 
-use mlang_syntax::MPropertyObjectMember;
 use biome_formatter::write;
+use mlang_syntax::MPropertyObjectMember;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMPropertyObjectMember;

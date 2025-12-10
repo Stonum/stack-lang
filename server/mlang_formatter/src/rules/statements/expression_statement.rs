@@ -1,14 +1,14 @@
 use crate::prelude::*;
 use crate::utils::FormatStatementSemicolon;
 
+use biome_formatter::{CstFormatContext, write};
+use biome_rowan::SyntaxNodeOptionExt;
+use mlang_syntax::MExpressionStatementFields;
 use mlang_syntax::expression_left_side::AnyMExpressionLeftSide;
 use mlang_syntax::parentheses::NeedsParentheses;
-use mlang_syntax::MExpressionStatementFields;
 use mlang_syntax::{
     AnyMAssignment, AnyMExpression, MExpressionStatement, MSyntaxKind, MUnaryOperator,
 };
-use biome_formatter::{write, CstFormatContext};
-use biome_rowan::SyntaxNodeOptionExt;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMExpressionStatement;
@@ -19,7 +19,8 @@ impl FormatNodeRule<MExpressionStatement> for FormatMExpressionStatement {
         let needs_parentheses = self.needs_parentheses(node);
         let is_after_bogus = f
             .elements()
-            .start_tag(TagKind::Verbatim).is_some_and(|signal| match signal {
+            .start_tag(TagKind::Verbatim)
+            .is_some_and(|signal| match signal {
                 Tag::StartVerbatim(kind) => kind.is_bogus(),
                 _ => unreachable!(),
             });

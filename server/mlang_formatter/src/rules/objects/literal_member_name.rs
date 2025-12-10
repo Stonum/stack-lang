@@ -1,10 +1,10 @@
 use crate::prelude::*;
 use crate::utils::{FormatLiteralStringToken, StringLiteralParentKind};
 
-use mlang_syntax::MLiteralMemberNameFields;
-use mlang_syntax::{MLiteralMemberName, MSyntaxKind};
 use biome_formatter::token::number::format_number_token;
 use biome_formatter::write;
+use mlang_syntax::MLiteralMemberNameFields;
+use mlang_syntax::{MLiteralMemberName, MSyntaxKind};
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMLiteralMemberName;

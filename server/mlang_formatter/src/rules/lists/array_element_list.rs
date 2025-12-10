@@ -1,11 +1,11 @@
 use crate::prelude::*;
-use biome_formatter::{write, CstFormatContext, FormatRuleWithOptions, GroupId};
+use biome_formatter::{CstFormatContext, FormatRuleWithOptions, GroupId, write};
 
 use crate::utils::array::write_array_node;
 
 use crate::context::trailing_commas::FormatTrailingCommas;
-use mlang_syntax::MArrayElementList;
 use biome_rowan::{AstNode, AstSeparatedList};
+use mlang_syntax::MArrayElementList;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMArrayElementList {

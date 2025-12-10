@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
+use mlang_syntax::MBinaryExpression;
 use mlang_syntax::binary_like_expression::AnyMBinaryLikeExpression;
 use mlang_syntax::parentheses::NeedsParentheses;
-use mlang_syntax::MBinaryExpression;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMBinaryExpression;

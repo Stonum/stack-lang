@@ -1,7 +1,7 @@
 use crate::context::trailing_commas::FormatTrailingCommas;
 use crate::prelude::*;
-use mlang_syntax::MObjectMemberList;
 use biome_rowan::{AstNode, AstSeparatedList};
+use mlang_syntax::MObjectMemberList;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMObjectMemberList;

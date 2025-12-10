@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
 use super::method_class_member::FormatAnyMMethodMember;
-use mlang_syntax::MConstructorClassMember;
 use biome_formatter::write;
+use mlang_syntax::MConstructorClassMember;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMConstructorClassMember;

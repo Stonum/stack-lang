@@ -1,11 +1,9 @@
 use crate::prelude::*;
-use crate::rules::declarations::function_declaration::{
-    FormatFunction, FormatFunctionOptions,
-};
+use crate::rules::declarations::function_declaration::{FormatFunction, FormatFunctionOptions};
 
-use mlang_syntax::parentheses::NeedsParentheses;
-use mlang_syntax::MFunctionExpression;
 use biome_formatter::FormatRuleWithOptions;
+use mlang_syntax::MFunctionExpression;
+use mlang_syntax::parentheses::NeedsParentheses;
 
 #[derive(Debug, Copy, Clone, Default)]
 pub(crate) struct FormatMFunctionExpression {

@@ -1,6 +1,6 @@
 use crate::prelude::*;
-use mlang_syntax::AnyMFunctionBody;
 use biome_formatter::write;
+use mlang_syntax::AnyMFunctionBody;
 
 #[derive(Copy, Clone, Debug, Default)]
 pub enum FunctionBodyCacheMode {

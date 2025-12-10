@@ -1,9 +1,9 @@
 use crate::prelude::*;
 
-use crate::utils::{with_assignment_layout, AssignmentLikeLayout};
+use crate::utils::{AssignmentLikeLayout, with_assignment_layout};
+use biome_formatter::{FormatRuleWithOptions, write};
 use mlang_syntax::MInitializerClause;
 use mlang_syntax::MInitializerClauseFields;
-use biome_formatter::{write, FormatRuleWithOptions};
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct FormatMInitializerClause {

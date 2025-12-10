@@ -40,9 +40,9 @@ pub fn semantic_tokens(
             if let Some(tokens_range) = tokens_range
                 && (tokens_range.start.line > range.start.line
                     || tokens_range.end.line < range.end.line)
-                {
-                    return None;
-                }
+            {
+                return None;
+            }
 
             Some((token_type, token_modifiers, range))
         })

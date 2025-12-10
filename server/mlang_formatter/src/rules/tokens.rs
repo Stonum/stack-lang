@@ -19,13 +19,14 @@ impl FormatRule<MSyntaxToken> for FormatMSyntaxToken {
         write!(f, [format_skipped_token_trivia(token),])?;
 
         if token.kind().is_keyword()
-            && let Some(normilized_token_text) = self.normalize_keyword(token) {
-                let start = token.text_trimmed_range().start();
-                return write!(
-                    f,
-                    [&format_args!(dynamic_text(normilized_token_text, start))]
-                );
-            }
+            && let Some(normilized_token_text) = self.normalize_keyword(token)
+        {
+            let start = token.text_trimmed_range().start();
+            return write!(
+                f,
+                [&format_args!(dynamic_text(normilized_token_text, start))]
+            );
+        }
         write!(f, [format_trimmed_token(token)])
     }
 }

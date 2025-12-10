@@ -1,7 +1,7 @@
 use super::chain_member::ChainMember;
 use crate::prelude::*;
-use mlang_syntax::parentheses::NeedsParentheses;
 use biome_formatter::write;
+use mlang_syntax::parentheses::NeedsParentheses;
 use std::cell::RefCell;
 
 #[derive(Default)]
@@ -113,9 +113,8 @@ impl TailChainGroups {
             let group = self.groups.get(1);
             if let Some(group) = group {
                 let first_item = group.members.first();
-                first_item.is_some_and(|first_item| {
-                    comments.has_leading_comments(first_item.syntax())
-                })
+                first_item
+                    .is_some_and(|first_item| comments.has_leading_comments(first_item.syntax()))
             } else {
                 false
             }
