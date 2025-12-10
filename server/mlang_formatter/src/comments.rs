@@ -427,7 +427,11 @@ fn handle_if_statement_comment(
         // }
         // ```
         let else_clause = comment.enclosing_node();
-        if let Some(_) = comment.following_node().and_then(MBlockStatement::cast_ref) {
+        if comment
+            .following_node()
+            .and_then(MBlockStatement::cast_ref)
+            .is_some()
+        {
             return CommentPlacement::dangling(else_clause.clone(), comment);
         }
 
@@ -496,7 +500,7 @@ fn handle_if_statement_comment(
             // {
             // }
             // ```
-            if let Some(_) = MBlockStatement::cast_ref(following) {
+            if MBlockStatement::cast_ref(following).is_some() {
                 return CommentPlacement::dangling(if_statement.syntax().clone(), comment);
             }
 

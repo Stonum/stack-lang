@@ -104,7 +104,7 @@ fn convert_entity_method(
     inner: Vec<Method>,
     class: Weak<MCoreEntityDefinition>,
 ) -> Vec<MCoreEntityMemberDefinition> {
-    if inner.first().is_none() {
+    if inner.is_empty() {
         return vec![];
     }
 

@@ -17,7 +17,7 @@ pub struct CurrentDocument {
 }
 
 impl CurrentDocument {
-    pub fn new(uri: Url, text: &String, file_source: MFileSource) -> CurrentDocument {
+    pub fn new(uri: Url, text: &str, file_source: MFileSource) -> CurrentDocument {
         let parsed = parse(text, file_source);
         let diagnostics = parsed.diagnostics();
 
@@ -27,7 +27,7 @@ impl CurrentDocument {
     pub fn from_root(
         uri: Url,
         file_source: MFileSource,
-        text: &String,
+        text: &str,
         root: MSyntaxNode,
         diagnostics: &[ParseDiagnostic],
     ) -> CurrentDocument {

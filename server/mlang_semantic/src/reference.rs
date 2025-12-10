@@ -32,7 +32,7 @@ pub(crate) fn get_reference(
                 .syntax()
                 .ancestors()
                 .find(|p| p.kind() == MSyntaxKind::M_CLASS_DECLARATION)
-                .map_or(None, |class_node| {
+                .and_then(|class_node| {
                     let class = MClassDeclaration::cast(class_node)?;
                     let id = class.id().ok()?.text();
                     Some(id)

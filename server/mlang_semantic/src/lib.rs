@@ -30,11 +30,7 @@ pub fn semantics(
             prepare_definitions(&mut collector, source_type, &line_index, &node);
 
             if let Some((rref, range)) = get_reference(&line_index, &node) {
-                collector
-                    .references
-                    .entry(rref)
-                    .or_insert(vec![])
-                    .push(range);
+                collector.references.entry(rref).or_default().push(range);
             }
         }
     }

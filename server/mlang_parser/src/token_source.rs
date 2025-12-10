@@ -28,7 +28,7 @@ impl<'l> MTokenSource<'l> {
     }
 
     /// Creates a new token source for the given string
-    pub fn from_str(source: &'l str) -> MTokenSource<'l> {
+    pub fn new_from_str(source: &'l str) -> MTokenSource<'l> {
         let lexer = MLexer::from_str(source);
         let buffered = BufferedLexer::new(lexer);
         let mut source = MTokenSource::new(buffered);

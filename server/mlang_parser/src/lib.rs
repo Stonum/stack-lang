@@ -40,7 +40,7 @@ impl<'source> MParser<'source> {
             state: MParserState::new(),
             source_type,
             context: ParserContext::default(),
-            source: MTokenSource::from_str(source),
+            source: MTokenSource::new_from_str(source),
         }
     }
 

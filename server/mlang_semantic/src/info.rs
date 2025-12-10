@@ -9,8 +9,8 @@ pub fn identifier_for_offset(
     // checking the boundaries if cursor is at the start or end token
     let offsets = [
         offset,
-        offset.checked_add(1.into()).unwrap_or(TextSize::default()),
-        offset.checked_sub(1.into()).unwrap_or(TextSize::default()),
+        offset.checked_add(1.into()).unwrap_or_default(),
+        offset.checked_sub(1.into()).unwrap_or_default(),
     ];
 
     for offset in offsets {
@@ -57,7 +57,7 @@ pub fn identifier_for_offset(
                                     let class_id = node
                                         .ancestors()
                                         .find(|p| p.kind() == MSyntaxKind::M_CLASS_DECLARATION)
-                                        .map_or(None, |class_node| {
+                                        .and_then(|class_node| {
                                             let class = MClassDeclaration::cast(class_node)?;
                                             let id = class.id().ok()?.text();
                                             Some(id)
@@ -89,7 +89,7 @@ pub fn identifier_for_offset(
             let super_class_id = node
                 .ancestors()
                 .find(|p| p.kind() == MSyntaxKind::M_CLASS_DECLARATION)
-                .map_or(None, |class_node| {
+                .and_then(|class_node| {
                     let class = MClassDeclaration::cast(class_node)?;
                     let id = class.extends_clause()?.super_class().ok()?.text();
                     Some(id)

@@ -114,7 +114,7 @@ impl Workspace {
 
         let folders = app_path
             .get_all("PRG")
-            .filter_map(|s| {
+            .map(|s| {
                 let mut path = PathBuf::from(s);
 
                 // recursively only folders ends with **
@@ -122,7 +122,7 @@ impl Workspace {
                 if recursively {
                     path.pop();
                 }
-                Some((path, recursively))
+                (path, recursively)
             })
             .collect::<Vec<_>>();
 

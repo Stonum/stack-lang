@@ -150,7 +150,7 @@ impl MarkupDefinition for AnyMDefinition {
                 function
                     .description
                     .as_deref()
-                    .and_then(|s| Some(self.escape_markdown_with_newlines(s)))
+                    .map(|s| self.escape_markdown_with_newlines(s))
                     .unwrap_or_default()
             ),
             AnyMDefinition::MClassDefinition(class) => format!(
@@ -160,7 +160,7 @@ impl MarkupDefinition for AnyMDefinition {
                 class
                     .description
                     .as_deref()
-                    .and_then(|s| Some(self.escape_markdown_with_newlines(s)))
+                    .map(|s| self.escape_markdown_with_newlines(s))
                     .unwrap_or_default()
             ),
             AnyMDefinition::MClassMemberDefinition(member) => match member.m_type {
@@ -176,7 +176,7 @@ impl MarkupDefinition for AnyMDefinition {
                         member
                             .description
                             .as_deref()
-                            .and_then(|s| Some(self.escape_markdown_with_newlines(s)))
+                            .map(|s| self.escape_markdown_with_newlines(s))
                             .unwrap_or_default()
                     )
                 }
@@ -188,20 +188,16 @@ impl MarkupDefinition for AnyMDefinition {
                     member
                         .description
                         .as_deref()
-                        .and_then(|s| Some(self.escape_markdown_with_newlines(s)))
+                        .map(|s| self.escape_markdown_with_newlines(s))
                         .unwrap_or_default()
                 ),
             },
-            AnyMDefinition::MReportDefinition(report) => {
-                format!("{}", report.id.name)
-            }
-            AnyMDefinition::MReportSectionDefiniton(section) => {
-                format!("{}", section.id.name)
-            }
+            AnyMDefinition::MReportDefinition(report) => report.id.name.to_string(),
+            AnyMDefinition::MReportSectionDefiniton(section) => section.id.name.to_string(),
             AnyMDefinition::MHandlerDefinition(handler) => {
                 format!("```\n{} {}\n```", handler.keyword, handler.id.name)
             }
-            AnyMDefinition::MHandlerEventDefinition(event) => format!("{}", event.id.name),
+            AnyMDefinition::MHandlerEventDefinition(event) => event.id.name.to_string(),
         }
     }
 }
@@ -313,46 +309,44 @@ pub(crate) fn prepare_definitions(
             if let Some((handler, events)) = handler_definition(func, index) {
                 let mut events = events
                     .into_iter()
-                    .map(|m| AnyMDefinition::MHandlerEventDefinition(m))
+                    .map(AnyMDefinition::MHandlerEventDefinition)
                     .collect();
                 model
                     .definitions
                     .push(AnyMDefinition::MHandlerDefinition(handler));
                 model.definitions.append(&mut events);
             }
-        } else {
-            if let Some(def) = function_definition(func, index) {
-                model
-                    .definitions
-                    .push(AnyMDefinition::MFunctionDefinition(def));
-            }
+        } else if let Some(def) = function_definition(func, index) {
+            model
+                .definitions
+                .push(AnyMDefinition::MFunctionDefinition(def));
         }
     }
 
-    if let Some(class) = MClassDeclaration::cast(node.clone()) {
-        if let Some((class, metohds)) = class_definition(class, index) {
-            let mut metohds = metohds
-                .into_iter()
-                .map(|m| AnyMDefinition::MClassMemberDefinition(m))
-                .collect();
-            model
-                .definitions
-                .push(AnyMDefinition::MClassDefinition(class));
-            model.definitions.append(&mut metohds);
-        }
+    if let Some(class) = MClassDeclaration::cast(node.clone())
+        && let Some((class, metohds)) = class_definition(class, index)
+    {
+        let mut metohds = metohds
+            .into_iter()
+            .map(AnyMDefinition::MClassMemberDefinition)
+            .collect();
+        model
+            .definitions
+            .push(AnyMDefinition::MClassDefinition(class));
+        model.definitions.append(&mut metohds);
     }
 
-    if let Some(report) = MReport::cast(node.clone()) {
-        if let Some((report, sections)) = report_definition(report, index) {
-            let mut sections = sections
-                .into_iter()
-                .map(|m| AnyMDefinition::MReportSectionDefiniton(m))
-                .collect();
-            model
-                .definitions
-                .push(AnyMDefinition::MReportDefinition(report));
-            model.definitions.append(&mut sections);
-        }
+    if let Some(report) = MReport::cast(node.clone())
+        && let Some((report, sections)) = report_definition(report, index)
+    {
+        let mut sections = sections
+            .into_iter()
+            .map(AnyMDefinition::MReportSectionDefiniton)
+            .collect();
+        model
+            .definitions
+            .push(AnyMDefinition::MReportDefinition(report));
+        model.definitions.append(&mut sections);
     }
 }
 
@@ -485,7 +479,7 @@ fn class_definition(
         range: class_range,
         extends: class
             .extends_clause()
-            .map_or(None, |ext| Some(ext.super_class().ok()?.text())),
+            .and_then(|ext| Some(ext.super_class().ok()?.text())),
     });
 
     let methods = class
