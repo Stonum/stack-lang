@@ -1,3 +1,5 @@
+#![allow(clippy::all)]
+
 #[rustfmt::skip]
 pub mod node_factory;
 #[rustfmt::skip]

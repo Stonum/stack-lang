@@ -1,3 +1,5 @@
+#![allow(clippy::all)]
+
 #[macro_use]
 pub mod macros;
 #[rustfmt::skip]
