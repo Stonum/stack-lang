@@ -38,11 +38,14 @@ pub trait CodeSymbolInformation: CodeSymbolDefinition {
     fn symbol_kind(&self) -> SymbolKind;
     fn symbol_name(&self) -> String {
         let mut name = self.id();
-        if name.starts_with('\'') && name.ends_with('\'') {
-            name = &name[1..name.len() - 1];
-        } else if name.starts_with('\"') && name.ends_with('\"') {
+
+        let double_quoted = name.starts_with('\"') && name.ends_with('\"');
+        let single_quoted = name.starts_with('\'') && name.ends_with('\'');
+
+        if double_quoted || single_quoted {
             name = &name[1..name.len() - 1];
         }
+
         name.to_string()
     }
 }

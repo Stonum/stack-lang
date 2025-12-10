@@ -109,19 +109,20 @@ impl AnyMParameterList {
             }
         })
     }
+}
 
-    /// Converts parameter list to string
-    pub fn to_string(&self) -> String {
+impl std::fmt::Display for AnyMParameterList {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.is_empty() {
-            return String::from("()");
+            return write!(f, "()");
         }
 
         match self {
             AnyMParameterList::MParameterList(parameters) => {
-                format!("( {} )", parameters.syntax().to_string().trim())
+                write!(f, "( {} )", parameters.syntax().to_string().trim())
             }
             AnyMParameterList::MConstructorParameterList(parameters) => {
-                format!("( {} )", parameters.syntax().to_string().trim())
+                write!(f, "( {} )", parameters.syntax().to_string().trim())
             }
         }
     }

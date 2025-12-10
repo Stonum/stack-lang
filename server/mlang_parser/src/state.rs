@@ -1,7 +1,6 @@
-use crate::MParser;
 use enumflags2::{BitFlags, bitflags, make_bitflags};
 
-use std::ops::{BitOr, BitOrAssign, Deref, DerefMut, Sub};
+use std::ops::{BitOr, BitOrAssign, Sub};
 
 /// State kept by the parser while parsing.
 #[derive(Debug)]
@@ -112,38 +111,6 @@ impl MDebugParserStateCheckpoint {
             state.duplicate_binding_parent,
             self.duplicate_binding_parent
         );
-    }
-}
-
-/// Reverts state changes to their previous value when it goes out of scope.
-/// Can be used like a regular parser.
-pub struct ParserStateGuard<'parser, 't, C>
-where
-    C: ChangeParserState,
-{
-    snapshot: C::Snapshot,
-    inner: &'parser mut MParser<'t>,
-}
-
-impl<C: ChangeParserState> Drop for ParserStateGuard<'_, '_, C> {
-    fn drop(&mut self) {
-        let snapshot = std::mem::take(&mut self.snapshot);
-
-        C::restore(self.inner.state_mut(), snapshot);
-    }
-}
-
-impl<'t, C: ChangeParserState> Deref for ParserStateGuard<'_, 't, C> {
-    type Target = MParser<'t>;
-
-    fn deref(&self) -> &Self::Target {
-        self.inner
-    }
-}
-
-impl<C: ChangeParserState> DerefMut for ParserStateGuard<'_, '_, C> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.inner
     }
 }
 
@@ -365,35 +332,5 @@ impl ChangeParserState for EnterFunction {
     #[inline]
     fn restore(state: &mut MParserState, value: Self::Snapshot) {
         state.parsing_context = value.parsing_context;
-    }
-}
-
-pub struct EnterClassPropertyInitializer;
-
-impl ChangeParserStateFlags for EnterClassPropertyInitializer {
-    fn compute_new_flags(&self, existing: ParsingContextFlags) -> ParsingContextFlags {
-        existing - ParsingContextFlags::TOP_LEVEL
-    }
-}
-
-#[derive(Default, Debug, Clone)]
-pub struct EnterClassStaticInitializationBlockSnapshot {
-    flags: ParsingContextFlags,
-}
-
-pub struct EnterClassStaticInitializationBlock;
-
-impl ChangeParserState for EnterClassStaticInitializationBlock {
-    type Snapshot = EnterClassStaticInitializationBlockSnapshot;
-
-    fn apply(self, state: &mut MParserState) -> Self::Snapshot {
-        let flags = state.parsing_context - ParsingContextFlags::FUNCTION_RESET_MASK;
-        EnterClassStaticInitializationBlockSnapshot {
-            flags: std::mem::replace(&mut state.parsing_context, flags),
-        }
-    }
-
-    fn restore(state: &mut MParserState, value: Self::Snapshot) {
-        state.parsing_context = value.flags;
     }
 }
