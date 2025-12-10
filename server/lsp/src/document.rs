@@ -18,7 +18,7 @@ pub struct CurrentDocument {
 
 impl CurrentDocument {
     pub fn new(uri: Url, text: &String, file_source: MFileSource) -> CurrentDocument {
-        let parsed = parse(&text, file_source);
+        let parsed = parse(text, file_source);
         let diagnostics = parsed.diagnostics();
 
         Self::from_root(uri, file_source, text, parsed.syntax(), diagnostics)
@@ -31,7 +31,7 @@ impl CurrentDocument {
         root: MSyntaxNode,
         diagnostics: &[ParseDiagnostic],
     ) -> CurrentDocument {
-        let semantics = semantics(&text, root.clone(), file_source);
+        let semantics = semantics(text, root.clone(), file_source);
         let root = root.as_send().unwrap_or_else(|| {
             panic!(
                 "could not upcast root node from language {}",
@@ -67,7 +67,7 @@ impl CurrentDocument {
         })
     }
 
-    pub fn definitions(&self) -> core::slice::Iter<AnyMDefinition> {
+    pub fn definitions(&self) -> core::slice::Iter<'_, AnyMDefinition> {
         self.semantics.definitions()
     }
 

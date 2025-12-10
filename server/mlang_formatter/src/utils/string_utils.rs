@@ -33,7 +33,7 @@ impl<'token> FormatLiteralStringToken<'token> {
         self.token
     }
 
-    pub fn clean_text(&self) -> CleanedStringLiteralText {
+    pub fn clean_text(&self) -> CleanedStringLiteralText<'_> {
         let token = self.token();
 
         let content = token.text_trimmed();
@@ -132,15 +132,14 @@ impl<'token> LiteralStringNormaliser<'token> {
             match byte {
                 // If the next character is escaped
                 b'\\' => {
-                    if let Some((escaped_index, escaped)) = bytes.next() {
-                        if escaped == b'\r' {
+                    if let Some((escaped_index, escaped)) = bytes.next()
+                        && escaped == b'\r' {
                             // If we encounter the sequence "\r\n", then skip '\r'
                             if let Some((next_byte_index, b'\n')) = bytes.next() {
                                 reduced_string.push_str(&raw_content[copy_start..escaped_index]);
                                 copy_start = next_byte_index;
                             }
                         }
-                    }
                 }
                 // If we encounter the sequence "\r\n", then skip '\r'
                 b'\r' => {

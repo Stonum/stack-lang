@@ -22,7 +22,7 @@ pub fn format(
 
     let line_index = document.line_index();
     let text_range = {
-        let Range { start, end } = range.clone();
+        let Range { start, end } = range;
         let range = LineColRange {
             start: LineCol {
                 col: start.character,

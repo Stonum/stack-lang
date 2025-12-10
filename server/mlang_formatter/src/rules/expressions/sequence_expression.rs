@@ -32,8 +32,8 @@ impl FormatNodeRule<MSequenceExpression> for FormatMSequenceExpression {
         }
 
         let format_inner = format_with(|f| {
-            if let Some(parent) = &first_non_sequence_or_paren_parent {
-                if matches!(
+            if let Some(parent) = &first_non_sequence_or_paren_parent
+                && matches!(
                     parent.kind(),
                     MSyntaxKind::M_EXPRESSION_STATEMENT | MSyntaxKind::M_FOR_STATEMENT
                 ) {
@@ -47,7 +47,6 @@ impl FormatNodeRule<MSequenceExpression> for FormatMSequenceExpression {
                         ]
                     );
                 }
-            }
 
             write!(
                 f,

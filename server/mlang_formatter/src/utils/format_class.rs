@@ -12,11 +12,10 @@ impl FormatClass<'_> {
             return Ok(true);
         }
 
-        if let Some(extends) = self.class.extends_clause() {
-            if comments.has_trailing_comments(extends.syntax()) {
+        if let Some(extends) = self.class.extends_clause()
+            && comments.has_trailing_comments(extends.syntax()) {
                 return Ok(true);
             }
-        }
 
         Ok(false)
     }

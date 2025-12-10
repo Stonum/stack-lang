@@ -37,13 +37,12 @@ pub fn semantic_tokens(
             let range = line_index.line_col_range(range)?;
 
             // filter for requested range
-            if let Some(tokens_range) = tokens_range {
-                if tokens_range.start.line > range.start.line
-                    || tokens_range.end.line < range.end.line
+            if let Some(tokens_range) = tokens_range
+                && (tokens_range.start.line > range.start.line
+                    || tokens_range.end.line < range.end.line)
                 {
                     return None;
                 }
-            }
 
             Some((token_type, token_modifiers, range))
         })

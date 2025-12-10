@@ -60,13 +60,13 @@ impl MarkupDefinition for AnyMCoreDefinition {
     fn markdown(&self) -> String {
         match self {
             AnyMCoreDefinition::MCoreFunctionDefinition(function) => {
-                format!("{}", function.description)
+                function.description.to_string()
             }
             AnyMCoreDefinition::MCoreEntityDefinition(entity) => {
-                format!("{}", entity.description)
+                entity.description.to_string()
             }
             AnyMCoreDefinition::MCoreEntityMemberDefinition(member) => {
-                format!("{}", member.description)
+                member.description.to_string()
             }
         }
     }

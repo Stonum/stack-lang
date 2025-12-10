@@ -1,12 +1,11 @@
 use serde::Deserialize;
-use serde_yaml;
 
 use crate::{AnyMCoreDefinition, MCoreFunctionDefinition};
 
 pub(crate) fn load() -> BuiltInData {
     let yaml_data = include_str!("../coreApi/api.yaml");
 
-    let parsed_data: BuiltInData = serde_yaml::from_str(&yaml_data).unwrap();
+    let parsed_data: BuiltInData = serde_yaml::from_str(yaml_data).unwrap();
 
     parsed_data
 }
@@ -25,24 +24,24 @@ pub(crate) struct BuiltInData {
     functions: Vec<Function>,
 }
 
-impl Into<Vec<MCoreFunctionDefinition>> for Function {
-    fn into(self) -> Vec<MCoreFunctionDefinition> {
-        self.aliases
+impl From<Function> for Vec<MCoreFunctionDefinition> {
+    fn from(val: Function) -> Self {
+        val.aliases
             .into_iter()
-            .chain([self.name].into_iter())
+            .chain([val.name])
             .map(|name| MCoreFunctionDefinition {
                 id: name,
-                description: self.description.clone(),
+                description: val.description.clone(),
             })
             .collect()
     }
 }
 
-impl Into<Vec<AnyMCoreDefinition>> for BuiltInData {
-    fn into(self) -> Vec<AnyMCoreDefinition> {
-        self.functions
+impl From<BuiltInData> for Vec<AnyMCoreDefinition> {
+    fn from(val: BuiltInData) -> Self {
+        val.functions
             .into_iter()
-            .flat_map(|f| Into::<Vec<MCoreFunctionDefinition>>::into(f))
+            .flat_map(Into::<Vec<MCoreFunctionDefinition>>::into)
             .map(AnyMCoreDefinition::MCoreFunctionDefinition)
             .collect::<Vec<_>>()
     }

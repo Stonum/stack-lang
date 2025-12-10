@@ -21,11 +21,10 @@ impl FormatNodeRule<MCatchClause> for FormatMCatchClause {
             write![f, [declaration.format()]]?;
         }
 
-        if let Ok(block) = &body {
-            if block.statements().is_empty() {
+        if let Ok(block) = &body
+            && block.statements().is_empty() {
                 return write!(f, [space(), body.format()]);
             }
-        }
         write!(f, [hard_line_break(), body.format()])
     }
 }

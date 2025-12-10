@@ -327,11 +327,10 @@ impl MemberChain {
     fn has_comments(&self, comments: &MComments) -> bool {
         let mut members = self.members();
 
-        if let Some(first) = members.next() {
-            if comments.has_trailing_comments(first.syntax()) {
+        if let Some(first) = members.next()
+            && comments.has_trailing_comments(first.syntax()) {
                 return true;
             }
-        }
 
         // Ignore the root member because comments are printed before/after the member chain.
         members.next_back();

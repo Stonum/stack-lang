@@ -58,7 +58,7 @@ pub trait LocationDefinition {
     }
     fn location(&self, uri: Url) -> Location {
         Location {
-            uri: uri,
+            uri,
             range: self.lsp_range(),
         }
     }
@@ -74,7 +74,7 @@ pub trait LocationDefinition {
     }
     fn id_location(&self, uri: Url) -> Location {
         Location {
-            uri: uri,
+            uri,
             range: self.id_lsp_range(),
         }
     }
@@ -152,11 +152,11 @@ where
 
     match semantic_info {
         SemanticInfo::FunctionCall(ident) | SemanticInfo::FunctionDeclaration(ident) => {
-            return definitions
+            definitions
                 .into_iter()
                 .filter(|(_, d)| d.is_function() && d.compare_with(ident))
                 .map(|(uri, d)| d.id_location(uri.clone()))
-                .collect::<Vec<_>>();
+                .collect::<Vec<_>>()
         }
         SemanticInfo::NewExpression(ident) | SemanticInfo::ClassDeclaration(ident) => {
             let definitions = Vec::from_iter(definitions);
@@ -179,27 +179,27 @@ where
                     })
                     .collect::<Vec<_>>();
 
-                if constructors.len() > 0 {
+                if !constructors.is_empty() {
                     locations.append(&mut constructors);
                 } else {
                     locations.push(class.id_location(uri.clone()));
                 }
             }
-            return locations;
+            locations
         }
         SemanticInfo::ClassExtends(ident) => {
-            return definitions
+            definitions
                 .into_iter()
                 .filter(|(_, d)| d.is_class() && d.compare_with(ident))
                 .map(|(uri, d)| d.id_location(uri.clone()))
-                .collect::<Vec<_>>();
+                .collect::<Vec<_>>()
         }
         SemanticInfo::MethodCall(ident, None) => {
-            return definitions
+            definitions
                 .into_iter()
                 .filter(|(_, d)| d.is_method() && d.compare_with(ident))
                 .map(|(uri, d)| d.id_location(uri.clone()))
-                .collect::<Vec<_>>();
+                .collect::<Vec<_>>()
         }
         SemanticInfo::MethodCall(ident, Some(class_name))
         | SemanticInfo::MethodDeclaration(ident, class_name) => {
@@ -225,7 +225,7 @@ where
                     .map(|(uri, d)| d.id_location(uri.clone()))
                     .collect::<Vec<_>>();
 
-                if methods.len() > 0 {
+                if !methods.is_empty() {
                     locations.append(&mut methods);
                     break;
                 }
@@ -246,7 +246,7 @@ where
                 class_names.append(&mut super_classes);
             }
 
-            return locations;
+            locations
         }
         SemanticInfo::SuperCall(_ident, class_name) => {
             // local copy
@@ -272,14 +272,14 @@ where
                     })
                     .collect::<Vec<_>>();
 
-                if constructors.len() > 0 {
+                if !constructors.is_empty() {
                     locations.append(&mut constructors);
                 } else {
                     locations.push(class.id_location(uri.clone()));
                 }
             }
 
-            return locations;
+            locations
         }
     }
 }
@@ -296,22 +296,20 @@ where
     match semantic_info {
         SemanticInfo::FunctionCall(ident) | SemanticInfo::FunctionDeclaration(ident) => {
             let call_info = SemanticInfo::FunctionCall(ident.clone());
-            return references
+            references
                 .into_iter()
                 .filter(|(info, _)| info.eq(&&call_info))
-                .map(|(_, refs)| refs.iter().map(|r| r.location(uri.clone())))
-                .flatten()
-                .collect::<Vec<_>>();
+                .flat_map(|(_, refs)| refs.iter().map(|r| r.location(uri.clone())))
+                .collect::<Vec<_>>()
         }
 
         SemanticInfo::NewExpression(ident) | SemanticInfo::ClassDeclaration(ident) => {
             let call_info = SemanticInfo::NewExpression(ident.clone());
-            return references
+            references
                 .into_iter()
                 .filter(|(info, _)| info.eq(&&call_info))
-                .map(|(_, refs)| refs.iter().map(|r| r.location(uri.clone())))
-                .flatten()
-                .collect::<Vec<_>>();
+                .flat_map(|(_, refs)| refs.iter().map(|r| r.location(uri.clone())))
+                .collect::<Vec<_>>()
         }
 
         SemanticInfo::MethodCall(ident, Some(class_name))
@@ -320,25 +318,23 @@ where
                 SemanticInfo::MethodCall(ident.clone(), None),
                 SemanticInfo::MethodCall(ident.clone(), Some(class_name.clone())),
             );
-            return references
+            references
                 .into_iter()
                 .filter(|(info, _)| info.eq(&&call_info.0) || info.eq(&&call_info.1))
-                .map(|(_, refs)| refs.iter().map(|r| r.location(uri.clone())))
-                .flatten()
-                .collect::<Vec<_>>();
+                .flat_map(|(_, refs)| refs.iter().map(|r| r.location(uri.clone())))
+                .collect::<Vec<_>>()
         }
 
         SemanticInfo::MethodCall(ident, None) => {
             let call_info = SemanticInfo::MethodCall(ident.clone(), None);
-            return references
+            references
                 .into_iter()
                 .filter(|(info, _)| info.eq(&&call_info) || info.eq(&semantic_info))
-                .map(|(_, refs)| refs.iter().map(|r| r.location(uri.clone())))
-                .flatten()
-                .collect::<Vec<_>>();
+                .flat_map(|(_, refs)| refs.iter().map(|r| r.location(uri.clone())))
+                .collect::<Vec<_>>()
         }
-        _ => return vec![],
-    };
+        _ => vec![],
+    }
 }
 
 pub fn get_hover<'a, I, D>(semantic_info: &SemanticInfo, definitions: I) -> Vec<MarkedString>
@@ -348,13 +344,13 @@ where
 {
     match semantic_info {
         SemanticInfo::FunctionCall(ident) | SemanticInfo::FunctionDeclaration(ident) => {
-            let functions = definitions
+            
+
+            definitions
                 .into_iter()
                 .filter(|d| d.is_function() && d.compare_with(ident))
                 .map(|d| MarkedString::String(d.markdown()))
-                .collect::<Vec<_>>();
-
-            return functions;
+                .collect::<Vec<_>>()
         }
         SemanticInfo::NewExpression(ident) | SemanticInfo::ClassDeclaration(ident) => {
             let mut markups = vec![];
@@ -385,25 +381,25 @@ where
 
                 markups.append(&mut constructors);
             }
-            return markups;
+            markups
         }
         SemanticInfo::ClassExtends(ident) => {
-            let classes = definitions
+            
+
+            definitions
                 .into_iter()
                 .filter(|d| d.is_class() && d.compare_with(ident))
                 .map(|d| MarkedString::String(d.markdown()))
-                .collect::<Vec<_>>();
-
-            return classes;
+                .collect::<Vec<_>>()
         }
         SemanticInfo::MethodCall(ident, None) => {
-            let methods = definitions
+            
+
+            definitions
                 .into_iter()
                 .filter(|d| d.is_method() && d.compare_with(ident))
                 .map(|d| MarkedString::String(d.markdown()))
-                .collect::<Vec<_>>();
-
-            return methods;
+                .collect::<Vec<_>>()
         }
         SemanticInfo::MethodCall(ident, Some(class_name))
         | SemanticInfo::MethodDeclaration(ident, class_name) => {
@@ -429,7 +425,7 @@ where
                     .map(|d| MarkedString::String(d.markdown()))
                     .collect::<Vec<_>>();
 
-                if methods.len() > 0 {
+                if !methods.is_empty() {
                     markups.append(&mut methods);
                     break;
                 }
@@ -449,7 +445,7 @@ where
                 class_names.append(&mut super_classes);
             }
 
-            return markups;
+            markups
         }
         SemanticInfo::SuperCall(_ident, class_name) => {
             let mut markups = vec![];
@@ -480,7 +476,7 @@ where
 
                 markups.append(&mut constructors);
             }
-            return markups;
+            markups
         }
     }
 }

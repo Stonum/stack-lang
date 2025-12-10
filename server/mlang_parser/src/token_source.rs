@@ -33,7 +33,7 @@ impl<'l> MTokenSource<'l> {
         let buffered = BufferedLexer::new(lexer);
         let mut source = MTokenSource::new(buffered);
 
-        source.next_non_trivia_token(MLexContext::default(), true);
+        source.next_non_trivia_token(MLexContext, true);
         source
     }
 

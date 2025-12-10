@@ -27,11 +27,10 @@ impl LanguageServer for Backend {
         let mut settings = ServerSettings::default();
 
         // Get initial settings from initialization_options if available
-        if let Some(opts) = params.initialization_options {
-            if let Ok(new_settings) = serde_json::from_value(opts) {
+        if let Some(opts) = params.initialization_options
+            && let Ok(new_settings) = serde_json::from_value(opts) {
                 settings = new_settings;
             }
-        }
 
         let mut capabilities = ServerCapabilities {
             text_document_sync: Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::FULL)),
@@ -116,7 +115,7 @@ impl LanguageServer for Backend {
             .await;
 
         match settings_path {
-            Some(path) if path != "" => {
+            Some(path) if !path.is_empty() => {
                 if let Err(error) = self.workspace.init_with_settings_file(&path).await {
                     error!("Initialization error: {error}");
 

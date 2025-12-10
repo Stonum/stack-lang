@@ -56,13 +56,12 @@ impl FormatNodeRule<MCallArguments> for FormatMCallArguments {
                     .node()
                     .map_or(0, |node| get_lines_before(node.syntax()));
                 has_empty_line = has_empty_line || leading_lines > 1;
-                if index == 0 {
-                    if let Ok(node) = element.node() {
+                if index == 0
+                    && let Ok(node) = element.node() {
                         first_is_string = MLongStringLiteralExpression::cast_ref(node.syntax())
                             .is_some()
                             | MStringLiteralExpression::cast_ref(node.syntax()).is_some()
                     }
-                }
 
                 FormatCallArgument::Default {
                     element,
@@ -738,11 +737,10 @@ fn should_group_last_argument(
 
             let penultimate = iter.next_back();
 
-            if let Some(Ok(penultimate)) = &penultimate {
-                if penultimate.syntax().kind() == last.syntax().kind() {
+            if let Some(Ok(penultimate)) = &penultimate
+                && penultimate.syntax().kind() == last.syntax().kind() {
                     return Ok(false);
                 }
-            }
 
             match last {
                 MArrayExpression(array) if list.len() > 1 => {
@@ -874,8 +872,8 @@ fn is_function_composition_args(arguments: &MCallArguments) -> bool {
 }
 
 fn is_query_like_call(expression: Option<&MCallExpression>) -> bool {
-    if let Some(expression) = expression {
-        if let Ok(callee) = expression.callee() {
+    if let Some(expression) = expression
+        && let Ok(callee) = expression.callee() {
             let callee_name = match callee {
                 AnyMExpression::MIdentifierExpression(expression) => expression.text(),
                 AnyMExpression::MStaticMemberExpression(expression) => {
@@ -892,7 +890,6 @@ fn is_query_like_call(expression: Option<&MCallExpression>) -> bool {
                 "query" | "command" | "bufferedreader" | "execute_command"
             );
         }
-    }
 
     false
 }

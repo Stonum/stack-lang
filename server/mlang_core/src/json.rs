@@ -4,7 +4,6 @@ use std::{
 };
 
 use serde::Deserialize;
-use serde_json;
 
 use crate::{
     AnyMCoreDefinition, MCoreEntityDefinition, MCoreEntityMemberDefinition, MCoreFunctionDefinition,
@@ -14,7 +13,7 @@ pub(crate) fn load() -> KernelData {
     // Чтение файла в строку
     let json_data = include_str!("../coreApi/api.json");
 
-    let parsed_data: KernelData = serde_json::from_str(&json_data).unwrap();
+    let parsed_data: KernelData = serde_json::from_str(json_data).unwrap();
 
     parsed_data
 }
@@ -33,13 +32,13 @@ pub(crate) struct FreeFunction {
     detailed_description: DetailedDescription,
 }
 
-impl Into<AnyMCoreDefinition> for FreeFunction {
-    fn into(self) -> AnyMCoreDefinition {
+impl From<FreeFunction> for AnyMCoreDefinition {
+    fn from(val: FreeFunction) -> Self {
         AnyMCoreDefinition::MCoreFunctionDefinition(MCoreFunctionDefinition {
-            id: self.name,
+            id: val.name,
             description: format!(
                 "```\n{}\n```  \n{}",
-                self.brief_description, self.detailed_description.text,
+                val.brief_description, val.detailed_description.text,
             ),
         })
     }
@@ -69,13 +68,13 @@ pub(crate) struct KernelData {
     entities: Vec<Entity>,
 }
 
-impl Into<Vec<AnyMCoreDefinition>> for KernelData {
-    fn into(self) -> Vec<AnyMCoreDefinition> {
+impl From<KernelData> for Vec<AnyMCoreDefinition> {
+    fn from(val: KernelData) -> Self {
         let mut functions: Vec<AnyMCoreDefinition> =
-            self.free_functions.into_iter().map(|f| f.into()).collect();
+            val.free_functions.into_iter().map(|f| f.into()).collect();
 
-        let mut entities: Vec<AnyMCoreDefinition> = Vec::with_capacity(self.entities.len() * 2);
-        for entity in self.entities {
+        let mut entities: Vec<AnyMCoreDefinition> = Vec::with_capacity(val.entities.len() * 2);
+        for entity in val.entities {
             let entity_def = Arc::new(MCoreEntityDefinition {
                 id: entity.name,
                 description: format!(
@@ -87,8 +86,7 @@ impl Into<Vec<AnyMCoreDefinition>> for KernelData {
             let mut methods = entity
                 .methods
                 .into_iter()
-                .map(|(name, m)| convert_entity_method(name, m, Arc::downgrade(&entity_def)))
-                .flatten()
+                .flat_map(|(name, m)| convert_entity_method(name, m, Arc::downgrade(&entity_def)))
                 .map(AnyMCoreDefinition::MCoreEntityMemberDefinition)
                 .collect::<Vec<_>>();
 
@@ -106,7 +104,7 @@ fn convert_entity_method(
     inner: Vec<Method>,
     class: Weak<MCoreEntityDefinition>,
 ) -> Vec<MCoreEntityMemberDefinition> {
-    if inner.get(0).is_none() {
+    if inner.first().is_none() {
         return vec![];
     }
 
@@ -118,7 +116,7 @@ fn convert_entity_method(
     inner
         .into_iter()
         .map(|m| m.name)
-        .chain([name].into_iter())
+        .chain([name])
         .map(|id| MCoreEntityMemberDefinition {
             id,
             description: descr.clone(),

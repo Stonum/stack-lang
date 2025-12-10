@@ -153,18 +153,15 @@ impl RewriteParseEvents for ReparseAssignment {
         if let Some(m) = m {
             let completed = m.complete(p, kind);
 
-            match kind {
-                M_BOGUS_ASSIGNMENT => {
-                    let range = completed.range(p);
-                    p.error(
-                        p.err_builder(
-                            format!("Invalid assignment to `{}`", completed.text(p)),
-                            range,
-                        )
-                        .with_hint("This expression cannot be assigned to"),
-                    );
-                }
-                _ => {}
+            if kind == M_BOGUS_ASSIGNMENT {
+                let range = completed.range(p);
+                p.error(
+                    p.err_builder(
+                        format!("Invalid assignment to `{}`", completed.text(p)),
+                        range,
+                    )
+                    .with_hint("This expression cannot be assigned to"),
+                );
             }
 
             self.result = Some(completed.into());

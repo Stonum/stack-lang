@@ -175,7 +175,7 @@ impl AnyMAssignmentLike {
                     .comments()
                     .mark_suppression_checked(name.syntax());
 
-                let width = write_member_name(&name.into(), f)?;
+                let width = write_member_name(&name, f)?;
                 let text_width_for_break =
                     (u8::from(f.options().tab_width()) + MIN_OVERLAP_FOR_BREAK) as usize;
                 Ok(width < text_width_for_break)
@@ -273,22 +273,20 @@ impl AnyMAssignmentLike {
 
         let right = self.right()?;
 
-        if let RightAssignmentLike::MInitializerClause(initializer) = &right {
-            if f.context().comments().is_suppressed(initializer.syntax()) {
+        if let RightAssignmentLike::MInitializerClause(initializer) = &right
+            && f.context().comments().is_suppressed(initializer.syntax()) {
                 return Ok(AssignmentLikeLayout::SuppressedInitializer);
             }
-        }
         let right_expression = right.as_expression();
 
         if let Some(layout) = self.chain_formatting_layout(right_expression.as_ref())? {
             return Ok(layout);
         }
 
-        if let Some(AnyMExpression::MCallExpression(call_expression)) = &right_expression {
-            if call_expression.callee()?.syntax().text() == "require" {
+        if let Some(AnyMExpression::MCallExpression(call_expression)) = &right_expression
+            && call_expression.callee()?.syntax().text() == "require" {
                 return Ok(AssignmentLikeLayout::NeverBreakAfterOperator);
             }
-        }
 
         if self.should_break_left_hand_side()? {
             return Ok(AssignmentLikeLayout::BreakLeftHandSide);
@@ -755,7 +753,7 @@ pub(crate) struct WithAssignmentLayout<'a> {
     expression: &'a AnyMExpression,
 }
 
-pub(crate) fn with_assignment_layout(expression: &AnyMExpression) -> WithAssignmentLayout {
+pub(crate) fn with_assignment_layout(expression: &AnyMExpression) -> WithAssignmentLayout<'_> {
     WithAssignmentLayout { expression }
 }
 

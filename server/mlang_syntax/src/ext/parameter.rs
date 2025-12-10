@@ -118,10 +118,10 @@ impl AnyMParameterList {
 
         match self {
             AnyMParameterList::MParameterList(parameters) => {
-                format!("( {} )", parameters.syntax().to_string().trim().to_string())
+                format!("( {} )", parameters.syntax().to_string().trim())
             }
             AnyMParameterList::MConstructorParameterList(parameters) => {
-                format!("( {} )", parameters.syntax().to_string().trim().to_string())
+                format!("( {} )", parameters.syntax().to_string().trim())
             }
         }
     }

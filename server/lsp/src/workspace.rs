@@ -204,7 +204,7 @@ impl Workspace {
         let semantic_info = self.identifier_from_position(uri, position).await?;
 
         let core_markups = get_hover(&semantic_info, &self.core);
-        if core_markups.len() > 0 {
+        if !core_markups.is_empty() {
             return Some(Hover {
                 contents: HoverContents::Array(core_markups),
                 range: None,
@@ -251,8 +251,7 @@ impl Workspace {
 
         let definitions = semantics
             .iter()
-            .map(|(uri, arc)| arc.definitions().map(|d| (uri.clone(), d)))
-            .flatten();
+            .flat_map(|(uri, arc)| arc.definitions().map(|d| (uri.clone(), d)));
 
         let locations = get_declaration(&semantic_info, definitions);
         Some(GotoDefinitionResponse::Array(locations))
@@ -299,8 +298,8 @@ impl Workspace {
         });
 
         let information = semantics
-            .map(|(uri, semantics)| {
-                if query != "" {
+            .flat_map(|(uri, semantics)| {
+                if !query.is_empty() {
                     let query = StringLowerCase::new(query);
                     get_symbols(
                         &uri,
@@ -312,7 +311,6 @@ impl Workspace {
                     get_symbols(&uri, semantics.definitions())
                 }
             })
-            .flatten()
             .collect::<Vec<_>>();
 
         Some(information)
@@ -352,7 +350,7 @@ impl Workspace {
 
         Some(SemanticTokens {
             result_id: None,
-            data: semantic_tokens(syntax, &line_index, tokens_range),
+            data: semantic_tokens(syntax, line_index, tokens_range),
         })
     }
 }
@@ -440,7 +438,7 @@ impl Workspace {
         Ok(vec![])
     }
     pub async fn delete_document(&self, document_url: &Url) {
-        self.opened_files.remove(&document_url);
+        self.opened_files.remove(document_url);
 
         let path = document_url.to_file_path();
         if let Ok(path) = path {

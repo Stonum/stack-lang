@@ -32,9 +32,9 @@ pub(crate) use string_utils::*;
 /// `connect(a, b, c)(d)`
 /// ```
 pub(crate) fn is_long_curried_call(expression: Option<&MCallExpression>) -> bool {
-    if let Some(expression) = expression {
-        if let Some(parent_call) = expression.parent::<MCallExpression>() {
-            if let (Ok(arguments), Ok(parent_arguments)) =
+    if let Some(expression) = expression
+        && let Some(parent_call) = expression.parent::<MCallExpression>()
+            && let (Ok(arguments), Ok(parent_arguments)) =
                 (expression.arguments(), parent_call.arguments())
             {
                 let is_callee = matches!(
@@ -45,8 +45,6 @@ pub(crate) fn is_long_curried_call(expression: Option<&MCallExpression>) -> bool
                     && arguments.args().len() > parent_arguments.args().len()
                     && !parent_arguments.args().is_empty();
             }
-        }
-    }
 
     false
 }
