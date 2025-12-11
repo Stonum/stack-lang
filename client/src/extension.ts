@@ -98,10 +98,13 @@ export async function activate(context: vscode.ExtensionContext) {
    });
 
    let togglePSQL = commands.registerCommand('stack.togglePostgreSQL', args => {
-      args = args || {}
-      const namespace = args.namespace || 'stack'
-      const dollar = args.dollar || false
-      togglePostgreSQL( namespace, dollar)
+      const activeEditor = vscode.window.activeTextEditor;
+      const path = activeEditor?.document.uri.path;
+      const extension = path?.split('.').pop();
+
+      const namespace = args?.namespace || 'stack';
+      const dollar = args?.dollar || extension === 'sql' || false;
+      togglePostgreSQL(namespace, dollar);
    });
 
    context.subscriptions.push(togglePSQL);
