@@ -2,11 +2,12 @@
 ===============
 **v0.3.6 - 2025-12-11**
 ------------------------------------
+* **Added**:
+   + added dollar when convert sql files from psql syntax
 * **Fixed**: 
    + formatting annotations
    + excaped some characters in the definition description 
    + convert from\to mssql syntax
-   + added dollar when convert sql files from psql syntax
 * **Changed**:
    + description of definitions. keywords are now displayed as in the code
    + single format for code functions
