@@ -452,7 +452,7 @@ impl Workspace {
         let mut files = Vec::with_capacity(1000);
 
         for (path, recursively) in to_visit {
-            let depth = if recursively { usize::MAX } else { 0 };
+            let depth = if recursively { usize::MAX } else { 1 };
             let walker = WalkDir::new(path).max_depth(depth);
 
             let entries = walker
