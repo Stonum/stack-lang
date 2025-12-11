@@ -18,6 +18,12 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+
     - name: Cache Cargo registry
       uses: actions/cache@v4
       with:
@@ -45,3 +51,46 @@ jobs:
         path: |
           server/target/release/stack-lang-server
           server/target/release/stack-lang-server.exe
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 22
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Install vsce (Visual Studio Code Extension Manager)
+      run: npm install -g @vscode/vsce
+
+    - name: Download Rust binaries
+      uses: actions/download-artifact@v4
+      with:
+        path: server/bin
+
+    - name: Build the extension
+      run: npm run client:compile
+
+    - name: Package the extension
+      run: vsce package
+
+    - name: Upload the extension
+      uses: actions/upload-artifact@v4
+      with:
+        name: stack-lang
+        path: |
+          stack-lang*
+
+    - name: Publish to Visual Studio Code Marketplace
+      run: |
+        vsce publish
+      env:
+        VSCE_PAT: ${{ secrets.VSCE_PAT }}
