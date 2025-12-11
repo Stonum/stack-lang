@@ -1,5 +1,17 @@
 **Changelog**
 ===============
+**v0.3.6 - 2025-12-11**
+------------------------------------
+* **Fixed**: 
+   + formatting annotations
+   + excaped some characters in the definition description 
+   + convert from\to mssql syntax
+   + added dollar when convert sql files from psql syntax
+* **Changed**:
+   + description of definitions. keywords are now displayed as in the code
+   + single format for code functions
+   + some optimizations when reading files in a directory
+
 **v0.3.5 - 2025-11-14**
 ------------------------------------
 * **Fixed**: 
