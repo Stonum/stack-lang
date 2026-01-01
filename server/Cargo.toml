@@ -41,7 +41,7 @@ dashmap = "6.1.0"
 unicase = "2.8.1"
 walkdir= "2"
 
-log = "0.4.28"
+log = "0.4.29"
 rust-ini = "0.21.3"
 thiserror = "2.0.17"
 
