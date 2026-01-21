@@ -5,11 +5,12 @@ use mlang_parser::parse;
 use mlang_syntax::{MFileSource, TextRange, TextSize};
 
 macro_rules! assert_fmt {
-    ($src:expr $(, $file_type:expr)?) => {
-        let syntax = MFileSource::script();
-        $(
-            let syntax = $file_type;
-        )?
+    ($src:expr) => {
+        assert_fmt!($src, MFileSource::script());
+    };
+
+    ($src:expr, $file_type:expr) => {
+        let syntax = $file_type;
         let tree = parse($src, syntax);
 
         let options = MFormatOptions::new(syntax)
@@ -29,8 +30,12 @@ macro_rules! assert_fmt {
 }
 
 macro_rules! assert_fmt_range {
-    ($src:expr,$dest:expr,$range:expr) => {
-        let syntax = MFileSource::script();
+    ($src:expr, $dest:expr, $range:expr) => {
+        assert_fmt_range!($src, $dest, $range, MFileSource::script());
+    };
+
+    ($src:expr, $dest:expr, $range:expr, $file_type:expr) => {
+        let syntax = $file_type;
         let tree = parse($src, syntax);
 
         let options = MFormatOptions::new(syntax)
@@ -156,6 +161,38 @@ fn format_report() {
    print("hey");
 }
 "#,
+        MFileSource::report()
+    );
+}
+
+#[test]
+fn format_report_section() {
+    assert_fmt_range!(
+        r#"#
+CommonReport
+.CloseWindow = 1;
+.Template = "tmp.xlsx";
+.ReportFile = "rep.xlsx";
+{
+   var month = WorkMonth();
+}
+Function declaration
+{
+   func add( i )
+   {
+      return i++;
+   }
+}
+print
+{
+   print("hey");
+}
+"#,
+        r#"print
+{
+   print("hey");
+}"#,
+        189..194, // section "print" name
         MFileSource::report()
     );
 }

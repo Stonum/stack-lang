@@ -297,6 +297,8 @@ impl FormatLanguage for MFormatLanguage {
         AnyMStatement::can_cast(kind)
             || AnyMDeclaration::can_cast(kind)
             || matches!(kind, MSyntaxKind::M_DIRECTIVE)
+            || matches!(kind, MSyntaxKind::M_REPORT)
+            || matches!(kind, MSyntaxKind::M_REPORT_SECTION)
     }
 
     fn options(&self) -> &MFormatOptions {
