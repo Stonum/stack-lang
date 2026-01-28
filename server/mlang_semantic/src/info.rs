@@ -100,6 +100,22 @@ pub fn identifier_for_offset(
                 return Some(info);
             }
         }
+
+        if token.kind() == MSyntaxKind::THIS_KW {
+            let class_id = node
+                .ancestors()
+                .find(|p| p.kind() == MSyntaxKind::M_CLASS_DECLARATION)
+                .and_then(|class_node| {
+                    let class = MClassDeclaration::cast(class_node)?;
+                    let class_name = class.id().ok()?.text();
+                    Some(class_name)
+                });
+            if let Some(class_id) = class_id {
+                let info =
+                    SemanticInfo::ThisCall(token.text_trimmed().trim().to_string(), class_id);
+                return Some(info);
+            }
+        }
     }
 
     None

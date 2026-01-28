@@ -58,6 +58,24 @@ impl CodeSymbolDefinition for AnyMDefinition {
         }
     }
 
+    fn is_getter(&self) -> bool {
+        match self {
+            AnyMDefinition::MClassMemberDefinition(member) => {
+                member.m_type == MClassMethodType::Getter
+            }
+            _ => false,
+        }
+    }
+
+    fn is_setter(&self) -> bool {
+        match self {
+            AnyMDefinition::MClassMemberDefinition(member) => {
+                member.m_type == MClassMethodType::Setter
+            }
+            _ => false,
+        }
+    }
+
     fn id(&self) -> &str {
         match self {
             AnyMDefinition::MFunctionDefinition(f) => &f.id.name,
