@@ -54,6 +54,10 @@ impl CodeSymbolDefinition for AnyMCoreDefinition {
             AnyMCoreDefinition::MCoreEntityMemberDefinition(m) => &m.id,
         }
     }
+
+    fn parameters(&self) -> Option<&str> {
+        None
+    } 
 }
 
 impl MarkupDefinition for AnyMCoreDefinition {

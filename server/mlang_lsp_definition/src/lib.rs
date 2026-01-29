@@ -39,6 +39,7 @@ pub trait CodeSymbolDefinition: Sized + PartialEq {
     fn partial_compare_with(&self, another: &StringLowerCase) -> bool {
         self.id().to_lowercase().contains(&another.0)
     }
+    fn parameters(&self) -> Option<&str>;
 }
 
 pub trait CodeSymbolInformation: CodeSymbolDefinition {
@@ -503,12 +504,12 @@ where
 pub fn get_completion<'a, I, D>(semantic_info: &SemanticInfo, definitions: I) -> Vec<CompletionItem>
 where
     I: IntoIterator<Item = &'a D>,
-    D: CodeSymbolDefinition + MarkupDefinition + 'a,
+    D: CodeSymbolDefinition + MarkupDefinition + LocationDefinition + 'a,
 {
     fn get_class_methods_definitions<'a, I, D>(definitions: I, class_name: &String) -> Vec<&'a D>
     where
     I: IntoIterator<Item = &'a D>,
-    D: CodeSymbolDefinition + MarkupDefinition + 'a, {
+    D: CodeSymbolDefinition + 'a, {
         let definitions = definitions.into_iter().collect::<Vec<_>>();
         let all_classes = definitions
             .iter()
@@ -547,25 +548,20 @@ where
                 })
             })
             .collect::<Vec<_>>();
-        let mut inherited_methods: HashMap<&str, (usize, Vec<&D>)> = HashMap::new();
+        let mut inherited_methods: HashMap<String, (usize, &D)> = HashMap::new();
         for d in methods {
             match d.container() {
                 Some(c) => {
                     let index = all_class_names.iter().position(|&r| c.compare_with(r)).unwrap();
-                    let method_name = d.id();
-                    match inherited_methods.get(method_name) {
+                    let method_name = format!("{}{}{}",d.is_getter(),d.id(),d.parameters().unwrap_or_default());
+                    match inherited_methods.get(&method_name) {
                         Some(_v) => {
                             if _v.0 > index {
-                                // todo if we have same method with different signature in the parrent class, we have lost them
-                                inherited_methods.insert(method_name, (index, vec![d])); 
-                            } else if _v.0 == index {
-                                let mut new_vec = _v.1.clone();
-                                new_vec.push(d);
-                                inherited_methods.insert(method_name, (index, new_vec));
+                                inherited_methods.insert(method_name, (index, &d)); 
                             }
                         }
                         None => {
-                            inherited_methods.insert(method_name, (index, vec![d]));
+                            inherited_methods.insert(method_name, (index, &d));
                         }
                     }
                 }
@@ -574,7 +570,7 @@ where
         }
         let methods = inherited_methods
             .iter()
-            .flat_map( |e| e.1.1.clone() ).collect();
+            .map( |e| e.1.1 ).collect();
         methods
     }
 
