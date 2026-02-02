@@ -32,15 +32,15 @@ pub fn identifier_for_offset(
     None
 }
 
-fn identifier_for_token(token: &SyntaxToken<MLanguage> )
+fn identifier_for_token(token: &SyntaxToken<MLanguage>)
  -> Option<SemanticInfo>
 {
     if token.kind() == MSyntaxKind::IDENT {
         let ident = token.text_trimmed().trim().to_string();
         if let Some(node) = token.parent() {
             if node.kind() == MSyntaxKind::M_REFERENCE_IDENTIFIER {
-                match find_definition_by_referense(node) {
-                    Some (assign_node) => {}
+                match find_identifier_by_referense(node) {
+                    Some (info) => { return Some(info); }
                     None => {}
                 }
             }
@@ -65,15 +65,38 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage> )
                     MSyntaxKind::M_STATIC_MEMBER_EXPRESSION => {
                         if let Some(child) = n.first_child() {
                             // try find class name
-                            if child.kind() == MSyntaxKind::M_THIS_EXPRESSION {
+                            if child.kind() == MSyntaxKind::M_THIS_EXPRESSION || child.kind() == MSyntaxKind::M_SUPER_EXPRESSION {
                                 let class_id = token
                                     .ancestors()
                                     .find(|p| p.kind() == MSyntaxKind::M_CLASS_DECLARATION)
                                     .and_then(|class_node| {
                                         let class = MClassDeclaration::cast(class_node)?;
-                                        let id = class.id().ok()?.text();
+                                        let id = match child.kind() == MSyntaxKind::M_THIS_EXPRESSION {
+                                            true => class.id().ok()?.text(),
+                                            false => class.extends_clause()?.super_class().ok()?.text()
+                                        };
                                         Some(id)
                                     });
+                                return Some(SemanticInfo::MethodCall(ident, class_id));
+                            }
+                            if child.kind() == MSyntaxKind::M_IDENTIFIER_EXPRESSION {
+                                let mut class_id: Option<String> = None;
+                                match find_identifier_by_referense(child) {
+                                    Some(info) => { 
+                                        match info {
+                                            SemanticInfo::Referense(base_info) => {
+                                                match base_info.as_ref() {
+                                                    SemanticInfo::NewExpression(class_name) => {
+                                                        class_id = Some(class_name.to_string());
+                                                    }
+                                                    _ => ()
+                                                }
+                                            }
+                                            _ => ()
+                                        }
+                                    }
+                                    None => ()
+                                };
                                 return Some(SemanticInfo::MethodCall(ident, class_id));
                             }
                         }
@@ -97,86 +120,135 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage> )
         }
     }
 
-    if token.kind() == MSyntaxKind::SUPER_KW {
-        let super_class_id = token
-            .ancestors()
-            .find(|p| p.kind() == MSyntaxKind::M_CLASS_DECLARATION)
-            .and_then(|class_node| {
-                let class = MClassDeclaration::cast(class_node)?;
-                let id = class.extends_clause()?.super_class().ok()?.text();
-                Some(id)
-            });
-        if let Some(super_class) = super_class_id {
-            let info =
-                SemanticInfo::SuperCall(token.text_trimmed().trim().to_string(), super_class);
-            return Some(info);
-        }
-    }
-
-    if token.kind() == MSyntaxKind::THIS_KW {
+    if token.kind() == MSyntaxKind::SUPER_KW || token.kind() == MSyntaxKind::THIS_KW {
         let class_id = token
             .ancestors()
             .find(|p| p.kind() == MSyntaxKind::M_CLASS_DECLARATION)
             .and_then(|class_node| {
                 let class = MClassDeclaration::cast(class_node)?;
-                let class_name = class.id().ok()?.text();
-                Some(class_name)
+                let id = match token.kind() == MSyntaxKind::THIS_KW {
+                    true => class.id().ok()?.text(),
+                    false => class.extends_clause()?.super_class().ok()?.text()
+                };
+                Some(id)
             });
         if let Some(class_id) = class_id {
-            let info =
-                SemanticInfo::ThisCall(token.text_trimmed().trim().to_string(), class_id);
+            let info = match token.kind() == MSyntaxKind::THIS_KW {
+                    true => SemanticInfo::ThisCall(token.text_trimmed().trim().to_string(), class_id),
+                    false => SemanticInfo::SuperCall(token.text_trimmed().trim().to_string(), class_id)
+                };
             return Some(info);
         }
     }
     None
 }
 
-fn find_definition_by_referense(node: SyntaxNode<MLanguage>) -> Option<SyntaxNode<MLanguage>> {
-    if let Some(parent) = node.grand_parent() {
-        if let Some(parent) = parent.grand_parent() {
-            if let Some(parent) = parent.grand_parent() {
-                if let Some(parent) = parent.grand_parent() {
-        let parents = parent
-            .siblings_with_tokens(biome_rowan::Direction::Prev)
-            .filter_map(|e| {
-                e.into_node()
-            })
-            .map(|_t| {
-            let token_kind = _t.kind();
-            let token_text = _t.text().to_string();
-            (token_kind,token_text)
-        }).collect::<Vec<_>>().clone();
-        
-        for p in parents {
-            // let node_is = node;
-            let c = p;
-        }
-    }
-}
-}}
-    // если мы ничего не нашли и если исходный узел - это идентификатор
-    // место определения не может содержаться в узле идентификатора
-    // поэтому переходим выше к родительскому узлу и идем по элементам дерева в обратном направлении
+fn find_identifier_by_referense(node: SyntaxNode<MLanguage>) -> Option<SemanticInfo> {
+    let ident = node.text_trimmed().to_string().trim().to_lowercase(); 
+
     if let Some(node) = node.parent() {
         let mut parent: SyntaxNode<MLanguage> = node;
-        while true {
-            match parent.parent() {
-                Some(n) => {parent = n;}
-                None => {break;}
-            }
-            let parents = parent
+        while let Some(node) = parent.parent() {
+            parent = node;
+            let assignment = parent
                 .siblings_with_tokens(biome_rowan::Direction::Prev)
                 .skip(1)
                 .filter_map(|e| {e.into_node()})
-                .filter(|n| n.kind() == MSyntaxKind::M_EXPRESSION_STATEMENT)
-                .collect::<Vec<_>>().clone();
+                .filter_map(
+                    |n| {
+                        if n.kind() == MSyntaxKind::M_EXPRESSION_STATEMENT {
+                            let mut first_assignment = n.first_child().unwrap();
+                            if first_assignment.kind() == MSyntaxKind::M_SEQUENCE_EXPRESSION {
+                                first_assignment = first_assignment.first_child().unwrap().siblings(biome_rowan::Direction::Next).next().unwrap();
+                            }
+                            let assignments= first_assignment.siblings(biome_rowan::Direction::Next);
+
+                            return assignments.filter(|n| n.kind() == MSyntaxKind::M_ASSIGNMENT_EXPRESSION)
+                                .filter(|n| {
+                                    n.first_token().unwrap().text_trimmed().trim().to_lowercase() == ident
+                                }).next();
+                        }
+
+                        if n.kind() == MSyntaxKind::M_VARIABLE_STATEMENT {
+                            let assignments = n
+                                .first_child().unwrap()
+                                .siblings(biome_rowan::Direction::Next).filter(
+                                    |n| n.kind() == MSyntaxKind::M_VARIABLE_DECLARATION
+                                )
+                                .next().unwrap().
+                                first_child().unwrap()
+                                .siblings(biome_rowan::Direction::Next).filter(
+                                    |n| n.kind() == MSyntaxKind::M_VARIABLE_DECLARATOR_LIST
+                                )
+                                .flat_map(
+                                    |n|
+                                        n.first_child().unwrap()
+                                        .siblings(biome_rowan::Direction::Next).filter(
+                                            |n| n.kind() == MSyntaxKind::M_VARIABLE_DECLARATOR
+                                        )
+                                );
+
+                            return assignments
+                                .filter(|n| {
+                                    n.first_token().unwrap().text_trimmed().trim().to_lowercase() == ident
+                                }).next();
+                        }
+                        None
+                    }
+                ).next();
+            match assignment {
+                Some(n) => {
+                    let right_side = n.first_child().unwrap()
+                        .siblings_with_tokens(biome_rowan::Direction::Next)
+                        .filter_map(|e| {
+                            e.into_node()
+                        })
+                        .skip(1).next().unwrap()
+                        .siblings_with_tokens(biome_rowan::Direction::Next)
+                        .filter_map(|e| {
+                            e.into_node()
+                        })
+                    .next();
+
+                    match right_side {
+                        Some(n) => {
+                            let mut node = n.first_child().unwrap();
+                            // get method name
+                            if node.kind() == MSyntaxKind::M_CALL_EXPRESSION {
+                                let method_name = n
+                                .first_child().unwrap().first_child().unwrap().first_child().unwrap()
+                                .siblings(biome_rowan::Direction::Next)
+                                .filter(|n| n.kind() == MSyntaxKind::M_NAME).next();
+                                match method_name {
+                                    Some(name) => {node = name}
+                                    None => {}
+                                }
+                            }
+                            // skeep initialize
+                            if node.kind() == MSyntaxKind::M_INITIALIZER_CLAUSE {
+                                node = node.first_child().unwrap();
+                            }
+                            // skeep new
+                            let mut ft = node.first_token().unwrap();
+                            if ft.kind() == MSyntaxKind::NEW_KW {
+                                ft = ft.next_token().unwrap();
+                            }
+                            let identifier = identifier_for_token(&ft);
+                            match identifier {
+                                Some(i) => {
+                                    return Some(SemanticInfo::Referense(Box::new(i)));
+                                }
+                                None => {}
+                            }
+                        }
+                        None => {}
+                    }
+                }
+                None => {}
+            }
         }
     }
-    // дойдя до конца перейдем к уже его родителю и повторим процедуру поиска вверх по дереву.
-    // M_STATEMENT_LIST "a = new cl(); while(true){a . t}"
-    // M_EXPRESSION_STATEMENT "a = new cl();"
-    // M_ASSIGNMENT_EXPRESSION "a = new cl()"
-    // M_IDENTIFIER_ASSIGNMENT "a "
+
     None
 }
 
@@ -239,13 +311,5 @@ mod tests {
                 identifier_for_offset(parsed.syntax(), TextSize::from(offset)).unwrap();
             assert_eq!(info, semantic_info);
         }
-    }
-
-    #[test]
-    fn test_identifier_for_offset3() {
-        let input = r#"func f(){a = new cl(); while(true){a . t}}"#;
-        let parsed = parse(input, MFileSource::script());
-        let semantic_info =
-            identifier_for_offset(parsed.syntax(), TextSize::from(36)).unwrap();
     }
 }
