@@ -114,15 +114,9 @@ impl CodeSymbolDefinition for AnyMDefinition {
 
     fn parameters(&self) -> Option<&str> {
         match self {
-            AnyMDefinition::MClassMemberDefinition(member) => {
-                Some(&member.params)
-            }
-            AnyMDefinition::MFunctionDefinition(funct) =>  {
-                Some(&funct.params)
-            }
-            AnyMDefinition::MHandlerDefinition(handler) =>  {
-                Some(&handler.params)
-            }
+            AnyMDefinition::MClassMemberDefinition(member) => Some(&member.params),
+            AnyMDefinition::MFunctionDefinition(funct) => Some(&funct.params),
+            AnyMDefinition::MHandlerDefinition(handler) => Some(&handler.params),
             _ => None,
         }
     }

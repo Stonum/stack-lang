@@ -11,7 +11,7 @@ use walkdir::WalkDir;
 use mlang_core::{AnyMCoreDefinition, load_core_api};
 use mlang_lsp_definition::{
     CodeSymbolDefinition as _, CodeSymbolInformation as _, LocationDefinition as _, SemanticInfo,
-    StringLowerCase, get_declaration, get_hover, get_reference, get_symbols, get_completion
+    StringLowerCase, get_completion, get_declaration, get_hover, get_reference, get_symbols,
 };
 use mlang_parser::parse;
 use mlang_semantic::{SemanticModel, identifier_for_offset, semantics};
@@ -22,9 +22,9 @@ use tokio::sync::{OwnedRwLockReadGuard, RwLock, Semaphore};
 use tokio::task::JoinError;
 
 use tower_lsp::lsp_types::{
-    CodeLens, Command, DocumentSymbolResponse, GotoDefinitionResponse, Hover, HoverContents,
-    Location, Position, Range, SemanticTokens, SymbolInformation, TextDocumentItem, Url,
-    WorkspaceFolder, CompletionItem, CompletionResponse
+    CodeLens, Command, CompletionItem, CompletionResponse, DocumentSymbolResponse,
+    GotoDefinitionResponse, Hover, HoverContents, Location, Position, Range, SemanticTokens,
+    SymbolInformation, TextDocumentItem, Url, WorkspaceFolder,
 };
 
 use crate::document::CurrentDocument;

@@ -57,7 +57,7 @@ impl CodeSymbolDefinition for AnyMCoreDefinition {
 
     fn parameters(&self) -> Option<&str> {
         None
-    } 
+    }
 }
 
 impl MarkupDefinition for AnyMCoreDefinition {

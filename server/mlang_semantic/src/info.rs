@@ -18,29 +18,31 @@ pub fn identifier_for_offset(
         if !root.text_range().contains_range(range) {
             continue;
         }
-        let node  = root.covering_element(range);
+        let node = root.covering_element(range);
         let token = node.as_token();
         if token.is_none() {
             return None;
         }
         let token = token.unwrap();
         match identifier_for_token(token) {
-            Some(info) => {return Some(info);}
+            Some(info) => {
+                return Some(info);
+            }
             None => {}
         }
     }
     None
 }
 
-fn identifier_for_token(token: &SyntaxToken<MLanguage>)
- -> Option<SemanticInfo>
-{
+fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> {
     if token.kind() == MSyntaxKind::IDENT {
         let ident = token.text_trimmed().trim().to_string();
         if let Some(node) = token.parent() {
             if node.kind() == MSyntaxKind::M_REFERENCE_IDENTIFIER {
                 match find_identifier_by_referense(node) {
-                    Some (info) => { return Some(info); }
+                    Some(info) => {
+                        return Some(info);
+                    }
                     None => {}
                 }
             }
@@ -65,15 +67,21 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>)
                     MSyntaxKind::M_STATIC_MEMBER_EXPRESSION => {
                         if let Some(child) = n.first_child() {
                             // try find class name
-                            if child.kind() == MSyntaxKind::M_THIS_EXPRESSION || child.kind() == MSyntaxKind::M_SUPER_EXPRESSION {
+                            if child.kind() == MSyntaxKind::M_THIS_EXPRESSION
+                                || child.kind() == MSyntaxKind::M_SUPER_EXPRESSION
+                            {
                                 let class_id = token
                                     .ancestors()
                                     .find(|p| p.kind() == MSyntaxKind::M_CLASS_DECLARATION)
                                     .and_then(|class_node| {
                                         let class = MClassDeclaration::cast(class_node)?;
-                                        let id = match child.kind() == MSyntaxKind::M_THIS_EXPRESSION {
+                                        let id = match child.kind()
+                                            == MSyntaxKind::M_THIS_EXPRESSION
+                                        {
                                             true => class.id().ok()?.text(),
-                                            false => class.extends_clause()?.super_class().ok()?.text()
+                                            false => {
+                                                class.extends_clause()?.super_class().ok()?.text()
+                                            }
                                         };
                                         Some(id)
                                     });
@@ -82,20 +90,18 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>)
                             if child.kind() == MSyntaxKind::M_IDENTIFIER_EXPRESSION {
                                 let mut class_id: Option<String> = None;
                                 match find_identifier_by_referense(child) {
-                                    Some(info) => { 
-                                        match info {
-                                            SemanticInfo::Referense(base_info) => {
-                                                match base_info.as_ref() {
-                                                    SemanticInfo::NewExpression(class_name) => {
-                                                        class_id = Some(class_name.to_string());
-                                                    }
-                                                    _ => ()
+                                    Some(info) => match info {
+                                        SemanticInfo::Referense(base_info) => {
+                                            match base_info.as_ref() {
+                                                SemanticInfo::NewExpression(class_name) => {
+                                                    class_id = Some(class_name.to_string());
                                                 }
+                                                _ => (),
                                             }
-                                            _ => ()
                                         }
-                                    }
-                                    None => ()
+                                        _ => (),
+                                    },
+                                    None => (),
                                 };
                                 return Some(SemanticInfo::MethodCall(ident, class_id));
                             }
@@ -128,15 +134,15 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>)
                 let class = MClassDeclaration::cast(class_node)?;
                 let id = match token.kind() == MSyntaxKind::THIS_KW {
                     true => class.id().ok()?.text(),
-                    false => class.extends_clause()?.super_class().ok()?.text()
+                    false => class.extends_clause()?.super_class().ok()?.text(),
                 };
                 Some(id)
             });
         if let Some(class_id) = class_id {
             let info = match token.kind() == MSyntaxKind::THIS_KW {
-                    true => SemanticInfo::ThisCall(token.text_trimmed().trim().to_string(), class_id),
-                    false => SemanticInfo::SuperCall(token.text_trimmed().trim().to_string(), class_id)
-                };
+                true => SemanticInfo::ThisCall(token.text_trimmed().trim().to_string(), class_id),
+                false => SemanticInfo::SuperCall(token.text_trimmed().trim().to_string(), class_id),
+            };
             return Some(info);
         }
     }
@@ -144,7 +150,7 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>)
 }
 
 fn find_identifier_by_referense(node: SyntaxNode<MLanguage>) -> Option<SemanticInfo> {
-    let ident = node.text_trimmed().to_string().trim().to_lowercase(); 
+    let ident = node.text_trimmed().to_string().trim().to_lowercase();
 
     if let Some(node) = node.parent() {
         let mut parent: SyntaxNode<MLanguage> = node;
@@ -153,62 +159,79 @@ fn find_identifier_by_referense(node: SyntaxNode<MLanguage>) -> Option<SemanticI
             let assignment = parent
                 .siblings_with_tokens(biome_rowan::Direction::Prev)
                 .skip(1)
-                .filter_map(|e| {e.into_node()})
-                .filter_map(
-                    |n| {
-                        if n.kind() == MSyntaxKind::M_EXPRESSION_STATEMENT {
-                            let mut first_assignment = n.first_child().unwrap();
-                            if first_assignment.kind() == MSyntaxKind::M_SEQUENCE_EXPRESSION {
-                                first_assignment = first_assignment.first_child().unwrap().siblings(biome_rowan::Direction::Next).next().unwrap();
-                            }
-                            let assignments= first_assignment.siblings(biome_rowan::Direction::Next);
-
-                            return assignments.filter(|n| n.kind() == MSyntaxKind::M_ASSIGNMENT_EXPRESSION)
-                                .filter(|n| {
-                                    n.first_token().unwrap().text_trimmed().trim().to_lowercase() == ident
-                                }).next();
+                .filter_map(|e| e.into_node())
+                .filter_map(|n| {
+                    if n.kind() == MSyntaxKind::M_EXPRESSION_STATEMENT {
+                        let mut first_assignment = n.first_child().unwrap();
+                        if first_assignment.kind() == MSyntaxKind::M_SEQUENCE_EXPRESSION {
+                            first_assignment = first_assignment
+                                .first_child()
+                                .unwrap()
+                                .siblings(biome_rowan::Direction::Next)
+                                .next()
+                                .unwrap();
                         }
+                        let assignments = first_assignment.siblings(biome_rowan::Direction::Next);
 
-                        if n.kind() == MSyntaxKind::M_VARIABLE_STATEMENT {
-                            let assignments = n
-                                .first_child().unwrap()
-                                .siblings(biome_rowan::Direction::Next).filter(
-                                    |n| n.kind() == MSyntaxKind::M_VARIABLE_DECLARATION
-                                )
-                                .next().unwrap().
-                                first_child().unwrap()
-                                .siblings(biome_rowan::Direction::Next).filter(
-                                    |n| n.kind() == MSyntaxKind::M_VARIABLE_DECLARATOR_LIST
-                                )
-                                .flat_map(
-                                    |n|
-                                        n.first_child().unwrap()
-                                        .siblings(biome_rowan::Direction::Next).filter(
-                                            |n| n.kind() == MSyntaxKind::M_VARIABLE_DECLARATOR
-                                        )
-                                );
-
-                            return assignments
-                                .filter(|n| {
-                                    n.first_token().unwrap().text_trimmed().trim().to_lowercase() == ident
-                                }).next();
-                        }
-                        None
+                        return assignments
+                            .filter(|n| n.kind() == MSyntaxKind::M_ASSIGNMENT_EXPRESSION)
+                            .filter(|n| {
+                                n.first_token()
+                                    .unwrap()
+                                    .text_trimmed()
+                                    .trim()
+                                    .to_lowercase()
+                                    == ident
+                            })
+                            .next();
                     }
-                ).next();
+
+                    if n.kind() == MSyntaxKind::M_VARIABLE_STATEMENT {
+                        let assignments = n
+                            .first_child()
+                            .unwrap()
+                            .siblings(biome_rowan::Direction::Next)
+                            .filter(|n| n.kind() == MSyntaxKind::M_VARIABLE_DECLARATION)
+                            .next()
+                            .unwrap()
+                            .first_child()
+                            .unwrap()
+                            .siblings(biome_rowan::Direction::Next)
+                            .filter(|n| n.kind() == MSyntaxKind::M_VARIABLE_DECLARATOR_LIST)
+                            .flat_map(|n| {
+                                n.first_child()
+                                    .unwrap()
+                                    .siblings(biome_rowan::Direction::Next)
+                                    .filter(|n| n.kind() == MSyntaxKind::M_VARIABLE_DECLARATOR)
+                            });
+
+                        return assignments
+                            .filter(|n| {
+                                n.first_token()
+                                    .unwrap()
+                                    .text_trimmed()
+                                    .trim()
+                                    .to_lowercase()
+                                    == ident
+                            })
+                            .next();
+                    }
+                    None
+                })
+                .next();
             match assignment {
                 Some(n) => {
-                    let right_side = n.first_child().unwrap()
+                    let right_side = n
+                        .first_child()
+                        .unwrap()
                         .siblings_with_tokens(biome_rowan::Direction::Next)
-                        .filter_map(|e| {
-                            e.into_node()
-                        })
-                        .skip(1).next().unwrap()
+                        .filter_map(|e| e.into_node())
+                        .skip(1)
+                        .next()
+                        .unwrap()
                         .siblings_with_tokens(biome_rowan::Direction::Next)
-                        .filter_map(|e| {
-                            e.into_node()
-                        })
-                    .next();
+                        .filter_map(|e| e.into_node())
+                        .next();
 
                     match right_side {
                         Some(n) => {
@@ -216,11 +239,17 @@ fn find_identifier_by_referense(node: SyntaxNode<MLanguage>) -> Option<SemanticI
                             // get method name
                             if node.kind() == MSyntaxKind::M_CALL_EXPRESSION {
                                 let method_name = n
-                                .first_child().unwrap().first_child().unwrap().first_child().unwrap()
-                                .siblings(biome_rowan::Direction::Next)
-                                .filter(|n| n.kind() == MSyntaxKind::M_NAME).next();
+                                    .first_child()
+                                    .unwrap()
+                                    .first_child()
+                                    .unwrap()
+                                    .first_child()
+                                    .unwrap()
+                                    .siblings(biome_rowan::Direction::Next)
+                                    .filter(|n| n.kind() == MSyntaxKind::M_NAME)
+                                    .next();
                                 match method_name {
-                                    Some(name) => {node = name}
+                                    Some(name) => node = name,
                                     None => {}
                                 }
                             }

@@ -357,7 +357,7 @@ impl LanguageServer for Backend {
         }
     }
 
-    async fn completion(&self, params: CompletionParams, ) -> Result<Option<CompletionResponse>> {
+    async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
         let file_uri = params.text_document_position.text_document.uri;
         let pos = params.text_document_position.position;
         trace!("completion {} {:?}", &file_uri, &pos);
