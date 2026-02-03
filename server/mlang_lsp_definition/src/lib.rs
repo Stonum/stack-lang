@@ -157,12 +157,13 @@ pub enum SemanticInfo {
     // contains super class name
     SuperCall(Identifier, Class),
 
-    // like this.x;
+    // like this
     // contains this class name
-    ThisCall(Identifier, Class),
+    ThisKW(Class),
 
-    // like var b = a.method()
-    // where a is reference with BaseInfo
+    // like z
+    // where z is reference identifier
+    // contains source SemanticInfo
     Referense(BaseInfo),
 }
 
@@ -298,7 +299,7 @@ where
 
             locations
         }
-        _ => locations,
+        SemanticInfo::ThisKW(_) | SemanticInfo::Referense(_) => locations,
     }
 }
 
@@ -351,7 +352,10 @@ where
                 .flat_map(|(_, refs)| refs.iter().map(|r| r.location(uri.clone())))
                 .collect::<Vec<_>>()
         }
-        _ => vec![],
+        SemanticInfo::ThisKW(_)
+        | SemanticInfo::Referense(_)
+        | SemanticInfo::ClassExtends(_)
+        | SemanticInfo::SuperCall(_, _) => vec![],
     }
 }
 
@@ -360,13 +364,10 @@ where
     I: IntoIterator<Item = &'a D>,
     D: CodeSymbolDefinition + MarkupDefinition + 'a,
 {
-    let mut base_info = semantic_info;
-    match base_info {
-        SemanticInfo::Referense(info) => {
-            base_info = info.as_ref();
-        }
-        _ => (),
-    }
+    let base_info = match semantic_info {
+        SemanticInfo::Referense(info) => info.as_ref(),
+        _ => semantic_info,
+    };
     match base_info {
         SemanticInfo::FunctionCall(ident) | SemanticInfo::FunctionDeclaration(ident) => definitions
             .into_iter()
@@ -636,16 +637,18 @@ where
             .collect()
     }
 
-    let mut base_info = semantic_info;
+    let base_info = match semantic_info {
+        SemanticInfo::Referense(info) => info.as_ref(),
+        _ => semantic_info,
+    };
     match base_info {
-        SemanticInfo::Referense(info) => {
-            base_info = info.as_ref();
+        SemanticInfo::ThisKW(class_name) => {
+            let methods_defs = get_class_methods_definitions(definitions, class_name);
+            let completions: Vec<CompletionItem> =
+                get_completion_items_from_definitions(methods_defs);
+            completions
         }
-        _ => (),
-    }
-    match base_info {
-        SemanticInfo::ThisCall(_ident, class_name)
-        | SemanticInfo::SuperCall(_ident, class_name) => {
+        SemanticInfo::SuperCall(_ident, class_name) => {
             let methods_defs = get_class_methods_definitions(definitions, class_name);
             let completions: Vec<CompletionItem> =
                 get_completion_items_from_definitions(methods_defs);

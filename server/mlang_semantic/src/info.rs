@@ -24,11 +24,8 @@ pub fn identifier_for_offset(
             return None;
         }
         let token = token.unwrap();
-        match identifier_for_token(token) {
-            Some(info) => {
-                return Some(info);
-            }
-            None => {}
+        if let Some(info) = identifier_for_token(token) {
+            return Some(info);
         }
     }
     None
@@ -38,12 +35,10 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> 
     if token.kind() == MSyntaxKind::IDENT {
         let ident = token.text_trimmed().trim().to_string();
         if let Some(node) = token.parent() {
+            // take referense
             if node.kind() == MSyntaxKind::M_REFERENCE_IDENTIFIER {
-                match find_identifier_by_referense(node) {
-                    Some(info) => {
-                        return Some(info);
-                    }
-                    None => {}
+                if let Some(info) = find_identifier_by_referense(node) {
+                    return Some(info);
                 }
             }
             // take nearest parents
@@ -140,7 +135,7 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> 
             });
         if let Some(class_id) = class_id {
             let info = match token.kind() == MSyntaxKind::THIS_KW {
-                true => SemanticInfo::ThisCall(token.text_trimmed().trim().to_string(), class_id),
+                true => SemanticInfo::ThisKW(class_id),
                 false => SemanticInfo::SuperCall(token.text_trimmed().trim().to_string(), class_id),
             };
             return Some(info);
@@ -152,129 +147,125 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> 
 fn find_identifier_by_referense(node: SyntaxNode<MLanguage>) -> Option<SemanticInfo> {
     let ident = node.text_trimmed().to_string().trim().to_lowercase();
 
-    if let Some(node) = node.parent() {
-        let mut parent: SyntaxNode<MLanguage> = node;
-        while let Some(node) = parent.parent() {
-            parent = node;
-            let assignment = parent
-                .siblings_with_tokens(biome_rowan::Direction::Prev)
-                .skip(1)
-                .filter_map(|e| e.into_node())
-                .filter_map(|n| {
-                    if n.kind() == MSyntaxKind::M_EXPRESSION_STATEMENT {
-                        let mut first_assignment = n.first_child().unwrap();
-                        if first_assignment.kind() == MSyntaxKind::M_SEQUENCE_EXPRESSION {
-                            first_assignment = first_assignment
+    let mut parent: SyntaxNode<MLanguage> = node;
+    while let Some(node) = parent.parent() {
+        parent = node;
+        let assignment = parent
+            .siblings(biome_rowan::Direction::Prev)
+            .skip(1)
+            .filter_map(|n| {
+                if n.kind() == MSyntaxKind::M_EXPRESSION_STATEMENT {
+                    let mut first_assignment = n.first_child().unwrap();
+                    if first_assignment.kind() == MSyntaxKind::M_SEQUENCE_EXPRESSION {
+                        first_assignment = first_assignment
+                            .first_child()
+                            .unwrap()
+                            .siblings(biome_rowan::Direction::Next)
+                            .next()
+                            .unwrap();
+                    }
+                    let assignments = first_assignment.siblings(biome_rowan::Direction::Next);
+
+                    return assignments
+                        .filter(|n| n.kind() == MSyntaxKind::M_ASSIGNMENT_EXPRESSION)
+                        .filter(|n| {
+                            n.first_token()
+                                .unwrap()
+                                .text_trimmed()
+                                .trim()
+                                .to_lowercase()
+                                == ident
+                        })
+                        .next();
+                }
+
+                if n.kind() == MSyntaxKind::M_VARIABLE_STATEMENT {
+                    let assignments = n
+                        .first_child()
+                        .unwrap()
+                        .siblings(biome_rowan::Direction::Next)
+                        .filter(|n| n.kind() == MSyntaxKind::M_VARIABLE_DECLARATION)
+                        .next()
+                        .unwrap()
+                        .first_child()
+                        .unwrap()
+                        .siblings(biome_rowan::Direction::Next)
+                        .filter(|n| n.kind() == MSyntaxKind::M_VARIABLE_DECLARATOR_LIST)
+                        .flat_map(|n| {
+                            n.first_child()
+                                .unwrap()
+                                .siblings(biome_rowan::Direction::Next)
+                                .filter(|n| n.kind() == MSyntaxKind::M_VARIABLE_DECLARATOR)
+                        });
+
+                    return assignments
+                        .filter(|n| {
+                            n.first_token()
+                                .unwrap()
+                                .text_trimmed()
+                                .trim()
+                                .to_lowercase()
+                                == ident
+                        })
+                        .next();
+                }
+                None
+            })
+            .next();
+        match assignment {
+            Some(n) => {
+                let right_side = n
+                    .first_child()
+                    .unwrap()
+                    .siblings(biome_rowan::Direction::Next)
+                    .skip(1)
+                    .next()
+                    .unwrap()
+                    .siblings(biome_rowan::Direction::Next)
+                    .next();
+
+                match right_side {
+                    Some(n) => {
+                        let mut node = n.first_child().unwrap();
+                        // get method name
+                        if node.kind() == MSyntaxKind::M_CALL_EXPRESSION {
+                            let method_name = n
+                                .first_child()
+                                .unwrap()
+                                .first_child()
+                                .unwrap()
                                 .first_child()
                                 .unwrap()
                                 .siblings(biome_rowan::Direction::Next)
-                                .next()
-                                .unwrap();
-                        }
-                        let assignments = first_assignment.siblings(biome_rowan::Direction::Next);
-
-                        return assignments
-                            .filter(|n| n.kind() == MSyntaxKind::M_ASSIGNMENT_EXPRESSION)
-                            .filter(|n| {
-                                n.first_token()
-                                    .unwrap()
-                                    .text_trimmed()
-                                    .trim()
-                                    .to_lowercase()
-                                    == ident
-                            })
-                            .next();
-                    }
-
-                    if n.kind() == MSyntaxKind::M_VARIABLE_STATEMENT {
-                        let assignments = n
-                            .first_child()
-                            .unwrap()
-                            .siblings(biome_rowan::Direction::Next)
-                            .filter(|n| n.kind() == MSyntaxKind::M_VARIABLE_DECLARATION)
-                            .next()
-                            .unwrap()
-                            .first_child()
-                            .unwrap()
-                            .siblings(biome_rowan::Direction::Next)
-                            .filter(|n| n.kind() == MSyntaxKind::M_VARIABLE_DECLARATOR_LIST)
-                            .flat_map(|n| {
-                                n.first_child()
-                                    .unwrap()
-                                    .siblings(biome_rowan::Direction::Next)
-                                    .filter(|n| n.kind() == MSyntaxKind::M_VARIABLE_DECLARATOR)
-                            });
-
-                        return assignments
-                            .filter(|n| {
-                                n.first_token()
-                                    .unwrap()
-                                    .text_trimmed()
-                                    .trim()
-                                    .to_lowercase()
-                                    == ident
-                            })
-                            .next();
-                    }
-                    None
-                })
-                .next();
-            match assignment {
-                Some(n) => {
-                    let right_side = n
-                        .first_child()
-                        .unwrap()
-                        .siblings_with_tokens(biome_rowan::Direction::Next)
-                        .filter_map(|e| e.into_node())
-                        .skip(1)
-                        .next()
-                        .unwrap()
-                        .siblings_with_tokens(biome_rowan::Direction::Next)
-                        .filter_map(|e| e.into_node())
-                        .next();
-
-                    match right_side {
-                        Some(n) => {
-                            let mut node = n.first_child().unwrap();
-                            // get method name
-                            if node.kind() == MSyntaxKind::M_CALL_EXPRESSION {
-                                let method_name = n
-                                    .first_child()
-                                    .unwrap()
-                                    .first_child()
-                                    .unwrap()
-                                    .first_child()
-                                    .unwrap()
-                                    .siblings(biome_rowan::Direction::Next)
-                                    .filter(|n| n.kind() == MSyntaxKind::M_NAME)
-                                    .next();
-                                match method_name {
-                                    Some(name) => node = name,
-                                    None => {}
-                                }
-                            }
-                            // skeep initialize
-                            if node.kind() == MSyntaxKind::M_INITIALIZER_CLAUSE {
-                                node = node.first_child().unwrap();
-                            }
-                            // skeep new
-                            let mut ft = node.first_token().unwrap();
-                            if ft.kind() == MSyntaxKind::NEW_KW {
-                                ft = ft.next_token().unwrap();
-                            }
-                            let identifier = identifier_for_token(&ft);
-                            match identifier {
-                                Some(i) => {
-                                    return Some(SemanticInfo::Referense(Box::new(i)));
-                                }
+                                .filter(|n| n.kind() == MSyntaxKind::M_NAME)
+                                .next();
+                            match method_name {
+                                Some(name) => node = name,
                                 None => {}
                             }
                         }
-                        None => {}
+                        // skeep initialize
+                        if node.kind() == MSyntaxKind::M_INITIALIZER_CLAUSE {
+                            node = node.first_child().unwrap();
+                        }
+                        // skeep new
+                        let mut ft = node.first_token().unwrap();
+                        if ft.kind() == MSyntaxKind::NEW_KW {
+                            ft = ft.next_token().unwrap();
+                        }
+
+                        let identifier = identifier_for_token(&ft);
+                        match identifier {
+                            Some(i) => {
+                                return Some(SemanticInfo::Referense(Box::new(i)));
+                            }
+                            None => {}
+                        }
                     }
+                    None => {}
                 }
-                None => {}
             }
+            None => {}
         }
     }
 
@@ -340,5 +331,32 @@ mod tests {
                 identifier_for_offset(parsed.syntax(), TextSize::from(offset)).unwrap();
             assert_eq!(info, semantic_info);
         }
+    }
+
+    #[test]
+    fn test_identifier_by_referense() {
+        #[rustfmt::skip]
+        let inputs = [
+            ("var x = callFunction(); x ", 25, SemanticInfo::Referense(Box::new(SemanticInfo::FunctionCall("callFunction".to_owned())))),
+            ("var x = z.callMethod(); x ", 25, SemanticInfo::Referense(Box::new(SemanticInfo::MethodCall("callMethod".to_owned(), None)))),
+            ("var x = new TodoClass(); y = x + 3 ", 30, SemanticInfo::Referense(Box::new(SemanticInfo::NewExpression("TodoClass".to_owned())))),
+            ("var x = new TodoClass(); x.callMethod() ", 26, SemanticInfo::Referense(Box::new(SemanticInfo::NewExpression("TodoClass".to_owned())))),
+        ];
+
+        for (input, offset, info) in inputs {
+            let parsed = parse(input, MFileSource::script());
+            let syntax = parsed.syntax();
+            let token = get_token_from_offset(syntax, offset);
+            let semantic_info = identifier_for_token(&token).unwrap();
+            assert_eq!(info, semantic_info, "{input}");
+        }
+    }
+
+    fn get_token_from_offset(syntax: SyntaxNode<MLanguage>, offset: u32) -> SyntaxToken<MLanguage> {
+        let text_size_offset = TextSize::from(offset);
+        let range = TextRange::new(text_size_offset, text_size_offset);
+        let element = syntax.covering_element(range);
+        let token = element.as_token().unwrap();
+        token.clone()
     }
 }
