@@ -157,9 +157,9 @@ pub enum SemanticInfo {
     // contains super class name
     SuperCall(Identifier, Class),
 
-    // like this
-    // contains this class name
-    ThisKW(Class),
+    // like this or other refs on class instance
+    // contains class name
+    ClassInstance(Class),
 
     // like z
     // where z is reference identifier
@@ -299,7 +299,7 @@ where
 
             locations
         }
-        SemanticInfo::ThisKW(_) | SemanticInfo::Referense(_) => locations,
+        SemanticInfo::ClassInstance(_) | SemanticInfo::Referense(_) => locations,
     }
 }
 
@@ -352,7 +352,7 @@ where
                 .flat_map(|(_, refs)| refs.iter().map(|r| r.location(uri.clone())))
                 .collect::<Vec<_>>()
         }
-        SemanticInfo::ThisKW(_)
+        SemanticInfo::ClassInstance(_)
         | SemanticInfo::Referense(_)
         | SemanticInfo::ClassExtends(_)
         | SemanticInfo::SuperCall(_, _) => vec![],
@@ -642,7 +642,7 @@ where
         _ => semantic_info,
     };
     match base_info {
-        SemanticInfo::ThisKW(class_name) => {
+        SemanticInfo::ClassInstance(class_name) => {
             let methods_defs = get_class_methods_definitions(definitions, class_name);
             let completions: Vec<CompletionItem> =
                 get_completion_items_from_definitions(methods_defs);
