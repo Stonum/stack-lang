@@ -3,7 +3,7 @@ use std::{path::PathBuf, sync::Arc};
 use dashmap::DashMap;
 use ini::Ini;
 use line_index::{LineCol, LineIndex};
-use log::{error, info};
+use log::info;
 use serde_json::Value;
 use thiserror::Error;
 use walkdir::WalkDir;
