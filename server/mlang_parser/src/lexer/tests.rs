@@ -933,6 +933,12 @@ fn date_literal() {
         DOT:1,
         M_NUMBER_LITERAL:2,
     }
+    assert_lex! {
+        "00.00.00; ",
+        M_DATE_LITERAL:8,
+        SEMICOLON:1,
+        WHITESPACE:1
+    }
 }
 
 #[test]
