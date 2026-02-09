@@ -7,7 +7,6 @@ use crate::{
     MSyntaxElementChildren as SyntaxElementChildren,
     MSyntaxKind::{self as SyntaxKind, *},
     MSyntaxList as SyntaxList, MSyntaxNode as SyntaxNode, MSyntaxToken as SyntaxToken,
-    macros::map_syntax_node,
 };
 
 use biome_rowan::{AstNode, RawSyntaxKind, SyntaxKindSet, SyntaxResult, support};

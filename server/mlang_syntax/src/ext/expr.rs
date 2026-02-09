@@ -5,7 +5,7 @@ use crate::{
     MBinaryExpression, MComputedMemberAssignment, MComputedMemberExpression, MLogicalExpression,
     MLongStringLiteralExpression, MObjectExpression, MPostUpdateExpression, MPreUpdateExpression,
     MReferenceIdentifier, MStringLiteralExpression, MSyntaxToken, MUnaryExpression,
-    OperatorPrecedence, T, inner_string_text,
+    OperatorPrecedence, inner_string_text,
 };
 use biome_rowan::{AstSeparatedList, SyntaxResult, TokenText, declare_node_union};
 use core::iter;
