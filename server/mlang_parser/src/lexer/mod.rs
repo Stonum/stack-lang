@@ -1069,7 +1069,11 @@ impl<'src> MLexer<'src> {
         let (y3, y4) = self.byte_at(4).zip(self.byte_at(5))?;
 
         let mut size = 6;
-        if let Some(years) = self.byte_at(6).zip(self.byte_at(7)) {
+        if let Some(years) = self
+            .byte_at(6)
+            .zip(self.byte_at(7))
+            .filter(|(a, b)| a.is_ascii_digit() && b.is_ascii_digit())
+        {
             (y1, y2) = years;
             size = 8;
         }
