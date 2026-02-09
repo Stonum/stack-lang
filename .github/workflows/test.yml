@@ -1,4 +1,4 @@
-name: Test
+name: Check and test
 
 on:
   push:
@@ -20,6 +20,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: Run Clippy check
+      run: cargo clippy --all-targets --all-features -- -D warnings
+      working-directory: ./server
+
     - name: Run tests
       run: cargo test --verbose
       working-directory: ./server
