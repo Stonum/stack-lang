@@ -233,40 +233,37 @@ fn get_right_side_of_assignment_or_declaration(
         .nth(1);
 
     if let Some(n) = right_side {
-        let mut node = n.first_child()?;
         // skeep initialize (only from declaration)
-        if node.kind() == MSyntaxKind::M_INITIALIZER_CLAUSE {
-            node = node.first_child()?;
-        }
-
-        return Some(node);
+        return match n.kind() {
+            MSyntaxKind::M_INITIALIZER_CLAUSE => n.first_child(),
+            _ => Some(n),
+        };
     }
     None
 }
 
 fn find_identifier_from_right_side(node: SyntaxNode<MLanguage>) -> Option<SemanticInfo> {
-    let mut node = node;
-
-    // get method name
-    if node.kind() == MSyntaxKind::M_CALL_EXPRESSION {
-        let method_name = node
-            .first_child()? // M_STATIC_MEMBER_EXPRESSION
-            .first_child()? // M_IDENTIFIER_EXPRESSION
-            .siblings(biome_rowan::Direction::Next)
-            .find(|n| n.kind() == MSyntaxKind::M_NAME);
-        if let Some(name) = method_name {
-            node = name
+    let info_token = match node.kind() {
+        MSyntaxKind::M_CALL_EXPRESSION => {
+            let method_name = node
+                .first_child()? // M_STATIC_MEMBER_EXPRESSION
+                .first_child()? // M_IDENTIFIER_EXPRESSION
+                .siblings(biome_rowan::Direction::Next)
+                .find(|n| n.kind() == MSyntaxKind::M_NAME);
+            if let Some(n) = method_name {
+                n.first_token()
+            } else {
+                node.first_token()
+            }
         }
-    }
-    // skeep new
-    let mut ft = node.first_token()?;
-    if ft.kind() == MSyntaxKind::NEW_KW {
-        ft = ft.next_token()?;
-    }
+        MSyntaxKind::M_NEW_EXPRESSION => node.first_token()?.next_token(),
+        _ => None,
+    };
 
-    let identifier = identifier_for_token(&ft);
-    if let Some(i) = identifier {
-        return Some(SemanticInfo::Reference(Box::new(i)));
+    if info_token.is_some()
+        && let Some(identifier) = identifier_for_token(&info_token?)
+    {
+        return Some(SemanticInfo::Reference(Box::new(identifier)));
     }
     None
 }
