@@ -164,7 +164,7 @@ pub enum SemanticInfo {
     // like z
     // where z is reference identifier
     // contains source SemanticInfo
-    Referense(BaseInfo),
+    Reference(BaseInfo),
 }
 
 pub fn get_declaration<'a, I, D>(semantic_info: &SemanticInfo, definitions: I) -> Vec<Location>
@@ -299,7 +299,7 @@ where
 
             locations
         }
-        SemanticInfo::ClassInstance(_) | SemanticInfo::Referense(_) => locations,
+        SemanticInfo::ClassInstance(_) | SemanticInfo::Reference(_) => locations,
     }
 }
 
@@ -353,7 +353,7 @@ where
                 .collect::<Vec<_>>()
         }
         SemanticInfo::ClassInstance(_)
-        | SemanticInfo::Referense(_)
+        | SemanticInfo::Reference(_)
         | SemanticInfo::ClassExtends(_)
         | SemanticInfo::SuperCall(_, _) => vec![],
     }
@@ -365,7 +365,7 @@ where
     D: CodeSymbolDefinition + MarkupDefinition + 'a,
 {
     let base_info = match semantic_info {
-        SemanticInfo::Referense(info) => info.as_ref(),
+        SemanticInfo::Reference(info) => info.as_ref(),
         _ => semantic_info,
     };
     match base_info {
@@ -522,7 +522,7 @@ where
     I: IntoIterator<Item = &'a D>,
     D: CodeSymbolDefinition + MarkupDefinition + LocationDefinition + 'a,
 {
-    fn get_class_methods_definitions<'a, I, D>(definitions: I, class_name: &String) -> Vec<&'a D>
+    fn get_class_methods_definitions<'a, I, D>(definitions: I, class_name: &str) -> Vec<&'a D>
     where
         I: IntoIterator<Item = &'a D>,
         D: CodeSymbolDefinition + 'a,
@@ -565,34 +565,30 @@ where
             .collect::<Vec<_>>();
         let mut inherited_methods: HashMap<String, (usize, &D)> = HashMap::new();
         for d in methods {
-            match d.container() {
-                Some(c) => {
-                    let index = all_class_names
-                        .iter()
-                        .position(|&r| c.compare_with(r))
-                        .unwrap();
-                    let method_name = format!(
-                        "{}{}{}",
-                        d.is_getter(),
-                        d.id(),
-                        d.parameters().unwrap_or_default()
-                    );
-                    match inherited_methods.get(&method_name) {
-                        Some(_v) => {
-                            if _v.0 > index {
-                                inherited_methods.insert(method_name, (index, &d));
-                            }
-                        }
-                        None => {
-                            inherited_methods.insert(method_name, (index, &d));
+            if let Some(c) = d.container() {
+                let index = all_class_names
+                    .iter()
+                    .position(|&r| c.compare_with(r))
+                    .unwrap();
+                let method_name = format!(
+                    "{}{}{}",
+                    d.is_getter(),
+                    d.id(),
+                    d.parameters().unwrap_or_default()
+                );
+                match inherited_methods.get(&method_name) {
+                    Some(_v) => {
+                        if _v.0 > index {
+                            inherited_methods.insert(method_name, (index, d));
                         }
                     }
+                    None => {
+                        inherited_methods.insert(method_name, (index, d));
+                    }
                 }
-                None => {}
             }
         }
-        let methods = inherited_methods.iter().map(|e| e.1.1).collect();
-        methods
+        inherited_methods.iter().map(|e| e.1.1).collect()
     }
 
     fn get_completion_items_from_definitions<'a, I, D>(definitions: I) -> Vec<CompletionItem>
@@ -602,21 +598,17 @@ where
     {
         let mut def_groups: HashMap<&str, Vec<&D>> = HashMap::new();
         for d in definitions.into_iter() {
-            def_groups.entry(d.id()).or_insert_with(Vec::new).push(d);
+            def_groups.entry(d.id()).or_default().push(d);
         }
 
         def_groups
             .into_iter()
             .map(|def_group| {
-                let first_def = def_group.1.iter().next().unwrap();
+                let first_def = def_group.1.first().unwrap();
                 let completion_label = first_def.id();
                 let mut completion_item = CompletionItem::new_simple(
                     completion_label.to_string(),
-                    match first_def.parent() {
-                        Some(p) => p,
-                        None => "",
-                    }
-                    .to_string(),
+                    first_def.parent().unwrap_or_default().to_string(),
                 );
                 if first_def.is_method() {
                     completion_item.kind = Some(CompletionItemKind::METHOD);
@@ -638,7 +630,7 @@ where
     }
 
     let base_info = match semantic_info {
-        SemanticInfo::Referense(info) => info.as_ref(),
+        SemanticInfo::Reference(info) => info.as_ref(),
         _ => semantic_info,
     };
     match base_info {

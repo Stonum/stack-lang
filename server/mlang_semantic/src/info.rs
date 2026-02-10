@@ -33,7 +33,7 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> 
     if token.kind() == MSyntaxKind::IDENT {
         let ident = token.text_trimmed().trim().to_string();
         if let Some(node) = token.parent() {
-            // take referense
+            // take Reference
             if node.kind() == MSyntaxKind::M_REFERENCE_IDENTIFIER
                 && let Some(info) = find_identifier_by_reference(node)
             {
@@ -83,7 +83,7 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> 
                             if child.kind() == MSyntaxKind::M_IDENTIFIER_EXPRESSION {
                                 let mut class_id: Option<String> = None;
                                 if let Some(info) = find_identifier_by_reference(child)
-                                    && let SemanticInfo::Referense(base_info) = info
+                                    && let SemanticInfo::Reference(base_info) = info
                                     && let SemanticInfo::NewExpression(class_name) =
                                         base_info.as_ref()
                                 {
@@ -188,7 +188,7 @@ fn find_assignment_expression(
 
     assignments
         .filter(|n| n.kind() == MSyntaxKind::M_ASSIGNMENT_EXPRESSION)
-        .filter(|n| {
+        .find(|n| {
             if let Some(ft) = n.first_token()
                 && let Some(nt) = ft.next_token()
             {
@@ -197,14 +197,13 @@ fn find_assignment_expression(
             }
             false
         })
-        .next()
 }
 
 fn find_variable_statement(
     variable_statement: SyntaxNode<MLanguage>,
     ident: &str,
 ) -> Option<SyntaxNode<MLanguage>> {
-    let assignments = variable_statement
+    let mut assignments = variable_statement
         .first_child()?
         .siblings(biome_rowan::Direction::Next)
         .find(|n| n.kind() == MSyntaxKind::M_VARIABLE_DECLARATION)?
@@ -219,12 +218,10 @@ fn find_variable_statement(
                 .filter(|n| n.kind() == MSyntaxKind::M_VARIABLE_DECLARATOR)
         });
 
-    assignments
-        .filter(|n| {
-            n.first_token()
-                .is_some_and(|ft| ft.text_trimmed().to_string().trim().to_lowercase() == ident)
-        })
-        .next()
+    assignments.find(|n| {
+        n.first_token()
+            .is_some_and(|ft| ft.text_trimmed().to_string().trim().to_lowercase() == ident)
+    })
 }
 
 fn get_right_side_of_assignment_or_declaration(
@@ -269,7 +266,7 @@ fn find_identifier_from_right_side(node: SyntaxNode<MLanguage>) -> Option<Semant
 
     let identifier = identifier_for_token(&ft);
     if let Some(i) = identifier {
-        return Some(SemanticInfo::Referense(Box::new(i)));
+        return Some(SemanticInfo::Reference(Box::new(i)));
     }
     None
 }
@@ -337,20 +334,20 @@ mod tests {
     }
 
     #[test]
-    fn test_identifier_by_referense() {
+    fn test_identifier_by_reference() {
         #[rustfmt::skip]
         let inputs = [
-            ("var x = callFunction(); X ", 25, SemanticInfo::Referense(Box::new(SemanticInfo::FunctionCall("callFunction".to_owned())))),
-            ("var x = z.callMethod(); x ", 25, SemanticInfo::Referense(Box::new(SemanticInfo::MethodCall("callMethod".to_owned(), None)))),
-            ("var x = callFunction(); y = x + 3 ", 29, SemanticInfo::Referense(Box::new(SemanticInfo::FunctionCall("callFunction".to_owned())))),
-            ("var x = new Tst(); x.callMethod() ", 20, SemanticInfo::Referense(Box::new(SemanticInfo::NewExpression("Tst".to_owned())))),
-            ("var x = new Tst(); if (true) x.callMethod() ", 30, SemanticInfo::Referense(Box::new(SemanticInfo::NewExpression("Tst".to_owned())))),
-            ("var a = 3, x = new Tst(); x ", 27, SemanticInfo::Referense(Box::new(SemanticInfo::NewExpression("Tst".to_owned())))),
-            ("var x = 3; x = new Tst(); x ", 27, SemanticInfo::Referense(Box::new(SemanticInfo::NewExpression("Tst".to_owned())))),
+            ("var x = callFunction(); X ", 25, SemanticInfo::Reference(Box::new(SemanticInfo::FunctionCall("callFunction".to_owned())))),
+            ("var x = z.callMethod(); x ", 25, SemanticInfo::Reference(Box::new(SemanticInfo::MethodCall("callMethod".to_owned(), None)))),
+            ("var x = callFunction(); y = x + 3 ", 29, SemanticInfo::Reference(Box::new(SemanticInfo::FunctionCall("callFunction".to_owned())))),
+            ("var x = new Tst(); x.callMethod() ", 20, SemanticInfo::Reference(Box::new(SemanticInfo::NewExpression("Tst".to_owned())))),
+            ("var x = new Tst(); if (true) x.callMethod() ", 30, SemanticInfo::Reference(Box::new(SemanticInfo::NewExpression("Tst".to_owned())))),
+            ("var a = 3, x = new Tst(); x ", 27, SemanticInfo::Reference(Box::new(SemanticInfo::NewExpression("Tst".to_owned())))),
+            ("var x = 3; x = new Tst(); x ", 27, SemanticInfo::Reference(Box::new(SemanticInfo::NewExpression("Tst".to_owned())))),
             (
                 "var x = new Tst(); x.a = 3; x ",
                 29,
-                SemanticInfo::Referense(Box::new(SemanticInfo::NewExpression("Tst".to_owned())))
+                SemanticInfo::Reference(Box::new(SemanticInfo::NewExpression("Tst".to_owned())))
             ),
         ];
 
@@ -362,11 +359,11 @@ mod tests {
     }
 
     #[test]
-    fn test_identifier_by_referense2() {
+    fn test_identifier_by_reference2() {
         #[rustfmt::skip]
         let inputs = [
-            ("a = 3, x = new Tst(); x ", 23, SemanticInfo::Referense(Box::new(SemanticInfo::NewExpression("Tst".to_owned())))),
-            ("x = callFunction(); x ", 21, SemanticInfo::Referense(Box::new(SemanticInfo::FunctionCall("callFunction".to_owned())))),
+            ("a = 3, x = new Tst(); x ", 23, SemanticInfo::Reference(Box::new(SemanticInfo::NewExpression("Tst".to_owned())))),
+            ("x = callFunction(); x ", 21, SemanticInfo::Reference(Box::new(SemanticInfo::FunctionCall("callFunction".to_owned())))),
         ];
 
         for (input, offset, info) in inputs {
