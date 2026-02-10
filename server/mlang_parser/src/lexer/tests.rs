@@ -1279,7 +1279,7 @@ fn keywords() {
         });
 
         let mut lexer = MLexer::from_str(keyword);
-        lexer.next_token(MLexContext::default());
+        lexer.next_token(MLexContext);
 
         let lexed_kind = lexer.current();
         assert_eq!(
@@ -1296,7 +1296,7 @@ fn keywords() {
             lexed_range.len()
         );
 
-        assert_eq!(lexer.next_token(MLexContext::default()), EOF);
+        assert_eq!(lexer.next_token(MLexContext), EOF);
     }
 }
 
@@ -1305,7 +1305,7 @@ fn without_lookahead() {
     let lexer = MLexer::from_str("var a\n = 5");
     let mut buffered = BufferedLexer::new(lexer);
 
-    buffered.next_token(MLexContext::default());
+    buffered.next_token(MLexContext);
     assert_eq!(buffered.current(), T![var]);
     assert!(!buffered.has_preceding_line_break());
     assert_eq!(
@@ -1313,18 +1313,15 @@ fn without_lookahead() {
         TextRange::at(TextSize::from(0), TextSize::from(3))
     );
 
-    assert_eq!(buffered.next_token(MLexContext::default()), WHITESPACE);
-    assert_eq!(buffered.next_token(MLexContext::default()), T![ident]);
-    assert_eq!(buffered.next_token(MLexContext::default()), NEWLINE);
-    assert_eq!(buffered.next_token(MLexContext::default()), WHITESPACE);
-    assert_eq!(buffered.next_token(MLexContext::default()), T![=]);
+    assert_eq!(buffered.next_token(MLexContext), WHITESPACE);
+    assert_eq!(buffered.next_token(MLexContext), T![ident]);
+    assert_eq!(buffered.next_token(MLexContext), NEWLINE);
+    assert_eq!(buffered.next_token(MLexContext), WHITESPACE);
+    assert_eq!(buffered.next_token(MLexContext), T![=]);
     assert!(buffered.has_preceding_line_break());
-    assert_eq!(buffered.next_token(MLexContext::default()), WHITESPACE);
-    assert_eq!(
-        buffered.next_token(MLexContext::default()),
-        M_NUMBER_LITERAL
-    );
-    assert_eq!(buffered.next_token(MLexContext::default()), T![EOF]);
+    assert_eq!(buffered.next_token(MLexContext), WHITESPACE);
+    assert_eq!(buffered.next_token(MLexContext), M_NUMBER_LITERAL);
+    assert_eq!(buffered.next_token(MLexContext), T![EOF]);
 }
 
 #[test]
@@ -1332,7 +1329,7 @@ fn lookahead() {
     let lexer = MLexer::from_str("var a\n = 5");
     let mut buffered = BufferedLexer::new(lexer);
 
-    buffered.next_token(MLexContext::default());
+    buffered.next_token(MLexContext);
     assert_eq!(buffered.current(), T![var]);
     assert!(!buffered.has_preceding_line_break());
     assert_eq!(
@@ -1362,7 +1359,7 @@ fn lookahead() {
     }
 
     assert_eq!(buffered.current(), T![var]);
-    assert_eq!(buffered.next_token(MLexContext::default()), WHITESPACE);
+    assert_eq!(buffered.next_token(MLexContext), WHITESPACE);
 
     {
         let mut lookahead = buffered.lookahead_iter();
@@ -1378,17 +1375,14 @@ fn lookahead() {
         assert!(nth4.has_preceding_line_break());
     }
 
-    assert_eq!(buffered.next_token(MLexContext::default()), T![ident]);
-    assert_eq!(buffered.next_token(MLexContext::default()), NEWLINE);
-    assert_eq!(buffered.next_token(MLexContext::default()), WHITESPACE);
-    assert_eq!(buffered.next_token(MLexContext::default()), T![=]);
+    assert_eq!(buffered.next_token(MLexContext), T![ident]);
+    assert_eq!(buffered.next_token(MLexContext), NEWLINE);
+    assert_eq!(buffered.next_token(MLexContext), WHITESPACE);
+    assert_eq!(buffered.next_token(MLexContext), T![=]);
     assert!(buffered.has_preceding_line_break());
-    assert_eq!(buffered.next_token(MLexContext::default()), WHITESPACE);
-    assert_eq!(
-        buffered.next_token(MLexContext::default()),
-        M_NUMBER_LITERAL
-    );
-    assert_eq!(buffered.next_token(MLexContext::default()), T![EOF]);
+    assert_eq!(buffered.next_token(MLexContext), WHITESPACE);
+    assert_eq!(buffered.next_token(MLexContext), M_NUMBER_LITERAL);
+    assert_eq!(buffered.next_token(MLexContext), T![EOF]);
 }
 
 #[test]

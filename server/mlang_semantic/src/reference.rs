@@ -99,7 +99,7 @@ mod tests {
 
     fn parse_refs(text: &str) -> SemanticModel {
         let file_source = MFileSource::module();
-        let parsed = parse(&text, file_source);
+        let parsed = parse(text, file_source);
 
         semantics(text, parsed.syntax(), file_source)
     }

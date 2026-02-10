@@ -674,7 +674,7 @@ mod tests {
     },
     "#;
         let file_source = MFileSource::module();
-        let parsed = parse(&text, file_source);
+        let parsed = parse(text, file_source);
 
         let semantic_model = semantics(text, parsed.syntax(), file_source);
         let mut definitions = semantic_model.definitions();
@@ -799,7 +799,7 @@ mod tests {
 }
 "#;
         let file_source = MFileSource::report();
-        let parsed = parse(&text, file_source);
+        let parsed = parse(text, file_source);
 
         let semantic_model = semantics(text, parsed.syntax(), file_source);
         let mut definitions = semantic_model.definitions();
