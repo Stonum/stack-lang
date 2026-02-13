@@ -353,6 +353,24 @@ impl Workspace {
             data: semantic_tokens(syntax, line_index, tokens_range),
         })
     }
+
+    pub async fn completion(&self, uri: &Url, position: Position) -> Option<CompletionResponse> {
+        // get dot position
+        let dot_position = Position::new(position.line, position.character - 2);
+        let semantic_info = self.identifier_from_position(uri, dot_position).await?;
+        let semantics = self
+            .mlang_semantics
+            .iter()
+            .filter_map(|r| match r.pair() {
+                (_path, Some(definitions)) => Some(Arc::clone(definitions)),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+
+        let definitions = semantics.iter().flat_map(|arc| arc.definitions());
+        let completions: Vec<CompletionItem> = get_completion(&semantic_info, definitions);
+        Some(CompletionResponse::Array(completions))
+    }
 }
 
 impl Workspace {
@@ -488,23 +506,5 @@ impl Workspace {
         })?;
 
         identifier_for_offset(syntax, offset)
-    }
-
-    pub async fn completion(&self, uri: &Url, position: Position) -> Option<CompletionResponse> {
-        // get dot position
-        let dot_position = Position::new(position.line, position.character - 2);
-        let semantic_info = self.identifier_from_position(uri, dot_position).await?;
-        let semantics = self
-            .mlang_semantics
-            .iter()
-            .filter_map(|r| match r.pair() {
-                (_path, Some(definitions)) => Some(Arc::clone(definitions)),
-                _ => None,
-            })
-            .collect::<Vec<_>>();
-
-        let definitions = semantics.iter().flat_map(|arc| arc.definitions());
-        let completions: Vec<CompletionItem> = get_completion(&semantic_info, definitions);
-        Some(CompletionResponse::Array(completions))
     }
 }
