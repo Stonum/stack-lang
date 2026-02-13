@@ -27,9 +27,7 @@ impl FormatNodeRule<MForAllStatement> for FormatMForAllStatement {
             [group(&format_args!(
                 forall_token,
                 l_paren_token.format(),
-                space(),
                 iter,
-                space(),
                 r_paren_token.format(),
                 space(),
                 format_dangling_comments(node.syntax()),
