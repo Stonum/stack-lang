@@ -166,6 +166,8 @@ pub struct MFormatOptions {
 
     /// Attribute position style. By default auto.
     attribute_position: AttributePosition,
+
+    function_declaration_line_width: LineWidth,
 }
 
 impl MFormatOptions {
@@ -183,6 +185,7 @@ impl MFormatOptions {
             bracket_spacing: BracketSpacing::default(),
             bracket_same_line: BracketSameLine::default(),
             attribute_position: AttributePosition::default(),
+            function_declaration_line_width: LineWidth::default(),
         }
     }
 
@@ -241,6 +244,11 @@ impl MFormatOptions {
         self
     }
 
+    pub fn with_function_declaration_line_width(mut self, line_width: LineWidth) -> Self {
+        self.function_declaration_line_width = line_width;
+        self
+    }
+
     pub fn set_bracket_spacing(&mut self, bracket_spacing: BracketSpacing) {
         self.bracket_spacing = bracket_spacing;
     }
@@ -282,6 +290,10 @@ impl MFormatOptions {
 
     pub fn set_semicolons(&mut self, semicolons: Semicolons) {
         self.semicolons = semicolons;
+    }
+
+    pub fn set_function_declaration_line_width(&mut self, line_width: LineWidth) {
+        self.function_declaration_line_width = line_width;
     }
 
     pub fn bracket_spacing(&self) -> BracketSpacing {
