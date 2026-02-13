@@ -104,13 +104,8 @@ impl FormatFunction {
 
         write!(f, [self.function_token().format()])?;
 
-        match self.id()? {
-            Some(id) => {
-                write!(f, [space(), id.format()])?;
-            }
-            None => {
-                write!(f, [space()])?;
-            }
+        if let Some(id) = self.id()? {
+            write!(f, [space(), id.format()])?;
         }
 
         let parameters = self.parameters()?;
