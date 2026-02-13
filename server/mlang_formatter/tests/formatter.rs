@@ -1,61 +1,5 @@
-use mlang_formatter::{
-    IndentStyle, IndentWidth, LineWidth, MFormatOptions, format_node, format_range,
-};
-use mlang_parser::parse;
-use mlang_syntax::{MFileSource, TextRange, TextSize};
-
-macro_rules! assert_fmt {
-    ($src:expr) => {
-        assert_fmt!($src, MFileSource::script());
-    };
-
-    ($src:expr, $file_type:expr) => {
-        let syntax = $file_type;
-        let tree = parse($src, syntax);
-
-        let options = MFormatOptions::new(syntax)
-            .with_indent_style(IndentStyle::Space)
-            .with_line_width(LineWidth::try_from(120).unwrap())
-            .with_indent_width(IndentWidth::from(3));
-
-        let doc = format_node(options, &tree.syntax());
-        let result = doc.unwrap().print().unwrap();
-        let result = result.as_code();
-        assert_eq!(
-            $src, result,
-            "formatted code: \n======\n{}\n======\n",
-            result
-        );
-    };
-}
-
-macro_rules! assert_fmt_range {
-    ($src:expr, $dest:expr, $range:expr) => {
-        assert_fmt_range!($src, $dest, $range, MFileSource::script());
-    };
-
-    ($src:expr, $dest:expr, $range:expr, $file_type:expr) => {
-        let syntax = $file_type;
-        let tree = parse($src, syntax);
-
-        let options = MFormatOptions::new(syntax)
-            .with_indent_style(IndentStyle::Space)
-            .with_line_width(LineWidth::try_from(120).unwrap())
-            .with_indent_width(IndentWidth::from(3));
-
-        let doc = format_range(
-            options,
-            &tree.syntax(),
-            TextRange::new(TextSize::from($range.start), TextSize::from($range.end)),
-        );
-        let result = doc.unwrap().into_code();
-        assert_eq!(
-            $dest, result,
-            "formatted code: \n======\n{}\n======\n",
-            result
-        );
-    };
-}
+#[macro_use]
+mod helper;
 
 #[test]
 fn format_range_if_statement_with_leading_comments() {
@@ -64,13 +8,13 @@ fn format_range_if_statement_with_leading_comments() {
 var isCalc = shema;
 
 # leading comment
-if( true ) 
+if(true) 
    isCalc = calc(_ls, _usl, _p);
 
 var pars = _p;
     "#,
         r#"# leading comment
-if( true )
+if(true)
    isCalc = calc(_ls, _usl, _p);"#,
         42..83
     );
@@ -92,7 +36,7 @@ fn format_statement_with_trailing_comments() {
 fn format_switch_with_multiple_case_options() {
     assert_fmt!(
         r#"#
-switch( val )
+switch(val)
 {
    case "single":
       do_single();
@@ -151,7 +95,7 @@ fn format_report() {
 }
 Function declaration
 {
-   func add( i )
+   func add(i)
    {
       return i++;
    }
@@ -178,7 +122,7 @@ fn format_report_section() {
 }
 Function declaration
 {
-   func add( i )
+   func add(i)
    {
       return i++;
    }
@@ -192,7 +136,7 @@ fn format_report_section() {
 {
    print("hey");
 }"#,
-        189..194, // section "print" name
+        187..192, // section "print" name
         MFileSource::report()
     );
 }
@@ -294,7 +238,7 @@ fn format_some_ru_keywords() {
     assert_fmt!(
         r#"#
 перем х = нуль;
-Если( истина )
+Если(истина)
    х = ложь;
 "#
     );
@@ -316,7 +260,7 @@ inline func i()
 fn format_if_statement_comments() {
     assert_fmt!(
         r#"#
-if( test ) # ifcomment
+if(test) # ifcomment
 {
 }
 else # elsecomment
@@ -328,7 +272,7 @@ else # elsecomment
 
     assert_fmt!(
         r#"#
-if( test ) # ifcomment
+if(test) # ifcomment
    println(1);
 else # else comment
    print(2);
@@ -338,7 +282,7 @@ else # else comment
     assert_fmt!(
         r#"#
 # comment before if statement
-if( test ) # ifcomment
+if(test) # ifcomment
    println(1);
 "#
     );
@@ -346,7 +290,7 @@ if( test ) # ifcomment
     assert_fmt!(
         r#"#
 # comment before if statement
-if( test ) # ifcomment
+if(test) # ifcomment
 # more comments
    println(1);
 "#
@@ -357,7 +301,7 @@ if( test ) # ifcomment
 fn format_while_statement_comments() {
     assert_fmt!(
         r#"#
-while( test ) # comment
+while(test) # comment
 {
    print(test);
 }
@@ -366,7 +310,7 @@ while( test ) # comment
 
     assert_fmt!(
         r#"#
-while( test ) # comment
+while(test) # comment
    println(1);
 "#
     );
@@ -374,7 +318,7 @@ while( test ) # comment
     assert_fmt!(
         r#"#
 # comment before while statement
-while( test ) # comment
+while(test) # comment
    println(1);
 "#
     );
@@ -382,7 +326,7 @@ while( test ) # comment
     assert_fmt!(
         r#"#
 # comment before while statement
-while( test ) # ifcomment
+while(test) # ifcomment
 # more comments
    println(1);
 "#
@@ -429,7 +373,7 @@ for(;;) # comment
 fn format_forall_statement_comments() {
     assert_fmt!(
         r#"#
-forall( iterator(arr, ind) ) # comment
+forall(iterator(arr, ind)) # comment
 {
    print(test);
 }
@@ -438,7 +382,7 @@ forall( iterator(arr, ind) ) # comment
 
     assert_fmt!(
         r#"#
-forall( iterator(arr, ind) ) # comment
+forall(iterator(arr, ind)) # comment
    println(1);
 "#
     );
@@ -446,7 +390,7 @@ forall( iterator(arr, ind) ) # comment
     assert_fmt!(
         r#"#
 # comment before for statement
-forall( iterator(arr, ind) ) # comment
+forall(iterator(arr, ind)) # comment
    println(1);
 "#
     );
@@ -454,7 +398,7 @@ forall( iterator(arr, ind) ) # comment
     assert_fmt!(
         r#"#
 # comment before forall statement
-forall( iterator(arr, ind) ) # comment
+forall(iterator(arr, ind)) # comment
 # more comments
    println(1);
 "#
@@ -465,7 +409,7 @@ forall( iterator(arr, ind) ) # comment
 fn format_forallin_statement_comments() {
     assert_fmt!(
         r#"#
-forall( x in arr ) # comment
+forall(x in arr) # comment
 {
    print(test);
 }
@@ -474,7 +418,7 @@ forall( x in arr ) # comment
 
     assert_fmt!(
         r#"#
-forall( x in arr ) # comment
+forall(x in arr) # comment
    println(1);
 "#
     );
@@ -482,7 +426,7 @@ forall( x in arr ) # comment
     assert_fmt!(
         r#"#
 # comment before forall statement
-forall( x in arr ) # comment
+forall(x in arr) # comment
    println(1);
 "#
     );
@@ -490,7 +434,7 @@ forall( x in arr ) # comment
     assert_fmt!(
         r#"#
 # comment before forall statement
-forall( x in arr ) # comment
+forall(x in arr) # comment
 # more comments
    println(1);
 "#
@@ -505,7 +449,7 @@ try
 {
    do_something();
 }
-catch( e )
+catch(e)
 {
    log_exception(e);
 }
@@ -518,7 +462,7 @@ try
 {
    do_something();
 }
-catch( e ) {}
+catch(e) {}
 "#
     );
 }
