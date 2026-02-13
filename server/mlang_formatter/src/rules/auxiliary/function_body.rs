@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 use biome_formatter::{CstFormatContext, format_args, write};
+use mlang_syntax::AnyMFunction;
 use mlang_syntax::MFunctionBody;
 use mlang_syntax::MFunctionBodyFields;
 
@@ -19,9 +20,13 @@ impl FormatNodeRule<MFunctionBody> for FormatMFunctionBody {
 
         let r_curly_token = r_curly_token?;
 
+        let parent_is_expression =
+            matches!(node.parent(), Some(AnyMFunction::MFunctionExpression(_)));
+
+        let comments = f.context().comments();
+        let has_dangling_comments = comments.has_dangling_comments(node.syntax());
+
         if statements.is_empty() && directives.is_empty() {
-            let comments = f.context().comments();
-            let has_dangling_comments = comments.has_dangling_comments(node.syntax());
             if has_dangling_comments {
                 write!(f, [hard_line_break()])?;
             } else {
@@ -36,10 +41,16 @@ impl FormatNodeRule<MFunctionBody> for FormatMFunctionBody {
                 ]
             )
         } else {
+            let need_hard_line = !parent_is_expression || has_dangling_comments;
+            if need_hard_line {
+                write!(f, [hard_line_break()])?;
+            } else {
+                write!(f, [space()])?;
+            }
+
             write!(
                 f,
                 [
-                    hard_line_break(),
                     l_curly_token.format(),
                     block_indent(&format_args![directives.format(), statements.format()]),
                     r_curly_token.format(),
