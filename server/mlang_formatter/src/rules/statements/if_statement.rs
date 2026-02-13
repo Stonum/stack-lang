@@ -29,9 +29,7 @@ impl FormatNodeRule<MIfStatement> for FormatMIfStatement {
             [group(&format_args![
                 if_token.format(),
                 l_paren_token.format(),
-                space(),
                 group(&soft_block_indent(&test.format())),
-                space(),
                 r_paren_token.format(),
                 space(),
                 format_dangling_comments(node.syntax()),
