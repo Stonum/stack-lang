@@ -11,7 +11,7 @@ use walkdir::WalkDir;
 use mlang_core::{AnyMCoreDefinition, load_core_api};
 use mlang_lsp_definition::{
     CodeSymbolDefinition as _, CodeSymbolInformation as _, LocationDefinition as _, SemanticInfo,
-    StringLowerCase, get_declaration, get_hover, get_reference, get_symbols,
+    StringLowerCase, get_completion, get_declaration, get_hover, get_reference, get_symbols,
 };
 use mlang_parser::parse;
 use mlang_semantic::{SemanticModel, identifier_for_offset, semantics};
@@ -22,9 +22,9 @@ use tokio::sync::{OwnedRwLockReadGuard, RwLock, Semaphore};
 use tokio::task::JoinError;
 
 use tower_lsp::lsp_types::{
-    CodeLens, Command, DocumentSymbolResponse, GotoDefinitionResponse, Hover, HoverContents,
-    Location, Position, Range, SemanticTokens, SymbolInformation, TextDocumentItem, Url,
-    WorkspaceFolder,
+    CodeLens, Command, CompletionItem, CompletionResponse, DocumentSymbolResponse,
+    GotoDefinitionResponse, Hover, HoverContents, Location, Position, Range, SemanticTokens,
+    SymbolInformation, TextDocumentItem, Url, WorkspaceFolder,
 };
 
 use crate::document::CurrentDocument;
@@ -488,5 +488,23 @@ impl Workspace {
         })?;
 
         identifier_for_offset(syntax, offset)
+    }
+
+    pub async fn completion(&self, uri: &Url, position: Position) -> Option<CompletionResponse> {
+        // get dot position
+        let dot_position = Position::new(position.line, position.character - 2);
+        let semantic_info = self.identifier_from_position(uri, dot_position).await?;
+        let semantics = self
+            .mlang_semantics
+            .iter()
+            .filter_map(|r| match r.pair() {
+                (_path, Some(definitions)) => Some(Arc::clone(definitions)),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+
+        let definitions = semantics.iter().flat_map(|arc| arc.definitions());
+        let completions: Vec<CompletionItem> = get_completion(&semantic_info, definitions);
+        Some(CompletionResponse::Array(completions))
     }
 }

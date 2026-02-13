@@ -58,6 +58,24 @@ impl CodeSymbolDefinition for AnyMDefinition {
         }
     }
 
+    fn is_getter(&self) -> bool {
+        match self {
+            AnyMDefinition::MClassMemberDefinition(member) => {
+                member.m_type == MClassMethodType::Getter
+            }
+            _ => false,
+        }
+    }
+
+    fn is_setter(&self) -> bool {
+        match self {
+            AnyMDefinition::MClassMemberDefinition(member) => {
+                member.m_type == MClassMethodType::Setter
+            }
+            _ => false,
+        }
+    }
+
     fn id(&self) -> &str {
         match self {
             AnyMDefinition::MFunctionDefinition(f) => &f.id.name,
@@ -90,6 +108,15 @@ impl CodeSymbolDefinition for AnyMDefinition {
     fn parent(&self) -> Option<&str> {
         match self {
             AnyMDefinition::MClassDefinition(class) => class.extends.as_deref(),
+            _ => None,
+        }
+    }
+
+    fn parameters(&self) -> Option<&str> {
+        match self {
+            AnyMDefinition::MClassMemberDefinition(member) => Some(&member.params),
+            AnyMDefinition::MFunctionDefinition(funct) => Some(&funct.params),
+            AnyMDefinition::MHandlerDefinition(handler) => Some(&handler.params),
             _ => None,
         }
     }
