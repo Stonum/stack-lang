@@ -1,5 +1,12 @@
 **Changelog**
 ===============
+**v0.3.8 - 2026-02-13**
+------------------------------------
+* **Fixed**: 
+   + format report section [#113](https://github.com/Stonum/stack-lang/issues/119)
+   + format short date literal like `00.00.00` [#119](https://github.com/Stonum/stack-lang/issues/119)
+   + syntax highlighting [#121](https://github.com/Stonum/stack-lang/issues/119)
+
 **v0.3.7 - 2025-12-11**
 ------------------------------------
 * **Fixed**: 
