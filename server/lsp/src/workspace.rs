@@ -356,7 +356,7 @@ impl Workspace {
 
     pub async fn completion(&self, uri: &Url, position: Position) -> Option<CompletionResponse> {
         // get dot position
-        let dot_position = Position::new(position.line, position.character - 2);
+        let dot_position = Position::new(position.line, position.character.checked_sub(2)?);
         let semantic_info = self.identifier_from_position(uri, dot_position).await?;
         let semantics = self
             .mlang_semantics
