@@ -159,12 +159,17 @@ pub enum SemanticInfo {
 
     // like this or other refs on class instance
     // contains class name
-    ClassInstance(Class),
+    RefClass(Class),
 
     // like z
-    // where z is reference identifier
-    // contains source SemanticInfo
-    Reference(BaseInfo),
+    // where z is reference for result function
+    // contains function identifier
+    RefFunctionResult(Identifier),
+
+    // like z
+    // where z is reference for result any method
+    // contains method identifier and class name
+    RefMethodResult(Identifier, Option<Class>),
 }
 
 pub fn get_declaration<'a, I, D>(semantic_info: &SemanticInfo, definitions: I) -> Vec<Location>
@@ -175,11 +180,14 @@ where
     let mut locations = vec![];
 
     match semantic_info {
-        SemanticInfo::FunctionCall(ident) | SemanticInfo::FunctionDeclaration(ident) => definitions
+        SemanticInfo::FunctionCall(ident)
+        | SemanticInfo::FunctionDeclaration(ident)
+        | SemanticInfo::RefFunctionResult(ident) => definitions
             .into_iter()
             .filter(|(_, d)| d.is_function() && d.compare_with(ident))
             .map(|(uri, d)| d.id_location(uri.clone()))
             .collect::<Vec<_>>(),
+
         SemanticInfo::NewExpression(ident) | SemanticInfo::ClassDeclaration(ident) => {
             let definitions = Vec::from_iter(definitions);
             let classes = definitions
@@ -209,18 +217,30 @@ where
             }
             locations
         }
+
+        SemanticInfo::RefClass(ident) => definitions
+            .into_iter()
+            .filter(|(_, d)| d.is_class() && d.compare_with(ident))
+            .map(|(uri, d)| d.id_location(uri.clone()))
+            .collect::<Vec<_>>(),
+
         SemanticInfo::ClassExtends(ident) => definitions
             .into_iter()
             .filter(|(_, d)| d.is_class() && d.compare_with(ident))
             .map(|(uri, d)| d.id_location(uri.clone()))
             .collect::<Vec<_>>(),
-        SemanticInfo::MethodCall(ident, None) => definitions
-            .into_iter()
-            .filter(|(_, d)| d.is_method() && d.compare_with(ident))
-            .map(|(uri, d)| d.id_location(uri.clone()))
-            .collect::<Vec<_>>(),
+
+        SemanticInfo::MethodCall(ident, None) | SemanticInfo::RefMethodResult(ident, None) => {
+            definitions
+                .into_iter()
+                .filter(|(_, d)| d.is_method() && d.compare_with(ident))
+                .map(|(uri, d)| d.id_location(uri.clone()))
+                .collect::<Vec<_>>()
+        }
+
         SemanticInfo::MethodCall(ident, Some(class_name))
-        | SemanticInfo::MethodDeclaration(ident, class_name) => {
+        | SemanticInfo::MethodDeclaration(ident, class_name)
+        | SemanticInfo::RefMethodResult(ident, Some(class_name)) => {
             let mut class_names: Vec<String> = vec![class_name.to_owned()];
 
             // local copy
@@ -266,6 +286,7 @@ where
 
             locations
         }
+
         SemanticInfo::SuperCall(_ident, class_name) => {
             // local copy
             let definitions = Vec::from_iter(definitions);
@@ -299,7 +320,6 @@ where
 
             locations
         }
-        SemanticInfo::ClassInstance(_) | SemanticInfo::Reference(_) => locations,
     }
 }
 
@@ -352,10 +372,12 @@ where
                 .flat_map(|(_, refs)| refs.iter().map(|r| r.location(uri.clone())))
                 .collect::<Vec<_>>()
         }
-        SemanticInfo::ClassInstance(_)
-        | SemanticInfo::Reference(_)
-        | SemanticInfo::ClassExtends(_)
-        | SemanticInfo::SuperCall(_, _) => vec![],
+
+        SemanticInfo::SuperCall(_, _) | SemanticInfo::ClassExtends(_) => vec![],
+
+        SemanticInfo::RefFunctionResult(_)
+        | SemanticInfo::RefClass(_)
+        | SemanticInfo::RefMethodResult(_, _) => vec![],
     }
 }
 
@@ -364,16 +386,15 @@ where
     I: IntoIterator<Item = &'a D>,
     D: CodeSymbolDefinition + MarkupDefinition + 'a,
 {
-    let base_info = match semantic_info {
-        SemanticInfo::Reference(info) => info.as_ref(),
-        _ => semantic_info,
-    };
-    match base_info {
-        SemanticInfo::FunctionCall(ident) | SemanticInfo::FunctionDeclaration(ident) => definitions
+    match semantic_info {
+        SemanticInfo::FunctionCall(ident)
+        | SemanticInfo::FunctionDeclaration(ident)
+        | SemanticInfo::RefFunctionResult(ident) => definitions
             .into_iter()
             .filter(|d| d.is_function() && d.compare_with(ident))
             .map(|d| MarkedString::String(d.markdown()))
             .collect::<Vec<_>>(),
+
         SemanticInfo::NewExpression(ident) | SemanticInfo::ClassDeclaration(ident) => {
             let mut markups = vec![];
 
@@ -405,18 +426,24 @@ where
             }
             markups
         }
-        SemanticInfo::ClassExtends(ident) => definitions
+
+        SemanticInfo::ClassExtends(ident) | SemanticInfo::RefClass(ident) => definitions
             .into_iter()
             .filter(|d| d.is_class() && d.compare_with(ident))
             .map(|d| MarkedString::String(d.markdown()))
             .collect::<Vec<_>>(),
-        SemanticInfo::MethodCall(ident, None) => definitions
-            .into_iter()
-            .filter(|d| d.is_method() && d.compare_with(ident))
-            .map(|d| MarkedString::String(d.markdown()))
-            .collect::<Vec<_>>(),
+
+        SemanticInfo::MethodCall(ident, None) | SemanticInfo::RefMethodResult(ident, None) => {
+            definitions
+                .into_iter()
+                .filter(|d| d.is_method() && d.compare_with(ident))
+                .map(|d| MarkedString::String(d.markdown()))
+                .collect::<Vec<_>>()
+        }
+
         SemanticInfo::MethodCall(ident, Some(class_name))
-        | SemanticInfo::MethodDeclaration(ident, class_name) => {
+        | SemanticInfo::MethodDeclaration(ident, class_name)
+        | SemanticInfo::RefMethodResult(ident, Some(class_name)) => {
             let mut markups = vec![];
 
             let definitions = definitions.into_iter().collect::<Vec<_>>();
@@ -461,6 +488,7 @@ where
 
             markups
         }
+
         SemanticInfo::SuperCall(_ident, class_name) => {
             let mut markups = vec![];
 
@@ -492,7 +520,6 @@ where
             }
             markups
         }
-        _ => vec![],
     }
 }
 
@@ -522,136 +549,122 @@ where
     I: IntoIterator<Item = &'a D>,
     D: CodeSymbolDefinition + MarkupDefinition + LocationDefinition + 'a,
 {
-    fn get_class_methods_definitions<'a, I, D>(definitions: I, class_name: &str) -> Vec<&'a D>
-    where
-        I: IntoIterator<Item = &'a D>,
-        D: CodeSymbolDefinition + 'a,
-    {
-        let definitions = definitions.into_iter().collect::<Vec<_>>();
-        let all_classes = definitions
-            .iter()
-            .filter(|d| d.is_class())
-            .collect::<Vec<_>>();
-
-        let mut all_class_names: Vec<&str> = vec![class_name];
-        let mut class_names: Vec<&str> = vec![class_name];
-        while !class_names.is_empty() {
-            let classes_for_filter = class_names.clone();
-            class_names.clear();
-
-            // append super classes
-            let mut super_classes = all_classes
-                .iter()
-                .filter_map(|d| {
-                    if classes_for_filter.iter().any(|cff| d.compare_with(cff)) {
-                        return d.parent();
-                    }
-                    None
-                })
-                .collect::<Vec<_>>();
-            super_classes.dedup();
-            class_names.append(&mut super_classes.clone());
-            all_class_names.append(&mut super_classes);
-        }
-
-        let methods = definitions
-            .into_iter()
-            .filter(|d| d.is_method() || d.is_getter() || d.is_setter())
-            // find by class name
-            .filter(|d| {
-                d.container()
-                    .is_some_and(|c| all_class_names.iter().any(|cff| c.compare_with(cff)))
-            })
-            .collect::<Vec<_>>();
-        let mut inherited_methods: HashMap<String, (usize, &D)> = HashMap::new();
-        for d in methods {
-            if let Some(c) = d.container() {
-                let index = all_class_names
-                    .iter()
-                    .position(|&r| c.compare_with(r))
-                    .unwrap();
-                let method_name = format!(
-                    "{}{}{}",
-                    d.is_getter(),
-                    d.id(),
-                    d.parameters().unwrap_or_default()
-                );
-                match inherited_methods.get(&method_name) {
-                    Some(_v) => {
-                        if _v.0 > index {
-                            inherited_methods.insert(method_name, (index, d));
-                        }
-                    }
-                    None => {
-                        inherited_methods.insert(method_name, (index, d));
-                    }
-                }
-            }
-        }
-        inherited_methods.iter().map(|e| e.1.1).collect()
-    }
-
-    fn get_completion_items_from_definitions<'a, I, D>(definitions: I) -> Vec<CompletionItem>
-    where
-        I: IntoIterator<Item = &'a D>,
-        D: CodeSymbolDefinition + MarkupDefinition + 'a,
-    {
-        let mut def_groups: HashMap<&str, Vec<&D>> = HashMap::new();
-        for d in definitions.into_iter() {
-            def_groups.entry(d.id()).or_default().push(d);
-        }
-
-        def_groups
-            .into_iter()
-            .map(|def_group| {
-                let first_def = def_group.1.first().unwrap();
-                let completion_label = first_def.id();
-                let mut completion_item = CompletionItem::new_simple(
-                    completion_label.to_string(),
-                    first_def.parent().unwrap_or_default().to_string(),
-                );
-                if first_def.is_method() {
-                    completion_item.kind = Some(CompletionItemKind::METHOD);
-                } else if first_def.is_getter() || first_def.is_setter() {
-                    completion_item.kind = Some(CompletionItemKind::PROPERTY);
-                }
-                if completion_label.starts_with("_") {
-                    completion_item.sort_text = Some(format!("я{}", completion_label));
-                }
-                let markdown_strs: Vec<String> = def_group.1.iter().map(|d| d.markdown()).collect();
-                let markdown = MarkupContent {
-                    kind: MarkupKind::Markdown,
-                    value: markdown_strs.join("\n"),
-                };
-                completion_item.documentation = Some(Documentation::MarkupContent(markdown));
-                completion_item
-            })
-            .collect()
-    }
-
-    let base_info = match semantic_info {
-        SemanticInfo::Reference(info) => info.as_ref(),
-        _ => semantic_info,
-    };
-    match base_info {
-        SemanticInfo::ClassInstance(class_name) => {
+    match semantic_info {
+        SemanticInfo::RefClass(class_name)
+        | SemanticInfo::SuperCall(_, class_name)
+        | SemanticInfo::NewExpression(class_name) => {
             let methods_defs = get_class_methods_definitions(definitions, class_name);
-            let completions: Vec<CompletionItem> =
-                get_completion_items_from_definitions(methods_defs);
-            completions
-        }
-        SemanticInfo::SuperCall(_ident, class_name) => {
-            let methods_defs = get_class_methods_definitions(definitions, class_name);
-            let completions: Vec<CompletionItem> =
-                get_completion_items_from_definitions(methods_defs);
-            completions
-        }
-        SemanticInfo::NewExpression(ident) => {
-            let methods_defs = get_class_methods_definitions(definitions, ident);
             let completions: Vec<CompletionItem> =
                 get_completion_items_from_definitions(methods_defs);
             completions
         }
         _ => vec![],
     }
+}
+
+fn get_class_methods_definitions<'a, I, D>(definitions: I, class_name: &str) -> Vec<&'a D>
+where
+    I: IntoIterator<Item = &'a D>,
+    D: CodeSymbolDefinition + 'a,
+{
+    let definitions = definitions.into_iter().collect::<Vec<_>>();
+    let all_classes = definitions
+        .iter()
+        .filter(|d| d.is_class())
+        .collect::<Vec<_>>();
+
+    let mut all_class_names: Vec<&str> = vec![class_name];
+    let mut class_names: Vec<&str> = vec![class_name];
+    while !class_names.is_empty() {
+        let classes_for_filter = class_names.clone();
+        class_names.clear();
+
+        // append super classes
+        let mut super_classes = all_classes
+            .iter()
+            .filter_map(|d| {
+                if classes_for_filter.iter().any(|cff| d.compare_with(cff)) {
+                    return d.parent();
+                }
+                None
+            })
+            .collect::<Vec<_>>();
+        super_classes.dedup();
+        class_names.append(&mut super_classes.clone());
+        all_class_names.append(&mut super_classes);
+    }
+
+    let methods = definitions
+        .into_iter()
+        .filter(|d| d.is_method() || d.is_getter() || d.is_setter())
+        // find by class name
+        .filter(|d| {
+            d.container()
+                .is_some_and(|c| all_class_names.iter().any(|cff| c.compare_with(cff)))
+        })
+        .collect::<Vec<_>>();
+    let mut inherited_methods: HashMap<String, (usize, &D)> = HashMap::new();
+    for d in methods {
+        if let Some(c) = d.container() {
+            let index = all_class_names
+                .iter()
+                .position(|&r| c.compare_with(r))
+                .unwrap();
+            let method_name = format!(
+                "{}{}{}",
+                d.is_getter(),
+                d.id(),
+                d.parameters().unwrap_or_default()
+            );
+            match inherited_methods.get(&method_name) {
+                Some(_v) => {
+                    if _v.0 > index {
+                        inherited_methods.insert(method_name, (index, d));
+                    }
+                }
+                None => {
+                    inherited_methods.insert(method_name, (index, d));
+                }
+            }
+        }
+    }
+    inherited_methods.iter().map(|e| e.1.1).collect()
+}
+
+fn get_completion_items_from_definitions<'a, I, D>(definitions: I) -> Vec<CompletionItem>
+where
+    I: IntoIterator<Item = &'a D>,
+    D: CodeSymbolDefinition + MarkupDefinition + 'a,
+{
+    let mut def_groups: HashMap<&str, Vec<&D>> = HashMap::new();
+    for d in definitions.into_iter() {
+        def_groups.entry(d.id()).or_default().push(d);
+    }
+
+    def_groups
+        .into_iter()
+        .map(|def_group| {
+            let first_def = def_group.1.first().unwrap();
+            let completion_label = first_def.id();
+            let mut completion_item = CompletionItem::new_simple(
+                completion_label.to_string(),
+                first_def.parent().unwrap_or_default().to_string(),
+            );
+            if first_def.is_method() {
+                completion_item.kind = Some(CompletionItemKind::METHOD);
+            } else if first_def.is_getter() || first_def.is_setter() {
+                completion_item.kind = Some(CompletionItemKind::PROPERTY);
+            }
+            if completion_label.starts_with("_") {
+                completion_item.sort_text = Some(format!("я{}", completion_label));
+            }
+            let markdown_strs: Vec<String> = def_group.1.iter().map(|d| d.markdown()).collect();
+            let markdown = MarkupContent {
+                kind: MarkupKind::Markdown,
+                value: markdown_strs.join("\n"),
+            };
+            completion_item.documentation = Some(Documentation::MarkupContent(markdown));
+            completion_item
+        })
+        .collect()
 }
