@@ -147,7 +147,7 @@ pub enum SemanticInfo {
 
     // like new MyClass();
     // contains class name
-    NewExpression(Identifier),
+    NewExpression(Option<Identifier>),
 
     // like class A extends B
     // contains class name
@@ -188,7 +188,9 @@ where
             .map(|(uri, d)| d.id_location(uri.clone()))
             .collect::<Vec<_>>(),
 
-        SemanticInfo::NewExpression(ident) | SemanticInfo::ClassDeclaration(ident) => {
+        SemanticInfo::NewExpression(None) => locations,
+
+        SemanticInfo::NewExpression(Some(ident)) | SemanticInfo::ClassDeclaration(ident) => {
             let definitions = Vec::from_iter(definitions);
             let classes = definitions
                 .iter()
@@ -342,8 +344,8 @@ where
                 .collect::<Vec<_>>()
         }
 
-        SemanticInfo::NewExpression(ident) | SemanticInfo::ClassDeclaration(ident) => {
-            let call_info = SemanticInfo::NewExpression(ident.clone());
+        SemanticInfo::NewExpression(Some(ident)) | SemanticInfo::ClassDeclaration(ident) => {
+            let call_info = SemanticInfo::NewExpression(Some(ident.clone()));
             references
                 .into_iter()
                 .filter(|(info, _)| info.eq(&&call_info))
@@ -374,6 +376,7 @@ where
         }
 
         SemanticInfo::SuperCall(_, _) | SemanticInfo::ClassExtends(_) => vec![],
+        SemanticInfo::NewExpression(None) => vec![],
 
         SemanticInfo::RefFunctionResult(_)
         | SemanticInfo::RefClass(_)
@@ -395,7 +398,9 @@ where
             .map(|d| MarkedString::String(d.markdown()))
             .collect::<Vec<_>>(),
 
-        SemanticInfo::NewExpression(ident) | SemanticInfo::ClassDeclaration(ident) => {
+        SemanticInfo::NewExpression(None) => vec![],
+
+        SemanticInfo::NewExpression(Some(ident)) | SemanticInfo::ClassDeclaration(ident) => {
             let mut markups = vec![];
 
             let definitions = definitions.into_iter().collect::<Vec<_>>();
@@ -552,11 +557,15 @@ where
     match semantic_info {
         SemanticInfo::RefClass(class_name)
         | SemanticInfo::SuperCall(_, class_name)
-        | SemanticInfo::NewExpression(class_name) => {
+        | SemanticInfo::NewExpression(Some(class_name)) => {
             let methods_defs = get_class_methods_definitions(definitions, class_name);
             let completions: Vec<CompletionItem> =
                 get_completion_items_from_definitions(methods_defs);
             completions
+        }
+        SemanticInfo::NewExpression(None) => {
+            let classes = definitions.into_iter().filter(|d| d.is_class());
+            get_completion_items_from_definitions(classes)
         }
         _ => vec![],
     }
@@ -654,6 +663,8 @@ where
                 completion_item.kind = Some(CompletionItemKind::METHOD);
             } else if first_def.is_getter() || first_def.is_setter() {
                 completion_item.kind = Some(CompletionItemKind::PROPERTY);
+            } else if first_def.is_class() {
+                completion_item.kind = Some(CompletionItemKind::CLASS);
             }
             if completion_label.starts_with("_") {
                 completion_item.sort_text = Some(format!("я{}", completion_label));

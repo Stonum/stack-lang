@@ -63,7 +63,10 @@ pub(crate) fn get_reference(
         if let AnyMExpression::MIdentifierExpression(ident) = class {
             let name = ident.name().ok()?.text();
             let range = index.line_col_range(ident.range())?;
-            return Some((SemanticInfo::NewExpression(name), MReferenceLocation(range)));
+            return Some((
+                SemanticInfo::NewExpression(Some(name)),
+                MReferenceLocation(range),
+            ));
         }
     }
 
@@ -153,7 +156,7 @@ mod tests {
         assert_eq!(reference.len(), 1);
 
         let x = reference
-            .get(&SemanticInfo::NewExpression("x".to_string()))
+            .get(&SemanticInfo::NewExpression(Some("x".to_string())))
             .unwrap();
         assert_eq!(x[0].0, line_col_range(0, 12, 0, 13));
     }

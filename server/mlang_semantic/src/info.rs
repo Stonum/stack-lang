@@ -98,7 +98,7 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> 
                         return Some(SemanticInfo::MethodCall(ident, None));
                     }
                     MSyntaxKind::M_NEW_EXPRESSION => {
-                        return Some(SemanticInfo::NewExpression(ident));
+                        return Some(SemanticInfo::NewExpression(Some(ident)));
                     }
                     MSyntaxKind::M_CALL_EXPRESSION => {
                         return Some(SemanticInfo::FunctionCall(ident));
@@ -137,6 +137,10 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> 
             };
             return Some(info);
         }
+    }
+
+    if dbg!(token.kind()) == MSyntaxKind::NEW_KW {
+        return Some(SemanticInfo::NewExpression(None));
     }
     None
 }
@@ -317,7 +321,7 @@ fn find_identifier_from_right_side(node: SyntaxNode<MLanguage>) -> Option<Semant
 
     match info {
         SemanticInfo::FunctionCall(ident) => Some(SemanticInfo::RefFunctionResult(ident)),
-        SemanticInfo::NewExpression(ident) => Some(SemanticInfo::RefClass(ident)),
+        SemanticInfo::NewExpression(Some(ident)) => Some(SemanticInfo::RefClass(ident)),
         SemanticInfo::MethodCall(ident, class) => Some(SemanticInfo::RefMethodResult(ident, class)),
         _ => None,
     }
@@ -336,15 +340,16 @@ mod tests {
         let inputs = [
             ("var x = callFunction()", 15, SemanticInfo::FunctionCall("callFunction".to_owned())),
             ("var x = z.callMethod()", 15, SemanticInfo::MethodCall("callMethod".to_owned(), None)),
-            ("var x = new TodoClass()",15, SemanticInfo::NewExpression("TodoClass".to_owned())),
+            ("var x = new TodoClass()",15, SemanticInfo::NewExpression(Some("TodoClass".to_owned()))),
             ("var x = callFunction( z.callMethod() )", 30, SemanticInfo::MethodCall("callMethod".to_owned(), None)),
             ("var x = z.callMethod( callFunction() )", 30, SemanticInfo::FunctionCall("callFunction".to_owned())),
-            ("var x = z.callMethod( new TodoClass() )",30, SemanticInfo::NewExpression("TodoClass".to_owned())),
+            ("var x = z.callMethod( new TodoClass() )",30, SemanticInfo::NewExpression(Some("TodoClass".to_owned()))),
             ("#comment line
               callaFterComment()",30, SemanticInfo::FunctionCall("callaFterComment".to_owned())),
             ("class B extends A {}", 17, SemanticInfo::ClassExtends("A".to_owned())),
             ("class B extends A { constructor() { super() } }", 40, SemanticInfo::SuperCall("super".to_owned(), "A".to_owned())),
-            ("forall( iterator(arr, ind)) {}", 15, SemanticInfo::FunctionCall("iterator".to_owned()))
+            ("forall( iterator(arr, ind)) {}", 15, SemanticInfo::FunctionCall("iterator".to_owned())),
+            ("new ", 2, SemanticInfo::NewExpression(None)),
         ];
 
         for (input, offset, info) in inputs {

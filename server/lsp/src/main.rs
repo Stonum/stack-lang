@@ -53,7 +53,7 @@ impl LanguageServer for Backend {
             hover_provider: Some(HoverProviderCapability::Simple(true)),
             document_range_formatting_provider: Some(OneOf::Left(true)),
             completion_provider: Some(CompletionOptions {
-                trigger_characters: Some(vec![".".to_string()]),
+                trigger_characters: Some(vec![".".to_string(), " ".to_string()]),
                 ..Default::default()
             }),
             ..ServerCapabilities::default()
@@ -360,7 +360,8 @@ impl LanguageServer for Backend {
     async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
         let file_uri = params.text_document_position.text_document.uri;
         let pos = params.text_document_position.position;
-        trace!("completion {} {:?}", &file_uri, &pos);
+        let context = params.context;
+        trace!("completion {} {:?} {:?}", &file_uri, &pos, &context);
 
         let completion = self.workspace.completion(&file_uri, pos).await;
 
