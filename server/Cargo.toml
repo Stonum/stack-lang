@@ -43,7 +43,7 @@ walkdir= "2"
 
 log = "0.4.29"
 rust-ini = "0.21.3"
-thiserror = "2.0.17"
+thiserror = "2.0.18"
 
 biome_text_size = "0.5.8"
 biome_rowan = { version = "=0.5.8", features = ["serde"] }
