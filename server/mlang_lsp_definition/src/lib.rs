@@ -659,6 +659,7 @@ where
                 completion_label.to_string(),
                 first_def.parent().unwrap_or_default().to_string(),
             );
+
             if first_def.is_method() {
                 completion_item.kind = Some(CompletionItemKind::METHOD);
             } else if first_def.is_getter() || first_def.is_setter() {
@@ -666,13 +667,15 @@ where
             } else if first_def.is_class() {
                 completion_item.kind = Some(CompletionItemKind::CLASS);
             }
+
             if completion_label.starts_with("_") {
                 completion_item.sort_text = Some(format!("я{}", completion_label));
             }
+
             let markdown_strs: Vec<String> = def_group.1.iter().map(|d| d.markdown()).collect();
             let markdown = MarkupContent {
                 kind: MarkupKind::Markdown,
-                value: markdown_strs.join("\n"),
+                value: markdown_strs.join("  \n"),
             };
             completion_item.documentation = Some(Documentation::MarkupContent(markdown));
             completion_item

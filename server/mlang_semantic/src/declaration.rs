@@ -207,9 +207,29 @@ impl MarkupDefinition for AnyMDefinition {
                             .unwrap_or_default()
                     )
                 }
+
+                MClassMethodType::Getter | MClassMethodType::Setter
+                    if member.class.upgrade().is_some() =>
+                {
+                    let class = member.class.upgrade().unwrap();
+
+                    format!(
+                        "```\n{} {}\n```  \n{} {}{}  \n{}",
+                        class.keyword,
+                        class.id.name,
+                        member.keyword.as_deref().unwrap_or_default(),
+                        member.id.name,
+                        member.params,
+                        member
+                            .description
+                            .as_deref()
+                            .map(|s| self.escape_markdown_with_newlines(s))
+                            .unwrap_or_default()
+                    )
+                }
+
                 _ => format!(
-                    "```\n{} {}{}\n```  \n{}",
-                    member.keyword.as_deref().unwrap_or_default(),
+                    "```\n{}{}\n```  \n{}",
                     member.id.name,
                     member.params,
                     member
