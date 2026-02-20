@@ -33,6 +33,21 @@ pub fn identifier_for_offset(
     None
 }
 
+pub fn identifier_for_completion(
+    root: SyntaxNode<MLanguage>,
+    offset: TextSize,
+) -> Option<SemanticInfo> {
+    let range = TextRange::new(offset, offset);
+    if !root.text_range().contains_range(range) {
+        return None;
+    }
+    let node = root.covering_element(range);
+    if let Some(token) = node.as_token() {
+        return identifier_for_token(token);
+    }
+    None
+}
+
 fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> {
     if token.kind() == MSyntaxKind::IDENT {
         let ident = token.text_trimmed().trim().to_string();
@@ -139,7 +154,7 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> 
         }
     }
 
-    if dbg!(token.kind()) == MSyntaxKind::NEW_KW {
+    if token.kind() == MSyntaxKind::NEW_KW {
         return Some(SemanticInfo::NewExpression(None));
     }
     None

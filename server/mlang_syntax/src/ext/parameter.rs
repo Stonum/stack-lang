@@ -177,4 +177,16 @@ impl AnyParameter {
             },
         }
     }
+    pub fn is_rest(&self) -> bool {
+        match self {
+            AnyParameter::AnyMConstructorParameter(parameter) => match parameter {
+                AnyMConstructorParameter::AnyMFormalParameter(_) => false,
+                AnyMConstructorParameter::MRestParameter(_) => true,
+            },
+            AnyParameter::AnyMParameter(parameter) => match parameter {
+                AnyMParameter::AnyMFormalParameter(_) => false,
+                AnyMParameter::MRestParameter(_) => true,
+            },
+        }
+    }
 }
