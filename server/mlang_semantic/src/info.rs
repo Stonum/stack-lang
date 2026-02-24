@@ -139,6 +139,10 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> 
         }
     }
 
+    if token.kind() == MSyntaxKind::R_PAREN {
+        return find_identifier_for_r_paren(token);
+    }
+
     if dbg!(token.kind()) == MSyntaxKind::NEW_KW {
         return Some(SemanticInfo::NewExpression(None));
     }
@@ -283,8 +287,6 @@ fn find_variable_statement(
 }
 
 fn find_identifier_from_right_side(node: SyntaxNode<MLanguage>) -> Option<SemanticInfo> {
-    let mut info_token = None;
-
     if let Some(assignment) = MAssignmentExpression::cast(node.clone()) {
         let mut right = assignment.right().ok()?;
         while let AnyMExpression::MAssignmentExpression(assignment) = right {
@@ -293,6 +295,21 @@ fn find_identifier_from_right_side(node: SyntaxNode<MLanguage>) -> Option<Semant
         return find_identifier_from_right_side(right.into_syntax());
     }
 
+    let info_token = find_info_token(node);
+
+    let info_token = info_token?;
+    let info = identifier_for_token(&info_token)?;
+
+    match info {
+        SemanticInfo::FunctionCall(ident) => Some(SemanticInfo::RefFunctionResult(ident)),
+        SemanticInfo::NewExpression(Some(ident)) => Some(SemanticInfo::RefClass(ident)),
+        SemanticInfo::MethodCall(ident, class) => Some(SemanticInfo::RefMethodResult(ident, class)),
+        _ => None,
+    }
+}
+
+fn find_info_token(node: SyntaxNode<MLanguage>) -> Option<SyntaxToken<MLanguage>> {
+    let mut info_token = None;
     if let Some(call_expression) = MCallExpression::cast(node.clone()) {
         let callee = call_expression.callee().ok()?;
         info_token = match callee {
@@ -315,16 +332,20 @@ fn find_identifier_from_right_side(node: SyntaxNode<MLanguage>) -> Option<Semant
             info_token = Some(ident.value_token().ok()?);
         }
     }
+    info_token
+}
 
-    let info_token = info_token?;
-    let info = identifier_for_token(&info_token)?;
-
-    match info {
-        SemanticInfo::FunctionCall(ident) => Some(SemanticInfo::RefFunctionResult(ident)),
-        SemanticInfo::NewExpression(Some(ident)) => Some(SemanticInfo::RefClass(ident)),
-        SemanticInfo::MethodCall(ident, class) => Some(SemanticInfo::RefMethodResult(ident, class)),
-        _ => None,
+fn find_identifier_for_r_paren(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> {
+    for n in token.ancestors().take(3) {
+        match n.kind() {
+            MSyntaxKind::M_NEW_EXPRESSION | MSyntaxKind::M_CALL_EXPRESSION => {
+                let info_token = find_info_token(n)?;
+                return identifier_for_token(&info_token);
+            }
+            _ => {}
+        }
     }
+    None
 }
 
 #[cfg(test)]
@@ -401,6 +422,23 @@ mod tests {
             ("x = new Tst(), a = 3; x ", 23, SemanticInfo::RefClass("Tst".to_owned())),
             ("x = callFunction(); x ", 21, SemanticInfo::RefFunctionResult("callFunction".to_owned())),
             ("var y = z = x = new Tst(); x ", 28, SemanticInfo::RefClass("Tst".to_owned()))
+        ];
+
+        for (input, offset, info) in inputs {
+            let token = get_token_from_offset(input, offset);
+            let semantic_info =
+                identifier_for_token(&token).unwrap_or_else(|| panic!("failed for `{input}`"));
+            assert_eq!(info, semantic_info, "{input}");
+        }
+    }
+
+    #[test]
+    fn test_identifier_from_r_paren() {
+        #[rustfmt::skip]
+        let inputs = [
+            ("new Tst() ", 9, SemanticInfo::NewExpression(Some("Tst".to_owned()))),
+            ("functionName() ", 14, SemanticInfo::FunctionCall("functionName".to_owned())),
+            ("cl.m1() ", 7, SemanticInfo::MethodCall("m1".to_owned(), None)),
         ];
 
         for (input, offset, info) in inputs {
