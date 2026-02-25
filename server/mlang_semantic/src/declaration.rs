@@ -160,6 +160,21 @@ impl CodeSymbolDefinition for AnyMDefinition {
             _ => false,
         }
     }
+
+    fn compare_parameters_with(&self, count: usize) -> bool {
+        match self {
+            AnyMDefinition::MFunctionDefinition(f) => {
+                f.params.count == count || f.params.has_rest && f.params.count < count
+            }
+            AnyMDefinition::MClassMemberDefinition(m)
+                if m.m_type == MClassMethodType::Method
+                    || m.m_type == MClassMethodType::Constructor =>
+            {
+                m.params.count == count || m.params.has_rest && m.params.count < count
+            }
+            _ => true,
+        }
+    }
 }
 
 impl LocationDefinition for AnyMDefinition {
@@ -883,7 +898,7 @@ mod tests {
                 },
                 class: Weak::new(),
                 params: MParameters {
-                    text: String::from("()"),
+                    text: String::from(""),
                     count: 0,
                     has_rest: false
                 },
