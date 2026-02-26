@@ -8,8 +8,8 @@ use mlang_lsp_definition::{
     CodeSymbolDefinition, CodeSymbolInformation, LocationDefinition, MarkupDefinition, SymbolKind,
 };
 use mlang_syntax::{
-    AnyMClassMember, AnyMLiteralExpression, AnyMSwitchClause, MClassDeclaration, MFileSource,
-    MFunctionDeclaration, MLanguage, MReport, MReportSection, MSyntaxNode,
+    AnyMClassMember, AnyMLiteralExpression, AnyMParameter, AnyMSwitchClause, MClassDeclaration,
+    MFileSource, MFunctionDeclaration, MLanguage, MReport, MReportSection, MSyntaxNode,
 };
 
 use crate::SemanticModel;
@@ -114,10 +114,65 @@ impl CodeSymbolDefinition for AnyMDefinition {
 
     fn parameters(&self) -> Option<&str> {
         match self {
-            AnyMDefinition::MClassMemberDefinition(member) => Some(&member.params),
-            AnyMDefinition::MFunctionDefinition(funct) => Some(&funct.params),
-            AnyMDefinition::MHandlerDefinition(handler) => Some(&handler.params),
+            AnyMDefinition::MClassMemberDefinition(member) => Some(&member.params.text),
+            AnyMDefinition::MFunctionDefinition(funct) => Some(&funct.params.text),
+            AnyMDefinition::MHandlerDefinition(handler) => Some(&handler.params.text),
             _ => None,
+        }
+    }
+
+    fn can_be_overridden(&self, another: &Self) -> bool {
+        use AnyMDefinition::*;
+
+        let id_is_equal = self.compare_id_with(another.id());
+
+        match (self, another) {
+            (MFunctionDefinition(a), MFunctionDefinition(b)) => {
+                id_is_equal && a.params.can_be_overridden(&b.params)
+            }
+
+            (MClassDefinition(_), MClassDefinition(_)) => id_is_equal,
+            (MClassMemberDefinition(a), MClassMemberDefinition(b)) => match (a.m_type, b.m_type) {
+                (MClassMethodType::Getter, MClassMethodType::Getter) => id_is_equal,
+                (MClassMethodType::Setter, MClassMethodType::Setter) => id_is_equal,
+                (MClassMethodType::Constructor, MClassMethodType::Constructor) => {
+                    a.params.can_be_overridden(&b.params)
+                }
+                (MClassMethodType::Method, MClassMethodType::Method) => {
+                    id_is_equal && a.params.can_be_overridden(&b.params)
+                }
+                _ => false,
+            },
+
+            (MHandlerDefinition(a), MHandlerDefinition(b)) => {
+                id_is_equal && a.params.can_be_overridden(&b.params)
+            }
+            (MHandlerEventDefinition(a), MHandlerEventDefinition(b)) => {
+                let left: Option<AnyMDefinition> =
+                    a.handler.upgrade().map(AnyMDefinition::MHandlerDefinition);
+                let right: Option<AnyMDefinition> =
+                    b.handler.upgrade().map(AnyMDefinition::MHandlerDefinition);
+                match (left, right) {
+                    (Some(left), Some(right)) => left.can_be_overridden(&right) && id_is_equal,
+                    _ => false,
+                }
+            }
+            _ => false,
+        }
+    }
+
+    fn compare_parameters_with(&self, count: usize) -> bool {
+        match self {
+            AnyMDefinition::MFunctionDefinition(f) => {
+                f.params.count == count || f.params.has_rest && f.params.count < count
+            }
+            AnyMDefinition::MClassMemberDefinition(m)
+                if m.m_type == MClassMethodType::Method
+                    || m.m_type == MClassMethodType::Constructor =>
+            {
+                m.params.count == count || m.params.has_rest && m.params.count < count
+            }
+            _ => true,
         }
     }
 }
@@ -173,7 +228,7 @@ impl MarkupDefinition for AnyMDefinition {
                 "```\n{} {}{}\n```  \n{}",
                 function.keyword,
                 function.id.name,
-                function.params,
+                function.params.text,
                 function
                     .description
                     .as_deref()
@@ -199,7 +254,7 @@ impl MarkupDefinition for AnyMDefinition {
                         class.keyword,
                         class.id.name,
                         member.id.name,
-                        member.params,
+                        member.params.text,
                         member
                             .description
                             .as_deref()
@@ -207,11 +262,31 @@ impl MarkupDefinition for AnyMDefinition {
                             .unwrap_or_default()
                     )
                 }
+
+                MClassMethodType::Getter | MClassMethodType::Setter
+                    if member.class.upgrade().is_some() =>
+                {
+                    let class = member.class.upgrade().unwrap();
+
+                    format!(
+                        "```\n{} {}\n```  \n{} {}{}  \n{}",
+                        class.keyword,
+                        class.id.name,
+                        member.keyword.as_deref().unwrap_or_default(),
+                        member.id.name,
+                        member.params.text,
+                        member
+                            .description
+                            .as_deref()
+                            .map(|s| self.escape_markdown_with_newlines(s))
+                            .unwrap_or_default()
+                    )
+                }
+
                 _ => format!(
-                    "```\n{} {}{}\n```  \n{}",
-                    member.keyword.as_deref().unwrap_or_default(),
+                    "```\n{}{}\n```  \n{}",
                     member.id.name,
-                    member.params,
+                    member.params.text,
                     member
                         .description
                         .as_deref()
@@ -229,11 +304,24 @@ impl MarkupDefinition for AnyMDefinition {
     }
 }
 
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct MParameters {
+    text: String,
+    count: usize,
+    has_rest: bool,
+}
+
+impl MParameters {
+    fn can_be_overridden(&self, another: &Self) -> bool {
+        self.count == another.count && self.has_rest == another.has_rest
+    }
+}
+
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct MFunctionDefinition {
     keyword: String,
     id: DefinitionId,
-    params: String,
+    params: MParameters,
     description: Option<String>,
     range: LineColRange,
 }
@@ -253,7 +341,7 @@ pub struct MClassMemberDefinition {
     keyword: Option<String>,
     id: DefinitionId,
     class: Weak<MClassDefinition>,
-    params: String,
+    params: MParameters,
     description: Option<String>,
     range: LineColRange,
     m_type: MClassMethodType,
@@ -304,7 +392,7 @@ impl Eq for MReportSectionDefiniton {}
 pub struct MHandlerDefinition {
     keyword: String,
     id: DefinitionId,
-    params: String,
+    params: MParameters,
     events: Vec<Arc<MHandlerEventDefinition>>,
     range: LineColRange,
 }
@@ -322,8 +410,6 @@ impl PartialEq for MHandlerEventDefinition {
     }
 }
 impl Eq for MHandlerEventDefinition {}
-
-impl SemanticModel {}
 
 pub(crate) fn prepare_definitions(
     model: &mut SemanticModel,
@@ -394,7 +480,14 @@ fn function_definition(
         },
         params: func
             .parameters()
-            .map(|params| params.to_string().trim().to_string())
+            .map(|params| MParameters {
+                text: params.to_string().trim().to_string(),
+                count: params.items().into_iter().count(),
+                has_rest: params
+                    .items()
+                    .into_iter()
+                    .any(|par| matches!(par, Ok(AnyMParameter::MRestParameter(_)))),
+            })
             .unwrap_or_default(),
         description: format_description(
             func.syntax().first_leading_trivia(),
@@ -422,7 +515,14 @@ fn handler_definition(
         },
         params: func
             .parameters()
-            .map(|params| params.to_string().trim().to_string())
+            .map(|params| MParameters {
+                text: params.to_string().trim().to_string(),
+                count: params.items().into_iter().count(),
+                has_rest: params
+                    .items()
+                    .into_iter()
+                    .any(|par| matches!(par, Ok(AnyMParameter::MRestParameter(_)))),
+            })
             .unwrap_or_default(),
         range: func_range,
         events: vec![],
@@ -537,7 +637,14 @@ fn class_member_definition(
         class,
         params: member
             .params()
-            .map(|params| params.map(|p| p.to_string()).unwrap_or(String::from("()")))
+            .map(|params| {
+                params.map(|paramlist| MParameters {
+                    text: paramlist.to_string().trim().to_string(),
+                    count: paramlist.len(),
+                    has_rest: paramlist.iter().any(|par| par.is_ok_and(|p| p.is_rest())),
+                })
+            })
+            .unwrap_or_default()
             .unwrap_or_default(),
         description: format_description(
             member.leading_trivia(),
@@ -716,8 +823,11 @@ mod tests {
                     name: String::from("a"),
                     range: line_col_range(5, 9, 5, 10)
                 },
-
-                params: String::from("(x, y, z = 5, ...)"),
+                params: MParameters {
+                    text: String::from("(x, y, z = 5, ...)"),
+                    count: 4,
+                    has_rest: true
+                },
                 description: Some(String::from("\n# something else\n# about function a")),
                 range: line_col_range(5, 4, 7, 5),
             })
@@ -732,7 +842,11 @@ mod tests {
                     range: line_col_range(10, 9, 10, 10)
                 },
 
-                params: String::from("()"),
+                params: MParameters {
+                    text: String::from("()"),
+                    count: 0,
+                    has_rest: false
+                },
                 description: Some(String::from("\n# about function b")),
                 range: line_col_range(10, 4, 12, 5)
             })
@@ -763,7 +877,11 @@ mod tests {
                     range: line_col_range(15, 8, 15, 19)
                 },
                 class: Weak::new(),
-                params: String::from("()"),
+                params: MParameters {
+                    text: String::from("()"),
+                    count: 0,
+                    has_rest: false
+                },
                 description: None,
                 range: line_col_range(15, 8, 15, 24),
                 m_type: MClassMethodType::Constructor
@@ -779,7 +897,11 @@ mod tests {
                     range: line_col_range(18, 12, 18, 13)
                 },
                 class: Weak::new(),
-                params: String::from("()"),
+                params: MParameters {
+                    text: String::from(""),
+                    count: 0,
+                    has_rest: false
+                },
                 description: Some(String::from("\n# getter description")),
                 range: line_col_range(18, 8, 20, 9),
                 m_type: MClassMethodType::Getter
@@ -795,7 +917,11 @@ mod tests {
                     range: line_col_range(21, 8, 21, 12)
                 },
                 class: Weak::new(),
-                params: String::from("()"),
+                params: MParameters {
+                    text: String::from("()"),
+                    count: 0,
+                    has_rest: false
+                },
                 description: None,
                 range: line_col_range(21, 8, 23, 9),
                 m_type: MClassMethodType::Method

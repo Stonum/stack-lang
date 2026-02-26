@@ -31,7 +31,8 @@ macro_rules! assert_lex {
             assert_eq!(
                 tokens[idx].0,
                 mlang_syntax::MSyntaxKind::$kind,
-                "expected token kind {}, but found {:?}",
+                "for \n'{}'\n - expected token kind {}, but found {:?}",
+                $src,
                 stringify!($kind),
                 tokens[idx].0,
             );
@@ -39,7 +40,8 @@ macro_rules! assert_lex {
             assert_eq!(
                 tokens[idx].1.len(),
                 TextSize::from($len),
-                "expected token length of {}, but found {:?} for token {:?}",
+                "for \n'{}'\n - expected token length of {}, but found {:?} for token {:?}",
+                $src,
                 $len,
                 tokens[idx].1.len(),
                 tokens[idx].0,
@@ -53,7 +55,8 @@ macro_rules! assert_lex {
 
         if idx < tokens.len() {
             panic!(
-                "expected {} tokens but lexer returned {}, first unexpected token is '{:?}'",
+                "for \n'{}'\n - expected {} tokens but lexer returned {}, first unexpected token is '{:?}'",
+                $src,
                 idx,
                 tokens.len(),
                 tokens[idx].0
@@ -1416,5 +1419,10 @@ fn reports() {
         "103 Полезный отпуск",
         FF2:2,
         IDENT:33
+    }
+    assert_lex! {
+        "Отчет № 1",
+        FF2:2,
+        IDENT:16
     }
 }

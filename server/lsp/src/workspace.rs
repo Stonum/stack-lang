@@ -14,7 +14,7 @@ use mlang_lsp_definition::{
     StringLowerCase, get_completion, get_declaration, get_hover, get_reference, get_symbols,
 };
 use mlang_parser::parse;
-use mlang_semantic::{SemanticModel, identifier_for_offset, semantics};
+use mlang_semantic::{SemanticModel, identifier_for_completion, identifier_for_offset, semantics};
 use mlang_syntax::MFileSource;
 
 use tokio::runtime::Handle;
@@ -203,7 +203,7 @@ impl Workspace {
     pub async fn hover(&self, uri: &Url, position: Position) -> Option<Hover> {
         let semantic_info = self.identifier_from_position(uri, position).await?;
 
-        let core_markups = get_hover(&semantic_info, &self.core);
+        let core_markups = get_hover(&semantic_info, self.core.iter().map(|d| (uri.clone(), d)));
         if !core_markups.is_empty() {
             return Some(Hover {
                 contents: HoverContents::Array(core_markups),
@@ -215,12 +215,18 @@ impl Workspace {
             .mlang_semantics
             .iter()
             .filter_map(|r| match r.pair() {
-                (_path, Some(definitions)) => Some(Arc::clone(definitions)),
+                (path, Some(semantics)) => {
+                    let uri = Url::from_file_path(path).ok()?;
+                    let semantics = Arc::clone(semantics);
+                    Some((uri, semantics))
+                }
                 _ => None,
             })
             .collect::<Vec<_>>();
 
-        let definitions = semantics.iter().flat_map(|arc| arc.definitions());
+        let definitions = semantics
+            .iter()
+            .flat_map(|(uri, arc)| arc.definitions().map(|d| (uri.clone(), d)));
 
         let markups = get_hover(&semantic_info, definitions);
         Some(Hover {
@@ -305,7 +311,7 @@ impl Workspace {
                         &uri,
                         semantics
                             .definitions()
-                            .filter(|d| d.partial_compare_with(&query)),
+                            .filter(|d| d.partial_compare_id_with(&query)),
                     )
                 } else {
                     get_symbols(&uri, semantics.definitions())
@@ -357,17 +363,39 @@ impl Workspace {
     pub async fn completion(&self, uri: &Url, position: Position) -> Option<CompletionResponse> {
         // get position before trigger
         let position = Position::new(position.line, position.character.checked_sub(1)?);
-        let semantic_info = self.identifier_from_position(uri, position).await?;
+
+        let semantic_info = async {
+            let document = self.get_opened_document(uri).await?;
+            let syntax = document.syntax();
+            let text = syntax.text().to_string();
+
+            let line_index = LineIndex::new(&text);
+            let offset = line_index.offset(LineCol {
+                line: position.line,
+                col: position.character,
+            })?;
+
+            identifier_for_completion(syntax, offset)
+        }
+        .await?;
+
         let semantics = self
             .mlang_semantics
             .iter()
             .filter_map(|r| match r.pair() {
-                (_path, Some(definitions)) => Some(Arc::clone(definitions)),
+                (path, Some(semantics)) => {
+                    let uri = Url::from_file_path(path).ok()?;
+                    let semantics = Arc::clone(semantics);
+                    Some((uri, semantics))
+                }
                 _ => None,
             })
             .collect::<Vec<_>>();
 
-        let definitions = semantics.iter().flat_map(|arc| arc.definitions());
+        let definitions = semantics
+            .iter()
+            .flat_map(|(uri, arc)| arc.definitions().map(|d| (uri.clone(), d)));
+
         let completions: Vec<CompletionItem> = get_completion(&semantic_info, definitions);
         Some(CompletionResponse::Array(completions))
     }
