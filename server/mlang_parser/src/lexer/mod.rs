@@ -825,10 +825,7 @@ impl<'src> MLexer<'src> {
     #[inline]
     fn resolve_report_identifier(&mut self) -> MSyntaxKind {
         loop {
-            if self.next_byte_bounded().is_none()
-                || self.cur_ident_part(true).is_none()
-                || self.current_byte() == Some(b'#')
-            {
+            if self.next_byte_bounded().is_none() || self.current_byte() == Some(b'#') {
                 break;
             }
             if let Some(byte) = self.current_byte()
