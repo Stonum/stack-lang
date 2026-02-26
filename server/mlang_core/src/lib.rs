@@ -58,6 +58,10 @@ impl CodeSymbolDefinition for AnyMCoreDefinition {
     fn parameters(&self) -> Option<&str> {
         None
     }
+
+    fn compare_parameters_with(&self, _count: usize) -> bool {
+        true
+    }
 }
 
 impl MarkupDefinition for AnyMCoreDefinition {

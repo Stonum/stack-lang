@@ -203,7 +203,7 @@ impl Workspace {
     pub async fn hover(&self, uri: &Url, position: Position) -> Option<Hover> {
         let semantic_info = self.identifier_from_position(uri, position).await?;
 
-        let core_markups = get_hover(&semantic_info, &self.core);
+        let core_markups = get_hover(&semantic_info, self.core.iter().map(|d| (uri.clone(), d)));
         if !core_markups.is_empty() {
             return Some(Hover {
                 contents: HoverContents::Array(core_markups),
@@ -215,12 +215,18 @@ impl Workspace {
             .mlang_semantics
             .iter()
             .filter_map(|r| match r.pair() {
-                (_path, Some(definitions)) => Some(Arc::clone(definitions)),
+                (path, Some(semantics)) => {
+                    let uri = Url::from_file_path(path).ok()?;
+                    let semantics = Arc::clone(semantics);
+                    Some((uri, semantics))
+                }
                 _ => None,
             })
             .collect::<Vec<_>>();
 
-        let definitions = semantics.iter().flat_map(|arc| arc.definitions());
+        let definitions = semantics
+            .iter()
+            .flat_map(|(uri, arc)| arc.definitions().map(|d| (uri.clone(), d)));
 
         let markups = get_hover(&semantic_info, definitions);
         Some(Hover {
