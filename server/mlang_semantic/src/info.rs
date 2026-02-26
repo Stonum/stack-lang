@@ -487,9 +487,9 @@ mod tests {
     fn test_identifier_from_r_paren() {
         #[rustfmt::skip]
         let inputs = [
-            ("new Tst() ", 9, SemanticInfo::NewExpression(Some("Tst".to_owned()))),
-            ("functionName() ", 14, SemanticInfo::FunctionCall("functionName".to_owned())),
-            ("cl.m1() ", 7, SemanticInfo::MethodCall("m1".to_owned(), None)),
+            ("new Tst() ", 9, SemanticInfo::NewExpression(Some("Tst".to_owned()), 0)),
+            ("functionName() ", 14, SemanticInfo::FunctionCall("functionName".to_owned(), 0)),
+            ("cl.m1() ", 7, SemanticInfo::MethodCall("m1".to_owned(), 0, None)),
         ];
 
         for (input, offset, info) in inputs {
