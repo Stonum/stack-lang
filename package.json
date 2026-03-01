@@ -107,7 +107,7 @@
       "@typescript-eslint/eslint-plugin": "^8.46.0",
       "@typescript-eslint/parser": "^8.46.0",
       "@electron/rebuild": "4.0.1",
-      "eslint": "^9.39.1",
+      "eslint": "^10.0.2",
       "glob": "^11.0.3",
       "ts-loader": "^9.5.4",
       "typescript": "^5.9.3",
