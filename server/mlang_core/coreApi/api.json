@@ -3563,9 +3563,9 @@
         "file": "Kvplata/source/func_state.cpp",
         "line": 123
       },
-      "briefDescription": "",
+      "briefDescription": "Функция СвойствоУслуги( Номер, Операция )",
       "detailedDescription": {
-        "text": "строковые значения",
+        "text": "Функция используется для получения информации о названии услуги, либо номера записи папки верхнего уровня используется функция",
         "isMarkdown": false
       },
       "revision": "trunk"
@@ -5355,9 +5355,9 @@
         "file": "Kvplata/source/func_state.cpp",
         "line": 549
       },
-      "briefDescription": "",
+      "briefDescription": "Функция СвойствоОрганизации( Номер, Операция )",
       "detailedDescription": {
-        "text": "числовые значения",
+        "text": "Функция используется для того, чтобы получить наименование организации или другую информацию, имея при этом номер записи организации",
         "isMarkdown": false
       },
       "revision": "trunk"
