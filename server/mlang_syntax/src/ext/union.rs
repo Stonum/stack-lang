@@ -1,7 +1,7 @@
 use crate::{
     AnyMClassMember, AnyMFunction, AnyMFunctionBinding, AnyMFunctionBody, AnyMParameter,
     AnyMParameterList, AnyMStringLiteralExpression, MClassMemberName, MLanguage, MParameterList,
-    MParameters, MSyntaxKind, MSyntaxNode, MSyntaxToken,
+    MSyntaxKind, MSyntaxNode, MSyntaxToken,
 };
 use biome_rowan::{AstNode, SyntaxResult, syntax::SyntaxTrivia};
 // use mlang_factory::make::m_parameter_list;
@@ -100,10 +100,12 @@ impl AnyMFunction {
         }
     }
 
-    pub fn parameters(&self) -> SyntaxResult<MParameters> {
+    pub fn params(&self) -> SyntaxResult<AnyMParameterList> {
         match self {
-            AnyMFunction::MFunctionExpression(expr) => expr.parameters(),
-            AnyMFunction::MFunctionDeclaration(declaration) => declaration.parameters(),
+            AnyMFunction::MFunctionExpression(expr) => expr.parameters().map(|p| p.items().into()),
+            AnyMFunction::MFunctionDeclaration(declaration) => {
+                declaration.parameters().map(|p| p.items().into())
+            }
         }
     }
 

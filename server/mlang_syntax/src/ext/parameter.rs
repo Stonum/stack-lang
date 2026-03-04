@@ -1,6 +1,6 @@
 use crate::{
-    AnyMBinding, AnyMConstructorParameter, AnyMParameter, MConstructorParameterList, MLanguage,
-    MParameterList,
+    AnyMBinding, AnyMConstructorParameter, AnyMFormalParameter, AnyMParameter,
+    MConstructorParameterList, MLanguage, MParameterList,
 };
 use biome_rowan::{
     AstNode, AstSeparatedList, AstSeparatedListNodesIterator, SyntaxResult, declare_node_union,
@@ -177,6 +177,24 @@ impl AnyParameter {
             },
         }
     }
+
+    pub fn is_optional(&self) -> bool {
+        match self {
+            AnyParameter::AnyMConstructorParameter(parameter) => match parameter {
+                AnyMConstructorParameter::AnyMFormalParameter(
+                    AnyMFormalParameter::MFormalParameter(parameter),
+                ) => parameter.initializer().is_some(),
+                _ => false,
+            },
+            AnyParameter::AnyMParameter(parameter) => match parameter {
+                AnyMParameter::AnyMFormalParameter(AnyMFormalParameter::MFormalParameter(
+                    parameter,
+                )) => parameter.initializer().is_some(),
+                _ => false,
+            },
+        }
+    }
+
     pub fn is_rest(&self) -> bool {
         match self {
             AnyParameter::AnyMConstructorParameter(parameter) => match parameter {

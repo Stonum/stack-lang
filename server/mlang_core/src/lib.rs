@@ -59,7 +59,11 @@ impl CodeSymbolDefinition for AnyMCoreDefinition {
         None
     }
 
-    fn compare_parameters_with(&self, _count: usize) -> bool {
+    fn call_priority(&self, _another: &Self, _count: usize) -> core::cmp::Ordering {
+        core::cmp::Ordering::Equal
+    }
+
+    fn can_be_called(&self, _count: usize) -> bool {
         true
     }
 }

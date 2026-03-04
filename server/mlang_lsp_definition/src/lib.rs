@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use line_index::LineColRange;
 use std::{collections::HashMap, ops::Not};
 use tower_lsp::lsp_types::{
@@ -46,7 +47,9 @@ pub trait CodeSymbolDefinition: Sized + PartialEq {
         self.parameters() == another.parameters()
     }
 
-    fn compare_parameters_with(&self, count: usize) -> bool;
+    fn can_be_called(&self, count: usize) -> bool;
+
+    fn call_priority(&self, another: &Self, count: usize) -> core::cmp::Ordering;
 
     fn compare_id_with(&self, another: &str) -> bool {
         unicase::eq(self.id(), another)
@@ -201,7 +204,7 @@ where
         | SemanticInfo::RefFunctionResult(ident, params) => definitions
             .into_iter()
             .filter(|(_, d)| {
-                d.is_function() && d.compare_id_with(ident) && d.compare_parameters_with(*params)
+                d.is_function() && d.compare_id_with(ident) && d.can_be_called(*params)
             })
             .map(|(uri, d)| d.id_location(uri.clone()))
             .collect::<Vec<_>>(),
@@ -247,7 +250,7 @@ where
                 let mut constructors = definitions
                     .iter()
                     .filter_map(|(uri, d)| {
-                        if !d.is_constructor() || !d.compare_parameters_with(*params) {
+                        if !d.is_constructor() || !d.can_be_called(*params) {
                             return None;
                         }
                         let container = d.container()?;
@@ -283,9 +286,7 @@ where
         SemanticInfo::MethodCall(ident, params, None)
         | SemanticInfo::RefMethodResult(ident, params, None) => definitions
             .into_iter()
-            .filter(|(_, d)| {
-                d.is_method() && d.compare_id_with(ident) && d.compare_parameters_with(*params)
-            })
+            .filter(|(_, d)| d.is_method() && d.compare_id_with(ident) && d.can_be_called(*params))
             .map(|(uri, d)| d.id_location(uri.clone()))
             .collect::<Vec<_>>(),
 
@@ -306,7 +307,7 @@ where
             members
                 .into_iter()
                 .filter(|(_, d)| {
-                    d.is_method() && d.compare_id_with(ident) && d.compare_parameters_with(*params)
+                    d.is_method() && d.compare_id_with(ident) && d.can_be_called(*params)
                 })
                 .map(|(uri, d)| d.id_location(uri.clone()))
                 .collect::<Vec<_>>()
@@ -324,7 +325,7 @@ where
                 let mut constructors = definitions
                     .iter()
                     .filter_map(|(uri, d)| {
-                        if !d.is_constructor() || !d.compare_parameters_with(*params) {
+                        if !d.is_constructor() || !d.can_be_called(*params) {
                             return None;
                         }
                         let container = d.container()?;
@@ -410,7 +411,7 @@ where
     I: IntoIterator<Item = (Url, &'a D)>,
     D: CodeSymbolDefinition + MarkupDefinition + 'a,
 {
-    match semantic_info {
+    match dbg!(semantic_info) {
         SemanticInfo::FunctionDeclaration(ident) => definitions
             .into_iter()
             .map(|(_, d)| d)
@@ -419,21 +420,12 @@ where
             .collect::<Vec<_>>(),
 
         SemanticInfo::FunctionCall(ident, params)
-        | SemanticInfo::RefFunctionResult(ident, params) => {
-            let mut functions = definitions
-                .into_iter()
-                .map(|(_, d)| d)
-                .filter(|d| d.is_function() && d.compare_id_with(ident))
-                .map(|d| {
-                    (
-                        MarkedString::String(d.markdown()),
-                        d.compare_parameters_with(*params), // <-- sort priority
-                    )
-                })
-                .collect::<Vec<_>>();
-            functions.sort_by(|a, b| a.1.cmp(&b.1).reverse());
-            functions.into_iter().map(|(f, _)| f).collect::<Vec<_>>()
-        }
+        | SemanticInfo::RefFunctionResult(ident, params) => definitions
+            .into_iter()
+            .filter(|(_, d)| d.is_function() && d.compare_id_with(ident))
+            .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
+            .map(|(_, d)| MarkedString::String(d.markdown()))
+            .collect::<Vec<_>>(),
 
         SemanticInfo::ClassDeclaration(ident) => {
             let mut markups = vec![];
@@ -484,26 +476,14 @@ where
             for c in classes {
                 markups.push(MarkedString::String(c.markdown()));
 
-                let mut constructors = definitions
+                let constructors = definitions
                     .iter()
-                    .filter_map(|(_, d)| {
-                        if !d.is_constructor() {
-                            return None;
-                        }
-                        let container = d.container()?;
-                        if &&container != c {
-                            return None;
-                        }
-
-                        Some((
-                            MarkedString::String(d.markdown()),
-                            d.compare_parameters_with(*params), // <-- sort priority
-                        ))
-                    })
+                    .filter(|(_, d)| d.is_constructor() && d.container().as_ref() == Some(c))
+                    .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
+                    .map(|(_, d)| MarkedString::String(d.markdown()))
                     .collect::<Vec<_>>();
 
-                constructors.sort_by(|a, b| a.1.cmp(&b.1).reverse());
-                markups.extend(constructors.into_iter().map(|(c, _)| c));
+                markups.extend(constructors);
             }
 
             markups
@@ -517,21 +497,12 @@ where
             .collect::<Vec<_>>(),
 
         SemanticInfo::MethodCall(ident, params, None)
-        | SemanticInfo::RefMethodResult(ident, params, None) => {
-            let mut methods = definitions
-                .into_iter()
-                .map(|(_, d)| d)
-                .filter(|d| d.is_method() && d.compare_id_with(ident))
-                .map(|d| {
-                    (
-                        MarkedString::String(d.markdown()),
-                        d.compare_parameters_with(*params), // <-- sort priority
-                    )
-                })
-                .collect::<Vec<_>>();
-            methods.sort_by(|a, b| a.1.cmp(&b.1).reverse());
-            methods.into_iter().map(|(m, _)| m).collect::<Vec<_>>()
-        }
+        | SemanticInfo::RefMethodResult(ident, params, None) => definitions
+            .into_iter()
+            .filter(|(_, d)| d.is_method() && d.compare_id_with(ident))
+            .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
+            .map(|(_, d)| MarkedString::String(d.markdown()))
+            .collect::<Vec<_>>(),
 
         SemanticInfo::MethodDeclaration(ident, class_name) => {
             let members = get_class_members_definition(definitions, class_name);
@@ -547,19 +518,12 @@ where
         | SemanticInfo::RefMethodResult(ident, params, Some(class_name)) => {
             let members = get_class_members_definition(definitions, class_name);
 
-            let mut methods = members
+            members
                 .into_iter()
                 .filter(|(_, d)| d.is_method() && d.compare_id_with(ident))
-                .map(|(_, d)| {
-                    (
-                        MarkedString::String(d.markdown()),
-                        d.compare_parameters_with(*params), // <-- sort priority
-                    )
-                })
-                .collect::<Vec<_>>();
-
-            methods.sort_by(|a, b| a.1.cmp(&b.1).reverse());
-            methods.into_iter().map(|(m, _)| m).collect::<Vec<_>>()
+                .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
+                .map(|(_, d)| MarkedString::String(d.markdown()))
+                .collect::<Vec<_>>()
         }
 
         SemanticInfo::SuperCall(_ident, params, class_name) => {
@@ -575,26 +539,14 @@ where
             for c in classes {
                 markups.push(MarkedString::String(c.markdown()));
 
-                let mut constructors = definitions
+                let constructors = definitions
                     .iter()
-                    .filter_map(|(_, d)| {
-                        if !d.is_constructor() {
-                            return None;
-                        }
-                        let container = d.container()?;
-                        if &&container != c {
-                            return None;
-                        }
-
-                        Some((
-                            MarkedString::String(d.markdown()),
-                            d.compare_parameters_with(*params), // <-- sort priority
-                        ))
-                    })
+                    .filter(|(_, d)| d.is_constructor() && d.container().as_ref() == Some(c))
+                    .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
+                    .map(|(_, d)| MarkedString::String(d.markdown()))
                     .collect::<Vec<_>>();
 
-                constructors.sort_by(|a, b| a.1.cmp(&b.1).reverse());
-                markups.extend(constructors.into_iter().map(|(c, _)| c));
+                markups.extend(constructors);
             }
             markups
         }

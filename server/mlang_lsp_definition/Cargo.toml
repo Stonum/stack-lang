@@ -8,3 +8,4 @@ line_index = {workspace = true }
 
 tower-lsp ={ workspace = true }
 unicase = { workspace = true }
+itertools ={ workspace = true }

@@ -183,7 +183,7 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> 
         // zero args for new expression without class name
         return Some(SemanticInfo::NewExpression(None, 0));
     }
-  
+
     if token.kind() == MSyntaxKind::R_PAREN {
         return find_identifier_for_r_paren(token);
     }
@@ -350,7 +350,7 @@ fn find_identifier_from_right_side(node: SyntaxNode<MLanguage>) -> Option<Semant
             Some(SemanticInfo::RefMethodResult(ident, params, class))
         }
         _ => None,
-   }
+    }
 }
 
 fn find_info_token(node: SyntaxNode<MLanguage>) -> Option<SyntaxToken<MLanguage>> {

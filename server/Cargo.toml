@@ -40,6 +40,7 @@ env_logger = "0.11.8"
 dashmap = "6.1.0"
 unicase = "2.8.1"
 walkdir= "2"
+itertools = "0.14.0"
 
 log = "0.4.29"
 rust-ini = "0.21.3"

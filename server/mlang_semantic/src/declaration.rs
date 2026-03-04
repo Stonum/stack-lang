@@ -8,8 +8,9 @@ use mlang_lsp_definition::{
     CodeSymbolDefinition, CodeSymbolInformation, LocationDefinition, MarkupDefinition, SymbolKind,
 };
 use mlang_syntax::{
-    AnyMClassMember, AnyMLiteralExpression, AnyMParameter, AnyMSwitchClause, MClassDeclaration,
-    MFileSource, MFunctionDeclaration, MLanguage, MReport, MReportSection, MSyntaxNode,
+    AnyMClassMember, AnyMFunction, AnyMLiteralExpression, AnyMParameterList, AnyMSwitchClause,
+    MClassDeclaration, MFileSource, MFunctionDeclaration, MLanguage, MReport, MReportSection,
+    MSyntaxNode,
 };
 
 use crate::SemanticModel;
@@ -161,18 +162,39 @@ impl CodeSymbolDefinition for AnyMDefinition {
         }
     }
 
-    fn compare_parameters_with(&self, count: usize) -> bool {
+    fn can_be_called(&self, count: usize) -> bool {
         match self {
-            AnyMDefinition::MFunctionDefinition(f) => {
-                f.params.count == count || f.params.has_rest && f.params.count < count
-            }
+            AnyMDefinition::MFunctionDefinition(f) => f.params.can_be_called(count),
             AnyMDefinition::MClassMemberDefinition(m)
                 if m.m_type == MClassMethodType::Method
                     || m.m_type == MClassMethodType::Constructor =>
             {
-                m.params.count == count || m.params.has_rest && m.params.count < count
+                m.params.can_be_called(count)
             }
             _ => true,
+        }
+    }
+
+    fn call_priority(&self, another: &Self, count: usize) -> core::cmp::Ordering {
+        use AnyMDefinition::*;
+
+        match (self, another) {
+            (MFunctionDefinition(a), MFunctionDefinition(b)) => {
+                a.params.call_priority(&b.params, count)
+            }
+            (MClassMemberDefinition(a), MClassMemberDefinition(b)) => match (a.m_type, b.m_type) {
+                (MClassMethodType::Constructor, MClassMethodType::Constructor) => {
+                    a.params.call_priority(&b.params, count)
+                }
+                (MClassMethodType::Method, MClassMethodType::Method) => {
+                    a.params.call_priority(&b.params, count)
+                }
+                _ => core::cmp::Ordering::Less,
+            },
+            (MHandlerDefinition(a), MHandlerDefinition(b)) => {
+                a.params.call_priority(&b.params, count)
+            }
+            _ => core::cmp::Ordering::Less,
         }
     }
 }
@@ -307,13 +329,72 @@ impl MarkupDefinition for AnyMDefinition {
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct MParameters {
     text: String,
-    count: usize,
+    total_count: usize,
+    optional_count: usize,
     has_rest: bool,
 }
 
 impl MParameters {
-    fn can_be_overridden(&self, another: &Self) -> bool {
-        self.count == another.count && self.has_rest == another.has_rest
+    pub fn can_be_overridden(&self, another: &Self) -> bool {
+        self.total_count == another.total_count && self.has_rest == another.has_rest
+    }
+
+    pub fn can_be_called(&self, count: usize) -> bool {
+        let strict_count = self.total_count - self.optional_count - self.has_rest as usize;
+
+        // (a, b, c) && count < 3
+        if count < strict_count {
+            return false;
+        }
+
+        // (a, ...) && count >= 1
+        if self.has_rest {
+            return true;
+        }
+
+        // (a, b, c, d = 1) && count == 3 || count == 4
+        count - strict_count <= self.optional_count
+    }
+
+    pub fn call_priority(&self, another: &Self, count: usize) -> core::cmp::Ordering {
+        // first check: if we can call both functions
+        if !self.can_be_called(count) || !another.can_be_called(count) {
+            return self
+                .can_be_called(count)
+                .cmp(&another.can_be_called(count))
+                .reverse();
+        }
+
+        let possible_count_self = match self.has_rest {
+            true => usize::MAX,
+            false => self.total_count,
+        };
+        let possible_count_another = match another.has_rest {
+            true => usize::MAX,
+            false => another.total_count,
+        };
+
+        // let's compare the difference between the possible number of parameters and the incoming one
+        // the smaller the difference, the higher the priority
+        (possible_count_self - count).cmp(&(possible_count_another - count))
+    }
+}
+
+impl From<AnyMParameterList> for MParameters {
+    fn from(value: AnyMParameterList) -> Self {
+        let (has_rest, optional_count) = value.iter().fold((false, 0), |(has_rest, count), par| {
+            let is_rest = par.as_ref().is_ok_and(|p| p.is_rest());
+            let is_optional = par.as_ref().is_ok_and(|p| p.is_optional());
+
+            (has_rest || is_rest, count + if is_optional { 1 } else { 0 })
+        });
+
+        MParameters {
+            text: value.to_string().trim().to_string(),
+            total_count: value.len(),
+            optional_count,
+            has_rest,
+        }
     }
 }
 
@@ -472,27 +553,24 @@ fn function_definition(
     let func_id_range = index.line_col_range(func_id.range())?;
     let func_range = index.line_col_range(func.range())?;
 
+    let description = format_description(
+        func.syntax().first_leading_trivia(),
+        func.doc_string().map(|s| s.text()),
+    );
+
+    let params = AnyMFunction::MFunctionDeclaration(func)
+        .params()
+        .map(Into::into)
+        .unwrap_or_default();
+
     let func = MFunctionDefinition {
         keyword: func_token.text_trimmed().to_string(),
         id: DefinitionId {
             name: func_id.text(),
             range: func_id_range,
         },
-        params: func
-            .parameters()
-            .map(|params| MParameters {
-                text: params.to_string().trim().to_string(),
-                count: params.items().into_iter().count(),
-                has_rest: params
-                    .items()
-                    .into_iter()
-                    .any(|par| matches!(par, Ok(AnyMParameter::MRestParameter(_)))),
-            })
-            .unwrap_or_default(),
-        description: format_description(
-            func.syntax().first_leading_trivia(),
-            func.doc_string().map(|s| s.text()),
-        ),
+        params,
+        description,
         range: func_range,
     };
     Some(func)
@@ -507,28 +585,24 @@ fn handler_definition(
     let func_id_range = index.line_col_range(func_id.range())?;
     let func_range = index.line_col_range(func.range())?;
 
+    let func = AnyMFunction::MFunctionDeclaration(func);
+
+    let params = func.params().map(Into::into).unwrap_or_default();
+
     let hdlr = Arc::new(MHandlerDefinition {
         keyword: func_token.text_trimmed().to_string(),
         id: DefinitionId {
             name: func_id.text(),
             range: func_id_range,
         },
-        params: func
-            .parameters()
-            .map(|params| MParameters {
-                text: params.to_string().trim().to_string(),
-                count: params.items().into_iter().count(),
-                has_rest: params
-                    .items()
-                    .into_iter()
-                    .any(|par| matches!(par, Ok(AnyMParameter::MRestParameter(_)))),
-            })
-            .unwrap_or_default(),
+        params,
         range: func_range,
         events: vec![],
     });
 
-    if let Ok(body) = func.body() {
+    if let AnyMFunction::MFunctionDeclaration(func) = func
+        && let Ok(body) = func.body()
+    {
         let events = body
             .statements()
             .iter()
@@ -637,13 +711,7 @@ fn class_member_definition(
         class,
         params: member
             .params()
-            .map(|params| {
-                params.map(|paramlist| MParameters {
-                    text: paramlist.to_string().trim().to_string(),
-                    count: paramlist.len(),
-                    has_rest: paramlist.iter().any(|par| par.is_ok_and(|p| p.is_rest())),
-                })
-            })
+            .map(|params| params.map(Into::into))
             .unwrap_or_default()
             .unwrap_or_default(),
         description: format_description(
@@ -825,7 +893,8 @@ mod tests {
                 },
                 params: MParameters {
                     text: String::from("(x, y, z = 5, ...)"),
-                    count: 4,
+                    total_count: 4,
+                    optional_count: 1,
                     has_rest: true
                 },
                 description: Some(String::from("\n# something else\n# about function a")),
@@ -844,7 +913,8 @@ mod tests {
 
                 params: MParameters {
                     text: String::from("()"),
-                    count: 0,
+                    total_count: 0,
+                    optional_count: 0,
                     has_rest: false
                 },
                 description: Some(String::from("\n# about function b")),
@@ -879,7 +949,8 @@ mod tests {
                 class: Weak::new(),
                 params: MParameters {
                     text: String::from("()"),
-                    count: 0,
+                    total_count: 0,
+                    optional_count: 0,
                     has_rest: false
                 },
                 description: None,
@@ -899,7 +970,8 @@ mod tests {
                 class: Weak::new(),
                 params: MParameters {
                     text: String::from(""),
-                    count: 0,
+                    total_count: 0,
+                    optional_count: 0,
                     has_rest: false
                 },
                 description: Some(String::from("\n# getter description")),
@@ -919,7 +991,8 @@ mod tests {
                 class: Weak::new(),
                 params: MParameters {
                     text: String::from("()"),
-                    count: 0,
+                    total_count: 0,
+                    optional_count: 0,
                     has_rest: false
                 },
                 description: None,
@@ -927,6 +1000,24 @@ mod tests {
                 m_type: MClassMethodType::Method
             })
         );
+    }
+
+    #[test]
+    fn test_definition_arguments() {
+        let text = r#"
+    func a(x, y, z = 5, ...) {
+        return b;
+    }
+    "#;
+        let file_source = MFileSource::module();
+        let parsed = parse(text, file_source);
+
+        let semantic_model = semantics(text, parsed.syntax(), file_source);
+        let definitions = semantic_model.definitions();
+
+        dbg!(&definitions);
+
+        assert_ne!(definitions.len(), 1);
     }
 
     #[test]
@@ -994,5 +1085,79 @@ mod tests {
                 range: line_col_range(15, 0, 18, 1),
             }),
         );
+    }
+
+    #[test]
+    fn test_called_parameters() {
+        let params = MParameters {
+            text: "(a, b = 1, ...)".into(),
+            total_count: 3,
+            optional_count: 1,
+            has_rest: true,
+        };
+        assert!(params.can_be_called(1));
+        assert!(params.can_be_called(2));
+        assert!(params.can_be_called(3));
+        assert!(params.can_be_called(99));
+
+        let params = MParameters {
+            text: "(a, b, c".into(),
+            total_count: 3,
+            optional_count: 0,
+            has_rest: false,
+        };
+        assert!(params.can_be_called(3));
+        assert!(!params.can_be_called(1));
+        assert!(!params.can_be_called(99));
+    }
+
+    #[test]
+    fn test_call_priority() {
+        let mut functions = [
+            MParameters {
+                text: "(a, ...)".into(),
+                total_count: 2,
+                optional_count: 0,
+                has_rest: true,
+            },
+            MParameters {
+                text: "(a, b = 1)".into(),
+                total_count: 2,
+                optional_count: 1,
+                has_rest: false,
+            },
+            MParameters {
+                text: "(a, b = 1, c = 2)".into(),
+                total_count: 3,
+                optional_count: 2,
+                has_rest: false,
+            },
+            MParameters {
+                text: "(a, b = 1, c = 2, d = 3)".into(),
+                total_count: 4,
+                optional_count: 3,
+                has_rest: false,
+            },
+        ];
+
+        // 1 args
+        functions.sort_by(|a, b| a.call_priority(b, 1));
+        assert_eq!(functions[0].text, "(a, b = 1)");
+
+        // 2 args
+        functions.sort_by(|a, b| a.call_priority(b, 2));
+        assert_eq!(functions[0].text, "(a, b = 1)");
+
+        // 3 args
+        functions.sort_by(|a, b| a.call_priority(b, 3));
+        assert_eq!(functions[0].text, "(a, b = 1, c = 2)");
+
+        // 4 args
+        functions.sort_by(|a, b| a.call_priority(b, 4));
+        assert_eq!(functions[0].text, "(a, b = 1, c = 2, d = 3)");
+
+        // 5 args
+        functions.sort_by(|a, b| a.call_priority(b, 5));
+        assert_eq!(functions[0].text, "(a, ...)");
     }
 }
