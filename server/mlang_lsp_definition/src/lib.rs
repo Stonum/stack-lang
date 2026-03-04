@@ -137,7 +137,7 @@ pub type Identifier = String;
 pub type Class = String;
 pub type ParametersCount = usize;
 
-#[derive(Debug, Eq, PartialEq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum SemanticInfo {
     // function zzzzz();
     // contains function name
@@ -353,7 +353,7 @@ where
             .into_iter()
             .filter(|(info, _)| {
                 if let SemanticInfo::FunctionCall(func, _) = info {
-                    return func.eq(ident);
+                    return unicase::eq(func, ident);
                 }
                 false
             })
@@ -364,7 +364,7 @@ where
             .into_iter()
             .filter(|(info, _)| {
                 if let SemanticInfo::NewExpression(Some(class), _) = info {
-                    return class.eq(ident);
+                    return unicase::eq(class, ident);
                 }
                 false
             })
@@ -375,10 +375,10 @@ where
             .into_iter()
             .filter(|(info, _)| {
                 if let SemanticInfo::MethodCall(method, _, Some(class)) = info {
-                    return method.eq(ident) && class.eq(class_name);
+                    return unicase::eq(method, ident) && unicase::eq(class, class_name);
                 }
                 if let SemanticInfo::MethodCall(method, _, None) = info {
-                    return method.eq(ident);
+                    return unicase::eq(method, ident);
                 }
                 false
             })
