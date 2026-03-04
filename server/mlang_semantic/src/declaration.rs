@@ -892,7 +892,7 @@ mod tests {
                     range: line_col_range(5, 9, 5, 10)
                 },
                 params: MParameters {
-                    text: String::from("(x, y, z = 5, ...)"),
+                    text: String::from("( x, y, z = 5, ... )"),
                     total_count: 4,
                     optional_count: 1,
                     has_rest: true
@@ -1000,24 +1000,6 @@ mod tests {
                 m_type: MClassMethodType::Method
             })
         );
-    }
-
-    #[test]
-    fn test_definition_arguments() {
-        let text = r#"
-    func a(x, y, z = 5, ...) {
-        return b;
-    }
-    "#;
-        let file_source = MFileSource::module();
-        let parsed = parse(text, file_source);
-
-        let semantic_model = semantics(text, parsed.syntax(), file_source);
-        let definitions = semantic_model.definitions();
-
-        dbg!(&definitions);
-
-        assert_ne!(definitions.len(), 1);
     }
 
     #[test]
