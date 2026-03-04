@@ -249,17 +249,12 @@ where
             for (uri, class) in classes {
                 let mut constructors = definitions
                     .iter()
-                    .filter_map(|(uri, d)| {
-                        if !d.is_constructor() || !d.can_be_called(*params) {
-                            return None;
-                        }
-                        let container = d.container()?;
-                        if &&container != class {
-                            return None;
-                        }
-
-                        Some(d.id_location(uri.clone()))
+                    .filter(|(_, d)| {
+                        d.is_constructor()
+                            && d.can_be_called(*params)
+                            && d.container().as_ref() == Some(class)
                     })
+                    .map(|(uri, d)| d.id_location(uri.clone()))
                     .collect::<Vec<_>>();
 
                 if !constructors.is_empty() {
@@ -324,17 +319,12 @@ where
             for (uri, class) in classes {
                 let mut constructors = definitions
                     .iter()
-                    .filter_map(|(uri, d)| {
-                        if !d.is_constructor() || !d.can_be_called(*params) {
-                            return None;
-                        }
-                        let container = d.container()?;
-                        if &&container != class {
-                            return None;
-                        }
-
-                        Some(d.id_location(uri.clone()))
+                    .filter(|(_, d)| {
+                        d.is_constructor()
+                            && d.can_be_called(*params)
+                            && d.container().as_ref() == Some(class)
                     })
+                    .map(|(uri, d)| d.id_location(uri.clone()))
                     .collect::<Vec<_>>();
 
                 if !constructors.is_empty() {
