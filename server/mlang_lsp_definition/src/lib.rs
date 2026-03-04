@@ -411,7 +411,7 @@ where
     I: IntoIterator<Item = (Url, &'a D)>,
     D: CodeSymbolDefinition + MarkupDefinition + 'a,
 {
-    match dbg!(semantic_info) {
+    match semantic_info {
         SemanticInfo::FunctionDeclaration(ident) => definitions
             .into_iter()
             .map(|(_, d)| d)
