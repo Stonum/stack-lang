@@ -272,7 +272,7 @@ impl MarkupDefinition for AnyMDefinition {
                     let class = member.class.upgrade().unwrap();
 
                     format!(
-                        "```\n{} {}\n```  \n{}{}  \n{}",
+                        "```\n{} {}\n\n\t{}{}\n```  \n{}",
                         class.keyword,
                         class.id.name,
                         member.id.name,
@@ -291,7 +291,7 @@ impl MarkupDefinition for AnyMDefinition {
                     let class = member.class.upgrade().unwrap();
 
                     format!(
-                        "```\n{} {}\n```  \n{} {}{}  \n{}",
+                        "```\n{} {}\n\n\t{} {}{}\n```  \n{}",
                         class.keyword,
                         class.id.name,
                         member.keyword.as_deref().unwrap_or_default(),
@@ -703,7 +703,7 @@ fn class_member_definition(
     let member_range = index.line_col_range(member.range())?;
 
     Some(MClassMemberDefinition {
-        keyword: member_token.map(|s| s.to_string()),
+        keyword: member_token.map(|s| s.text_trimmed().to_string()),
         id: DefinitionId {
             name: member_id.text(),
             range: member_id_range,
