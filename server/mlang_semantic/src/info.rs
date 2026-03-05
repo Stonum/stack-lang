@@ -116,6 +116,7 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> 
                                             let id = class.id().ok()?.text();
                                             Some(id)
                                         }),
+
                                     AnyMExpression::MSuperExpression(_) => token
                                         .ancestors()
                                         .find(|p| p.kind() == MSyntaxKind::M_CLASS_DECLARATION)
@@ -125,6 +126,17 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> 
                                                 class.extends_clause()?.super_class().ok()?.text();
                                             Some(id)
                                         }),
+
+                                    AnyMExpression::MIdentifierExpression(identifier) => {
+                                        find_identifier_by_reference(identifier.into_syntax())
+                                            .and_then(|info| {
+                                                if let SemanticInfo::RefClass(class_name) = info {
+                                                    return Some(class_name);
+                                                }
+                                                None
+                                            })
+                                    }
+
                                     _ => None,
                                 }
                             };
@@ -406,26 +418,33 @@ mod tests {
         let inputs = [
             ("var x = callFunction()", 15, SemanticInfo::FunctionCall("callFunction".to_owned(), 0)),
             ("var x = callFunction(1, 2, 3, 4)", 15, SemanticInfo::FunctionCall("callFunction".to_owned(), 4)),
+
             ("var x = z.callMethod()", 15, SemanticInfo::MethodCall("callMethod".to_owned(), 0, None)),
             ("var x = z.callMethod(1, 2)", 15, SemanticInfo::MethodCall("callMethod".to_owned(), 2, None)),
+
             ("var x = new TodoClass()",15, SemanticInfo::NewExpression(Some("TodoClass".to_owned()), 0)),
             ("var x = new TodoClass(1, 2, 3)",15, SemanticInfo::NewExpression(Some("TodoClass".to_owned()), 3)),
+
+            ("var z = new TodoClass(); z.callMethod();",30, SemanticInfo::MethodCall("callMethod".to_owned(), 0, Some("TodoClass".to_owned()))),
+
             ("var x = callFunction( z.callMethod() )", 30, SemanticInfo::MethodCall("callMethod".to_owned(), 0, None)),
             ("var x = z.callMethod( callFunction() )", 30, SemanticInfo::FunctionCall("callFunction".to_owned(), 0)),
             ("var x = z.callMethod( new TodoClass() )",30, SemanticInfo::NewExpression(Some("TodoClass".to_owned()), 0)),
+
             ("#comment line
               callaFterComment()",30, SemanticInfo::FunctionCall("callaFterComment".to_owned(), 0)),
+
             ("class B extends A {}", 17, SemanticInfo::ClassExtends("A".to_owned())),
             ("class B extends A { constructor() { super() } }", 40, SemanticInfo::SuperCall("super".to_owned(), 0, "A".to_owned())),
+
             ("forall( iterator(arr, ind)) {}", 15, SemanticInfo::FunctionCall("iterator".to_owned(), 2)),
-            ("new ", 2, SemanticInfo::NewExpression(None, 0))
+            ("new ", 2, SemanticInfo::NewExpression(None, 0)),
         ];
 
         for (input, offset, info) in inputs {
             let parsed = parse(input, MFileSource::script());
-            let semantic_info =
-                identifier_for_offset(dbg!(parsed.syntax()), TextSize::from(offset))
-                    .unwrap_or_else(|| panic!("failed for `{input}`"));
+            let semantic_info = identifier_for_offset(parsed.syntax(), TextSize::from(offset))
+                .unwrap_or_else(|| panic!("failed for `{input}`"));
             assert_eq!(info, semantic_info, "{input}");
         }
     }
