@@ -1504,6 +1504,7 @@ version = "0.1.0"
 dependencies = [
  "biome_diagnostics",
  "biome_rowan",
+ "chrono",
  "dashmap 6.1.0",
  "env_logger",
  "line_index",

@@ -1,5 +1,7 @@
 #![allow(deprecated)]
+use chrono::Local;
 use std::env;
+use std::io::Write;
 
 use env_logger::Builder;
 use log::{LevelFilter, error, info, trace};
@@ -436,9 +438,15 @@ fn init_logger() {
         builder.filter_level(LevelFilter::Info);
     }
 
-    builder
-        .format_module_path(false)
-        .format_target(false)
-        .format_timestamp_millis()
-        .init();
+    builder.format(|buf, record| {
+        writeln!(
+            buf,
+            "{} [{}] - {}",
+            Local::now().format("%Y-%m-%d %H:%M:%S%.3f"),
+            record.level(),
+            record.args()
+        )
+    });
+
+    builder.init();
 }

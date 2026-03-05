@@ -27,5 +27,6 @@ thiserror = { workspace = true }
 biome_diagnostics = { workspace = true }
 unicase = { workspace = true }
 walkdir = { workspace = true }
+chrono = { workspace = true }
 
 biome_rowan = { workspace = true }
