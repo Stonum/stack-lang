@@ -57,6 +57,8 @@ pub trait CodeSymbolDefinition: Sized + PartialEq {
     fn partial_compare_id_with(&self, another: &StringLowerCase) -> bool {
         self.id().to_lowercase().contains(&another.0)
     }
+
+    fn variables(&self) -> Option<Vec<&str>>;
 }
 
 pub trait CodeSymbolInformation: CodeSymbolDefinition {
@@ -627,10 +629,11 @@ where
             })
             // filter out already added members
             .filter(|(_uri, current_member)| {
-                members
-                    .iter()
-                    .any(|(_uri, member)| member.can_be_overridden(*current_member))
-                    .not()
+                current_member.is_constructor()
+                    || members
+                        .iter()
+                        .any(|(_uri, member)| member.can_be_overridden(*current_member))
+                        .not()
             })
             .map(|(uri, member)| (uri.clone(), *member))
             .collect::<Vec<_>>();
@@ -647,14 +650,18 @@ where
     D: CodeSymbolDefinition + CodeSymbolInformation + MarkupDefinition + 'a,
 {
     let mut def_groups: HashMap<&str, Vec<&D>> = HashMap::new();
-    for d in definitions
-        .into_iter()
-        .filter(|d| d.is_method() || d.is_getter() || d.is_setter())
-    {
-        def_groups.entry(d.id()).or_default().push(d);
+    let mut constructors: Vec<&D> = vec![];
+    for d in definitions.into_iter().filter(|d| {
+        d.is_method() || d.is_getter() || d.is_setter() || d.is_constructor() || d.is_class()
+    }) {
+        if d.is_constructor() {
+            constructors.push(d);
+        } else {
+            def_groups.entry(d.id()).or_default().push(d);
+        }
     }
 
-    def_groups
+    let mut items: Vec<CompletionItem> = def_groups
         .into_iter()
         .map(|def_group| {
             let first_def = def_group.1.first().unwrap();
@@ -684,5 +691,27 @@ where
             completion_item.documentation = Some(Documentation::MarkupContent(markdown));
             completion_item
         })
-        .collect()
+        .collect();
+
+    items.append(
+        &mut constructors
+            .iter()
+            .flat_map(|c| {
+                c.variables()
+                    .unwrap_or_default()
+                    .iter()
+                    .map(|v| {
+                        let mut completion_item =
+                            CompletionItem::new_simple(v.to_string(), v.to_string());
+                        if v.to_string().starts_with("_") {
+                            completion_item.sort_text = Some(format!("я{}", v.to_string()));
+                        }
+                        completion_item.kind = Some(CompletionItemKind::VARIABLE);
+                        completion_item
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>(),
+    );
+    items
 }
