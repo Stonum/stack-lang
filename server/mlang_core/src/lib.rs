@@ -67,7 +67,7 @@ impl CodeSymbolDefinition for AnyMCoreDefinition {
         true
     }
 
-    fn variables(&self) -> Option<Vec<&str>> {
+    fn static_member_names(&self) -> Option<Vec<&str>> {
         None
     }
 }

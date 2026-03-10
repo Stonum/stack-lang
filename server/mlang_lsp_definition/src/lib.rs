@@ -58,7 +58,7 @@ pub trait CodeSymbolDefinition: Sized + PartialEq {
         self.id().to_lowercase().contains(&another.0)
     }
 
-    fn variables(&self) -> Option<Vec<&str>>;
+    fn static_member_names(&self) -> Option<Vec<&str>>;
 }
 
 pub trait CodeSymbolInformation: CodeSymbolDefinition {
@@ -693,25 +693,29 @@ where
         })
         .collect();
 
-    items.append(
-        &mut constructors
-            .iter()
-            .flat_map(|c| {
-                c.variables()
-                    .unwrap_or_default()
-                    .iter()
-                    .map(|v| {
-                        let mut completion_item =
-                            CompletionItem::new_simple(v.to_string(), v.to_string());
-                        if v.to_string().starts_with("_") {
-                            completion_item.sort_text = Some(format!("я{}", v.to_string()));
-                        }
-                        completion_item.kind = Some(CompletionItemKind::VARIABLE);
-                        completion_item
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .collect::<Vec<_>>(),
-    );
+    for c in constructors {
+        items.append(
+            &mut c
+                .static_member_names()
+                .unwrap_or_default()
+                .iter()
+                .map(|v| {
+                    let mut completion_item =
+                        CompletionItem::new_simple(v.to_string(), v.to_string());
+                    if v.to_string().starts_with("_") {
+                        completion_item.sort_text = Some(format!("я{}", v));
+                    }
+                    completion_item.kind = Some(CompletionItemKind::VARIABLE);
+                    completion_item
+                })
+                .filter(|item| {
+                    items
+                        .iter()
+                        .any(|i| i.label.to_lowercase().eq(&item.label.to_lowercase()))
+                        .not()
+                })
+                .collect::<Vec<_>>(),
+        );
+    }
     items
 }

@@ -1,5 +1,6 @@
 use biome_rowan::syntax::SyntaxTrivia;
 use biome_rowan::{AstNode, AstNodeList, TriviaPieceKind};
+use std::collections::HashSet;
 use std::sync::{Arc, Weak};
 
 use line_index::{LineColRange, LineIndex};
@@ -10,7 +11,7 @@ use mlang_lsp_definition::{
 use mlang_syntax::{
     AnyMClassMember, AnyMFunction, AnyMLiteralExpression, AnyMParameterList, AnyMSwitchClause,
     MClassDeclaration, MFileSource, MFunctionDeclaration, MLanguage, MReport, MReportSection,
-    MSyntaxKind, MSyntaxNode,
+    MSyntaxNode,
 };
 
 use crate::SemanticModel;
@@ -198,11 +199,11 @@ impl CodeSymbolDefinition for AnyMDefinition {
         }
     }
 
-    fn variables(&self) -> Option<Vec<&str>> {
+    fn static_member_names(&self) -> Option<Vec<&str>> {
         match self {
             AnyMDefinition::MClassMemberDefinition(member) => {
-                if let Some(variables) = &member.variables {
-                    return Some(variables.iter().map(|v| v.as_str()).collect::<Vec<&str>>());
+                if let Some(static_member_names) = &member.static_member_names {
+                    return Some(static_member_names.iter().map(|v| v.as_str()).collect::<Vec<&str>>());
                 }
                 None
             }
@@ -438,7 +439,7 @@ pub struct MClassMemberDefinition {
     description: Option<String>,
     range: LineColRange,
     m_type: MClassMethodType,
-    variables: Option<Vec<String>>,
+    static_member_names: Option<Vec<String>>,
 }
 
 #[derive(Debug, Default, Eq, PartialEq, Copy, Clone)]
@@ -738,31 +739,35 @@ fn class_member_definition(
             AnyMClassMember::MSetterClassMember(_) => MClassMethodType::Setter,
             _ => MClassMethodType::Method,
         },
-        variables: match member {
+        static_member_names: match member {
             AnyMClassMember::MConstructorClassMember(m) => {
                 let body = m.body();
                 if body.is_err() {
                     return None;
                 }
                 let body = body.unwrap();
-                let variables_names = body
+                let static_member_names = body
                     .statements()
                     .iter()
-                    .filter_map(|s| s.as_m_expression_statement().cloned())
                     .filter_map(|s| {
-                        if let Some(ft) = s.into_syntax().first_token()
-                            && let Some(st) = ft.next_token()
-                            && let Some(tt) = st.next_token()
-                            && ft.kind() == MSyntaxKind::THIS_KW
-                            && st.kind() == MSyntaxKind::DOT
-                            && tt.kind() == MSyntaxKind::IDENT
-                        {
-                            return Some(tt.text_trimmed().to_string());
-                        }
-                        None
+                        s.as_m_expression_statement()?
+                            .expression()
+                            .ok()?
+                            .as_m_assignment_expression()?
+                            .left()
+                            .ok()?
+                            .as_m_static_member_assignment()?
+                            .member()
+                            .ok()
+                            .iter()
+                            .next()
+                            .cloned()
                     })
+                    .map(|m| m.to_string().trim().to_string())
+                    .collect::<HashSet<_>>()
+                    .into_iter()
                     .collect::<Vec<String>>();
-                Some(variables_names)
+                Some(static_member_names)
             }
             _ => None,
         },
@@ -997,7 +1002,7 @@ mod tests {
                 description: None,
                 range: line_col_range(15, 8, 15, 24),
                 m_type: MClassMethodType::Constructor,
-                variables: None
+                static_member_names: None
             }),
         );
 
@@ -1019,7 +1024,7 @@ mod tests {
                 description: Some(String::from("\n# getter description")),
                 range: line_col_range(18, 8, 20, 9),
                 m_type: MClassMethodType::Getter,
-                variables: None
+                static_member_names: None
             }),
         );
 
@@ -1041,7 +1046,7 @@ mod tests {
                 description: None,
                 range: line_col_range(21, 8, 23, 9),
                 m_type: MClassMethodType::Method,
-                variables: None
+                static_member_names: None
             })
         );
     }
