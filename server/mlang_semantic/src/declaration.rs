@@ -1,5 +1,6 @@
 use biome_rowan::syntax::SyntaxTrivia;
 use biome_rowan::{AstNode, AstNodeList, TriviaPieceKind};
+use std::collections::HashSet;
 use std::sync::{Arc, Weak};
 
 use line_index::{LineColRange, LineIndex};
@@ -72,6 +73,15 @@ impl CodeSymbolDefinition for AnyMDefinition {
         match self {
             AnyMDefinition::MClassMemberDefinition(member) => {
                 member.m_type == MClassMethodType::Setter
+            }
+            _ => false,
+        }
+    }
+
+    fn is_property(&self) -> bool {
+        match self {
+            AnyMDefinition::MClassMemberDefinition(member) => {
+                member.m_type == MClassMethodType::Property
             }
             _ => false,
         }
@@ -234,6 +244,7 @@ impl CodeSymbolInformation for AnyMDefinition {
                 MClassMethodType::Getter => SymbolKind::PROPERTY,
                 MClassMethodType::Setter => SymbolKind::PROPERTY,
                 MClassMethodType::Method => SymbolKind::METHOD,
+                MClassMethodType::Property => SymbolKind::VARIABLE,
             },
             AnyMDefinition::MReportDefinition(_) => SymbolKind::CONSTANT,
             AnyMDefinition::MReportSectionDefiniton(_) => SymbolKind::FIELD,
@@ -426,6 +437,7 @@ pub struct MClassMemberDefinition {
     description: Option<String>,
     range: LineColRange,
     m_type: MClassMethodType,
+    static_member_names: Option<Vec<String>>,
 }
 
 #[derive(Debug, Default, Eq, PartialEq, Copy, Clone)]
@@ -433,6 +445,7 @@ enum MClassMethodType {
     Constructor,
     Getter,
     Setter,
+    Property,
     #[default]
     Method,
 }
@@ -520,7 +533,50 @@ pub(crate) fn prepare_definitions(
     if let Some(class) = MClassDeclaration::cast(node.clone())
         && let Some((class, metohds)) = class_definition(class, index)
     {
-        let mut metohds = metohds
+        // select all class members that are not explicitly declared
+        // like
+        // class Test {
+        //    constructor() { this.a = 1; }
+        // }
+        // where 'a' is class variable
+        let mut variables = metohds
+            .iter()
+            .filter(|m| m.m_type == MClassMethodType::Constructor)
+            .flat_map(|c| {
+                c.static_member_names
+                    .clone()
+                    .unwrap_or_default()
+                    .into_iter()
+                    .filter(|variable_name| {
+                        !metohds.iter().any(|m| {
+                            m.id.name
+                                .to_lowercase()
+                                .eq(variable_name.to_lowercase().as_str())
+                        })
+                    })
+                    .map(|variable_name| MClassMemberDefinition {
+                        keyword: None,
+                        id: DefinitionId {
+                            name: variable_name.to_string(),
+                            range: c.range,
+                        },
+                        class: c.class.clone(),
+                        params: MParameters {
+                            text: String::from(""),
+                            total_count: 0,
+                            optional_count: 0,
+                            has_rest: false,
+                        },
+                        description: None,
+                        range: c.range,
+                        m_type: MClassMethodType::Property,
+                        static_member_names: None,
+                    })
+                    .map(AnyMDefinition::MClassMemberDefinition)
+            })
+            .collect();
+
+        let mut metohds: Vec<AnyMDefinition> = metohds
             .into_iter()
             .map(AnyMDefinition::MClassMemberDefinition)
             .collect();
@@ -528,6 +584,7 @@ pub(crate) fn prepare_definitions(
             .definitions
             .push(AnyMDefinition::MClassDefinition(class));
         model.definitions.append(&mut metohds);
+        model.definitions.append(&mut variables);
     }
 
     if let Some(report) = MReport::cast(node.clone())
@@ -724,6 +781,38 @@ fn class_member_definition(
             AnyMClassMember::MGetterClassMember(_) => MClassMethodType::Getter,
             AnyMClassMember::MSetterClassMember(_) => MClassMethodType::Setter,
             _ => MClassMethodType::Method,
+        },
+        static_member_names: match member {
+            AnyMClassMember::MConstructorClassMember(m) => {
+                let body = m.body();
+                if body.is_err() {
+                    return None;
+                }
+                let body = body.unwrap();
+                let static_member_names = body
+                    .statements()
+                    .iter()
+                    .filter_map(|s| {
+                        s.as_m_expression_statement()?
+                            .expression()
+                            .ok()?
+                            .as_m_assignment_expression()?
+                            .left()
+                            .ok()?
+                            .as_m_static_member_assignment()?
+                            .member()
+                            .ok()
+                            .iter()
+                            .next()
+                            .cloned()
+                    })
+                    .map(|m| m.to_string().trim().to_string())
+                    .collect::<HashSet<_>>()
+                    .into_iter()
+                    .collect::<Vec<String>>();
+                Some(static_member_names)
+            }
+            _ => None,
         },
     })
 }
@@ -955,7 +1044,8 @@ mod tests {
                 },
                 description: None,
                 range: line_col_range(15, 8, 15, 24),
-                m_type: MClassMethodType::Constructor
+                m_type: MClassMethodType::Constructor,
+                static_member_names: None
             }),
         );
 
@@ -976,7 +1066,8 @@ mod tests {
                 },
                 description: Some(String::from("\n# getter description")),
                 range: line_col_range(18, 8, 20, 9),
-                m_type: MClassMethodType::Getter
+                m_type: MClassMethodType::Getter,
+                static_member_names: None
             }),
         );
 
@@ -997,7 +1088,8 @@ mod tests {
                 },
                 description: None,
                 range: line_col_range(21, 8, 23, 9),
-                m_type: MClassMethodType::Method
+                m_type: MClassMethodType::Method,
+                static_member_names: None
             })
         );
     }

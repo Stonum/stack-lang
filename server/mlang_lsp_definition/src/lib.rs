@@ -31,6 +31,9 @@ pub trait CodeSymbolDefinition: Sized + PartialEq {
     fn is_setter(&self) -> bool {
         false
     }
+    fn is_property(&self) -> bool {
+        false
+    }
     fn is_constructor(&self) -> bool {
         false
     }
@@ -649,7 +652,7 @@ where
     let mut def_groups: HashMap<&str, Vec<&D>> = HashMap::new();
     for d in definitions
         .into_iter()
-        .filter(|d| d.is_method() || d.is_getter() || d.is_setter())
+        .filter(|d| d.is_method() || d.is_getter() || d.is_setter() || d.is_property())
     {
         def_groups.entry(d.id()).or_default().push(d);
     }
@@ -668,6 +671,8 @@ where
                 completion_item.kind = Some(CompletionItemKind::METHOD);
             } else if first_def.is_getter() || first_def.is_setter() {
                 completion_item.kind = Some(CompletionItemKind::PROPERTY);
+            } else if first_def.is_property() {
+                completion_item.kind = Some(CompletionItemKind::VARIABLE);
             } else if first_def.is_class() {
                 completion_item.kind = Some(CompletionItemKind::CLASS);
             }
