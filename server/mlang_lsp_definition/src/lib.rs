@@ -31,6 +31,9 @@ pub trait CodeSymbolDefinition: Sized + PartialEq {
     fn is_setter(&self) -> bool {
         false
     }
+    fn is_property(&self) -> bool {
+        false
+    }
     fn is_constructor(&self) -> bool {
         false
     }
@@ -57,8 +60,6 @@ pub trait CodeSymbolDefinition: Sized + PartialEq {
     fn partial_compare_id_with(&self, another: &StringLowerCase) -> bool {
         self.id().to_lowercase().contains(&another.0)
     }
-
-    fn static_member_names(&self) -> Option<Vec<&str>>;
 }
 
 pub trait CodeSymbolInformation: CodeSymbolDefinition {
@@ -629,11 +630,10 @@ where
             })
             // filter out already added members
             .filter(|(_uri, current_member)| {
-                current_member.is_constructor()
-                    || members
-                        .iter()
-                        .any(|(_uri, member)| member.can_be_overridden(*current_member))
-                        .not()
+                members
+                    .iter()
+                    .any(|(_uri, member)| member.can_be_overridden(*current_member))
+                    .not()
             })
             .map(|(uri, member)| (uri.clone(), *member))
             .collect::<Vec<_>>();
@@ -650,18 +650,14 @@ where
     D: CodeSymbolDefinition + CodeSymbolInformation + MarkupDefinition + 'a,
 {
     let mut def_groups: HashMap<&str, Vec<&D>> = HashMap::new();
-    let mut constructors: Vec<&D> = vec![];
-    for d in definitions.into_iter().filter(|d| {
-        d.is_method() || d.is_getter() || d.is_setter() || d.is_constructor() || d.is_class()
-    }) {
-        if d.is_constructor() {
-            constructors.push(d);
-        } else {
-            def_groups.entry(d.id()).or_default().push(d);
-        }
+    for d in definitions
+        .into_iter()
+        .filter(|d| d.is_method() || d.is_getter() || d.is_setter() || d.is_property())
+    {
+        def_groups.entry(d.id()).or_default().push(d);
     }
 
-    let mut items: Vec<CompletionItem> = def_groups
+    def_groups
         .into_iter()
         .map(|def_group| {
             let first_def = def_group.1.first().unwrap();
@@ -675,6 +671,8 @@ where
                 completion_item.kind = Some(CompletionItemKind::METHOD);
             } else if first_def.is_getter() || first_def.is_setter() {
                 completion_item.kind = Some(CompletionItemKind::PROPERTY);
+            } else if first_def.is_property() {
+                completion_item.kind = Some(CompletionItemKind::VARIABLE);
             } else if first_def.is_class() {
                 completion_item.kind = Some(CompletionItemKind::CLASS);
             }
@@ -691,31 +689,5 @@ where
             completion_item.documentation = Some(Documentation::MarkupContent(markdown));
             completion_item
         })
-        .collect();
-
-    for c in constructors {
-        items.append(
-            &mut c
-                .static_member_names()
-                .unwrap_or_default()
-                .iter()
-                .map(|v| {
-                    let mut completion_item =
-                        CompletionItem::new_simple(v.to_string(), v.to_string());
-                    if v.to_string().starts_with("_") {
-                        completion_item.sort_text = Some(format!("я{}", v));
-                    }
-                    completion_item.kind = Some(CompletionItemKind::VARIABLE);
-                    completion_item
-                })
-                .filter(|item| {
-                    items
-                        .iter()
-                        .any(|i| i.label.to_lowercase().eq(&item.label.to_lowercase()))
-                        .not()
-                })
-                .collect::<Vec<_>>(),
-        );
-    }
-    items
+        .collect()
 }

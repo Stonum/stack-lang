@@ -66,10 +66,6 @@ impl CodeSymbolDefinition for AnyMCoreDefinition {
     fn can_be_called(&self, _count: usize) -> bool {
         true
     }
-
-    fn static_member_names(&self) -> Option<Vec<&str>> {
-        None
-    }
 }
 
 impl MarkupDefinition for AnyMCoreDefinition {

@@ -78,6 +78,15 @@ impl CodeSymbolDefinition for AnyMDefinition {
         }
     }
 
+    fn is_property(&self) -> bool {
+        match self {
+            AnyMDefinition::MClassMemberDefinition(member) => {
+                member.m_type == MClassMethodType::Property
+            }
+            _ => false,
+        }
+    }
+
     fn id(&self) -> &str {
         match self {
             AnyMDefinition::MFunctionDefinition(f) => &f.id.name,
@@ -198,18 +207,6 @@ impl CodeSymbolDefinition for AnyMDefinition {
             _ => core::cmp::Ordering::Less,
         }
     }
-
-    fn static_member_names(&self) -> Option<Vec<&str>> {
-        match self {
-            AnyMDefinition::MClassMemberDefinition(member) => {
-                if let Some(static_member_names) = &member.static_member_names {
-                    return Some(static_member_names.iter().map(|v| v.as_str()).collect::<Vec<&str>>());
-                }
-                None
-            }
-            _ => None,
-        }
-    }
 }
 
 impl LocationDefinition for AnyMDefinition {
@@ -247,6 +244,7 @@ impl CodeSymbolInformation for AnyMDefinition {
                 MClassMethodType::Getter => SymbolKind::PROPERTY,
                 MClassMethodType::Setter => SymbolKind::PROPERTY,
                 MClassMethodType::Method => SymbolKind::METHOD,
+                MClassMethodType::Property => SymbolKind::VARIABLE,
             },
             AnyMDefinition::MReportDefinition(_) => SymbolKind::CONSTANT,
             AnyMDefinition::MReportSectionDefiniton(_) => SymbolKind::FIELD,
@@ -447,6 +445,7 @@ enum MClassMethodType {
     Constructor,
     Getter,
     Setter,
+    Property,
     #[default]
     Method,
 }
@@ -534,7 +533,50 @@ pub(crate) fn prepare_definitions(
     if let Some(class) = MClassDeclaration::cast(node.clone())
         && let Some((class, metohds)) = class_definition(class, index)
     {
-        let mut metohds = metohds
+        // select all class members that are not explicitly declared
+        // like
+        // class Test {
+        //    constructor() { this.a = 1; }
+        // }
+        // where 'a' is class variable
+        let mut variables = metohds
+            .iter()
+            .filter(|m| m.m_type == MClassMethodType::Constructor)
+            .flat_map(|c| {
+                c.static_member_names
+                    .clone()
+                    .unwrap_or_default()
+                    .into_iter()
+                    .filter(|variable_name| {
+                        !metohds.iter().any(|m| {
+                            m.id.name
+                                .to_lowercase()
+                                .eq(variable_name.to_lowercase().as_str())
+                        })
+                    })
+                    .map(|variable_name| MClassMemberDefinition {
+                        keyword: None,
+                        id: DefinitionId {
+                            name: variable_name.to_string(),
+                            range: c.range,
+                        },
+                        class: c.class.clone(),
+                        params: MParameters {
+                            text: String::from(""),
+                            total_count: 0,
+                            optional_count: 0,
+                            has_rest: false,
+                        },
+                        description: None,
+                        range: c.range,
+                        m_type: MClassMethodType::Property,
+                        static_member_names: None,
+                    })
+                    .map(AnyMDefinition::MClassMemberDefinition)
+            })
+            .collect();
+
+        let mut metohds: Vec<AnyMDefinition> = metohds
             .into_iter()
             .map(AnyMDefinition::MClassMemberDefinition)
             .collect();
@@ -542,6 +584,7 @@ pub(crate) fn prepare_definitions(
             .definitions
             .push(AnyMDefinition::MClassDefinition(class));
         model.definitions.append(&mut metohds);
+        model.definitions.append(&mut variables);
     }
 
     if let Some(report) = MReport::cast(node.clone())
