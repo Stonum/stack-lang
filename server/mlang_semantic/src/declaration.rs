@@ -701,42 +701,47 @@ fn class_definition(
         .filter_map(|member| class_member_definition(member, Arc::downgrade(&class_def), index))
         .collect::<Vec<_>>();
 
-    // select all class members that are not explicitly declared
-    // like
-    // class Test {
-    //    constructor() { this.a = 1; }
-    // }
-    // where 'a' is class variable
-    let constructor_member = class
+    add_variables_to_class_members(&mut members, class, index, &class_def);
+
+    Some((class_def, members))
+}
+
+// select all class members that are not explicitly declared
+// like
+// class Test {
+//    constructor() { this.a = 1; }
+// }
+// where 'a' is class variable
+fn add_variables_to_class_members(
+    members: &mut Vec<MClassMemberDefinition>,
+    class: MClassDeclaration,
+    index: &LineIndex,
+    class_def: &Arc<MClassDefinition>,
+) {
+    let constructor = class
         .members()
         .iter()
         .find(|m| m.as_m_constructor_class_member().is_some());
 
-    if let Some(constructor_member) = constructor_member
-        && let Some(body) = constructor_member
+    if let Some(constructor) = constructor
+        && let Some(body) = constructor
             .as_m_constructor_class_member()
             .unwrap()
             .body()
             .ok()
         && let Some(constructor_def) =
-            class_member_definition(constructor_member, Arc::downgrade(&class_def), index)
+            class_member_definition(constructor, Arc::downgrade(&class_def), index)
     {
         let static_member_names = body
             .statements()
             .iter()
             .filter_map(|s| {
-                s.as_m_expression_statement()?
-                    .expression()
-                    .ok()?
-                    .as_m_assignment_expression()?
-                    .left()
-                    .ok()?
-                    .as_m_static_member_assignment()?
-                    .member()
-                    .ok()
-                    .iter()
-                    .next()
-                    .cloned()
+                let expr_stmt = s.as_m_expression_statement()?;
+                let expr = expr_stmt.expression().ok()?;
+                let assign = expr.as_m_assignment_expression()?;
+                let left = assign.left().ok()?;
+                let static_member = left.as_m_static_member_assignment()?;
+                static_member.member().ok().iter().next().cloned()
             })
             .map(|m| m.to_string().trim().to_string())
             .collect::<HashSet<_>>()
@@ -752,29 +757,34 @@ fn class_definition(
                         .eq(variable_name.to_lowercase().as_str())
                 })
             })
-            .map(|variable_name| MClassMemberDefinition {
-                keyword: None,
-                id: DefinitionId {
-                    name: variable_name.to_string(),
-                    range: constructor_def.range,
-                },
-                class: constructor_def.class.clone(),
-                params: MParameters {
-                    text: String::from(""),
-                    total_count: 0,
-                    optional_count: 0,
-                    has_rest: false,
-                },
-                description: None,
-                range: constructor_def.range,
-                m_type: MClassMethodType::Property,
-            })
+            .map(|variable_name| class_property_definition(variable_name, &constructor_def))
             .collect();
 
         members.append(&mut variables);
     }
+}
 
-    Some((class_def, members))
+fn class_property_definition(
+    variable_name: &String,
+    constructor_def: &MClassMemberDefinition,
+) -> MClassMemberDefinition {
+    MClassMemberDefinition {
+        keyword: None,
+        id: DefinitionId {
+            name: variable_name.to_string(),
+            range: constructor_def.range,
+        },
+        class: constructor_def.class.clone(),
+        params: MParameters {
+            text: String::from(""),
+            total_count: 0,
+            optional_count: 0,
+            has_rest: false,
+        },
+        description: None,
+        range: constructor_def.range,
+        m_type: MClassMethodType::Property,
+    }
 }
 
 fn class_member_definition(
