@@ -35,13 +35,15 @@ function convertFromPostgreSQL(
    }
 
    editor.edit(b => {
-      const re1 = new RegExp(namespace + '\\.\\[([^\\]]*)\\]', 'gi')
-      const re2 = new RegExp(namespace + '\\."([^"]*)"', 'g')
-      const re3 = new RegExp(namespace + '\\.([^\\s\\(]*)', 'g')
+      const re1 = new RegExp(namespace + '\\.\\[([^\\]]*)\\]', 'gi')  // replace stack.[table name] to ~table name~
+      const re2 = new RegExp(namespace + '\\."([^"]*)"', 'g') // replace stack."table name" to ~table name~
+      const re3 = new RegExp(namespace + '\\.([^\\s\\(]*)', 'g')  // replace stack.table to ~table~
       const repl = addDollar ? '~$$$1~' : '~$1~'
 
       forAllSelections(editor, (range, text) => {
-         b.replace(range, text.replace(re1, repl).replace(re2, repl).replace(re3, repl).replace(/(\[([^\]])*\])/g, "~$1~"))
+         b.replace(range, text.replace(re1, repl).replace(re2, repl).replace(re3, repl)
+             .replace(/(\[([^\]])*\])/g, "~$1~") // replace []::int to ~[]~::int
+         )
       })
    })
 }
