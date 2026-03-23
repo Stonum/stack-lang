@@ -1,5 +1,16 @@
 **Changelog**
 ===============
+**v0.4.0 - 2026-03-23**
+* **Added**:
+   + class object members completion
+   + class object member  hover
+   + snippets for try\catch and database session
+   + analyze parameters count when going to definition
+* **Fixed**: 
+   + allowed any characters in the report name
+* **Changed**:
+   + log format
+
 **v0.3.8 - 2026-02-13**
 ------------------------------------
 * **Fixed**: 
