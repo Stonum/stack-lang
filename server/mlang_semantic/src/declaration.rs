@@ -1,6 +1,5 @@
 use biome_rowan::syntax::SyntaxTrivia;
 use biome_rowan::{AstNode, AstNodeList, TriviaPieceKind};
-use std::collections::HashSet;
 use std::sync::{Arc, Weak};
 
 use line_index::{LineColRange, LineIndex};
@@ -10,8 +9,8 @@ use mlang_lsp_definition::{
 };
 use mlang_syntax::{
     AnyMClassMember, AnyMFunction, AnyMLiteralExpression, AnyMParameterList, AnyMSwitchClause,
-    MClassDeclaration, MFileSource, MFunctionDeclaration, MLanguage, MReport, MReportSection,
-    MSyntaxNode,
+    MClassDeclaration, MFileSource, MFunctionDeclaration, MLanguage, MName, MReport,
+    MReportSection, MSyntaxNode,
 };
 
 use crate::SemanticModel;
@@ -437,7 +436,6 @@ pub struct MClassMemberDefinition {
     description: Option<String>,
     range: LineColRange,
     m_type: MClassMethodType,
-    static_member_names: Option<Vec<String>>,
 }
 
 #[derive(Debug, Default, Eq, PartialEq, Copy, Clone)]
@@ -531,60 +529,16 @@ pub(crate) fn prepare_definitions(
     }
 
     if let Some(class) = MClassDeclaration::cast(node.clone())
-        && let Some((class, metohds)) = class_definition(class, index)
+        && let Some((class, members)) = class_definition(class, index)
     {
-        // select all class members that are not explicitly declared
-        // like
-        // class Test {
-        //    constructor() { this.a = 1; }
-        // }
-        // where 'a' is class variable
-        let mut variables = metohds
-            .iter()
-            .filter(|m| m.m_type == MClassMethodType::Constructor)
-            .flat_map(|c| {
-                c.static_member_names
-                    .clone()
-                    .unwrap_or_default()
-                    .into_iter()
-                    .filter(|variable_name| {
-                        !metohds.iter().any(|m| {
-                            m.id.name
-                                .to_lowercase()
-                                .eq(variable_name.to_lowercase().as_str())
-                        })
-                    })
-                    .map(|variable_name| MClassMemberDefinition {
-                        keyword: None,
-                        id: DefinitionId {
-                            name: variable_name.to_string(),
-                            range: c.range,
-                        },
-                        class: c.class.clone(),
-                        params: MParameters {
-                            text: String::from(""),
-                            total_count: 0,
-                            optional_count: 0,
-                            has_rest: false,
-                        },
-                        description: None,
-                        range: c.range,
-                        m_type: MClassMethodType::Property,
-                        static_member_names: None,
-                    })
-                    .map(AnyMDefinition::MClassMemberDefinition)
-            })
-            .collect();
-
-        let mut metohds: Vec<AnyMDefinition> = metohds
+        let mut members: Vec<AnyMDefinition> = members
             .into_iter()
             .map(AnyMDefinition::MClassMemberDefinition)
             .collect();
         model
             .definitions
             .push(AnyMDefinition::MClassDefinition(class));
-        model.definitions.append(&mut metohds);
-        model.definitions.append(&mut variables);
+        model.definitions.append(&mut members);
     }
 
     if let Some(report) = MReport::cast(node.clone())
@@ -740,13 +694,15 @@ fn class_definition(
             .and_then(|ext| Some(ext.super_class().ok()?.text())),
     });
 
-    let methods = class
+    let mut members = class
         .members()
         .iter()
         .filter_map(|member| class_member_definition(member, Arc::downgrade(&class_def), index))
         .collect::<Vec<_>>();
 
-    Some((class_def, methods))
+    add_props_to_class_members(&mut members, class, index, &class_def);
+
+    Some((class_def, members))
 }
 
 fn class_member_definition(
@@ -782,38 +738,84 @@ fn class_member_definition(
             AnyMClassMember::MSetterClassMember(_) => MClassMethodType::Setter,
             _ => MClassMethodType::Method,
         },
-        static_member_names: match member {
-            AnyMClassMember::MConstructorClassMember(m) => {
-                let body = m.body();
-                if body.is_err() {
-                    return None;
-                }
-                let body = body.unwrap();
-                let static_member_names = body
-                    .statements()
-                    .iter()
-                    .filter_map(|s| {
-                        s.as_m_expression_statement()?
-                            .expression()
-                            .ok()?
-                            .as_m_assignment_expression()?
-                            .left()
-                            .ok()?
-                            .as_m_static_member_assignment()?
-                            .member()
-                            .ok()
-                            .iter()
-                            .next()
-                            .cloned()
-                    })
-                    .map(|m| m.to_string().trim().to_string())
-                    .collect::<HashSet<_>>()
-                    .into_iter()
-                    .collect::<Vec<String>>();
-                Some(static_member_names)
-            }
-            _ => None,
+    })
+}
+
+// add all class props that are not explicitly declared to members
+// like
+// class Test {
+//    constructor() { this.a = 1; }
+// }
+// where 'a' is class variable
+fn add_props_to_class_members(
+    members: &mut Vec<MClassMemberDefinition>,
+    class: MClassDeclaration,
+    index: &LineIndex,
+    class_def: &Arc<MClassDefinition>,
+) {
+    let constructor = class
+        .members()
+        .iter()
+        .filter_map(|m| m.as_m_constructor_class_member().cloned())
+        .next();
+
+    if let Some(constructor) = constructor
+        && let Some(body) = constructor.body().ok()
+    {
+        let mut static_members = body
+            .statements()
+            .iter()
+            .filter_map(|s| {
+                let expr_stmt = s.as_m_expression_statement()?;
+                let expr = expr_stmt.expression().ok()?;
+                let assign = expr.as_m_assignment_expression()?;
+                let left = assign.left().ok()?;
+                let static_member = left.as_m_static_member_assignment()?;
+                static_member.member().ok().iter().next().cloned()
+            })
+            .collect::<Vec<_>>();
+        static_members.dedup_by_key(|m| m.to_string().to_lowercase());
+
+        let mut variables = static_members
+            .iter()
+            .filter(|variable_name| {
+                !members.iter().any(|m| {
+                    m.id.name
+                        .to_lowercase()
+                        .eq(variable_name.text().to_lowercase().as_str())
+                })
+            })
+            .filter_map(|variable_name| {
+                class_property_definition(variable_name, Arc::downgrade(class_def), index)
+            })
+            .collect();
+
+        members.append(&mut variables);
+    }
+}
+
+fn class_property_definition(
+    variable_name: &MName,
+    class: Weak<MClassDefinition>,
+    index: &LineIndex,
+) -> Option<MClassMemberDefinition> {
+    let member_range = index.line_col_range(variable_name.range())?;
+    Some(MClassMemberDefinition {
+        keyword: None,
+        id: DefinitionId {
+            name: variable_name.to_string(),
+            range: member_range,
         },
+        class,
+        params: MParameters {
+            text: String::from(""),
+            total_count: 0,
+            optional_count: 0,
+            has_rest: false,
+        },
+        description: None,
+        range: member_range,
+        m_type: MClassMethodType::Property,
     })
 }
 
@@ -1044,8 +1046,7 @@ mod tests {
                 },
                 description: None,
                 range: line_col_range(15, 8, 15, 24),
-                m_type: MClassMethodType::Constructor,
-                static_member_names: None
+                m_type: MClassMethodType::Constructor
             }),
         );
 
@@ -1066,8 +1067,7 @@ mod tests {
                 },
                 description: Some(String::from("\n# getter description")),
                 range: line_col_range(18, 8, 20, 9),
-                m_type: MClassMethodType::Getter,
-                static_member_names: None
+                m_type: MClassMethodType::Getter
             }),
         );
 
@@ -1088,8 +1088,7 @@ mod tests {
                 },
                 description: None,
                 range: line_col_range(21, 8, 23, 9),
-                m_type: MClassMethodType::Method,
-                static_member_names: None
+                m_type: MClassMethodType::Method
             })
         );
     }
