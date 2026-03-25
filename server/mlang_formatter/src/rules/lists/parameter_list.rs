@@ -2,6 +2,7 @@ use crate::prelude::*;
 use crate::rules::bindings::parameters::ParameterLayout;
 
 use crate::context::trailing_commas::FormatTrailingCommas;
+
 use mlang_syntax::{AnyMConstructorParameter, AnyMParameter, MParameterList};
 use mlang_syntax::{AnyMParameterList, AnyParameter};
 
@@ -60,7 +61,7 @@ impl Format<MFormatContext> for FormatMAnyParameterList<'_> {
                     FormatTrailingCommas::All.trailing_separator(f.options())
                 };
 
-                let mut joiner = f.join_nodes_with_soft_line();
+                let mut joiner = f.fill();
                 join_parameter_list(&mut joiner, self.list, trailing_separator)?;
                 joiner.finish()
             }
@@ -84,33 +85,30 @@ impl Format<MFormatContext> for FormatMAnyParameterList<'_> {
     }
 }
 
-fn join_parameter_list<S>(
-    joiner: &mut JoinNodesBuilder<'_, '_, S, MFormatContext>,
+fn join_parameter_list(
+    joiner: &mut FillBuilder<'_, '_, MFormatContext>,
     list: &AnyMParameterList,
     trailing_separator: TrailingSeparator,
 ) -> FormatResult<()>
 where
-    S: Format<MFormatContext>,
 {
     match list {
         AnyMParameterList::MParameterList(list) => {
             let entries = list
                 .format_separated(",")
-                .with_trailing_separator(trailing_separator)
-                .zip(list.iter());
+                .with_trailing_separator(trailing_separator);
 
-            for (format_entry, node) in entries {
-                joiner.entry(node?.syntax(), &format_entry);
+            for format_entry in entries {
+                joiner.entry(&soft_line_break_or_space(), &format_entry);
             }
         }
         AnyMParameterList::MConstructorParameterList(list) => {
             let entries = list
                 .format_separated(",")
-                .with_trailing_separator(trailing_separator)
-                .zip(list.iter());
+                .with_trailing_separator(trailing_separator);
 
-            for (format_entry, node) in entries {
-                joiner.entry(node?.syntax(), &format_entry);
+            for format_entry in entries {
+                joiner.entry(&soft_line_break(), &format_entry);
             }
         }
     }

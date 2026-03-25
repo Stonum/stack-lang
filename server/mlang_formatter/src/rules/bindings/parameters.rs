@@ -59,7 +59,7 @@ impl Format<MFormatContext> for FormatAnyMParameters {
                     ]
                 )
             }
-            ParameterLayout::Hug => {
+            ParameterLayout::Hug | ParameterLayout::Default => {
                 if !parentheses_not_needed {
                     write!(f, [l_paren_token.format()])?;
                 } else {
@@ -68,37 +68,13 @@ impl Format<MFormatContext> for FormatAnyMParameters {
 
                 write!(
                     f,
-                    [FormatMAnyParameterList::with_layout(
-                        &list,
-                        ParameterLayout::Hug
-                    )]
+                    [group(&soft_block_indent(&format_with(|f| {
+                        FormatMAnyParameterList::with_layout(&list, layout).fmt(f)
+                    })))]
                 )?;
 
                 if !parentheses_not_needed {
                     write!(f, [&r_paren_token.format()])?;
-                } else {
-                    write!(f, [format_removed(&r_paren_token)])?;
-                }
-
-                Ok(())
-            }
-            ParameterLayout::Default => {
-                if !parentheses_not_needed {
-                    write!(f, [l_paren_token.format()])?;
-                } else {
-                    write!(f, [format_removed(&l_paren_token)])?;
-                }
-
-                write!(
-                    f,
-                    [soft_block_indent(&FormatMAnyParameterList::with_layout(
-                        &list,
-                        ParameterLayout::Default,
-                    ))]
-                )?;
-
-                if !parentheses_not_needed {
-                    write!(f, [r_paren_token.format()])?;
                 } else {
                     write!(f, [format_removed(&r_paren_token)])?;
                 }
