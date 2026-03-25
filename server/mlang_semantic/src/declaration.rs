@@ -774,7 +774,7 @@ fn add_props_to_class_members(
                 static_member.member().ok().iter().next().cloned()
             })
             .collect::<Vec<_>>();
-        static_members.dedup_by_key(|m| m.to_string().to_lowercase());
+        static_members.dedup_by_key(|m| m.text().to_lowercase());
 
         let mut variables = static_members
             .iter()
@@ -803,7 +803,7 @@ fn class_property_definition(
     Some(MClassMemberDefinition {
         keyword: None,
         id: DefinitionId {
-            name: variable_name.to_string(),
+            name: variable_name.text().to_string(),
             range: member_range,
         },
         class,
@@ -1089,6 +1089,135 @@ mod tests {
                 description: None,
                 range: line_col_range(21, 8, 23, 9),
                 m_type: MClassMethodType::Method
+            })
+        );
+    }
+
+    #[test]
+    fn test_convert_class_props_to_definitions() {
+        let text = r#"
+    class x {
+        constructor() {
+            this._x = 0;
+            this.x = 1;
+        }
+
+        get x() {
+            return this._x;
+        }
+
+        set x( val ) {
+            this._x = val;
+        }
+    }
+    "#;
+        let file_source = MFileSource::module();
+        let parsed = parse(text, file_source);
+
+        let semantic_model = semantics(text, parsed.syntax(), file_source);
+        let mut definitions = semantic_model.definitions();
+
+        println!("{:?}", definitions.len());
+
+        assert_eq!(definitions.len(), 5);
+
+        assert_eq!(
+            *definitions.next().unwrap(),
+            AnyMDefinition::MClassDefinition(Arc::new(MClassDefinition {
+                keyword: String::from("class"),
+                id: DefinitionId {
+                    name: String::from("x"),
+                    range: line_col_range(1, 10, 1, 11)
+                },
+
+                description: None,
+                range: line_col_range(1, 4, 14, 5),
+                extends: None,
+                methods: vec![]
+            }))
+        );
+
+        assert_eq!(
+            *definitions.next().unwrap(),
+            AnyMDefinition::MClassMemberDefinition(MClassMemberDefinition {
+                keyword: None,
+                id: DefinitionId {
+                    name: String::from("constructor"),
+                    range: line_col_range(2, 8, 2, 19)
+                },
+                class: Weak::new(),
+                params: MParameters {
+                    text: String::from("()"),
+                    total_count: 0,
+                    optional_count: 0,
+                    has_rest: false
+                },
+                description: None,
+                range: line_col_range(2, 8, 5, 9),
+                m_type: MClassMethodType::Constructor
+            }),
+        );
+
+        assert_eq!(
+            *definitions.next().unwrap(),
+            AnyMDefinition::MClassMemberDefinition(MClassMemberDefinition {
+                keyword: None,
+                id: DefinitionId {
+                    name: String::from("x"),
+                    range: line_col_range(7, 12, 7, 13)
+                },
+                class: Weak::new(),
+                params: MParameters {
+                    text: String::from(""),
+                    total_count: 0,
+                    optional_count: 0,
+                    has_rest: false
+                },
+                description: None,
+                range: line_col_range(7, 8, 9, 9),
+                m_type: MClassMethodType::Getter
+            }),
+        );
+
+        assert_eq!(
+            *definitions.next().unwrap(),
+            AnyMDefinition::MClassMemberDefinition(MClassMemberDefinition {
+                keyword: None,
+                id: DefinitionId {
+                    name: String::from("x"),
+                    range: line_col_range(11, 12, 11, 13)
+                },
+                class: Weak::new(),
+                params: MParameters {
+                    text: String::from("( val )"),
+                    total_count: 1,
+                    optional_count: 0,
+                    has_rest: false
+                },
+                description: None,
+                range: line_col_range(11, 8, 13, 9),
+                m_type: MClassMethodType::Setter
+            }),
+        );
+
+        assert_eq!(
+            *definitions.next().unwrap(),
+            AnyMDefinition::MClassMemberDefinition(MClassMemberDefinition {
+                keyword: None,
+                id: DefinitionId {
+                    name: String::from("_x"),
+                    range: line_col_range(3, 17, 3, 19)
+                },
+                class: Weak::new(),
+                params: MParameters {
+                    text: String::from(""),
+                    total_count: 0,
+                    optional_count: 0,
+                    has_rest: false
+                },
+                description: None,
+                range: line_col_range(3, 17, 3, 19),
+                m_type: MClassMethodType::Property
             })
         );
     }
