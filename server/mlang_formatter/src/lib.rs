@@ -6,7 +6,7 @@ pub mod utils;
 
 pub(crate) mod comments;
 pub(crate) mod context;
-mod parentheses;
+
 pub(crate) mod separated;
 mod syntax_rewriter;
 
