@@ -55,6 +55,17 @@ fn format_if_with_long_condition() {
 }
 
 #[test]
+fn format_if_with_short_condition() {
+    assert_fmt!(
+        r#"#
+Если(!_мДанныеИнтервала.сезонность и !_мДанныеИнтервала.расход)
+{
+}
+"#
+    );
+}
+
+#[test]
 fn format_binary_expression() {
     assert_fmt!(
         r#"#
