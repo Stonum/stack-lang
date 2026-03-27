@@ -679,6 +679,8 @@ where
 
             if completion_label.starts_with("_") {
                 completion_item.sort_text = Some(format!("я{}", completion_label));
+            } else if first_def.is_property() {
+                completion_item.sort_text = Some(format!("яя{}", completion_label));
             }
 
             let markdown_strs: Vec<String> = def_group.1.iter().map(|d| d.markdown()).collect();
