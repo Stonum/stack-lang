@@ -49,12 +49,17 @@
       "commands": [
          {
             "command": "stack.togglePostgreSQL",
-            "title": "Replaces tildas in the query to schema and backward",
+            "title": "Replaces tildas in the psql query to schema and backward",
             "category": "stack"
          },
          {
             "command": "stack.fieldsToPostgreSQL",
             "title": "Replaces [] на \"",
+            "category": "stack"
+         },
+         {
+            "command": "stack.toggleMsSQL",
+            "title": "Replaces tildas in the mssql query to schema and backward",
             "category": "stack"
          }
       ],

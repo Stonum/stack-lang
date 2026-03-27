@@ -4,7 +4,8 @@ import * as vscode from 'vscode'
 const toPostgresTable = /~\$?([А-яёЁ0-9A-Za-z_\-\(\) ]+)~/g
 const toPostgresArray = /~(\[([^\]])*\])~/g;
 
-export function togglePostgreSQL(
+
+export function togglePostgreSql(
    namespace: string = 'stack',
    addDollar: boolean = false,
 ): void {
@@ -12,20 +13,38 @@ export function togglePostgreSQL(
    if (!editor) {
       return
    }
-
    let hasTilda = false
    forAllSelections(editor, (r, t) => {
       hasTilda = hasTilda || !!t.match(toPostgresTable) || !!t.match(toPostgresArray)
    })
 
    if (hasTilda) {
-      convertToPostgreSQL(namespace)
+      convertToSql(namespace)
    } else {
-      convertFromPostgreSQL(namespace, addDollar)
+      convertFromPostgreSql(namespace, addDollar)
    }
 }
 
-function convertFromPostgreSQL(
+export function toggleMsSql(
+   namespace: string = 'stack'
+): void {
+   const editor = vscode.window.activeTextEditor
+   if (!editor) {
+      return
+   }
+   let hasTilda = false
+   forAllSelections(editor, (r, t) => {
+      hasTilda = hasTilda || !!t.match(toPostgresTable)
+   })
+
+   if (hasTilda) {
+      convertToSql(namespace)
+   } else {
+      convertFromMsSql(namespace)
+   }
+}
+
+function convertFromPostgreSql(
    namespace: string = 'stack',
    addDollar: boolean = false,
 ): void {
@@ -42,13 +61,34 @@ function convertFromPostgreSQL(
 
       forAllSelections(editor, (range, text) => {
          b.replace(range, text.replace(re1, repl).replace(re2, repl).replace(re3, repl)
-             .replace(/(\[([^\]])*\])/g, "~$1~") // replace []::int to ~[]~::int
+            .replace(/(\[([^\]])*\])/g, "~$1~") // replace []::int to ~[]~::int
          )
       })
    })
 }
 
-function convertToPostgreSQL(namespace: string = 'stack'): void {
+function convertFromMsSql(
+   namespace: string = 'stack',
+   addDollar: boolean = false,
+): void {
+   const editor = vscode.window.activeTextEditor
+   if (!editor) {
+      return
+   }
+
+   editor.edit(b => {
+      const re1 = new RegExp(namespace + '\\.\\[([^\\]]*)\\]', 'gi')  // replace stack.[table name] to ~table name~
+      const re2 = new RegExp(namespace + '\\."([^"]*)"', 'g') // replace stack."table name" to ~table name~
+      const re3 = new RegExp(namespace + '\\.([^\\s\\(]*)', 'g')  // replace stack.table to ~table~
+      const repl = '~$1~'
+
+      forAllSelections(editor, (range, text) => {
+         b.replace(range, text.replace(re1, repl).replace(re2, repl).replace(re3, repl))
+      })
+   })
+}
+
+function convertToSql(namespace: string = 'stack'): void {
    const editor = vscode.window.activeTextEditor
    if (!editor) {
       return
