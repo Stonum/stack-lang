@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use biome_formatter::{format_args, write};
 
-use crate::utils::FormatStatementBody;
+use crate::utils::{FormatStatementBody, soft_block_indent_with_same_line};
 use mlang_syntax::MIfStatement;
 use mlang_syntax::MIfStatementFields;
 
@@ -29,9 +29,7 @@ impl FormatNodeRule<MIfStatement> for FormatMIfStatement {
             [group(&format_args![
                 if_token.format(),
                 l_paren_token.format(),
-                space(),
-                group(&soft_block_indent(&test.format())),
-                space(),
+                group(&soft_block_indent_with_same_line(&test.format())),
                 r_paren_token.format(),
                 space(),
                 format_dangling_comments(node.syntax()),

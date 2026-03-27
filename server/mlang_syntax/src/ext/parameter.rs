@@ -3,7 +3,8 @@ use crate::{
     MConstructorParameterList, MLanguage, MParameterList,
 };
 use biome_rowan::{
-    AstNode, AstSeparatedList, AstSeparatedListNodesIterator, SyntaxResult, declare_node_union,
+    AstNode, AstSeparatedList, AstSeparatedListNodesIterator, SyntaxNode, SyntaxResult, TextRange,
+    declare_node_union,
 };
 
 /// An enumeration representing different types of parameter lists.
@@ -108,6 +109,20 @@ impl AnyMParameterList {
                 parameters.last()?.map(|parameter| parameter.into())
             }
         })
+    }
+
+    pub fn range(&self) -> TextRange {
+        match self {
+            AnyMParameterList::MParameterList(list) => list.range(),
+            AnyMParameterList::MConstructorParameterList(list) => list.range(),
+        }
+    }
+
+    pub fn syntax(&self) -> &SyntaxNode<MLanguage> {
+        match self {
+            AnyMParameterList::MParameterList(list) => list.syntax(),
+            AnyMParameterList::MConstructorParameterList(list) => list.syntax(),
+        }
     }
 }
 

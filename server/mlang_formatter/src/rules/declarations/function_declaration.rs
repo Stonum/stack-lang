@@ -104,13 +104,8 @@ impl FormatFunction {
 
         write!(f, [self.function_token().format()])?;
 
-        match self.id()? {
-            Some(id) => {
-                write!(f, [space(), id.format()])?;
-            }
-            None => {
-                write!(f, [space()])?;
-            }
+        if let Some(id) = self.id()? {
+            write!(f, [space(), id.format()])?;
         }
 
         let parameters = self.parameters()?;
@@ -133,9 +128,28 @@ impl FormatFunction {
             Ok(())
         });
 
+        let mut context = f.context().clone();
+        context.set_line_width(f.options().function_declaration_line_width());
+
+        let formatted = biome_formatter::format!(
+            context,
+            [format_with(|f| { write!(f, [format_parameters]) })]
+        )?;
+
+        // remove formatted with custom context tokens and write as text
+        for token in parameters
+            .syntax()
+            .descendants_tokens(biome_rowan::Direction::Next)
+        {
+            biome_formatter::write!(f, [format_removed(&token)])?;
+        }
+
         write!(
             f,
-            [group(&format_with(|f| { write!(f, [format_parameters]) }))]
+            [dynamic_text(
+                formatted.print()?.as_code(),
+                parameters.range().start()
+            )]
         )?;
 
         if let Some(doc_string) = self.doc_string() {
