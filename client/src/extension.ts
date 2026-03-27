@@ -21,7 +21,7 @@ import {
    TransportKind,
 } from "vscode-languageclient/node";
 
-import { togglePostgreSQL, fieldsToPostgreSQL } from './postgreUtils';
+import { togglePostgreSql, fieldsToPostgreSQL, toggleMsSql } from './sqlUtils';
 
 let client: LanguageClient;
 let statusBarItem: vscode.StatusBarItem;
@@ -97,6 +97,12 @@ export async function activate(context: vscode.ExtensionContext) {
       }
    });
 
+   registerCommands(context);
+
+   client.start();
+}
+
+function registerCommands(context: vscode.ExtensionContext) {
    let togglePSQL = commands.registerCommand('stack.togglePostgreSQL', args => {
       const activeEditor = vscode.window.activeTextEditor;
       const path = activeEditor?.document.uri.path;
@@ -104,14 +110,23 @@ export async function activate(context: vscode.ExtensionContext) {
 
       const namespace = args?.namespace || 'stack';
       const dollar = args?.dollar || extension === 'sql' || false;
-      togglePostgreSQL(namespace, dollar);
+      togglePostgreSql(namespace, dollar);
    });
-
    context.subscriptions.push(togglePSQL);
+
    let fieldsToPSQL = commands.registerCommand('stack.fieldsToPostgreSQL', () => {
       fieldsToPostgreSQL()
    });
    context.subscriptions.push(fieldsToPSQL);
+
+   let toggleMsSQL = commands.registerCommand('stack.toggleMsSQL', args => {
+      const activeEditor = vscode.window.activeTextEditor;
+      const path = activeEditor?.document.uri.path;
+      const extension = path?.split('.').pop();
+
+      const namespace = args?.namespace || 'stack';
+      toggleMsSql(namespace);
+   });
 
    let moveToLine = commands.registerCommand('stack.movetoLine', (line: number) => {
       const editor = window.activeTextEditor;
@@ -130,8 +145,6 @@ export async function activate(context: vscode.ExtensionContext) {
       );
    });
    context.subscriptions.push(moveToLine);
-
-   client.start();
 }
 
 export function deactivate(): Thenable<void> | undefined {
