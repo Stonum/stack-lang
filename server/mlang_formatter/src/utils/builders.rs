@@ -7,7 +7,17 @@ pub fn soft_block_indent_with_same_line<Context>(
 ) -> BlockIndentWithSameLine<'_, Context> {
     BlockIndentWithSameLine {
         content: Argument::new(content),
-        mode: IndentMode::Soft,
+        mode: BreakMode::Soft,
+    }
+}
+
+#[inline]
+pub fn soft_block_indent_with_same_line_without_brake<Context>(
+    content: &impl Format<Context>,
+) -> BlockIndentWithSameLine<'_, Context> {
+    BlockIndentWithSameLine {
+        content: Argument::new(content),
+        mode: BreakMode::None,
     }
 }
 
@@ -24,13 +34,14 @@ pub fn soft_block_indent_with_same_line<Context>(
 #[derive(Copy, Clone)]
 pub struct BlockIndentWithSameLine<'a, Context> {
     content: Argument<'a, Context>,
-    mode: IndentMode,
+    mode: BreakMode,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
-enum IndentMode {
+enum BreakMode {
     Soft,
     // Block,
+    None,
 }
 
 impl<Context> Format<Context> for BlockIndentWithSameLine<'_, Context> {
@@ -53,8 +64,9 @@ impl<Context> Format<Context> for BlockIndentWithSameLine<'_, Context> {
         f.write_element(FormatElement::Tag(Tag::EndIndent))?;
 
         match self.mode {
-            IndentMode::Soft => write!(f, [soft_line_break()]),
+            BreakMode::Soft => write!(f, [soft_line_break()]),
             // IndentMode::Block => write!(f, [hard_line_break()]),
+            BreakMode::None => Ok(()),
         }
     }
 }

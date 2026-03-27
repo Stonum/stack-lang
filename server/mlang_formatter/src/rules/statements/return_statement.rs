@@ -1,5 +1,8 @@
 use crate::prelude::*;
-use crate::utils::{FormatOptionalSemicolon, FormatStatementSemicolon};
+use crate::utils::{
+    FormatOptionalSemicolon, FormatStatementSemicolon,
+    soft_block_indent_with_same_line_without_brake,
+};
 
 use biome_formatter::{CstFormatContext, format_args, write};
 use biome_rowan::{SyntaxResult, declare_node_union};
@@ -107,9 +110,7 @@ impl Format<MFormatContext> for FormatReturnOrThrowArgument<'_> {
             write!(
                 f,
                 [group(&format_args![
-                    if_group_breaks(&text("(")),
-                    soft_block_indent(&argument.format()),
-                    if_group_breaks(&text(")"))
+                    soft_block_indent_with_same_line_without_brake(&argument.format()),
                 ])]
             )
         } else {
