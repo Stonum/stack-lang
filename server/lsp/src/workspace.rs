@@ -10,8 +10,8 @@ use walkdir::WalkDir;
 
 use mlang_core::{AnyMCoreDefinition, load_core_api};
 use mlang_lsp_definition::{
-    CodeSymbolDefinition as _, CodeSymbolInformation as _, LocationDefinition as _, SemanticInfo,
-    StringLowerCase, get_completion, get_declaration, get_hover, get_reference, get_symbols,
+    CodeSymbolDefinition as _, SemanticInfo, StringLowerCase, get_completion, get_declaration,
+    get_hover, get_lens, get_reference, get_symbols,
 };
 use mlang_parser::parse;
 use mlang_semantic::{SemanticModel, identifier_for_completion, identifier_for_offset, semantics};
@@ -326,21 +326,13 @@ impl Workspace {
         let document = self.get_opened_document(uri).await?;
         let command = String::from("stack.movetoLine");
 
-        let definitions = document.definitions();
-        let response = definitions
-            .filter_map(|def| {
-                let container = def.container()?;
-                let title = container.symbol_name();
-                let line = container.range().start.line;
-                let args = vec![Value::Number(line.into())];
+        let command_builder = |title: String, line_number: u32| {
+            let args = vec![Value::Number(line_number.into())];
+            Some(Command::new(title, command.clone(), Some(args)))
+        };
 
-                Some(CodeLens {
-                    range: def.lsp_range(),
-                    command: Some(Command::new(title, command.clone(), Some(args))),
-                    data: None,
-                })
-            })
-            .collect();
+        let definitions = document.definitions();
+        let response = get_lens(command_builder, definitions);
 
         Some(response)
     }

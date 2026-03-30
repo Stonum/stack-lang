@@ -2,8 +2,8 @@ use itertools::Itertools;
 use line_index::LineColRange;
 use std::{collections::HashMap, ops::Not};
 use tower_lsp::lsp_types::{
-    CompletionItem, CompletionItemKind, Documentation, Location, MarkedString, MarkupContent,
-    MarkupKind, Position, Range, SymbolInformation, Url,
+    CodeLens, Command, CompletionItem, CompletionItemKind, Documentation, Location, MarkedString,
+    MarkupContent, MarkupKind, Position, Range, SymbolInformation, Url,
 };
 
 pub use tower_lsp::lsp_types::SymbolKind;
@@ -690,6 +690,29 @@ where
             };
             completion_item.documentation = Some(Documentation::MarkupContent(markdown));
             completion_item
+        })
+        .collect()
+}
+
+pub fn get_lens<'a, F, I, D>(command_builder: F, definitions: I) -> Vec<CodeLens>
+where
+    F: Fn(String, u32) -> Option<Command>,
+    I: IntoIterator<Item = &'a D>,
+    D: CodeSymbolDefinition + CodeSymbolInformation + LocationDefinition + 'a,
+{
+    definitions
+        .into_iter()
+        .filter(|def| !def.is_property())
+        .filter_map(|def| {
+            let container = def.container()?;
+            let title = container.symbol_name();
+            let line = container.range().start.line;
+
+            Some(CodeLens {
+                range: def.lsp_range(),
+                command: command_builder(title, line),
+                data: None,
+            })
         })
         .collect()
 }
