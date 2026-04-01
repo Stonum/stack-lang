@@ -32,7 +32,7 @@ tower-lsp = { version = "0.20.0", features = ["proposed"] }
 serde_json = "1.0.149"
 serde_yaml = "0.9.33"
 serde = { version = "1.0", features = ["derive"] }
-rustc-hash = "2.1.1"
+rustc-hash = "2.1.2"
 tracing = { version = "0.1.44", default-features = false, features = ["std"] }
 enumflags2 = "0.7.10"
 chrono = "0.4.44"
