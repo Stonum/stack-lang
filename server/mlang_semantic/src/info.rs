@@ -48,6 +48,21 @@ pub fn identifier_for_completion(
     None
 }
 
+pub fn identifier_for_signature_help(
+    root: SyntaxNode<MLanguage>,
+    offset: TextSize,
+) -> Option<(SemanticInfo, u32)> {
+    let range = TextRange::new(offset, offset);
+    if !root.text_range().contains_range(range) {
+        return None;
+    }
+    let node = root.covering_element(range);
+    if let Some(token) = node.as_token() {
+        return find_identifier_for_signature_body(token);
+    }
+    None
+}
+
 fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> {
     if matches!(token.kind(), MSyntaxKind::IDENT | MSyntaxKind::SUPER_KW) {
         let ident = token.text_trimmed().trim().to_string();
@@ -405,6 +420,26 @@ fn find_identifier_for_r_paren(token: &SyntaxToken<MLanguage>) -> Option<Semanti
     None
 }
 
+fn find_identifier_for_signature_body(
+    token: &SyntaxToken<MLanguage>,
+) -> Option<(SemanticInfo, u32)> {
+    let mut iput_range = 0 as u32;
+    for n in token.ancestors().take(5) {
+        match n.kind() {
+            MSyntaxKind::M_NEW_EXPRESSION | MSyntaxKind::M_CALL_EXPRESSION => {
+                let info_token = find_info_token(n)?;
+                if let Some(ident) = identifier_for_token(&info_token) {
+                    return Some((ident, iput_range));
+                }
+            }
+            _ => {
+                iput_range = (n.to_string().split(",").count() - 1) as u32;
+            }
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use mlang_parser::parse;
@@ -515,6 +550,21 @@ mod tests {
             let token = get_token_from_offset(input, offset);
             let semantic_info =
                 identifier_for_token(&token).unwrap_or_else(|| panic!("failed for `{input}`"));
+            assert_eq!(info, semantic_info, "{input}");
+        }
+    }
+
+    #[test]
+    fn test_identifier_from_signature_help() {
+        #[rustfmt::skip]
+        let inputs = [
+            ("functionName(a,) ", 15, (SemanticInfo::FunctionCall("functionName".to_owned(), 1), 2 as u32)),
+        ];
+
+        for (input, offset, info) in inputs {
+            let token = get_token_from_offset(input, offset);
+            let semantic_info = find_identifier_for_signature_body(&token)
+                .unwrap_or_else(|| panic!("failed for `{input}`"));
             assert_eq!(info, semantic_info, "{input}");
         }
     }

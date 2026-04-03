@@ -58,6 +58,10 @@ impl LanguageServer for Backend {
                 trigger_characters: Some(vec![".".to_string(), " ".to_string()]),
                 ..Default::default()
             }),
+            signature_help_provider: Some(SignatureHelpOptions {
+                trigger_characters: Some(vec!["(".to_string(), ",".to_string(), " ".to_string()]),
+                ..Default::default()
+            }),
             ..ServerCapabilities::default()
         };
 
@@ -368,6 +372,17 @@ impl LanguageServer for Backend {
         let completion = self.workspace.completion(&file_uri, pos).await;
 
         Ok(completion)
+    }
+
+    async fn signature_help(&self, params: SignatureHelpParams) -> Result<Option<SignatureHelp>> {
+        let file_uri = params.text_document_position_params.text_document.uri;
+        let pos = params.text_document_position_params.position;
+        let context = params.context;
+        trace!("signature_help {} {:?} {:?}", &file_uri, &pos, &context);
+
+        let signature_help = self.workspace.signature_help(&file_uri, pos).await;
+
+        Ok(signature_help)
     }
 }
 

@@ -3,7 +3,8 @@ use line_index::LineColRange;
 use std::{collections::HashMap, ops::Not};
 use tower_lsp::lsp_types::{
     CodeLens, Command, CompletionItem, CompletionItemKind, Documentation, Location, MarkedString,
-    MarkupContent, MarkupKind, Position, Range, SymbolInformation, Url,
+    MarkupContent, MarkupKind, ParameterInformation, ParameterLabel, Position, Range,
+    SignatureInformation, SymbolInformation, Url,
 };
 
 pub use tower_lsp::lsp_types::SymbolKind;
@@ -544,6 +545,65 @@ where
             markups
         }
     }
+}
+
+pub fn get_signatures<'a, I, D>(
+    semantic_info: &SemanticInfo,
+    definitions: I,
+    current_argument: u32,
+) -> Vec<SignatureInformation>
+where
+    I: IntoIterator<Item = (Url, &'a D)>,
+    D: CodeSymbolDefinition + MarkupDefinition + 'a,
+{
+    let mut info_definitions: Vec<(Url, &D)> = vec![];
+    match semantic_info {
+        SemanticInfo::FunctionCall(ident, params)
+        | SemanticInfo::RefFunctionResult(ident, params) => {
+            info_definitions = definitions
+                .into_iter()
+                .filter(|(_, d)| d.is_function() && d.compare_id_with(ident))
+                .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
+                .collect::<Vec<_>>();
+        }
+        _ => {}
+    }
+
+    let signatures = info_definitions
+        .iter()
+        .map(|m| {
+            let definition = m.1;
+            let markdown = MarkupContent {
+                kind: MarkupKind::Markdown,
+                value: definition.markdown(),
+            };
+            let documentation = Some(Documentation::MarkupContent(markdown));
+            let mut parameters: Vec<ParameterInformation> = vec![];
+            if let Some(def_params) = definition.parameters() {
+                parameters = def_params
+                    .to_string()
+                    .split(",")
+                    .map(|p| ParameterInformation {
+                        label: ParameterLabel::Simple(p.to_string()),
+                        documentation: None,
+                    })
+                    .collect::<Vec<_>>();
+            }
+            let label = format!(
+                "{}{}",
+                definition.id().to_string(),
+                definition.parameters().unwrap_or_default()
+            );
+
+            SignatureInformation {
+                label: label,
+                documentation: documentation,
+                parameters: Some(parameters),
+                active_parameter: Some(current_argument),
+            }
+        })
+        .collect::<Vec<_>>();
+    signatures
 }
 
 pub fn get_symbols<'a, I, D>(uri: &Url, definitions: I) -> Vec<SymbolInformation>
