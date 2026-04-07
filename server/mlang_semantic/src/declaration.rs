@@ -339,6 +339,7 @@ impl MarkupDefinition for AnyMDefinition {
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct MParameters {
     text: String,
+    // separators: Vec<usize>,
     total_count: usize,
     optional_count: usize,
     has_rest: bool,
@@ -401,6 +402,9 @@ impl From<AnyMParameterList> for MParameters {
 
         MParameters {
             text: value.to_string().trim().to_string(),
+            // separators: value.iter().filter_map(|v| v.ok())
+            // .map(|v| v.range().end(). as usize)
+            // .collect::<Vec<_>>(),
             total_count: value.len(),
             optional_count,
             has_rest,

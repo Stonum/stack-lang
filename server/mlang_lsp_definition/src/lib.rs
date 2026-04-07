@@ -558,13 +558,33 @@ where
 {
     let mut info_definitions: Vec<(Url, &D)> = vec![];
     match semantic_info {
-        SemanticInfo::FunctionCall(ident, params)
-        | SemanticInfo::RefFunctionResult(ident, params) => {
+        SemanticInfo::FunctionCall(ident, params) => {
             info_definitions = definitions
                 .into_iter()
-                .filter(|(_, d)| d.is_function() && d.compare_id_with(ident))
+                .filter(|(_, d)| (d.is_function()) && d.compare_id_with(ident))
                 .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
                 .collect::<Vec<_>>();
+        }
+        SemanticInfo::NewExpression(Some(ident), params) => {
+            let definitions = definitions.into_iter().collect::<Vec<_>>();
+
+            let classes = definitions
+                .iter()
+                .map(|(_, d)| d)
+                .filter(|d| d.is_class() && d.compare_id_with(ident));
+
+            for c in classes {
+                // markups.push(MarkedString::String(c.markdown()));
+
+                let mut methods_definitions = definitions
+                    .iter()
+                    .filter(|(_, d)| d.is_constructor() && d.container().as_ref() == Some(c))
+                    .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
+                    .map(|e| e.clone())
+                    .collect::<Vec<_>>();
+
+                info_definitions.append(&mut methods_definitions);
+            }
         }
         _ => {}
     }
@@ -579,6 +599,7 @@ where
             };
             let documentation = Some(Documentation::MarkupContent(markdown));
             let mut parameters: Vec<ParameterInformation> = vec![];
+            // todo необходимо парсить параметры, а не разбивать по запятой!
             if let Some(def_params) = definition.parameters() {
                 parameters = def_params
                     .to_string()

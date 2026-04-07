@@ -58,7 +58,7 @@ pub fn identifier_for_signature_help(
     }
     let node = root.covering_element(range);
     if let Some(token) = node.as_token() {
-        return find_identifier_for_signature_body(token);
+        return find_identifier_for_signature_body(token, offset);
     }
     None
 }
@@ -422,19 +422,43 @@ fn find_identifier_for_r_paren(token: &SyntaxToken<MLanguage>) -> Option<Semanti
 
 fn find_identifier_for_signature_body(
     token: &SyntaxToken<MLanguage>,
+    ofset: TextSize,
 ) -> Option<(SemanticInfo, u32)> {
-    let mut iput_range = 0 as u32;
     for n in token.ancestors().take(5) {
         match n.kind() {
             MSyntaxKind::M_NEW_EXPRESSION | MSyntaxKind::M_CALL_EXPRESSION => {
+                let mut current_arg_number = 0 as u32;
+                let args = match n.kind() {
+                    MSyntaxKind::M_CALL_EXPRESSION => {
+                        MCallExpression::unwrap_cast(n.clone()).arguments().ok()
+                    }
+                    MSyntaxKind::M_NEW_EXPRESSION => {
+                         MNewExpression::unwrap_cast(n.clone()).arguments()
+                    }
+                    _ => { None }
+                };
+                if let Some(args) = args {
+                    current_arg_number = args
+                        .args()
+                        .elements()
+                        .filter(|e| {
+                            e.clone().into_node().is_ok_and(|n| {
+                                // n.is_some_and(|n| {
+                                    println!("{:?}", n.to_string());
+                                    ofset
+                                        .checked_add(1.into())
+                                        .is_some_and(|sub| n.range().end().le(&sub))
+                                // })
+                            })
+                        })
+                        .count() as u32;
+                }
                 let info_token = find_info_token(n)?;
                 if let Some(ident) = identifier_for_token(&info_token) {
-                    return Some((ident, iput_range));
+                    return Some((ident, current_arg_number as u32));
                 }
             }
-            _ => {
-                iput_range = (n.to_string().split(",").count() - 1) as u32;
-            }
+            _ => {}
         }
     }
     None
@@ -558,12 +582,15 @@ mod tests {
     fn test_identifier_from_signature_help() {
         #[rustfmt::skip]
         let inputs = [
-            ("functionName(a,) ", 15, (SemanticInfo::FunctionCall("functionName".to_owned(), 1), 2 as u32)),
+            ("new Test( a , b) ", 11, (SemanticInfo::NewExpression(Some("Test".to_owned()), 1), 0 as u32)),
+            ("funcName( a , b) ", 11, (SemanticInfo::FunctionCall("funcName".to_owned(), 1), 0 as u32)),
+            // ("new Test(a,) ", 9, (SemanticInfo::NewExpression(Some("Test".to_owned()), 1), 1 as u32)),
+            // ("funcName(a,) ", 9, (SemanticInfo::FunctionCall("functionName".to_owned(), 1), 1 as u32)),
         ];
 
         for (input, offset, info) in inputs {
             let token = get_token_from_offset(input, offset);
-            let semantic_info = find_identifier_for_signature_body(&token)
+            let semantic_info = find_identifier_for_signature_body(&token, TextSize::from(offset))
                 .unwrap_or_else(|| panic!("failed for `{input}`"));
             assert_eq!(info, semantic_info, "{input}");
         }
