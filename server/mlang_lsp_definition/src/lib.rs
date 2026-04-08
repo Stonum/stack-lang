@@ -574,8 +574,6 @@ where
                 .filter(|d| d.is_class() && d.compare_id_with(ident));
 
             for c in classes {
-                // markups.push(MarkedString::String(c.markdown()));
-
                 let mut methods_definitions = definitions
                     .iter()
                     .filter(|(_, d)| d.is_constructor() && d.container().as_ref() == Some(c))
@@ -586,45 +584,101 @@ where
                 info_definitions.append(&mut methods_definitions);
             }
         }
+        SemanticInfo::MethodCall(ident, params, Some(class_name))
+        | SemanticInfo::RefMethodResult(ident, params, Some(class_name)) => {
+            let members = get_class_members_definition(definitions, class_name);
+
+            info_definitions = members
+                .into_iter()
+                .filter(|(_, d)| d.is_method() && d.compare_id_with(ident))
+                .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
+                .collect::<Vec<_>>();
+        }
+
+        SemanticInfo::SuperCall(_ident, params, class_name) => {
+            let definitions = definitions.into_iter().collect::<Vec<_>>();
+
+            let classes = definitions
+                .iter()
+                .map(|(_, d)| d)
+                .filter(|d| d.is_class() && d.compare_id_with(class_name));
+
+            for c in classes {
+                let mut constructors = definitions
+                    .iter()
+                    .filter(|(_, d)| d.is_constructor() && d.container().as_ref() == Some(c))
+                    .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
+                    .map(|e| e.clone())
+                    .collect::<Vec<_>>();
+                info_definitions.append(&mut constructors);
+            }
+        }
         _ => {}
     }
 
     let signatures = info_definitions
         .iter()
-        .map(|m| {
-            let definition = m.1;
-            let markdown = MarkupContent {
-                kind: MarkupKind::Markdown,
-                value: definition.markdown(),
-            };
-            let documentation = Some(Documentation::MarkupContent(markdown));
-            let mut parameters: Vec<ParameterInformation> = vec![];
-            // todo необходимо парсить параметры, а не разбивать по запятой!
-            if let Some(def_params) = definition.parameters() {
-                parameters = def_params
-                    .to_string()
-                    .split(",")
-                    .map(|p| ParameterInformation {
-                        label: ParameterLabel::Simple(p.to_string()),
-                        documentation: None,
-                    })
-                    .collect::<Vec<_>>();
-            }
-            let label = format!(
-                "{}{}",
-                definition.id().to_string(),
-                definition.parameters().unwrap_or_default()
-            );
-
-            SignatureInformation {
-                label: label,
-                documentation: documentation,
-                parameters: Some(parameters),
-                active_parameter: Some(current_argument),
-            }
-        })
+        .map(|m| get_signature_from_definition(m, current_argument))
         .collect::<Vec<_>>();
     signatures
+}
+
+fn get_signature_from_definition<'a, D>(
+    definition: &(Url, &'a D),
+    current_argument: u32,
+) -> SignatureInformation
+where
+    D: CodeSymbolDefinition + MarkupDefinition + 'a,
+{
+    let definition = definition.1;
+    let markdown = MarkupContent {
+        kind: MarkupKind::Markdown,
+        value: definition.markdown(),
+    };
+    let documentation = Some(Documentation::MarkupContent(markdown));
+
+    let label_begin = definition.id().to_string();
+    let mut parameters: Vec<ParameterInformation> = vec![];
+    // todo need to parse AST against coma splitting
+    if let Some(def_params) = definition.parameters() {
+        let mut separator_offset = label_begin.chars().count() as u32;
+        for parameter in def_params.to_string().split(",") {
+            let parameter = parameter.to_string();
+            let parameter_text_len = parameter.chars().count() as u32;
+            if !parameter.contains("...") {
+                parameters.push(ParameterInformation {
+                    label: ParameterLabel::LabelOffsets([
+                        separator_offset,
+                        separator_offset + parameter_text_len,
+                    ]),
+                    documentation: Some(Documentation::String(parameter.clone())),
+                });
+            } else {
+                for _i in 1..100 {
+                    parameters.push(ParameterInformation {
+                        label: ParameterLabel::LabelOffsets([
+                            separator_offset,
+                            separator_offset + parameter_text_len,
+                        ]),
+                        documentation: Some(Documentation::String(format!("... arg {}", _i))),
+                    });
+                }
+            }
+            separator_offset += (parameter_text_len + 1) as u32;
+        }
+    }
+    let label = format!(
+        "{}{}",
+        label_begin,
+        definition.parameters().unwrap_or_default()
+    );
+
+    SignatureInformation {
+        label: label,
+        documentation: documentation,
+        parameters: Some(parameters),
+        active_parameter: Some(current_argument),
+    }
 }
 
 pub fn get_symbols<'a, I, D>(uri: &Url, definitions: I) -> Vec<SymbolInformation>

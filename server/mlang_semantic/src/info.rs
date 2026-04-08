@@ -433,22 +433,23 @@ fn find_identifier_for_signature_body(
                         MCallExpression::unwrap_cast(n.clone()).arguments().ok()
                     }
                     MSyntaxKind::M_NEW_EXPRESSION => {
-                         MNewExpression::unwrap_cast(n.clone()).arguments()
+                        MNewExpression::unwrap_cast(n.clone()).arguments()
                     }
-                    _ => { None }
+                    _ => None,
                 };
                 if let Some(args) = args {
                     current_arg_number = args
                         .args()
                         .elements()
                         .filter(|e| {
-                            e.clone().into_node().is_ok_and(|n| {
-                                // n.is_some_and(|n| {
-                                    println!("{:?}", n.to_string());
-                                    ofset
-                                        .checked_add(1.into())
-                                        .is_some_and(|sub| n.range().end().le(&sub))
-                                // })
+                            e.clone().into_trailing_separator().is_ok_and(|n| {
+                                n.is_some_and(|n| {
+                                    ofset.checked_add(1.into()).is_some_and(|sub| {
+                                        n.text_range()
+                                            .start()
+                                            .lt(&sub.checked_sub(1.into()).unwrap_or_default())
+                                    })
+                                })
                             })
                         })
                         .count() as u32;
