@@ -3,7 +3,7 @@ use mlang_lsp_definition::SemanticInfo;
 use mlang_syntax::{
     AnyMAssignment, AnyMBinding, AnyMExpression, MAssignmentExpression, MCallExpression,
     MClassDeclaration, MExpressionStatement, MLanguage, MNewExpression, MSequenceExpression,
-    MSyntaxKind, MVariableStatement,
+    MStaticMemberAssignment, MStaticMemberExpression, MSyntaxKind, MVariableStatement,
 };
 
 pub fn identifier_for_offset(
@@ -93,6 +93,71 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> 
                         // iterator has 2 args - ref and variable receiver
                         return Some(SemanticInfo::FunctionCall(ident, 2));
                     }
+
+                    MSyntaxKind::M_STATIC_MEMBER_EXPRESSION
+                    | MSyntaxKind::M_STATIC_MEMBER_ASSIGNMENT => {
+                        let class_id = {
+                            let object = match n.kind() {
+                                MSyntaxKind::M_STATIC_MEMBER_EXPRESSION => {
+                                    MStaticMemberExpression::cast_ref(&n)?.object().ok()?
+                                }
+                                MSyntaxKind::M_STATIC_MEMBER_ASSIGNMENT => {
+                                    MStaticMemberAssignment::cast_ref(&n)?.object().ok()?
+                                }
+                                _ => unreachable!(),
+                            };
+
+                            match object {
+                                AnyMExpression::MThisExpression(_) => token
+                                    .ancestors()
+                                    .find(|p| p.kind() == MSyntaxKind::M_CLASS_DECLARATION)
+                                    .and_then(|class_node| {
+                                        let class = MClassDeclaration::cast(class_node)?;
+                                        let id = class.id().ok()?.text();
+                                        Some(id)
+                                    }),
+
+                                AnyMExpression::MSuperExpression(_) => token
+                                    .ancestors()
+                                    .find(|p| p.kind() == MSyntaxKind::M_CLASS_DECLARATION)
+                                    .and_then(|class_node| {
+                                        let class = MClassDeclaration::cast(class_node)?;
+                                        let id = class.extends_clause()?.super_class().ok()?.text();
+                                        Some(id)
+                                    }),
+
+                                AnyMExpression::MIdentifierExpression(identifier) => {
+                                    find_identifier_by_reference(identifier.into_syntax()).and_then(
+                                        |info| {
+                                            if let SemanticInfo::RefClass(class_name) = info {
+                                                return Some(class_name);
+                                            }
+                                            None
+                                        },
+                                    )
+                                }
+
+                                _ => None,
+                            }
+                        };
+
+                        if let Some(parent) = n.parent()
+                            && let Some(call) = MCallExpression::cast(parent)
+                        {
+                            let args_count = {
+                                let args = call.arguments().ok()?.args();
+                                Some(args.len())
+                            }
+                            .unwrap_or_default();
+
+                            return Some(SemanticInfo::MethodCall(ident, args_count, class_id));
+                        }
+
+                        if let Some(class_id) = class_id {
+                            return Some(SemanticInfo::Property(ident, class_id));
+                        }
+                    }
+
                     MSyntaxKind::M_CALL_EXPRESSION => {
                         let call = MCallExpression::unwrap_cast(n);
                         let args_count = {
@@ -102,46 +167,6 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> 
                         .unwrap_or_default();
 
                         let callee = call.callee().ok();
-                        if let Some(AnyMExpression::MStaticMemberExpression(static_member)) = callee
-                        {
-                            let class_id = {
-                                let object = static_member.object().ok()?;
-
-                                match object {
-                                    AnyMExpression::MThisExpression(_) => token
-                                        .ancestors()
-                                        .find(|p| p.kind() == MSyntaxKind::M_CLASS_DECLARATION)
-                                        .and_then(|class_node| {
-                                            let class = MClassDeclaration::cast(class_node)?;
-                                            let id = class.id().ok()?.text();
-                                            Some(id)
-                                        }),
-
-                                    AnyMExpression::MSuperExpression(_) => token
-                                        .ancestors()
-                                        .find(|p| p.kind() == MSyntaxKind::M_CLASS_DECLARATION)
-                                        .and_then(|class_node| {
-                                            let class = MClassDeclaration::cast(class_node)?;
-                                            let id =
-                                                class.extends_clause()?.super_class().ok()?.text();
-                                            Some(id)
-                                        }),
-
-                                    AnyMExpression::MIdentifierExpression(identifier) => {
-                                        find_identifier_by_reference(identifier.into_syntax())
-                                            .and_then(|info| {
-                                                if let SemanticInfo::RefClass(class_name) = info {
-                                                    return Some(class_name);
-                                                }
-                                                None
-                                            })
-                                    }
-
-                                    _ => None,
-                                }
-                            };
-                            return Some(SemanticInfo::MethodCall(ident, args_count, class_id));
-                        }
                         if let Some(AnyMExpression::MSuperExpression(_)) = callee {
                             let class_id = {
                                 token
@@ -154,7 +179,7 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> 
                                     })
                             };
 
-                            // return None if class is not finded
+                            // return None if class is not founded
                             return Some(SemanticInfo::SuperCall(ident, args_count, class_id?));
                         }
 
@@ -450,12 +475,18 @@ mod tests {
     }
 
     #[test]
-    fn test_identifier_for_offset_in_class_delcaration() {
+    fn test_identifier_for_offset_in_class_declaration() {
         let input = r#"
             class Test {
                 constructor() { this.m2(); }
                 m1() {}
                 m2() { this.m1(); }
+                get xxx() { return 1; }
+                m3() 
+                {
+                    this.yyy = 1;
+                    return this.xxx; 
+                }
             }
         "#;
         let parsed = parse(input, MFileSource::script());
@@ -465,6 +496,8 @@ mod tests {
             (65, SemanticInfo::MethodCall("m2".to_owned(), 0, Some("Test".into()))),
             (125, SemanticInfo::MethodCall("m1".to_owned(), 0, Some("Test".into()))),
             (62, SemanticInfo::RefClass("Test".into())),
+            (240, SemanticInfo::Property("yyy".into(), "Test".into())),
+            (280, SemanticInfo::Property("xxx".into(), "Test".into())),
         ];
 
         for (offset, info) in offsets {

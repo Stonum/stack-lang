@@ -282,7 +282,7 @@ impl MarkupDefinition for AnyMDefinition {
                     let class = member.class.upgrade().unwrap();
 
                     format!(
-                        "```\n{} {}\n\n\t{}{}\n```  \n{}",
+                        "```\n{} {}\n\t{}{}\n```  \n{}",
                         class.keyword,
                         class.id.name,
                         member.id.name,
@@ -301,7 +301,7 @@ impl MarkupDefinition for AnyMDefinition {
                     let class = member.class.upgrade().unwrap();
 
                     format!(
-                        "```\n{} {}\n\n\t{} {}{}\n```  \n{}",
+                        "```\n{} {}\n\t{} {}{}\n```  \n{}",
                         class.keyword,
                         class.id.name,
                         member.keyword.as_deref().unwrap_or_default(),
@@ -312,6 +312,15 @@ impl MarkupDefinition for AnyMDefinition {
                             .as_deref()
                             .map(|s| self.escape_markdown_with_newlines(s))
                             .unwrap_or_default()
+                    )
+                }
+
+                MClassMethodType::Property if member.class.upgrade().is_some() => {
+                    let class = member.class.upgrade().unwrap();
+
+                    format!(
+                        "```\n{} {}\n\t(prop) {}",
+                        class.keyword, class.id.name, member.id.name
                     )
                 }
 
