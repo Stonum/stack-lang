@@ -158,9 +158,13 @@ pub enum SemanticInfo {
     // contains function name
     FunctionCall(Identifier, ParametersCount),
 
-    // like z.cmethod() or this.method()
+    // like z.method() or this.method()
     // contains method name and optionally contains class name
     MethodCall(Identifier, ParametersCount, Option<Class>),
+
+    // like z.getter or this.getter
+    // contains prop name and optionally contains class name
+    Property(Identifier, Class),
 
     // like new MyClass();
     // contains class name
@@ -311,6 +315,18 @@ where
                 .collect::<Vec<_>>()
         }
 
+        SemanticInfo::Property(ident, class_name) => {
+            let members = get_class_members_definition(definitions, class_name);
+
+            members
+                .into_iter()
+                .filter(|(_, d)| {
+                    (d.is_getter() || d.is_setter() || d.is_property()) && d.compare_id_with(ident)
+                })
+                .map(|(uri, d)| d.id_location(uri.clone()))
+                .collect::<Vec<_>>()
+        }
+
         SemanticInfo::SuperCall(_ident, params, class_name) => {
             // local copy
             let definitions = Vec::from_iter(definitions);
@@ -391,7 +407,9 @@ where
         SemanticInfo::SuperCall(_, _, _) | SemanticInfo::ClassExtends(_) => vec![],
         SemanticInfo::NewExpression(_, _) => vec![],
 
-        SemanticInfo::FunctionCall(_, _) | SemanticInfo::MethodCall(_, _, _) => vec![],
+        SemanticInfo::FunctionCall(_, _)
+        | SemanticInfo::MethodCall(_, _, _)
+        | SemanticInfo::Property(_, _) => vec![],
 
         SemanticInfo::RefFunctionResult(_, _)
         | SemanticInfo::RefClass(_)
@@ -515,6 +533,18 @@ where
                 .into_iter()
                 .filter(|(_, d)| d.is_method() && d.compare_id_with(ident))
                 .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
+                .map(|(_, d)| MarkedString::String(d.markdown()))
+                .collect::<Vec<_>>()
+        }
+
+        SemanticInfo::Property(ident, class_name) => {
+            let members = get_class_members_definition(definitions, class_name);
+
+            members
+                .into_iter()
+                .filter(|(_, d)| {
+                    (d.is_getter() || d.is_setter() || d.is_property()) && d.compare_id_with(ident)
+                })
                 .map(|(_, d)| MarkedString::String(d.markdown()))
                 .collect::<Vec<_>>()
         }
