@@ -6,6 +6,7 @@ use tower_lsp::lsp_types::{
     MarkupContent, MarkupKind, ParameterInformation, ParameterLabel, Position, Range,
     SignatureInformation, SymbolInformation, Url,
 };
+// use mlang_semantic::parse_parameters_str_to_ranges;
 
 pub use tower_lsp::lsp_types::SymbolKind;
 
@@ -40,6 +41,7 @@ pub trait CodeSymbolDefinition: Sized + PartialEq {
     }
     fn id(&self) -> &str;
     fn parameters(&self) -> Option<&str>;
+    fn parameters_ranges(&self) -> Option<&Vec<[u32;2]>>;
     fn container(&self) -> Option<Self>;
     fn parent(&self) -> Option<&str>;
 
@@ -639,46 +641,59 @@ where
 
     let label_begin = definition.id().to_string();
     let mut parameters: Vec<ParameterInformation> = vec![];
-    // todo need to parse AST against coma splitting
-    if let Some(def_params) = definition.parameters() {
-        let mut separator_offset = label_begin.chars().count() as u32;
-        for parameter in def_params.to_string().split(",") {
-            let parameter = parameter.to_string();
-            let parameter_text_len = parameter.chars().count() as u32;
+    let mut params = "()";
+    if let Some(def_params) = definition.parameters() && let Some(ranges) = definition.parameters_ranges()
+    {
+        params = def_params;
+        let label_begin_length = label_begin.chars().count() + 2;
+        for r in ranges.iter()
+        {
+            fn get_first_char(str: &str, offset: usize) -> Option<usize> {
+                let mut end = offset;
+                while end < str.len() && !str.is_char_boundary(end) {
+                    end += 1;
+                }
+
+                if end > str.len() {
+                    return None;
+                }
+
+                Some(end)
+            }
+
+            let start = def_params[..get_first_char(def_params, r[0] as usize).unwrap_or_default()].chars().count();
+            let end = def_params[..get_first_char(def_params, r[1] as usize).unwrap_or_default()].chars().count();
+            let parameter: String = def_params.chars().skip((start + 2) as usize).take((end - start) as usize).collect();
+            let label = ParameterLabel::LabelOffsets([(start + label_begin_length) as u32, (end + label_begin_length) as u32]);
             if !parameter.contains("...") {
                 parameters.push(ParameterInformation {
-                    label: ParameterLabel::LabelOffsets([
-                        separator_offset,
-                        separator_offset + parameter_text_len,
-                    ]),
+                    label: label,
                     documentation: Some(Documentation::String(parameter.clone())),
                 });
             } else {
                 for _i in 1..100 {
                     parameters.push(ParameterInformation {
-                        label: ParameterLabel::LabelOffsets([
-                            separator_offset,
-                            separator_offset + parameter_text_len,
-                        ]),
+                        label: label.clone(),
                         documentation: Some(Documentation::String(format!("... arg {}", _i))),
                     });
                 }
             }
-            separator_offset += (parameter_text_len + 1) as u32;
         }
     }
     let label = format!(
         "{}{}",
         label_begin,
-        definition.parameters().unwrap_or_default()
+        params
     );
 
-    SignatureInformation {
+    let signature_info = SignatureInformation {
         label: label,
         documentation: documentation,
         parameters: Some(parameters),
         active_parameter: Some(current_argument),
-    }
+    };
+
+    signature_info
 }
 
 pub fn get_symbols<'a, I, D>(uri: &Url, definitions: I) -> Vec<SymbolInformation>

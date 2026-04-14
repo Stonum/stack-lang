@@ -15,8 +15,7 @@ use mlang_lsp_definition::{
 };
 use mlang_parser::parse;
 use mlang_semantic::{
-    SemanticModel, identifier_for_completion, identifier_for_offset, identifier_for_signature_help,
-    semantics,
+    SemanticModel, identifier_for_completion, identifier_for_offset, identifier_for_signature_help, parse_parameters_str_to_ranges, semantics
 };
 use mlang_syntax::MFileSource;
 
@@ -25,9 +24,7 @@ use tokio::sync::{OwnedRwLockReadGuard, RwLock, Semaphore};
 use tokio::task::JoinError;
 
 use tower_lsp::lsp_types::{
-    CodeLens, Command, CompletionItem, CompletionResponse, DocumentSymbolResponse,
-    GotoDefinitionResponse, Hover, HoverContents, Location, Position, Range, SemanticTokens,
-    SignatureHelp, SymbolInformation, TextDocumentItem, Url, WorkspaceFolder,
+    CodeLens, Command, CompletionItem, CompletionResponse, DocumentSymbolResponse, GotoDefinitionResponse, Hover, HoverContents, Location, ParameterInformation, ParameterLabel, Position, Range, SemanticTokens, SignatureHelp, SymbolInformation, TextDocumentItem, Url, WorkspaceFolder
 };
 
 use crate::document::CurrentDocument;
@@ -434,7 +431,7 @@ impl Workspace {
         let current_argument = semantic_data.1;
 
         let signatures = get_signatures(&semantic_info, definitions, current_argument);
-
+        
         Some(SignatureHelp {
             signatures,
             active_signature: Some(0),

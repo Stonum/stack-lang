@@ -59,6 +59,10 @@ impl CodeSymbolDefinition for AnyMCoreDefinition {
         None
     }
 
+    fn parameters_ranges(&self) -> Option<&Vec<[u32;2]>> {
+        None
+    }
+
     fn call_priority(&self, _another: &Self, _count: usize) -> core::cmp::Ordering {
         core::cmp::Ordering::Equal
     }

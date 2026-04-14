@@ -1,9 +1,8 @@
-use biome_rowan::{AstNode, AstSeparatedList, SyntaxNode, SyntaxToken, TextRange, TextSize};
+use biome_rowan::{AstNode, AstNodeList, AstSeparatedList, SyntaxNode, SyntaxToken, TextRange, TextSize};
 use mlang_lsp_definition::SemanticInfo;
+use mlang_parser::parse;
 use mlang_syntax::{
-    AnyMAssignment, AnyMBinding, AnyMExpression, MAssignmentExpression, MCallExpression,
-    MClassDeclaration, MExpressionStatement, MLanguage, MNewExpression, MSequenceExpression,
-    MSyntaxKind, MVariableStatement,
+    AnyMAssignment, AnyMBinding, AnyMExpression, MAssignmentExpression, MCallExpression, MClassDeclaration, MExpressionStatement, MFileSource, MLanguage, MNewExpression, MSequenceExpression, MStatementList, MSyntaxKind, MVariableStatement
 };
 
 pub fn identifier_for_offset(
@@ -59,6 +58,53 @@ pub fn identifier_for_signature_help(
     let node = root.covering_element(range);
     if let Some(token) = node.as_token() {
         return find_identifier_for_signature_body(token, offset);
+    }
+    None
+}
+
+pub fn parse_parameters_str_to_ranges(parameters: &str, start_offset: u32) -> Option<Vec<[u32;2]>>
+{
+    let parsed = parse(parameters, MFileSource::script());
+    let syntax = parsed.syntax();
+    let text_size_offset = TextSize::from(0);
+    let range = TextRange::new(text_size_offset, text_size_offset);
+    let element = syntax.covering_element(range);
+    let token = element.as_token();
+    if token.is_none() {
+        return None;
+    }
+    // let token = token.unwrap();
+    // for n in token.ancestors().take(3) {
+    //     match n.kind() {
+    //         MSyntaxKind::M_EXPRESSION_STATEMENT => {
+    //             if let Some(list) = MExpressionStatement::cast(n) {
+    //                 list.syntax_list().iter().for_each(|slot|
+    //                     {
+    //                         if let Some(n) = slot.into_node() {
+    //                             println!("{:?} {:?}", n.kind(), n.to_string());
+    //                         }
+    //                     }
+    //                 )
+    //             }
+    //         }
+    //         _ => {}
+    //     }
+    // }
+
+    let def_params = parameters;
+    let mut params_ranges: Vec<[u32;2]> = vec![];
+    let mut separator_offset = start_offset;
+    for parameter in def_params.to_string().split(",") {
+        let parameter = parameter.to_string();
+        let parameter_text_len = parameter.chars().count() as u32;
+        if !parameter.contains("...") {
+            params_ranges.push([separator_offset, separator_offset + parameter_text_len]);
+        } else {
+            for _i in 1..100 {
+                params_ranges.push([separator_offset, separator_offset + parameter_text_len]);
+            }
+        }
+        separator_offset += (parameter_text_len + 1) as u32;
     }
     None
 }
@@ -583,10 +629,9 @@ mod tests {
     fn test_identifier_from_signature_help() {
         #[rustfmt::skip]
         let inputs = [
-            ("new Test( a , b) ", 11, (SemanticInfo::NewExpression(Some("Test".to_owned()), 1), 0 as u32)),
-            ("funcName( a , b) ", 11, (SemanticInfo::FunctionCall("funcName".to_owned(), 1), 0 as u32)),
-            // ("new Test(a,) ", 9, (SemanticInfo::NewExpression(Some("Test".to_owned()), 1), 1 as u32)),
-            // ("funcName(a,) ", 9, (SemanticInfo::FunctionCall("functionName".to_owned(), 1), 1 as u32)),
+            ("funcName(a, b) ", 11, (SemanticInfo::FunctionCall("funcName".to_owned(), 2), 1 as u32)),
+            ("new Test(a, b) ", 11, (SemanticInfo::NewExpression(Some("Test".to_owned()), 2), 1 as u32)),
+            ("x.m1(a, b) ", 8, (SemanticInfo::MethodCall("m1".to_owned(), 2, None), 1)),
         ];
 
         for (input, offset, info) in inputs {
@@ -594,6 +639,25 @@ mod tests {
             let semantic_info = find_identifier_for_signature_body(&token, TextSize::from(offset))
                 .unwrap_or_else(|| panic!("failed for `{input}`"));
             assert_eq!(info, semantic_info, "{input}");
+        }
+    }
+
+    #[test]
+    fn test_identifier_from_signature_help2() {
+        #[rustfmt::skip]
+        let inputs = [
+            ("(a, b)", 1, (SemanticInfo::FunctionCall("funcName".to_owned(), 2), 1 as u32)),
+        ];
+
+        for (input, offset, info) in inputs {
+            let token = get_token_from_offset(input, offset);
+            parse_parameters_str_to_ranges(input, 0);
+            for n in token.ancestors().take(7) {
+                println!("{:?} {:?}", n.kind(), n.to_string());
+            }
+            // let semantic_info = find_identifier_for_signature_body(&token, TextSize::from(offset))
+            //     .unwrap_or_else(|| panic!("failed for `{input}`"));
+            // assert_eq!(info, semantic_info, "{input}");
         }
     }
 
