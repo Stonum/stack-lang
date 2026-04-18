@@ -15,7 +15,8 @@ use mlang_lsp_definition::{
 };
 use mlang_parser::parse;
 use mlang_semantic::{
-    SemanticModel, identifier_for_completion, identifier_for_offset, identifier_for_signature_help, parse_parameters_str_to_ranges, semantics
+    SemanticModel, identifier_for_completion, identifier_for_offset, identifier_for_signature_help,
+    parse_signature_str_to_ranges, semantics,
 };
 use mlang_syntax::MFileSource;
 
@@ -24,7 +25,10 @@ use tokio::sync::{OwnedRwLockReadGuard, RwLock, Semaphore};
 use tokio::task::JoinError;
 
 use tower_lsp::lsp_types::{
-    CodeLens, Command, CompletionItem, CompletionResponse, DocumentSymbolResponse, GotoDefinitionResponse, Hover, HoverContents, Location, ParameterInformation, ParameterLabel, Position, Range, SemanticTokens, SignatureHelp, SymbolInformation, TextDocumentItem, Url, WorkspaceFolder
+    CodeLens, Command, CompletionItem, CompletionResponse, DocumentSymbolResponse,
+    GotoDefinitionResponse, Hover, HoverContents, Location, ParameterInformation, ParameterLabel,
+    Position, Range, SemanticTokens, SignatureHelp, SignatureInformation, SymbolInformation,
+    TextDocumentItem, Url, WorkspaceFolder,
 };
 
 use crate::document::CurrentDocument;
@@ -430,12 +434,41 @@ impl Workspace {
         let semantic_info = semantic_data.0;
         let current_argument = semantic_data.1;
 
-        let signatures = get_signatures(&semantic_info, definitions, current_argument);
-        
+        let signatures_strs = get_signatures(&semantic_info, definitions);
+        let signatures = signatures_strs
+            .iter()
+            .map(|s| {
+                let mut parameters: Option<Vec<ParameterInformation>> = None;
+                if let Some(ranges) = parse_signature_str_to_ranges(s.clone().as_str()) {
+                    let params_from_ranges = ranges
+                        .iter()
+                        .map(|r| ParameterInformation {
+                            label: ParameterLabel::LabelOffsets(*r),
+                            documentation: Some(tower_lsp::lsp_types::Documentation::String(
+                                s.clone()
+                                    .chars()
+                                    .skip(r[0] as usize)
+                                    .take((r[1] - r[0]) as usize)
+                                    .collect(),
+                            )),
+                        })
+                        .collect();
+                    parameters = Some(params_from_ranges);
+                }
+
+                SignatureInformation {
+                    label: s.clone(),
+                    parameters,
+                    documentation: None,
+                    active_parameter: None,
+                }
+            })
+            .collect();
+
         Some(SignatureHelp {
             signatures,
-            active_signature: Some(0),
-            active_parameter: Some(0),
+            active_signature: None,
+            active_parameter: Some(current_argument),
         })
     }
 }

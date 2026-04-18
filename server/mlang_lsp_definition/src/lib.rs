@@ -3,8 +3,7 @@ use line_index::LineColRange;
 use std::{collections::HashMap, ops::Not};
 use tower_lsp::lsp_types::{
     CodeLens, Command, CompletionItem, CompletionItemKind, Documentation, Location, MarkedString,
-    MarkupContent, MarkupKind, ParameterInformation, ParameterLabel, Position, Range,
-    SignatureInformation, SymbolInformation, Url,
+    MarkupContent, MarkupKind, Position, Range, SymbolInformation, Url,
 };
 // use mlang_semantic::parse_parameters_str_to_ranges;
 
@@ -41,7 +40,6 @@ pub trait CodeSymbolDefinition: Sized + PartialEq {
     }
     fn id(&self) -> &str;
     fn parameters(&self) -> Option<&str>;
-    fn parameters_ranges(&self) -> Option<&Vec<[u32;2]>>;
     fn container(&self) -> Option<Self>;
     fn parent(&self) -> Option<&str>;
 
@@ -549,11 +547,7 @@ where
     }
 }
 
-pub fn get_signatures<'a, I, D>(
-    semantic_info: &SemanticInfo,
-    definitions: I,
-    current_argument: u32,
-) -> Vec<SignatureInformation>
+pub fn get_signatures<'a, I, D>(semantic_info: &SemanticInfo, definitions: I) -> Vec<String>
 where
     I: IntoIterator<Item = (Url, &'a D)>,
     D: CodeSymbolDefinition + MarkupDefinition + 'a,
@@ -580,7 +574,7 @@ where
                     .iter()
                     .filter(|(_, d)| d.is_constructor() && d.container().as_ref() == Some(c))
                     .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
-                    .map(|e| e.clone())
+                    .cloned()
                     .collect::<Vec<_>>();
 
                 info_definitions.append(&mut methods_definitions);
@@ -609,8 +603,7 @@ where
                 let mut constructors = definitions
                     .iter()
                     .filter(|(_, d)| d.is_constructor() && d.container().as_ref() == Some(c))
-                    .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
-                    .map(|e| e.clone())
+                    .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params)).cloned()
                     .collect::<Vec<_>>();
                 info_definitions.append(&mut constructors);
             }
@@ -618,82 +611,10 @@ where
         _ => {}
     }
 
-    let signatures = info_definitions
+    info_definitions
         .iter()
-        .map(|m| get_signature_from_definition(m, current_argument))
-        .collect::<Vec<_>>();
-    signatures
-}
-
-fn get_signature_from_definition<'a, D>(
-    definition: &(Url, &'a D),
-    current_argument: u32,
-) -> SignatureInformation
-where
-    D: CodeSymbolDefinition + MarkupDefinition + 'a,
-{
-    let definition = definition.1;
-    let markdown = MarkupContent {
-        kind: MarkupKind::Markdown,
-        value: definition.markdown(),
-    };
-    let documentation = Some(Documentation::MarkupContent(markdown));
-
-    let label_begin = definition.id().to_string();
-    let mut parameters: Vec<ParameterInformation> = vec![];
-    let mut params = "()";
-    if let Some(def_params) = definition.parameters() && let Some(ranges) = definition.parameters_ranges()
-    {
-        params = def_params;
-        let label_begin_length = label_begin.chars().count() + 2;
-        for r in ranges.iter()
-        {
-            fn get_first_char(str: &str, offset: usize) -> Option<usize> {
-                let mut end = offset;
-                while end < str.len() && !str.is_char_boundary(end) {
-                    end += 1;
-                }
-
-                if end > str.len() {
-                    return None;
-                }
-
-                Some(end)
-            }
-
-            let start = def_params[..get_first_char(def_params, r[0] as usize).unwrap_or_default()].chars().count();
-            let end = def_params[..get_first_char(def_params, r[1] as usize).unwrap_or_default()].chars().count();
-            let parameter: String = def_params.chars().skip((start + 2) as usize).take((end - start) as usize).collect();
-            let label = ParameterLabel::LabelOffsets([(start + label_begin_length) as u32, (end + label_begin_length) as u32]);
-            if !parameter.contains("...") {
-                parameters.push(ParameterInformation {
-                    label: label,
-                    documentation: Some(Documentation::String(parameter.clone())),
-                });
-            } else {
-                for _i in 1..100 {
-                    parameters.push(ParameterInformation {
-                        label: label.clone(),
-                        documentation: Some(Documentation::String(format!("... arg {}", _i))),
-                    });
-                }
-            }
-        }
-    }
-    let label = format!(
-        "{}{}",
-        label_begin,
-        params
-    );
-
-    let signature_info = SignatureInformation {
-        label: label,
-        documentation: documentation,
-        parameters: Some(parameters),
-        active_parameter: Some(current_argument),
-    };
-
-    signature_info
+        .map(|m| format!("{}{}", m.1.id(), m.1.parameters().unwrap_or_default()))
+        .collect::<Vec<_>>()
 }
 
 pub fn get_symbols<'a, I, D>(uri: &Url, definitions: I) -> Vec<SymbolInformation>

@@ -131,15 +131,6 @@ impl CodeSymbolDefinition for AnyMDefinition {
         }
     }
 
-    fn parameters_ranges(&self) -> Option<&Vec<[u32;2]>> {
-        match self {
-            AnyMDefinition::MClassMemberDefinition(member) => Some(&member.params.ranges),
-            AnyMDefinition::MFunctionDefinition(funct) => Some(&funct.params.ranges),
-            AnyMDefinition::MHandlerDefinition(handler) => Some(&handler.params.ranges),
-            _ => None,
-        }
-    }
-
     fn can_be_overridden(&self, another: &Self) -> bool {
         use AnyMDefinition::*;
 
@@ -351,7 +342,6 @@ pub struct MParameters {
     total_count: usize,
     optional_count: usize,
     has_rest: bool,
-    ranges: Vec<[u32;2]>
 }
 
 impl MParameters {
@@ -409,20 +399,8 @@ impl From<AnyMParameterList> for MParameters {
             (has_rest || is_rest, count + if is_optional { 1 } else { 0 })
         });
 
-        let start_offset = value.range().start();
-        let ranges = value.iter().filter_map(
-            |p| {
-                let range = p.ok()?.range();
-                Some([
-                    range.start().checked_sub(start_offset).unwrap_or_default().into(),
-                    range.end().checked_sub(start_offset).unwrap_or_default().into()
-                ])
-            }
-        ).collect::<Vec<[u32;2]>>();
-
         MParameters {
             text: value.to_string().trim().to_string(),
-            ranges,
             total_count: value.len(),
             optional_count,
             has_rest,
@@ -834,7 +812,6 @@ fn class_property_definition(
             total_count: 0,
             optional_count: 0,
             has_rest: false,
-            ranges: vec![],
         },
         description: None,
         range: member_range,
@@ -968,7 +945,7 @@ mod tests {
 
     # something else
     # about function a
-    func a(в, б, в = 5, ...) {
+    func a(x, y, z = 5, ...) {
         return b;
     }
 
@@ -1006,11 +983,10 @@ mod tests {
                     range: line_col_range(5, 9, 5, 10)
                 },
                 params: MParameters {
-                    text: String::from("( а, б, в = 5, ... )"),
+                    text: String::from("( x, y, z = 5, ... )"),
                     total_count: 4,
                     optional_count: 1,
-                    has_rest: true,
-                    ranges: vec![],
+                    has_rest: true
                 },
                 description: Some(String::from("\n# something else\n# about function a")),
                 range: line_col_range(5, 4, 7, 5),
@@ -1030,8 +1006,7 @@ mod tests {
                     text: String::from("()"),
                     total_count: 0,
                     optional_count: 0,
-                    has_rest: false,
-                    ranges: vec![],
+                    has_rest: false
                 },
                 description: Some(String::from("\n# about function b")),
                 range: line_col_range(10, 4, 12, 5)
@@ -1067,8 +1042,7 @@ mod tests {
                     text: String::from("()"),
                     total_count: 0,
                     optional_count: 0,
-                    has_rest: false,
-                    ranges: vec![],
+                    has_rest: false
                 },
                 description: None,
                 range: line_col_range(15, 8, 15, 24),
@@ -1089,8 +1063,7 @@ mod tests {
                     text: String::from(""),
                     total_count: 0,
                     optional_count: 0,
-                    has_rest: false,
-                    ranges: vec![],
+                    has_rest: false
                 },
                 description: Some(String::from("\n# getter description")),
                 range: line_col_range(18, 8, 20, 9),
@@ -1111,8 +1084,7 @@ mod tests {
                     text: String::from("()"),
                     total_count: 0,
                     optional_count: 0,
-                    has_rest: false,
-                    ranges: vec![],
+                    has_rest: false
                 },
                 description: None,
                 range: line_col_range(21, 8, 23, 9),
@@ -1178,8 +1150,7 @@ mod tests {
                     text: String::from("()"),
                     total_count: 0,
                     optional_count: 0,
-                    has_rest: false,
-                    ranges: vec![],
+                    has_rest: false
                 },
                 description: None,
                 range: line_col_range(2, 8, 5, 9),
@@ -1200,8 +1171,7 @@ mod tests {
                     text: String::from(""),
                     total_count: 0,
                     optional_count: 0,
-                    has_rest: false,
-                    ranges: vec![],
+                    has_rest: false
                 },
                 description: None,
                 range: line_col_range(7, 8, 9, 9),
@@ -1222,8 +1192,7 @@ mod tests {
                     text: String::from("( val )"),
                     total_count: 1,
                     optional_count: 0,
-                    has_rest: false,
-                    ranges: vec![],
+                    has_rest: false
                 },
                 description: None,
                 range: line_col_range(11, 8, 13, 9),
@@ -1244,8 +1213,7 @@ mod tests {
                     text: String::from(""),
                     total_count: 0,
                     optional_count: 0,
-                    has_rest: false,
-                    ranges: vec![],
+                    has_rest: false
                 },
                 description: None,
                 range: line_col_range(3, 17, 3, 19),
@@ -1328,7 +1296,6 @@ mod tests {
             total_count: 3,
             optional_count: 1,
             has_rest: true,
-            ranges: vec![],
         };
         assert!(params.can_be_called(1));
         assert!(params.can_be_called(2));
@@ -1340,7 +1307,6 @@ mod tests {
             total_count: 3,
             optional_count: 0,
             has_rest: false,
-            ranges: vec![],
         };
         assert!(params.can_be_called(3));
         assert!(!params.can_be_called(1));
@@ -1355,28 +1321,24 @@ mod tests {
                 total_count: 2,
                 optional_count: 0,
                 has_rest: true,
-                ranges: vec![],
             },
             MParameters {
                 text: "(a, b = 1)".into(),
                 total_count: 2,
                 optional_count: 1,
                 has_rest: false,
-                ranges: vec![],
             },
             MParameters {
                 text: "(a, b = 1, c = 2)".into(),
                 total_count: 3,
                 optional_count: 2,
                 has_rest: false,
-                ranges: vec![],
             },
             MParameters {
                 text: "(a, b = 1, c = 2, d = 3)".into(),
                 total_count: 4,
                 optional_count: 3,
                 has_rest: false,
-                ranges: vec![],
             },
         ];
 

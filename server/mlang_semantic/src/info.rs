@@ -1,8 +1,10 @@
-use biome_rowan::{AstNode, AstNodeList, AstSeparatedList, SyntaxNode, SyntaxToken, TextRange, TextSize};
+use biome_rowan::{AstNode, AstSeparatedList, SyntaxNode, SyntaxToken, TextRange, TextSize};
 use mlang_lsp_definition::SemanticInfo;
 use mlang_parser::parse;
 use mlang_syntax::{
-    AnyMAssignment, AnyMBinding, AnyMExpression, MAssignmentExpression, MCallExpression, MClassDeclaration, MExpressionStatement, MFileSource, MLanguage, MNewExpression, MSequenceExpression, MStatementList, MSyntaxKind, MVariableStatement
+    AnyMAssignment, AnyMBinding, AnyMExpression, MAssignmentExpression, MCallExpression,
+    MClassDeclaration, MExpressionStatement, MFileSource, MFunctionDeclaration, MLanguage,
+    MNewExpression, MSequenceExpression, MSyntaxKind, MVariableStatement,
 };
 
 pub fn identifier_for_offset(
@@ -62,49 +64,47 @@ pub fn identifier_for_signature_help(
     None
 }
 
-pub fn parse_parameters_str_to_ranges(parameters: &str, start_offset: u32) -> Option<Vec<[u32;2]>>
-{
-    let parsed = parse(parameters, MFileSource::script());
+pub fn parse_signature_str_to_ranges(signature: &str) -> Option<Vec<[u32; 2]>> {
+    let prefix_len = 6;
+    let definition = format!("func a{} {{}}", signature);
+    let parsed = parse(definition.as_str(), MFileSource::script());
     let syntax = parsed.syntax();
-    let text_size_offset = TextSize::from(0);
+    let text_size_offset = TextSize::from(5);
     let range = TextRange::new(text_size_offset, text_size_offset);
     let element = syntax.covering_element(range);
     let token = element.as_token();
-    if token.is_none() {
-        return None;
-    }
-    // let token = token.unwrap();
-    // for n in token.ancestors().take(3) {
-    //     match n.kind() {
-    //         MSyntaxKind::M_EXPRESSION_STATEMENT => {
-    //             if let Some(list) = MExpressionStatement::cast(n) {
-    //                 list.syntax_list().iter().for_each(|slot|
-    //                     {
-    //                         if let Some(n) = slot.into_node() {
-    //                             println!("{:?} {:?}", n.kind(), n.to_string());
-    //                         }
-    //                     }
-    //                 )
-    //             }
-    //         }
-    //         _ => {}
-    //     }
-    // }
-
-    let def_params = parameters;
-    let mut params_ranges: Vec<[u32;2]> = vec![];
-    let mut separator_offset = start_offset;
-    for parameter in def_params.to_string().split(",") {
-        let parameter = parameter.to_string();
-        let parameter_text_len = parameter.chars().count() as u32;
-        if !parameter.contains("...") {
-            params_ranges.push([separator_offset, separator_offset + parameter_text_len]);
-        } else {
-            for _i in 1..100 {
-                params_ranges.push([separator_offset, separator_offset + parameter_text_len]);
-            }
+    token?;
+    let token = token.unwrap();
+    for n in token.ancestors().take(5) {
+        if n.kind() == MSyntaxKind::M_FUNCTION_DECLARATION
+            && let Some(func_dec) = MFunctionDeclaration::cast(n)
+                && let Ok(params) = func_dec.parameters()
+        {
+            let ranges = params
+                .items()
+                .iter()
+                .filter_map(
+                    |slot: Result<
+                        mlang_syntax::AnyMParameter,
+                        biome_rowan::SyntaxError,
+                    >| {
+                        if let Ok(n) = slot {
+                            let start = n.range().start();
+                            let end = n.range().end();
+                            let range: [u32; 2] = [
+                                definition[..start.into()].chars().count() as u32
+                                    - prefix_len,
+                                definition[..end.into()].chars().count() as u32
+                                    - prefix_len,
+                            ];
+                            return Some(range);
+                        }
+                        None
+                    },
+                )
+                .collect();
+            return Some(ranges);
         }
-        separator_offset += (parameter_text_len + 1) as u32;
     }
     None
 }
@@ -213,7 +213,7 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> 
                                         let id = class.extends_clause()?.super_class().ok()?.text();
                                         Some(id)
                                     })
-                            };
+                            }; // ttttt
 
                             // return None if class is not finded
                             return Some(SemanticInfo::SuperCall(ident, args_count, class_id?));
@@ -439,6 +439,10 @@ fn find_info_token(node: SyntaxNode<MLanguage>) -> Option<SyntaxToken<MLanguage>
                 let ident = expr.member().ok()?;
                 Some(ident.value_token().ok()?)
             }
+            AnyMExpression::MSuperExpression(expr) => {
+                let ident = expr.super_token().ok()?;
+                Some(ident)
+            }
             _ => None,
         }
     }
@@ -468,12 +472,12 @@ fn find_identifier_for_r_paren(token: &SyntaxToken<MLanguage>) -> Option<Semanti
 
 fn find_identifier_for_signature_body(
     token: &SyntaxToken<MLanguage>,
-    ofset: TextSize,
+    offset: TextSize,
 ) -> Option<(SemanticInfo, u32)> {
     for n in token.ancestors().take(5) {
         match n.kind() {
             MSyntaxKind::M_NEW_EXPRESSION | MSyntaxKind::M_CALL_EXPRESSION => {
-                let mut current_arg_number = 0 as u32;
+                let mut current_arg_number = 0_u32;
                 let args = match n.kind() {
                     MSyntaxKind::M_CALL_EXPRESSION => {
                         MCallExpression::unwrap_cast(n.clone()).arguments().ok()
@@ -484,13 +488,21 @@ fn find_identifier_for_signature_body(
                     _ => None,
                 };
                 if let Some(args) = args {
+                    let offset_sub = offset.checked_sub(1.into()).unwrap_or_default();
+                    // check for token otside argumenrs
+                    if let Ok(ft) = args.l_paren_token()
+                        && ft.text_range().start().gt(&offset_sub)
+                    {
+                        return None;
+                    }
+
                     current_arg_number = args
                         .args()
                         .elements()
                         .filter(|e| {
                             e.clone().into_trailing_separator().is_ok_and(|n| {
                                 n.is_some_and(|n| {
-                                    ofset.checked_add(1.into()).is_some_and(|sub| {
+                                    offset.checked_add(1.into()).is_some_and(|sub| {
                                         n.text_range()
                                             .start()
                                             .lt(&sub.checked_sub(1.into()).unwrap_or_default())
@@ -502,7 +514,7 @@ fn find_identifier_for_signature_body(
                 }
                 let info_token = find_info_token(n)?;
                 if let Some(ident) = identifier_for_token(&info_token) {
-                    return Some((ident, current_arg_number as u32));
+                    return Some((ident, current_arg_number));
                 }
             }
             _ => {}
@@ -629,35 +641,35 @@ mod tests {
     fn test_identifier_from_signature_help() {
         #[rustfmt::skip]
         let inputs = [
-            ("funcName(a, b) ", 11, (SemanticInfo::FunctionCall("funcName".to_owned(), 2), 1 as u32)),
-            ("new Test(a, b) ", 11, (SemanticInfo::NewExpression(Some("Test".to_owned()), 2), 1 as u32)),
-            ("x.m1(a, b) ", 8, (SemanticInfo::MethodCall("m1".to_owned(), 2, None), 1)),
+            ("funcName(a, b) ", 11, Some((SemanticInfo::FunctionCall("funcName".to_owned(), 2), 1 as u32))),
+            ("new Test(a, b) ", 11, Some((SemanticInfo::NewExpression(Some("Test".to_owned()), 2), 1 as u32))),
+            ("x.m1(a, b) ", 8, Some((SemanticInfo::MethodCall("m1".to_owned(), 2, None), 1))),
+            ("class Tst extends Par{ constructor(a, b) { super(a, b); } }", 51, Some((SemanticInfo::SuperCall("super".to_owned(), 2, "Par".to_owned()), 1))),
+            ("funcName(a, b) ", 1, None),
         ];
 
         for (input, offset, info) in inputs {
             let token = get_token_from_offset(input, offset);
-            let semantic_info = find_identifier_for_signature_body(&token, TextSize::from(offset))
-                .unwrap_or_else(|| panic!("failed for `{input}`"));
+            let semantic_info = find_identifier_for_signature_body(&token, TextSize::from(offset));
             assert_eq!(info, semantic_info, "{input}");
         }
     }
 
     #[test]
-    fn test_identifier_from_signature_help2() {
+    fn test_parsing_signature_str_to_ranges() {
         #[rustfmt::skip]
         let inputs = [
-            ("(a, b)", 1, (SemanticInfo::FunctionCall("funcName".to_owned(), 2), 1 as u32)),
+            ("", None),
+            ("funcName()", Some(vec![])),
+            ("funcName(а, b)", Some(vec![[9, 10], [12, 13]])),
+            ("funcName(а, ...)", Some(vec![[9, 10], [12, 15]])),
+            ("funcName(а, b = @{})", Some(vec![[9, 10], [12, 19]])),
+            ("funcName(_ф, _п)", Some(vec![[9, 11], [13, 15]])),
         ];
 
-        for (input, offset, info) in inputs {
-            let token = get_token_from_offset(input, offset);
-            parse_parameters_str_to_ranges(input, 0);
-            for n in token.ancestors().take(7) {
-                println!("{:?} {:?}", n.kind(), n.to_string());
-            }
-            // let semantic_info = find_identifier_for_signature_body(&token, TextSize::from(offset))
-            //     .unwrap_or_else(|| panic!("failed for `{input}`"));
-            // assert_eq!(info, semantic_info, "{input}");
+        for (input, ranges) in inputs {
+            let parsed_ranges = parse_signature_str_to_ranges(input);
+            assert_eq!(parsed_ranges, ranges, "{input}");
         }
     }
 
