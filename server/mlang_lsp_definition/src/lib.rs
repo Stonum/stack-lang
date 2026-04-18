@@ -576,6 +576,76 @@ where
     }
 }
 
+pub fn get_signatures<'a, I, D>(semantic_info: &SemanticInfo, definitions: I) -> Vec<String>
+where
+    I: IntoIterator<Item = (Url, &'a D)>,
+    D: CodeSymbolDefinition + MarkupDefinition + 'a,
+{
+    let mut info_definitions: Vec<(Url, &D)> = vec![];
+    match semantic_info {
+        SemanticInfo::FunctionCall(ident, params) => {
+            info_definitions = definitions
+                .into_iter()
+                .filter(|(_, d)| (d.is_function()) && d.compare_id_with(ident))
+                .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
+                .collect::<Vec<_>>();
+        }
+        SemanticInfo::NewExpression(Some(ident), params) => {
+            let definitions = definitions.into_iter().collect::<Vec<_>>();
+
+            let classes = definitions
+                .iter()
+                .map(|(_, d)| d)
+                .filter(|d| d.is_class() && d.compare_id_with(ident));
+
+            for c in classes {
+                let mut methods_definitions = definitions
+                    .iter()
+                    .filter(|(_, d)| d.is_constructor() && d.container().as_ref() == Some(c))
+                    .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
+                    .cloned()
+                    .collect::<Vec<_>>();
+
+                info_definitions.append(&mut methods_definitions);
+            }
+        }
+        SemanticInfo::MethodCall(ident, params, Some(class_name))
+        | SemanticInfo::RefMethodResult(ident, params, Some(class_name)) => {
+            let members = get_class_members_definition(definitions, class_name);
+
+            info_definitions = members
+                .into_iter()
+                .filter(|(_, d)| d.is_method() && d.compare_id_with(ident))
+                .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
+                .collect::<Vec<_>>();
+        }
+
+        SemanticInfo::SuperCall(_ident, params, class_name) => {
+            let definitions = definitions.into_iter().collect::<Vec<_>>();
+
+            let classes = definitions
+                .iter()
+                .map(|(_, d)| d)
+                .filter(|d| d.is_class() && d.compare_id_with(class_name));
+
+            for c in classes {
+                let mut constructors = definitions
+                    .iter()
+                    .filter(|(_, d)| d.is_constructor() && d.container().as_ref() == Some(c))
+                    .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params)).cloned()
+                    .collect::<Vec<_>>();
+                info_definitions.append(&mut constructors);
+            }
+        }
+        _ => {}
+    }
+
+    info_definitions
+        .iter()
+        .map(|m| format!("{}{}", m.1.id(), m.1.parameters().unwrap_or_default()))
+        .collect::<Vec<_>>()
+}
+
 pub fn get_symbols<'a, I, D>(uri: &Url, definitions: I) -> Vec<SymbolInformation>
 where
     I: IntoIterator<Item = &'a D>,

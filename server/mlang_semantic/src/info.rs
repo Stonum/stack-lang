@@ -1,9 +1,11 @@
 use biome_rowan::{AstNode, AstSeparatedList, SyntaxNode, SyntaxToken, TextRange, TextSize};
 use mlang_lsp_definition::SemanticInfo;
+use mlang_parser::parse;
 use mlang_syntax::{
     AnyMAssignment, AnyMBinding, AnyMExpression, MAssignmentExpression, MCallExpression,
-    MClassDeclaration, MExpressionStatement, MLanguage, MNewExpression, MSequenceExpression,
-    MStaticMemberAssignment, MStaticMemberExpression, MSyntaxKind, MVariableStatement,
+    MClassDeclaration, MExpressionStatement, MFileSource, MFunctionDeclaration, MLanguage,
+    MNewExpression, MSequenceExpression, MStaticMemberAssignment, MStaticMemberExpression,
+    MSyntaxKind, MVariableStatement,
 };
 
 pub fn identifier_for_offset(
@@ -44,6 +46,66 @@ pub fn identifier_for_completion(
     let node = root.covering_element(range);
     if let Some(token) = node.as_token() {
         return identifier_for_token(token);
+    }
+    None
+}
+
+pub fn identifier_for_signature_help(
+    root: SyntaxNode<MLanguage>,
+    offset: TextSize,
+) -> Option<(SemanticInfo, u32)> {
+    let range = TextRange::new(offset, offset);
+    if !root.text_range().contains_range(range) {
+        return None;
+    }
+    let node = root.covering_element(range);
+    if let Some(token) = node.as_token() {
+        return find_identifier_for_signature_body(token, offset);
+    }
+    None
+}
+
+pub fn parse_signature_str_to_ranges(signature: &str) -> Option<Vec<[u32; 2]>> {
+    let prefix_len = 6;
+    let definition = format!("func a{} {{}}", signature);
+    let parsed = parse(definition.as_str(), MFileSource::script());
+    let syntax = parsed.syntax();
+    let text_size_offset = TextSize::from(5);
+    let range = TextRange::new(text_size_offset, text_size_offset);
+    let element = syntax.covering_element(range);
+    let token = element.as_token();
+    token?;
+    let token = token.unwrap();
+    for n in token.ancestors().take(5) {
+        if n.kind() == MSyntaxKind::M_FUNCTION_DECLARATION
+            && let Some(func_dec) = MFunctionDeclaration::cast(n)
+                && let Ok(params) = func_dec.parameters()
+        {
+            let ranges = params
+                .items()
+                .iter()
+                .filter_map(
+                    |slot: Result<
+                        mlang_syntax::AnyMParameter,
+                        biome_rowan::SyntaxError,
+                    >| {
+                        if let Ok(n) = slot {
+                            let start = n.range().start();
+                            let end = n.range().end();
+                            let range: [u32; 2] = [
+                                definition[..start.into()].chars().count() as u32
+                                    - prefix_len,
+                                definition[..end.into()].chars().count() as u32
+                                    - prefix_len,
+                            ];
+                            return Some(range);
+                        }
+                        None
+                    },
+                )
+                .collect();
+            return Some(ranges);
+        }
     }
     None
 }
@@ -177,7 +239,7 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> 
                                         let id = class.extends_clause()?.super_class().ok()?.text();
                                         Some(id)
                                     })
-                            };
+                            }; // ttttt
 
                             // return None if class is not founded
                             return Some(SemanticInfo::SuperCall(ident, args_count, class_id?));
@@ -403,6 +465,10 @@ fn find_info_token(node: SyntaxNode<MLanguage>) -> Option<SyntaxToken<MLanguage>
                 let ident = expr.member().ok()?;
                 Some(ident.value_token().ok()?)
             }
+            AnyMExpression::MSuperExpression(expr) => {
+                let ident = expr.super_token().ok()?;
+                Some(ident)
+            }
             _ => None,
         }
     }
@@ -423,6 +489,59 @@ fn find_identifier_for_r_paren(token: &SyntaxToken<MLanguage>) -> Option<Semanti
             MSyntaxKind::M_NEW_EXPRESSION | MSyntaxKind::M_CALL_EXPRESSION => {
                 let info_token = find_info_token(n)?;
                 return identifier_for_token(&info_token);
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+fn find_identifier_for_signature_body(
+    token: &SyntaxToken<MLanguage>,
+    offset: TextSize,
+) -> Option<(SemanticInfo, u32)> {
+    for n in token.ancestors().take(5) {
+        match n.kind() {
+            MSyntaxKind::M_NEW_EXPRESSION | MSyntaxKind::M_CALL_EXPRESSION => {
+                let mut current_arg_number = 0_u32;
+                let args = match n.kind() {
+                    MSyntaxKind::M_CALL_EXPRESSION => {
+                        MCallExpression::unwrap_cast(n.clone()).arguments().ok()
+                    }
+                    MSyntaxKind::M_NEW_EXPRESSION => {
+                        MNewExpression::unwrap_cast(n.clone()).arguments()
+                    }
+                    _ => None,
+                };
+                if let Some(args) = args {
+                    let offset_sub = offset.checked_sub(1.into()).unwrap_or_default();
+                    // check for token otside argumenrs
+                    if let Ok(ft) = args.l_paren_token()
+                        && ft.text_range().start().gt(&offset_sub)
+                    {
+                        return None;
+                    }
+
+                    current_arg_number = args
+                        .args()
+                        .elements()
+                        .filter(|e| {
+                            e.clone().into_trailing_separator().is_ok_and(|n| {
+                                n.is_some_and(|n| {
+                                    offset.checked_add(1.into()).is_some_and(|sub| {
+                                        n.text_range()
+                                            .start()
+                                            .lt(&sub.checked_sub(1.into()).unwrap_or_default())
+                                    })
+                                })
+                            })
+                        })
+                        .count() as u32;
+                }
+                let info_token = find_info_token(n)?;
+                if let Some(ident) = identifier_for_token(&info_token) {
+                    return Some((ident, current_arg_number));
+                }
             }
             _ => {}
         }
@@ -549,6 +668,42 @@ mod tests {
             let semantic_info =
                 identifier_for_token(&token).unwrap_or_else(|| panic!("failed for `{input}`"));
             assert_eq!(info, semantic_info, "{input}");
+        }
+    }
+
+    #[test]
+    fn test_identifier_from_signature_help() {
+        #[rustfmt::skip]
+        let inputs = [
+            ("funcName(a, b) ", 11, Some((SemanticInfo::FunctionCall("funcName".to_owned(), 2), 1))),
+            ("new Test(a, b) ", 11, Some((SemanticInfo::NewExpression(Some("Test".to_owned()), 2), 1))),
+            ("x.m1(a, b) ", 8, Some((SemanticInfo::MethodCall("m1".to_owned(), 2, None), 1))),
+            ("class Tst extends Par{ constructor(a, b) { super(a, b); } }", 51, Some((SemanticInfo::SuperCall("super".to_owned(), 2, "Par".to_owned()), 1))),
+            ("funcName(a, b) ", 1, None),
+        ];
+
+        for (input, offset, info) in inputs {
+            let token = get_token_from_offset(input, offset);
+            let semantic_info = find_identifier_for_signature_body(&token, TextSize::from(offset));
+            assert_eq!(info, semantic_info, "{input}");
+        }
+    }
+
+    #[test]
+    fn test_parsing_signature_str_to_ranges() {
+        #[rustfmt::skip]
+        let inputs = [
+            ("", None),
+            ("funcName()", Some(vec![])),
+            ("funcName(а, b)", Some(vec![[9, 10], [12, 13]])),
+            ("funcName(а, ...)", Some(vec![[9, 10], [12, 15]])),
+            ("funcName(а, b = @{})", Some(vec![[9, 10], [12, 19]])),
+            ("funcName(_ф, _п)", Some(vec![[9, 11], [13, 15]])),
+        ];
+
+        for (input, ranges) in inputs {
+            let parsed_ranges = parse_signature_str_to_ranges(input);
+            assert_eq!(parsed_ranges, ranges, "{input}");
         }
     }
 
