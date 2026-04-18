@@ -21,7 +21,7 @@ pub enum AnyMDefinition {
     MClassDefinition(Arc<MClassDefinition>),
     MClassMemberDefinition(MClassMemberDefinition),
     MReportDefinition(Arc<MReportDefinition>),
-    MReportSectionDefiniton(MReportSectionDefiniton),
+    MReportSectionDefinition(MReportSectionDefinition),
     MHandlerDefinition(Arc<MHandlerDefinition>),
     MHandlerEventDefinition(MHandlerEventDefinition),
 }
@@ -92,7 +92,7 @@ impl CodeSymbolDefinition for AnyMDefinition {
             AnyMDefinition::MClassDefinition(c) => &c.id.name,
             AnyMDefinition::MClassMemberDefinition(m) => &m.id.name,
             AnyMDefinition::MReportDefinition(r) => &r.id.name,
-            AnyMDefinition::MReportSectionDefiniton(s) => &s.id.name,
+            AnyMDefinition::MReportSectionDefinition(s) => &s.id.name,
             AnyMDefinition::MHandlerDefinition(h) => &h.id.name,
             AnyMDefinition::MHandlerEventDefinition(e) => &e.id.name,
         }
@@ -103,7 +103,7 @@ impl CodeSymbolDefinition for AnyMDefinition {
             AnyMDefinition::MClassMemberDefinition(member) => {
                 member.class.upgrade().map(AnyMDefinition::MClassDefinition)
             }
-            AnyMDefinition::MReportSectionDefiniton(section) => section
+            AnyMDefinition::MReportSectionDefinition(section) => section
                 .report
                 .upgrade()
                 .map(AnyMDefinition::MReportDefinition),
@@ -215,7 +215,7 @@ impl LocationDefinition for AnyMDefinition {
             AnyMDefinition::MClassDefinition(class) => class.range,
             AnyMDefinition::MClassMemberDefinition(member) => member.range,
             AnyMDefinition::MReportDefinition(report) => report.range,
-            AnyMDefinition::MReportSectionDefiniton(section) => section.range,
+            AnyMDefinition::MReportSectionDefinition(section) => section.range,
             AnyMDefinition::MHandlerDefinition(handler) => handler.range,
             AnyMDefinition::MHandlerEventDefinition(event) => event.range,
         }
@@ -226,7 +226,7 @@ impl LocationDefinition for AnyMDefinition {
             AnyMDefinition::MClassDefinition(class) => class.id.range,
             AnyMDefinition::MClassMemberDefinition(member) => member.id.range,
             AnyMDefinition::MReportDefinition(report) => report.id.range,
-            AnyMDefinition::MReportSectionDefiniton(section) => section.id.range,
+            AnyMDefinition::MReportSectionDefinition(section) => section.id.range,
             AnyMDefinition::MHandlerDefinition(handler) => handler.id.range,
             AnyMDefinition::MHandlerEventDefinition(event) => event.id.range,
         }
@@ -246,7 +246,7 @@ impl CodeSymbolInformation for AnyMDefinition {
                 MClassMethodType::Property => SymbolKind::VARIABLE,
             },
             AnyMDefinition::MReportDefinition(_) => SymbolKind::CONSTANT,
-            AnyMDefinition::MReportSectionDefiniton(_) => SymbolKind::FIELD,
+            AnyMDefinition::MReportSectionDefinition(_) => SymbolKind::FIELD,
             AnyMDefinition::MHandlerDefinition(_) => SymbolKind::FUNCTION,
             AnyMDefinition::MHandlerEventDefinition(_) => SymbolKind::EVENT,
         }
@@ -282,7 +282,7 @@ impl MarkupDefinition for AnyMDefinition {
                     let class = member.class.upgrade().unwrap();
 
                     format!(
-                        "```\n{} {}\n\n\t{}{}\n```  \n{}",
+                        "```\n{} {}\n\t{}{}\n```  \n{}",
                         class.keyword,
                         class.id.name,
                         member.id.name,
@@ -301,7 +301,7 @@ impl MarkupDefinition for AnyMDefinition {
                     let class = member.class.upgrade().unwrap();
 
                     format!(
-                        "```\n{} {}\n\n\t{} {}{}\n```  \n{}",
+                        "```\n{} {}\n\t{} {}{}\n```  \n{}",
                         class.keyword,
                         class.id.name,
                         member.keyword.as_deref().unwrap_or_default(),
@@ -312,6 +312,15 @@ impl MarkupDefinition for AnyMDefinition {
                             .as_deref()
                             .map(|s| self.escape_markdown_with_newlines(s))
                             .unwrap_or_default()
+                    )
+                }
+
+                MClassMethodType::Property if member.class.upgrade().is_some() => {
+                    let class = member.class.upgrade().unwrap();
+
+                    format!(
+                        "```\n{} {}\n\t(prop) {}",
+                        class.keyword, class.id.name, member.id.name
                     )
                 }
 
@@ -327,7 +336,7 @@ impl MarkupDefinition for AnyMDefinition {
                 ),
             },
             AnyMDefinition::MReportDefinition(report) => report.id.name.to_string(),
-            AnyMDefinition::MReportSectionDefiniton(section) => section.id.name.to_string(),
+            AnyMDefinition::MReportSectionDefinition(section) => section.id.name.to_string(),
             AnyMDefinition::MHandlerDefinition(handler) => {
                 format!("```\n{} {}\n```", handler.keyword, handler.id.name)
             }
@@ -462,23 +471,23 @@ impl Eq for MClassMemberDefinition {}
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct MReportDefinition {
     id: DefinitionId,
-    sections: Vec<Arc<MReportSectionDefiniton>>,
+    sections: Vec<Arc<MReportSectionDefinition>>,
     range: LineColRange,
 }
 
 #[derive(Debug, Default)]
-pub struct MReportSectionDefiniton {
+pub struct MReportSectionDefinition {
     id: DefinitionId,
     report: Weak<MReportDefinition>,
     range: LineColRange,
 }
 
-impl PartialEq for MReportSectionDefiniton {
+impl PartialEq for MReportSectionDefinition {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id && self.range == other.range
     }
 }
-impl Eq for MReportSectionDefiniton {}
+impl Eq for MReportSectionDefinition {}
 
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct MHandlerDefinition {
@@ -546,7 +555,7 @@ pub(crate) fn prepare_definitions(
     {
         let mut sections = sections
             .into_iter()
-            .map(AnyMDefinition::MReportSectionDefiniton)
+            .map(AnyMDefinition::MReportSectionDefinition)
             .collect();
         model
             .definitions
@@ -822,7 +831,7 @@ fn class_property_definition(
 fn report_definition(
     report: MReport,
     index: &LineIndex,
-) -> Option<(Arc<MReportDefinition>, Vec<MReportSectionDefiniton>)> {
+) -> Option<(Arc<MReportDefinition>, Vec<MReportSectionDefinition>)> {
     let report_id = report.name().ok()?.m_name().ok()?;
     let report_id_range = index.line_col_range(report_id.range())?;
     let report_range = index.line_col_range(report.range())?;
@@ -851,12 +860,12 @@ fn report_section_definition(
     section: MReportSection,
     report: Weak<MReportDefinition>,
     index: &LineIndex,
-) -> Option<MReportSectionDefiniton> {
+) -> Option<MReportSectionDefinition> {
     let section_id = section.name().ok()?.m_name().ok()?;
     let section_id_range = index.line_col_range(section_id.range())?;
     let section_range = index.line_col_range(section.range())?;
 
-    Some(MReportSectionDefiniton {
+    Some(MReportSectionDefinition {
         id: DefinitionId {
             name: section_id.text(),
             range: section_id_range,
@@ -1266,7 +1275,7 @@ mod tests {
 
         assert_eq!(
             *definitions.next().unwrap(),
-            AnyMDefinition::MReportSectionDefiniton(MReportSectionDefiniton {
+            AnyMDefinition::MReportSectionDefinition(MReportSectionDefinition {
                 id: DefinitionId {
                     name: String::from("Function declaration"),
                     range: line_col_range(8, 1, 8, 21)
@@ -1278,7 +1287,7 @@ mod tests {
 
         assert_eq!(
             *definitions.next().unwrap(),
-            AnyMDefinition::MReportSectionDefiniton(MReportSectionDefiniton {
+            AnyMDefinition::MReportSectionDefinition(MReportSectionDefinition {
                 id: DefinitionId {
                     name: String::from("print"),
                     range: line_col_range(15, 1, 15, 6)

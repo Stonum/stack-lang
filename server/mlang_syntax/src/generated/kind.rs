@@ -438,12 +438,12 @@ impl MSyntaxKind {
 
     pub const fn to_ru_keyword(&self) -> Option<&'static str> {
         let tok = match self {
-            BREAK_KW => "прервать",
+            BREAK_KW => "Прервать",
             CASE_KW => "Выбор",
             CATCH_KW => "Исключение",
             CLASS_KW => "Класс",
             CLASSOF_KW => "получитьКласс",
-            CONTINUE_KW => "продолжить",
+            CONTINUE_KW => "Продолжить",
             DEBUG_KW => "отладить",
             DELETE_KW => "удалить",
             ELSE_KW => "Иначе",

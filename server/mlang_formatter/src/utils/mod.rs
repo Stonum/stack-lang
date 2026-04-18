@@ -19,9 +19,9 @@ use super::prelude::*;
 pub(crate) use assignment_like::{
     AnyMAssignmentLike, AssignmentLikeLayout, with_assignment_layout,
 };
-use biome_formatter::{Buffer, format_args, write};
-use biome_rowan::AstNode;
-use mlang_syntax::{AnyMExpression, AnyMStatement, MCallExpression, MInitializerClause};
+use biome_formatter::{Argument, Buffer, LineWidth, format_args, write};
+use biome_rowan::{AstNode, SyntaxNode};
+use mlang_syntax::{AnyMExpression, AnyMStatement, MCallExpression, MInitializerClause, MLanguage};
 use mlang_syntax::{MSyntaxKind, MSyntaxToken};
 
 pub(crate) use builders::*;
@@ -230,4 +230,32 @@ fn has_block_statement(body: &AnyMStatement) -> bool {
         }
         _ => false,
     }
+}
+
+pub(crate) fn write_with_custom_line_width(
+    f: &mut MFormatter,
+    width: LineWidth,
+    node: &SyntaxNode<MLanguage>,
+    content: impl Format<MFormatContext>,
+) -> FormatResult<()> {
+    let mut context = f.context().clone();
+    context.set_line_width(width);
+
+    let formatted = biome_formatter::format!(
+        context,
+        [format_with(|f| { write!(f, [Argument::new(&content)]) })]
+    )?;
+
+    // remove formatted with custom context tokens and write as text
+    for token in node.descendants_tokens(biome_rowan::Direction::Next) {
+        biome_formatter::write!(f, [format_removed(&token)])?;
+    }
+
+    write!(
+        f,
+        [dynamic_text(
+            formatted.print()?.as_code(),
+            node.text_range().start()
+        )]
+    )
 }

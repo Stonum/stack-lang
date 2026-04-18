@@ -2,6 +2,7 @@ use crate::prelude::*;
 
 use crate::rules::expressions::call_arguments::GroupedCallArgumentLayout;
 use crate::utils::function_body::{FormatMaybeCachedFunctionBody, FunctionBodyCacheMode};
+use crate::utils::write_with_custom_line_width;
 use biome_formatter::{RemoveSoftLinesBuffer, write};
 use biome_rowan::{SyntaxResult, declare_node_union};
 use mlang_syntax::{
@@ -128,28 +129,11 @@ impl FormatFunction {
             Ok(())
         });
 
-        let mut context = f.context().clone();
-        context.set_line_width(f.options().function_declaration_line_width());
-
-        let formatted = biome_formatter::format!(
-            context,
-            [format_with(|f| { write!(f, [format_parameters]) })]
-        )?;
-
-        // remove formatted with custom context tokens and write as text
-        for token in parameters
-            .syntax()
-            .descendants_tokens(biome_rowan::Direction::Next)
-        {
-            biome_formatter::write!(f, [format_removed(&token)])?;
-        }
-
-        write!(
+        write_with_custom_line_width(
             f,
-            [dynamic_text(
-                formatted.print()?.as_code(),
-                parameters.range().start()
-            )]
+            f.options().function_declaration_line_width(),
+            parameters.syntax(),
+            format_parameters,
         )?;
 
         if let Some(doc_string) = self.doc_string() {

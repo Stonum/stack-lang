@@ -88,3 +88,31 @@ jobs:
         vsce publish
       env:
         VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+  github-release:
+    runs-on: ubuntu-latest
+    needs: publish
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Get version from package.json
+        id: package_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Download extension artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: stack-lang
+          path: .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.package_version.outputs.VERSION }}
+          files: stack-lang*.vsix
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

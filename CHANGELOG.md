@@ -1,6 +1,16 @@
 **Changelog**
 ===============
+**v0.4.1 - 2026-04-10**
+------------------------------------
+* **Added**:
+   + completion for class static variables
+   + semantic info for all class props ( hover, goto )
+   + command for mssql queries
+* **Changed**:
+   + formatting rules
+
 **v0.4.0 - 2026-03-23**
+------------------------------------
 * **Added**:
    + class object members completion
    + class object member  hover
