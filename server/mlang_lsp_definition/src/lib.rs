@@ -5,7 +5,6 @@ use tower_lsp::lsp_types::{
     CodeLens, Command, CompletionItem, CompletionItemKind, Documentation, Location, MarkedString,
     MarkupContent, MarkupKind, Position, Range, SymbolInformation, Url,
 };
-// use mlang_semantic::parse_parameters_str_to_ranges;
 
 pub use tower_lsp::lsp_types::SymbolKind;
 
