@@ -675,8 +675,8 @@ mod tests {
     fn test_identifier_from_signature_help() {
         #[rustfmt::skip]
         let inputs = [
-            ("funcName(a, b) ", 11, Some((SemanticInfo::FunctionCall("funcName".to_owned(), 2), 1 as u32))),
-            ("new Test(a, b) ", 11, Some((SemanticInfo::NewExpression(Some("Test".to_owned()), 2), 1 as u32))),
+            ("funcName(a, b) ", 11, Some((SemanticInfo::FunctionCall("funcName".to_owned(), 2), 1))),
+            ("new Test(a, b) ", 11, Some((SemanticInfo::NewExpression(Some("Test".to_owned()), 2), 1))),
             ("x.m1(a, b) ", 8, Some((SemanticInfo::MethodCall("m1".to_owned(), 2, None), 1))),
             ("class Tst extends Par{ constructor(a, b) { super(a, b); } }", 51, Some((SemanticInfo::SuperCall("super".to_owned(), 2, "Par".to_owned()), 1))),
             ("funcName(a, b) ", 1, None),
