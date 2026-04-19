@@ -79,24 +79,19 @@ pub fn parse_signature_str_to_ranges(signature: &str) -> Option<Vec<[u32; 2]>> {
     for n in token.ancestors().take(5) {
         if n.kind() == MSyntaxKind::M_FUNCTION_DECLARATION
             && let Some(func_dec) = MFunctionDeclaration::cast(n)
-                && let Ok(params) = func_dec.parameters()
+            && let Ok(params) = func_dec.parameters()
         {
             let ranges = params
                 .items()
                 .iter()
                 .filter_map(
-                    |slot: Result<
-                        mlang_syntax::AnyMParameter,
-                        biome_rowan::SyntaxError,
-                    >| {
+                    |slot: Result<mlang_syntax::AnyMParameter, biome_rowan::SyntaxError>| {
                         if let Ok(n) = slot {
                             let start = n.range().start();
                             let end = n.range().end();
                             let range: [u32; 2] = [
-                                definition[..start.into()].chars().count() as u32
-                                    - prefix_len,
-                                definition[..end.into()].chars().count() as u32
-                                    - prefix_len,
+                                definition[..start.into()].chars().count() as u32 - prefix_len,
+                                definition[..end.into()].chars().count() as u32 - prefix_len,
                             ];
                             return Some(range);
                         }
@@ -239,7 +234,7 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> 
                                         let id = class.extends_clause()?.super_class().ok()?.text();
                                         Some(id)
                                     })
-                            }; // ttttt
+                            };
 
                             // return None if class is not founded
                             return Some(SemanticInfo::SuperCall(ident, args_count, class_id?));

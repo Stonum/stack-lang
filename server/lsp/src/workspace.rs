@@ -440,19 +440,35 @@ impl Workspace {
             .map(|s| {
                 let mut parameters: Option<Vec<ParameterInformation>> = None;
                 if let Some(ranges) = parse_signature_str_to_ranges(s.clone().as_str()) {
-                    let params_from_ranges = ranges
-                        .iter()
-                        .map(|r| ParameterInformation {
-                            label: ParameterLabel::LabelOffsets(*r),
-                            documentation: Some(tower_lsp::lsp_types::Documentation::String(
-                                s.clone()
-                                    .chars()
-                                    .skip(r[0] as usize)
-                                    .take((r[1] - r[0]) as usize)
-                                    .collect(),
-                            )),
-                        })
-                        .collect();
+                    let mut params_from_ranges: Vec<ParameterInformation> = vec![];
+                    for r in ranges {
+                        let param_ident: String = s
+                            .clone()
+                            .chars()
+                            .skip(r[0] as usize)
+                            .take((r[1] - r[0]) as usize)
+                            .collect();
+                        if param_ident.contains("...") {
+                            for i in 1..100 {
+                                params_from_ranges.push(ParameterInformation {
+                                    label: ParameterLabel::LabelOffsets(r),
+                                    documentation: Some(
+                                        tower_lsp::lsp_types::Documentation::String(format!(
+                                            "... arg {:?}",
+                                            i
+                                        )),
+                                    ),
+                                });
+                            }
+                        } else {
+                            params_from_ranges.push(ParameterInformation {
+                                label: ParameterLabel::LabelOffsets(r),
+                                documentation: Some(tower_lsp::lsp_types::Documentation::String(
+                                    param_ident,
+                                )),
+                            });
+                        }
+                    }
                     parameters = Some(params_from_ranges);
                 }
 

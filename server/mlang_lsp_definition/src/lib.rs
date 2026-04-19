@@ -632,7 +632,8 @@ where
                 let mut constructors = definitions
                     .iter()
                     .filter(|(_, d)| d.is_constructor() && d.container().as_ref() == Some(c))
-                    .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params)).cloned()
+                    .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
+                    .cloned()
                     .collect::<Vec<_>>();
                 info_definitions.append(&mut constructors);
             }
