@@ -206,10 +206,7 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> 
             });
         if let Some(class_id) = class_id {
             let info = match token.kind() {
-                MSyntaxKind::THIS_KW => SemanticInfo::RefClass(class_id),
-                MSyntaxKind::SUPER_KW => {
-                    SemanticInfo::SuperCall(token.text_trimmed().to_string(), 999, class_id)
-                }
+                MSyntaxKind::THIS_KW | MSyntaxKind::SUPER_KW => SemanticInfo::RefClass(class_id),
                 _ => unreachable!(),
             };
             return Some(info);
