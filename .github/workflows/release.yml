@@ -107,6 +107,6 @@ jobs:
         with:
           tag_name: v${{ steps.package_version.outputs.VERSION }}
           files: stack-lang*.vsix
-          generate_release_notes: true
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
