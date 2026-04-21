@@ -109,3 +109,12 @@ fn format_function_declaration_with_many_parameters() {
 "#
     );
 }
+
+#[test]
+fn format_object_literal() {
+    assert_fmt!(
+        r#"#
+var xxx = @{x: 1, y: 2};
+"#
+    );
+}

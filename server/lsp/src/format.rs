@@ -24,7 +24,8 @@ pub fn format(
         .with_function_declaration_line_width(
             LineWidth::try_from(FORMAT_FUNCTION_DECLARATION_LINE_WIDTH).unwrap(),
         )
-        .with_indent_width(IndentWidth::from(options.tab_size as u8));
+        .with_indent_width(IndentWidth::from(options.tab_size as u8))
+        .with_bracket_spacing(false.into());
 
     let line_index = document.line_index();
     let text_range = {
