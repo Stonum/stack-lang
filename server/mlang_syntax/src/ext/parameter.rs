@@ -134,10 +134,10 @@ impl std::fmt::Display for AnyMParameterList {
 
         match self {
             AnyMParameterList::MParameterList(parameters) => {
-                write!(f, "( {} )", parameters.syntax().to_string().trim())
+                write!(f, "({})", parameters.syntax().to_string().trim())
             }
             AnyMParameterList::MConstructorParameterList(parameters) => {
-                write!(f, "( {} )", parameters.syntax().to_string().trim())
+                write!(f, "({})", parameters.syntax().to_string().trim())
             }
         }
     }

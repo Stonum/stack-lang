@@ -1,11 +1,10 @@
 use biome_rowan::{AstNode, AstSeparatedList, SyntaxNode, SyntaxToken, TextRange, TextSize};
 use mlang_lsp_definition::SemanticInfo;
-use mlang_parser::parse;
+
 use mlang_syntax::{
     AnyMAssignment, AnyMBinding, AnyMExpression, MAssignmentExpression, MCallExpression,
-    MClassDeclaration, MExpressionStatement, MFileSource, MFunctionDeclaration, MLanguage,
-    MNewExpression, MSequenceExpression, MStaticMemberAssignment, MStaticMemberExpression,
-    MSyntaxKind, MVariableStatement,
+    MClassDeclaration, MExpressionStatement, MLanguage, MNewExpression, MSequenceExpression,
+    MStaticMemberAssignment, MStaticMemberExpression, MSyntaxKind, MVariableStatement,
 };
 
 pub fn identifier_for_offset(
@@ -61,46 +60,6 @@ pub fn identifier_for_signature_help(
     let node = root.covering_element(range);
     if let Some(token) = node.as_token() {
         return find_identifier_for_signature_body(token, offset);
-    }
-    None
-}
-
-pub fn parse_signature_str_to_ranges(signature: &str) -> Option<Vec<[u32; 2]>> {
-    let prefix_len = 6;
-    let definition = format!("func a{} {{}}", signature);
-    let parsed = parse(definition.as_str(), MFileSource::script());
-    let syntax = parsed.syntax();
-    let text_size_offset = TextSize::from(5);
-    let range = TextRange::new(text_size_offset, text_size_offset);
-    let element = syntax.covering_element(range);
-    let token = element.as_token();
-    token?;
-    let token = token.unwrap();
-    for n in token.ancestors().take(5) {
-        if n.kind() == MSyntaxKind::M_FUNCTION_DECLARATION
-            && let Some(func_dec) = MFunctionDeclaration::cast(n)
-            && let Ok(params) = func_dec.parameters()
-        {
-            let ranges = params
-                .items()
-                .iter()
-                .filter_map(
-                    |slot: Result<mlang_syntax::AnyMParameter, biome_rowan::SyntaxError>| {
-                        if let Ok(n) = slot {
-                            let start = n.range().start();
-                            let end = n.range().end();
-                            let range: [u32; 2] = [
-                                definition[..start.into()].chars().count() as u32 - prefix_len,
-                                definition[..end.into()].chars().count() as u32 - prefix_len,
-                            ];
-                            return Some(range);
-                        }
-                        None
-                    },
-                )
-                .collect();
-            return Some(ranges);
-        }
     }
     None
 }
@@ -681,24 +640,6 @@ mod tests {
             let token = get_token_from_offset(input, offset);
             let semantic_info = find_identifier_for_signature_body(&token, TextSize::from(offset));
             assert_eq!(info, semantic_info, "{input}");
-        }
-    }
-
-    #[test]
-    fn test_parsing_signature_str_to_ranges() {
-        #[rustfmt::skip]
-        let inputs = [
-            ("", None),
-            ("funcName()", Some(vec![])),
-            ("funcName(а, b)", Some(vec![[9, 10], [12, 13]])),
-            ("funcName(а, ...)", Some(vec![[9, 10], [12, 15]])),
-            ("funcName(а, b = @{})", Some(vec![[9, 10], [12, 19]])),
-            ("funcName(_ф, _п)", Some(vec![[9, 11], [13, 15]])),
-        ];
-
-        for (input, ranges) in inputs {
-            let parsed_ranges = parse_signature_str_to_ranges(input);
-            assert_eq!(parsed_ranges, ranges, "{input}");
         }
     }
 

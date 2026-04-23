@@ -5,7 +5,8 @@ use std::sync::{Arc, Weak};
 use line_index::{LineColRange, LineIndex};
 
 use mlang_lsp_definition::{
-    CodeSymbolDefinition, CodeSymbolInformation, LocationDefinition, MarkupDefinition, SymbolKind,
+    CodeSymbolDefinition, CodeSymbolInformation, LocationDefinition, MarkupDefinition,
+    SignatureParameters, SymbolKind,
 };
 use mlang_syntax::{
     AnyMClassMember, AnyMFunction, AnyMLiteralExpression, AnyMParameterList, AnyMSwitchClause,
@@ -125,7 +126,7 @@ impl CodeSymbolDefinition for AnyMDefinition {
     fn parameters(&self) -> Option<&str> {
         match self {
             AnyMDefinition::MClassMemberDefinition(member) => Some(&member.params.text),
-            AnyMDefinition::MFunctionDefinition(funct) => Some(&funct.params.text),
+            AnyMDefinition::MFunctionDefinition(func) => Some(&func.params.text),
             AnyMDefinition::MHandlerDefinition(handler) => Some(&handler.params.text),
             _ => None,
         }
@@ -257,41 +258,19 @@ impl MarkupDefinition for AnyMDefinition {
     fn markdown(&self) -> String {
         match self {
             AnyMDefinition::MFunctionDefinition(function) => format!(
-                "```\n{} {}{}\n```  \n{}",
-                function.keyword,
-                function.id.name,
-                function.params.text,
-                function
-                    .description
-                    .as_deref()
-                    .map(|s| self.escape_markdown_with_newlines(s))
-                    .unwrap_or_default()
+                "```\n{} {}{}\n```",
+                function.keyword, function.id.name, function.params.text,
             ),
-            AnyMDefinition::MClassDefinition(class) => format!(
-                "```\n{} {}\n```  \n{}",
-                class.keyword,
-                class.id.name,
-                class
-                    .description
-                    .as_deref()
-                    .map(|s| self.escape_markdown_with_newlines(s))
-                    .unwrap_or_default()
-            ),
+            AnyMDefinition::MClassDefinition(class) => {
+                format!("```\n{} {}\n```", class.keyword, class.id.name,)
+            }
             AnyMDefinition::MClassMemberDefinition(member) => match member.m_type {
                 MClassMethodType::Method if member.class.upgrade().is_some() => {
                     let class = member.class.upgrade().unwrap();
 
                     format!(
-                        "```\n{} {}\n\t{}{}\n```  \n{}",
-                        class.keyword,
-                        class.id.name,
-                        member.id.name,
-                        member.params.text,
-                        member
-                            .description
-                            .as_deref()
-                            .map(|s| self.escape_markdown_with_newlines(s))
-                            .unwrap_or_default()
+                        "```\n{} {}\n\t{}{}\n```",
+                        class.keyword, class.id.name, member.id.name, member.params.text,
                     )
                 }
 
@@ -301,17 +280,12 @@ impl MarkupDefinition for AnyMDefinition {
                     let class = member.class.upgrade().unwrap();
 
                     format!(
-                        "```\n{} {}\n\t{} {}{}\n```  \n{}",
+                        "```\n{} {}\n\t{} {}{}\n```",
                         class.keyword,
                         class.id.name,
                         member.keyword.as_deref().unwrap_or_default(),
                         member.id.name,
-                        member.params.text,
-                        member
-                            .description
-                            .as_deref()
-                            .map(|s| self.escape_markdown_with_newlines(s))
-                            .unwrap_or_default()
+                        member.params.text
                     )
                 }
 
@@ -324,16 +298,7 @@ impl MarkupDefinition for AnyMDefinition {
                     )
                 }
 
-                _ => format!(
-                    "```\n{}{}\n```  \n{}",
-                    member.id.name,
-                    member.params.text,
-                    member
-                        .description
-                        .as_deref()
-                        .map(|s| self.escape_markdown_with_newlines(s))
-                        .unwrap_or_default()
-                ),
+                _ => format!("```\n{}{}\n```", member.id.name, member.params.text,),
             },
             AnyMDefinition::MReportDefinition(report) => report.id.name.to_string(),
             AnyMDefinition::MReportSectionDefinition(section) => section.id.name.to_string(),
@@ -343,14 +308,90 @@ impl MarkupDefinition for AnyMDefinition {
             AnyMDefinition::MHandlerEventDefinition(event) => event.id.name.to_string(),
         }
     }
+
+    fn documentation(&self) -> Option<String> {
+        match self {
+            AnyMDefinition::MFunctionDefinition(function) => function
+                .description
+                .as_deref()
+                .map(|s| self.escape_markdown_with_newlines(s)),
+
+            AnyMDefinition::MClassDefinition(class) => class
+                .description
+                .as_deref()
+                .map(|s| self.escape_markdown_with_newlines(s)),
+
+            AnyMDefinition::MClassMemberDefinition(member) => member
+                .description
+                .as_deref()
+                .map(|s| self.escape_markdown_with_newlines(s)),
+
+            AnyMDefinition::MReportDefinition(_)
+            | AnyMDefinition::MReportSectionDefinition(_)
+            | AnyMDefinition::MHandlerDefinition(_)
+            | AnyMDefinition::MHandlerEventDefinition(_) => None,
+        }
+    }
 }
 
+impl SignatureParameters for AnyMDefinition {
+    fn text(&self) -> String {
+        match self {
+            AnyMDefinition::MFunctionDefinition(function) => format!(
+                "{} {}{}",
+                function.keyword, function.id.name, function.params.text,
+            ),
+            AnyMDefinition::MClassDefinition(class) => {
+                format!("{} {}", class.keyword, class.id.name)
+            }
+            AnyMDefinition::MClassMemberDefinition(member)
+                if member.m_type == MClassMethodType::Method =>
+            {
+                format!("{}{}", member.id.name, member.params.text,)
+            }
+            _ => String::new(),
+        }
+    }
+
+    fn offsets(&self) -> Vec<[u32; 2]> {
+        let params = match self {
+            AnyMDefinition::MFunctionDefinition(function) => Some(&function.params),
+            AnyMDefinition::MClassMemberDefinition(member) => Some(&member.params),
+            AnyMDefinition::MHandlerDefinition(handler) => Some(&handler.params),
+            _ => None,
+        };
+
+        let mut offsets = vec![];
+
+        if let Some(params) = params {
+            let offset = self.text().chars().take_while(|c| *c != '(').count() as u32 + 1;
+
+            offsets = params
+                .offsets
+                .iter()
+                .map(|[start, end]| [start + offset, end + offset])
+                .collect();
+        }
+
+        offsets
+    }
+
+    fn has_rest(&self) -> bool {
+        match self {
+            AnyMDefinition::MFunctionDefinition(function) => function.params.has_rest,
+            AnyMDefinition::MClassMemberDefinition(member) => member.params.has_rest,
+            AnyMDefinition::MHandlerDefinition(member) => member.params.has_rest,
+            _ => false,
+        }
+    }
+}
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct MParameters {
     text: String,
     total_count: usize,
     optional_count: usize,
     has_rest: bool,
+    offsets: Vec<[u32; 2]>,
 }
 
 impl MParameters {
@@ -408,11 +449,33 @@ impl From<AnyMParameterList> for MParameters {
             (has_rest || is_rest, count + if is_optional { 1 } else { 0 })
         });
 
+        let mut start = 0;
+        let mut end_of_prev_parameter = None;
+
+        let mut offsets = Vec::with_capacity(value.len());
+        for par in value.iter() {
+            if let Ok(par) = par.as_ref() {
+                if let Some(end) = end_of_prev_parameter {
+                    let diff = par.range().start() - end;
+                    start += usize::from(diff);
+                }
+
+                let length = par.to_string().trim().chars().count();
+                let end = start + length;
+
+                offsets.push([start as u32, end as u32]);
+                start = end;
+
+                end_of_prev_parameter = Some(par.range().end());
+            };
+        }
+
         MParameters {
             text: value.to_string().trim().to_string(),
             total_count: value.len(),
             optional_count,
             has_rest,
+            offsets,
         }
     }
 }
@@ -821,6 +884,7 @@ fn class_property_definition(
             total_count: 0,
             optional_count: 0,
             has_rest: false,
+            offsets: vec![],
         },
         description: None,
         range: member_range,
@@ -992,10 +1056,11 @@ mod tests {
                     range: line_col_range(5, 9, 5, 10)
                 },
                 params: MParameters {
-                    text: String::from("( x, y, z = 5, ... )"),
+                    text: String::from("(x, y, z = 5, ...)"),
                     total_count: 4,
                     optional_count: 1,
-                    has_rest: true
+                    has_rest: true,
+                    offsets: vec![[0, 1], [3, 4], [6, 11], [13, 16]],
                 },
                 description: Some(String::from("\n# something else\n# about function a")),
                 range: line_col_range(5, 4, 7, 5),
@@ -1015,7 +1080,8 @@ mod tests {
                     text: String::from("()"),
                     total_count: 0,
                     optional_count: 0,
-                    has_rest: false
+                    has_rest: false,
+                    offsets: vec![],
                 },
                 description: Some(String::from("\n# about function b")),
                 range: line_col_range(10, 4, 12, 5)
@@ -1051,7 +1117,8 @@ mod tests {
                     text: String::from("()"),
                     total_count: 0,
                     optional_count: 0,
-                    has_rest: false
+                    has_rest: false,
+                    offsets: vec![],
                 },
                 description: None,
                 range: line_col_range(15, 8, 15, 24),
@@ -1072,7 +1139,8 @@ mod tests {
                     text: String::from(""),
                     total_count: 0,
                     optional_count: 0,
-                    has_rest: false
+                    has_rest: false,
+                    offsets: vec![],
                 },
                 description: Some(String::from("\n# getter description")),
                 range: line_col_range(18, 8, 20, 9),
@@ -1093,7 +1161,8 @@ mod tests {
                     text: String::from("()"),
                     total_count: 0,
                     optional_count: 0,
-                    has_rest: false
+                    has_rest: false,
+                    offsets: vec![],
                 },
                 description: None,
                 range: line_col_range(21, 8, 23, 9),
@@ -1126,8 +1195,6 @@ mod tests {
         let semantic_model = semantics(text, parsed.syntax(), file_source);
         let mut definitions = semantic_model.definitions();
 
-        println!("{:?}", definitions.len());
-
         assert_eq!(definitions.len(), 5);
 
         assert_eq!(
@@ -1159,7 +1226,8 @@ mod tests {
                     text: String::from("()"),
                     total_count: 0,
                     optional_count: 0,
-                    has_rest: false
+                    has_rest: false,
+                    offsets: vec![],
                 },
                 description: None,
                 range: line_col_range(2, 8, 5, 9),
@@ -1180,7 +1248,8 @@ mod tests {
                     text: String::from(""),
                     total_count: 0,
                     optional_count: 0,
-                    has_rest: false
+                    has_rest: false,
+                    offsets: vec![],
                 },
                 description: None,
                 range: line_col_range(7, 8, 9, 9),
@@ -1191,17 +1260,18 @@ mod tests {
         assert_eq!(
             *definitions.next().unwrap(),
             AnyMDefinition::MClassMemberDefinition(MClassMemberDefinition {
-                keyword: None,
+                keyword: Some(String::from("set")),
                 id: DefinitionId {
                     name: String::from("x"),
                     range: line_col_range(11, 12, 11, 13)
                 },
                 class: Weak::new(),
                 params: MParameters {
-                    text: String::from("( val )"),
+                    text: String::from("(val)"),
                     total_count: 1,
                     optional_count: 0,
-                    has_rest: false
+                    has_rest: false,
+                    offsets: vec![[0, 3]],
                 },
                 description: None,
                 range: line_col_range(11, 8, 13, 9),
@@ -1222,7 +1292,8 @@ mod tests {
                     text: String::from(""),
                     total_count: 0,
                     optional_count: 0,
-                    has_rest: false
+                    has_rest: false,
+                    offsets: vec![],
                 },
                 description: None,
                 range: line_col_range(3, 17, 3, 19),
@@ -1305,6 +1376,7 @@ mod tests {
             total_count: 3,
             optional_count: 1,
             has_rest: true,
+            offsets: vec![],
         };
         assert!(params.can_be_called(1));
         assert!(params.can_be_called(2));
@@ -1316,6 +1388,7 @@ mod tests {
             total_count: 3,
             optional_count: 0,
             has_rest: false,
+            offsets: vec![],
         };
         assert!(params.can_be_called(3));
         assert!(!params.can_be_called(1));
@@ -1330,24 +1403,28 @@ mod tests {
                 total_count: 2,
                 optional_count: 0,
                 has_rest: true,
+                offsets: vec![],
             },
             MParameters {
                 text: "(a, b = 1)".into(),
                 total_count: 2,
                 optional_count: 1,
                 has_rest: false,
+                offsets: vec![],
             },
             MParameters {
                 text: "(a, b = 1, c = 2)".into(),
                 total_count: 3,
                 optional_count: 2,
                 has_rest: false,
+                offsets: vec![],
             },
             MParameters {
                 text: "(a, b = 1, c = 2, d = 3)".into(),
                 total_count: 4,
                 optional_count: 3,
                 has_rest: false,
+                offsets: vec![],
             },
         ];
 
@@ -1370,5 +1447,31 @@ mod tests {
         // 5 args
         functions.sort_by(|a, b| a.call_priority(b, 5));
         assert_eq!(functions[0].text, "(a, ...)");
+    }
+
+    #[test]
+    fn test_parsing_signature_str_to_ranges() {
+        #[rustfmt::skip]
+        let inputs = [
+            ("func funcName() {}", vec![]),
+            ("func funcName(а, b) {}", vec![[14, 15], [17, 18]]),
+            ("func funcName(а, ...) {}", vec![[14, 15], [17, 20]]),
+            ("func funcName(а, b = @{}) {}", vec![[14, 15], [17, 24]]),
+            ("func funcName(_ф, _п) {}", vec![[14, 16], [18, 20]]),
+            ("func funcName(a,    b) {}", vec![[14, 15], [20, 21]]),
+        ];
+
+        let file_source = MFileSource::script();
+        for (text, ranges) in inputs {
+            let parsed = parse(text, file_source);
+
+            let semantic_model = semantics(text, parsed.syntax(), file_source);
+            let mut definitions = semantic_model.definitions();
+
+            assert_eq!(definitions.len(), 1);
+
+            let def = definitions.next().unwrap();
+            assert_eq!(def.offsets(), ranges);
+        }
     }
 }
