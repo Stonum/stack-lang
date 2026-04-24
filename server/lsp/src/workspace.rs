@@ -11,10 +11,13 @@ use walkdir::WalkDir;
 use mlang_core::{AnyMCoreDefinition, load_core_api};
 use mlang_lsp_definition::{
     CodeSymbolDefinition as _, SemanticInfo, StringLowerCase, get_completion, get_declaration,
-    get_hover, get_lens, get_reference, get_symbols,
+    get_hover, get_lens, get_reference, get_signatures, get_symbols,
 };
 use mlang_parser::parse;
-use mlang_semantic::{SemanticModel, identifier_for_completion, identifier_for_offset, semantics};
+use mlang_semantic::{
+    SemanticModel, identifier_for_completion, identifier_for_offset, identifier_for_signature_help,
+    semantics,
+};
 use mlang_syntax::MFileSource;
 
 use tokio::runtime::Handle;
@@ -24,7 +27,7 @@ use tokio::task::JoinError;
 use tower_lsp::lsp_types::{
     CodeLens, Command, CompletionItem, CompletionResponse, DocumentSymbolResponse,
     GotoDefinitionResponse, Hover, HoverContents, Location, Position, Range, SemanticTokens,
-    SymbolInformation, TextDocumentItem, Url, WorkspaceFolder,
+    SignatureHelp, SymbolInformation, TextDocumentItem, Url, WorkspaceFolder,
 };
 
 use crate::document::CurrentDocument;
@@ -390,6 +393,52 @@ impl Workspace {
 
         let completions: Vec<CompletionItem> = get_completion(&semantic_info, definitions);
         Some(CompletionResponse::Array(completions))
+    }
+
+    pub async fn signature_help(&self, uri: &Url, position: Position) -> Option<SignatureHelp> {
+        let position = Position::new(position.line, position.character);
+
+        let semantic_data = async {
+            let document = self.get_opened_document(uri).await?;
+            let syntax = document.syntax();
+            let text = syntax.text().to_string();
+
+            let line_index = LineIndex::new(&text);
+            let offset = line_index.offset(LineCol {
+                line: position.line,
+                col: position.character,
+            })?;
+
+            identifier_for_signature_help(syntax, offset)
+        }
+        .await?;
+
+        let semantics = self
+            .mlang_semantics
+            .iter()
+            .filter_map(|r| match r.pair() {
+                (path, Some(semantics)) => {
+                    let uri = Url::from_file_path(path).ok()?;
+                    let semantics = Arc::clone(semantics);
+                    Some((uri, semantics))
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+
+        let definitions = semantics
+            .iter()
+            .flat_map(|(uri, arc)| arc.definitions().map(|d| (uri.clone(), d)));
+
+        let (semantic_info, current_argument) = semantic_data;
+
+        let signatures = get_signatures(&semantic_info, definitions, current_argument);
+
+        Some(SignatureHelp {
+            signatures,
+            active_signature: None,
+            active_parameter: None,
+        })
     }
 }
 

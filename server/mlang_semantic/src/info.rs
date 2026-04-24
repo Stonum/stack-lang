@@ -1,5 +1,8 @@
-use biome_rowan::{AstNode, AstSeparatedList, SyntaxNode, SyntaxToken, TextRange, TextSize};
+use biome_rowan::{
+    AstNode, AstSeparatedList, NodeOrToken, SyntaxNode, SyntaxToken, TextRange, TextSize,
+};
 use mlang_lsp_definition::SemanticInfo;
+
 use mlang_syntax::{
     AnyMAssignment, AnyMBinding, AnyMExpression, MAssignmentExpression, MCallExpression,
     MClassDeclaration, MExpressionStatement, MLanguage, MNewExpression, MSequenceExpression,
@@ -46,6 +49,18 @@ pub fn identifier_for_completion(
         return identifier_for_token(token);
     }
     None
+}
+
+pub fn identifier_for_signature_help(
+    root: SyntaxNode<MLanguage>,
+    offset: TextSize,
+) -> Option<(SemanticInfo, u32)> {
+    let range = TextRange::new(offset, offset);
+    if !root.text_range().contains_range(range) {
+        return None;
+    }
+    let node = root.covering_element(range);
+    find_identifier_for_signature_body(node, offset)
 }
 
 fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> {
@@ -400,6 +415,10 @@ fn find_info_token(node: SyntaxNode<MLanguage>) -> Option<SyntaxToken<MLanguage>
                 let ident = expr.member().ok()?;
                 Some(ident.value_token().ok()?)
             }
+            AnyMExpression::MSuperExpression(expr) => {
+                let ident = expr.super_token().ok()?;
+                Some(ident)
+            }
             _ => None,
         }
     }
@@ -420,6 +439,59 @@ fn find_identifier_for_r_paren(token: &SyntaxToken<MLanguage>) -> Option<Semanti
             MSyntaxKind::M_NEW_EXPRESSION | MSyntaxKind::M_CALL_EXPRESSION => {
                 let info_token = find_info_token(n)?;
                 return identifier_for_token(&info_token);
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+fn find_identifier_for_signature_body(
+    node: NodeOrToken<SyntaxNode<MLanguage>, SyntaxToken<MLanguage>>,
+    offset: TextSize,
+) -> Option<(SemanticInfo, u32)> {
+    for n in node.ancestors().take(5) {
+        match n.kind() {
+            MSyntaxKind::M_NEW_EXPRESSION | MSyntaxKind::M_CALL_EXPRESSION => {
+                let mut current_arg_number = 0_u32;
+                let args = match n.kind() {
+                    MSyntaxKind::M_CALL_EXPRESSION => {
+                        MCallExpression::unwrap_cast(n.clone()).arguments().ok()
+                    }
+                    MSyntaxKind::M_NEW_EXPRESSION => {
+                        MNewExpression::unwrap_cast(n.clone()).arguments()
+                    }
+                    _ => None,
+                };
+                if let Some(args) = args {
+                    let offset_sub = offset.checked_sub(1.into()).unwrap_or_default();
+                    // check for token otside argumenrs
+                    if let Ok(ft) = args.l_paren_token()
+                        && ft.text_range().start().gt(&offset_sub)
+                    {
+                        return None;
+                    }
+
+                    current_arg_number = args
+                        .args()
+                        .elements()
+                        .filter(|e| {
+                            e.clone().into_trailing_separator().is_ok_and(|n| {
+                                n.is_some_and(|n| {
+                                    offset.checked_add(1.into()).is_some_and(|sub| {
+                                        n.text_range()
+                                            .start()
+                                            .lt(&sub.checked_sub(1.into()).unwrap_or_default())
+                                    })
+                                })
+                            })
+                        })
+                        .count() as u32;
+                }
+                let info_token = find_info_token(n)?;
+                if let Some(ident) = identifier_for_token(&info_token) {
+                    return Some((ident, current_arg_number));
+                }
             }
             _ => {}
         }
@@ -545,6 +617,25 @@ mod tests {
             let token = get_token_from_offset(input, offset);
             let semantic_info =
                 identifier_for_token(&token).unwrap_or_else(|| panic!("failed for `{input}`"));
+            assert_eq!(info, semantic_info, "{input}");
+        }
+    }
+
+    #[test]
+    fn test_identifier_from_signature_help() {
+        #[rustfmt::skip]
+        let inputs = [
+            ("funcName(a, b) ", 11, Some((SemanticInfo::FunctionCall("funcName".to_owned(), 2), 1))),
+            ("new Test(a, b) ", 11, Some((SemanticInfo::NewExpression(Some("Test".to_owned()), 2), 1))),
+            ("x.m1(a, b) ", 8, Some((SemanticInfo::MethodCall("m1".to_owned(), 2, None), 1))),
+            ("class Tst extends Par{ constructor(a, b) { super(a, b); } }", 51, Some((SemanticInfo::SuperCall("super".to_owned(), 2, "Par".to_owned()), 1))),
+            ("funcName(a, b) ", 1, None),
+        ];
+
+        for (input, offset, info) in inputs {
+            let token = get_token_from_offset(input, offset);
+            let node = NodeOrToken::Token(token);
+            let semantic_info = find_identifier_for_signature_body(node, TextSize::from(offset));
             assert_eq!(info, semantic_info, "{input}");
         }
     }

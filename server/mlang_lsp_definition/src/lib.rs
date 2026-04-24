@@ -3,7 +3,8 @@ use line_index::LineColRange;
 use std::{collections::HashMap, ops::Not};
 use tower_lsp::lsp_types::{
     CodeLens, Command, CompletionItem, CompletionItemKind, Documentation, Location, MarkedString,
-    MarkupContent, MarkupKind, Position, Range, SymbolInformation, Url,
+    MarkupContent, MarkupKind, ParameterInformation, ParameterLabel, Position, Range,
+    SignatureInformation, SymbolInformation, Url,
 };
 
 pub use tower_lsp::lsp_types::SymbolKind;
@@ -115,6 +116,14 @@ const SPECIAL_CHARS: [char; 2] = ['\\', '#'];
 
 pub trait MarkupDefinition {
     fn markdown(&self) -> String;
+    fn documentation(&self) -> Option<String>;
+
+    fn full_markdown(&self) -> String {
+        if let Some(documentation) = self.documentation() {
+            return format!("{}  \n{}", self.markdown(), documentation);
+        }
+        self.markdown()
+    }
 
     fn escape_markdown_with_newlines(&self, s: &str) -> String {
         let mut result = String::with_capacity(s.len() * 2);
@@ -134,6 +143,12 @@ pub trait MarkupDefinition {
         }
         result
     }
+}
+
+pub trait SignatureParameters {
+    fn text(&self) -> String;
+    fn offsets(&self) -> Vec<[u32; 2]>;
+    fn has_rest(&self) -> bool;
 }
 
 pub type Identifier = String;
@@ -427,7 +442,7 @@ where
             .into_iter()
             .map(|(_, d)| d)
             .filter(|d| d.is_function() && d.compare_id_with(ident))
-            .map(|d| MarkedString::String(d.markdown()))
+            .map(|d| MarkedString::String(d.full_markdown()))
             .collect::<Vec<_>>(),
 
         SemanticInfo::FunctionCall(ident, params)
@@ -435,7 +450,7 @@ where
             .into_iter()
             .filter(|(_, d)| d.is_function() && d.compare_id_with(ident))
             .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
-            .map(|(_, d)| MarkedString::String(d.markdown()))
+            .map(|(_, d)| MarkedString::String(d.full_markdown()))
             .collect::<Vec<_>>(),
 
         SemanticInfo::ClassDeclaration(ident) => {
@@ -449,7 +464,7 @@ where
                 .filter(|d| d.is_class() && d.compare_id_with(ident));
 
             for c in classes {
-                markups.push(MarkedString::String(c.markdown()));
+                markups.push(MarkedString::String(c.full_markdown()));
 
                 let mut constructors = definitions
                     .iter()
@@ -463,7 +478,7 @@ where
                             return None;
                         }
 
-                        Some(MarkedString::String(d.markdown()))
+                        Some(MarkedString::String(d.full_markdown()))
                     })
                     .collect::<Vec<_>>();
 
@@ -485,13 +500,13 @@ where
                 .filter(|d| d.is_class() && d.compare_id_with(ident));
 
             for c in classes {
-                markups.push(MarkedString::String(c.markdown()));
+                markups.push(MarkedString::String(c.full_markdown()));
 
                 let constructors = definitions
                     .iter()
                     .filter(|(_, d)| d.is_constructor() && d.container().as_ref() == Some(c))
                     .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
-                    .map(|(_, d)| MarkedString::String(d.markdown()))
+                    .map(|(_, d)| MarkedString::String(d.full_markdown()))
                     .collect::<Vec<_>>();
 
                 markups.extend(constructors);
@@ -504,7 +519,7 @@ where
             .into_iter()
             .map(|(_, d)| d)
             .filter(|d| d.is_class() && d.compare_id_with(ident))
-            .map(|d| MarkedString::String(d.markdown()))
+            .map(|d| MarkedString::String(d.full_markdown()))
             .collect::<Vec<_>>(),
 
         SemanticInfo::MethodCall(ident, params, None)
@@ -512,7 +527,7 @@ where
             .into_iter()
             .filter(|(_, d)| d.is_method() && d.compare_id_with(ident))
             .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
-            .map(|(_, d)| MarkedString::String(d.markdown()))
+            .map(|(_, d)| MarkedString::String(d.full_markdown()))
             .collect::<Vec<_>>(),
 
         SemanticInfo::MethodDeclaration(ident, class_name) => {
@@ -521,7 +536,7 @@ where
             members
                 .into_iter()
                 .filter(|(_, d)| d.is_method() && d.compare_id_with(ident))
-                .map(|(_, d)| MarkedString::String(d.markdown()))
+                .map(|(_, d)| MarkedString::String(d.full_markdown()))
                 .collect::<Vec<_>>()
         }
 
@@ -533,7 +548,7 @@ where
                 .into_iter()
                 .filter(|(_, d)| d.is_method() && d.compare_id_with(ident))
                 .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
-                .map(|(_, d)| MarkedString::String(d.markdown()))
+                .map(|(_, d)| MarkedString::String(d.full_markdown()))
                 .collect::<Vec<_>>()
         }
 
@@ -545,7 +560,7 @@ where
                 .filter(|(_, d)| {
                     (d.is_getter() || d.is_setter() || d.is_property()) && d.compare_id_with(ident)
                 })
-                .map(|(_, d)| MarkedString::String(d.markdown()))
+                .map(|(_, d)| MarkedString::String(d.full_markdown()))
                 .collect::<Vec<_>>()
         }
 
@@ -560,13 +575,13 @@ where
                 .filter(|d| d.is_class() && d.compare_id_with(class_name));
 
             for c in classes {
-                markups.push(MarkedString::String(c.markdown()));
+                markups.push(MarkedString::String(c.full_markdown()));
 
                 let constructors = definitions
                     .iter()
                     .filter(|(_, d)| d.is_constructor() && d.container().as_ref() == Some(c))
                     .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
-                    .map(|(_, d)| MarkedString::String(d.markdown()))
+                    .map(|(_, d)| MarkedString::String(d.full_markdown()))
                     .collect::<Vec<_>>();
 
                 markups.extend(constructors);
@@ -574,6 +589,111 @@ where
             markups
         }
     }
+}
+
+pub fn get_signatures<'a, I, D>(
+    semantic_info: &SemanticInfo,
+    definitions: I,
+    current_argument: u32,
+) -> Vec<SignatureInformation>
+where
+    I: IntoIterator<Item = (Url, &'a D)>,
+    D: CodeSymbolDefinition + MarkupDefinition + SignatureParameters + 'a,
+{
+    let mut info_definitions: Vec<(Url, &D)> = vec![];
+    match semantic_info {
+        SemanticInfo::FunctionCall(ident, params) => {
+            info_definitions = definitions
+                .into_iter()
+                .filter(|(_, d)| (d.is_function()) && d.compare_id_with(ident))
+                .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
+                .collect::<Vec<_>>();
+        }
+        SemanticInfo::NewExpression(Some(ident), params) => {
+            let definitions = definitions.into_iter().collect::<Vec<_>>();
+
+            let classes = definitions
+                .iter()
+                .map(|(_, d)| d)
+                .filter(|d| d.is_class() && d.compare_id_with(ident));
+
+            for c in classes {
+                let mut methods_definitions = definitions
+                    .iter()
+                    .filter(|(_, d)| d.is_constructor() && d.container().as_ref() == Some(c))
+                    .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
+                    .cloned()
+                    .collect::<Vec<_>>();
+
+                info_definitions.append(&mut methods_definitions);
+            }
+        }
+        SemanticInfo::MethodCall(ident, params, Some(class_name)) => {
+            let members = get_class_members_definition(definitions, class_name);
+
+            info_definitions = members
+                .into_iter()
+                .filter(|(_, d)| d.is_method() && d.compare_id_with(ident))
+                .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
+                .collect::<Vec<_>>();
+        }
+
+        SemanticInfo::SuperCall(_ident, params, class_name) => {
+            let definitions = definitions.into_iter().collect::<Vec<_>>();
+
+            let classes = definitions
+                .iter()
+                .map(|(_, d)| d)
+                .filter(|d| d.is_class() && d.compare_id_with(class_name));
+
+            for c in classes {
+                let mut constructors = definitions
+                    .iter()
+                    .filter(|(_, d)| d.is_constructor() && d.container().as_ref() == Some(c))
+                    .sorted_by(|(_, a), (_, b)| a.call_priority(b, *params))
+                    .cloned()
+                    .collect::<Vec<_>>();
+                info_definitions.append(&mut constructors);
+            }
+        }
+        _ => {}
+    }
+
+    info_definitions
+        .iter()
+        .map(|(_, d)| {
+            let offsets = d.offsets();
+            let mut parameters = offsets
+                .iter()
+                .map(|offset| ParameterInformation {
+                    label: ParameterLabel::LabelOffsets(*offset),
+                    documentation: None,
+                })
+                .collect::<Vec<_>>();
+
+            if d.has_rest() {
+                if let Some(rest) = parameters.last_mut() {
+                    rest.documentation = Some(Documentation::String(String::from("... arg 1")));
+                }
+
+                if let Some(offset) = offsets.last() {
+                    for i in 2..100 {
+                        parameters.push(ParameterInformation {
+                            label: ParameterLabel::LabelOffsets(*offset),
+                            documentation: Some(Documentation::String(format!("... arg {i}"))),
+                        });
+                    }
+                }
+            }
+
+            SignatureInformation {
+                label: d.text(),
+                parameters: Some(parameters),
+                documentation: None,
+                active_parameter: Some(current_argument),
+            }
+        })
+        .collect::<Vec<_>>()
 }
 
 pub fn get_symbols<'a, I, D>(uri: &Url, definitions: I) -> Vec<SymbolInformation>
@@ -713,7 +833,8 @@ where
                 completion_item.sort_text = Some(format!("яя{}", completion_label));
             }
 
-            let markdown_strs: Vec<String> = def_group.1.iter().map(|d| d.markdown()).collect();
+            let markdown_strs: Vec<String> =
+                def_group.1.iter().map(|d| d.full_markdown()).collect();
             let markdown = MarkupContent {
                 kind: MarkupKind::Markdown,
                 value: markdown_strs.join("  \n"),

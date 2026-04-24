@@ -80,6 +80,10 @@ impl MarkupDefinition for AnyMCoreDefinition {
             }
         }
     }
+
+    fn documentation(&self) -> Option<String> {
+        None
+    }
 }
 
 #[derive(Debug, Default, Eq, PartialEq)]
