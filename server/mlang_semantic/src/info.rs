@@ -1,4 +1,6 @@
-use biome_rowan::{AstNode, AstSeparatedList, SyntaxNode, SyntaxToken, TextRange, TextSize};
+use biome_rowan::{
+    AstNode, AstSeparatedList, NodeOrToken, SyntaxNode, SyntaxToken, TextRange, TextSize,
+};
 use mlang_lsp_definition::SemanticInfo;
 
 use mlang_syntax::{
@@ -58,10 +60,7 @@ pub fn identifier_for_signature_help(
         return None;
     }
     let node = root.covering_element(range);
-    if let Some(token) = node.as_token() {
-        return find_identifier_for_signature_body(token, offset);
-    }
-    None
+    find_identifier_for_signature_body(node, offset)
 }
 
 fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> {
@@ -451,10 +450,10 @@ fn find_identifier_for_r_paren(token: &SyntaxToken<MLanguage>) -> Option<Semanti
 }
 
 fn find_identifier_for_signature_body(
-    token: &SyntaxToken<MLanguage>,
+    node: NodeOrToken<SyntaxNode<MLanguage>, SyntaxToken<MLanguage>>,
     offset: TextSize,
 ) -> Option<(SemanticInfo, u32)> {
-    for n in token.ancestors().take(5) {
+    for n in node.ancestors().take(5) {
         match n.kind() {
             MSyntaxKind::M_NEW_EXPRESSION | MSyntaxKind::M_CALL_EXPRESSION => {
                 let mut current_arg_number = 0_u32;
@@ -638,7 +637,8 @@ mod tests {
 
         for (input, offset, info) in inputs {
             let token = get_token_from_offset(input, offset);
-            let semantic_info = find_identifier_for_signature_body(&token, TextSize::from(offset));
+            let node = NodeOrToken::Token(token);
+            let semantic_info = find_identifier_for_signature_body(node, TextSize::from(offset));
             assert_eq!(info, semantic_info, "{input}");
         }
     }
