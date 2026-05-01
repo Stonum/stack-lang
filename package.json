@@ -109,7 +109,7 @@
    },
    "devDependencies": {
       "@types/node": "^24.10.0",
-      "@typescript-eslint/eslint-plugin": "^8.46.0",
+      "@typescript-eslint/eslint-plugin": "^8.59.1",
       "@typescript-eslint/parser": "^8.46.0",
       "@electron/rebuild": "4.0.1",
       "eslint": "^9.39.1",
