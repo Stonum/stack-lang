@@ -9,6 +9,7 @@ on:
     branches: [ "main" ]
     paths:
       - 'server/**'
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
