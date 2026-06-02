@@ -1,37 +1,36 @@
 name: Check and test
 
 on:
-  push:
-    branches: [ "main" ]
-    paths:
-      - 'server/**'
-  pull_request:
-    branches: [ "main" ]
-    paths:
-      - 'server/**'
-  workflow_dispatch:
+   push:
+      branches: ["main"]
+      paths:
+         - "server/**"
+   pull_request:
+      branches: ["main"]
+      paths:
+         - "server/**"
+   workflow_dispatch:
 
 env:
-  CARGO_TERM_COLOR: always
+   CARGO_TERM_COLOR: always
 
 jobs:
-  test:
+   test:
+      runs-on: ubuntu-22.04
 
-    runs-on: ubuntu-22.04
+      steps:
+         - uses: actions/checkout@v4
 
-    steps:
-    - uses: actions/checkout@v4
+         - name: Install Rust toolchain
+           uses: actions-rust-lang/setup-rust-toolchain@v1
+           with:
+              rust-src-dir: ./server
+              rustflags: ""
 
-    - name: Install Rust toolchain
-      uses: actions-rust-lang/setup-rust-toolchain@v1
-      with:
-         rustflags: ""  
+         - name: Run Clippy check
+           run: cargo clippy --all-targets --all-features -- -D warnings
+           working-directory: ./server
 
-    - name: Run Clippy check
-      run: cargo clippy --all-targets --all-features -- -D warnings
-      working-directory: ./server
-
-    - name: Run tests
-      run: cargo test --verbose
-      working-directory: ./server
-      
+         - name: Run tests
+           run: cargo test --verbose
+           working-directory: ./server
