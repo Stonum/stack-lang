@@ -28,6 +28,7 @@ jobs:
          rust-src-dir: ./server
          rustflags: ""
          toolchain: 1.90.0
+         components: clippy
 
     - name: Run Clippy check
       run: cargo clippy --all-targets --all-features -- -D warnings
