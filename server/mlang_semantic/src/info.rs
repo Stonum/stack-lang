@@ -64,168 +64,94 @@ pub fn identifier_for_signature_help(
 }
 
 fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> {
-    if matches!(token.kind(), MSyntaxKind::IDENT | MSyntaxKind::SUPER_KW) {
-        let ident = token.text_trimmed().trim().to_string();
-        if let Some(node) = token.parent() {
-            // try take Reference for identifier
-            if node.kind() == MSyntaxKind::M_REFERENCE_IDENTIFIER
-                && let Some(info) = find_identifier_by_reference(node)
-            {
-                return Some(info);
+    rparen_handler(token)
+        .or_else(|| declaration_handler(token))
+        .or_else(|| iterator_handler(token))
+        .or_else(|| new_expression_handler(token))
+        .or_else(|| super_expression_handler(token))
+        .or_else(|| this_expression_handler(token))
+        .or_else(|| call_handler(token))
+        .or_else(|| property_handler(token))
+        .or_else(|| reference_handler(token))
+}
+
+// HANDLERS
+
+fn rparen_handler(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> {
+    if !matches!(token.kind(), MSyntaxKind::R_PAREN) {
+        return None;
+    }
+
+    let node = token.ancestors().nth(1)?;
+    let kind = node.kind();
+
+    match kind {
+        MSyntaxKind::M_NEW_EXPRESSION | MSyntaxKind::M_CALL_EXPRESSION => {
+            let info_token = find_info_token(node)?;
+            match kind {
+                MSyntaxKind::M_NEW_EXPRESSION => new_expression_handler(&info_token),
+                MSyntaxKind::M_CALL_EXPRESSION => call_handler(&info_token),
+                _ => unreachable!(),
             }
+        }
+        _ => None,
+    }
+}
 
-            // take nearest parents
-            for n in token.ancestors().take(3) {
-                match n.kind() {
-                    MSyntaxKind::M_FUNCTION_DECLARATION => {
-                        return Some(SemanticInfo::FunctionDeclaration(ident));
-                    }
-                    MSyntaxKind::M_CLASS_DECLARATION => {
-                        return Some(SemanticInfo::ClassDeclaration(ident));
-                    }
-                    MSyntaxKind::M_METHOD_CLASS_MEMBER => {
-                        let class_member_list_node = n.parent()?;
-                        let class_node = class_member_list_node.parent()?;
+fn declaration_handler(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> {
+    if !matches!(token.kind(), MSyntaxKind::IDENT) {
+        return None;
+    }
 
-                        let class = MClassDeclaration::cast(class_node)?;
-                        let class_id = class.id().ok()?.text();
+    let ident = token.text_trimmed().trim().to_string();
 
-                        return Some(SemanticInfo::MethodDeclaration(ident, class_id));
-                    }
-                    MSyntaxKind::M_NEW_EXPRESSION => {
-                        let call = MNewExpression::unwrap_cast(n);
-                        let args_count = {
-                            let args = call.arguments()?.args();
-                            Some(args.len())
-                        }
-                        .unwrap_or_default();
-                        return Some(SemanticInfo::NewExpression(Some(ident), args_count));
-                    }
-                    MSyntaxKind::M_EXTENDS_CLAUSE => {
-                        return Some(SemanticInfo::ClassExtends(ident));
-                    }
-                    MSyntaxKind::M_FOR_ITERATOR_FACTORY => {
-                        // iterator has 2 args - ref and variable receiver
-                        return Some(SemanticInfo::FunctionCall(ident, 2));
-                    }
-
-                    MSyntaxKind::M_STATIC_MEMBER_EXPRESSION
-                    | MSyntaxKind::M_STATIC_MEMBER_ASSIGNMENT => {
-                        let class_id = {
-                            let object = match n.kind() {
-                                MSyntaxKind::M_STATIC_MEMBER_EXPRESSION => {
-                                    MStaticMemberExpression::cast_ref(&n)?.object().ok()?
-                                }
-                                MSyntaxKind::M_STATIC_MEMBER_ASSIGNMENT => {
-                                    MStaticMemberAssignment::cast_ref(&n)?.object().ok()?
-                                }
-                                _ => unreachable!(),
-                            };
-
-                            match object {
-                                AnyMExpression::MThisExpression(_) => token
-                                    .ancestors()
-                                    .find(|p| p.kind() == MSyntaxKind::M_CLASS_DECLARATION)
-                                    .and_then(|class_node| {
-                                        let class = MClassDeclaration::cast(class_node)?;
-                                        let id = class.id().ok()?.text();
-                                        Some(id)
-                                    }),
-
-                                AnyMExpression::MSuperExpression(_) => token
-                                    .ancestors()
-                                    .find(|p| p.kind() == MSyntaxKind::M_CLASS_DECLARATION)
-                                    .and_then(|class_node| {
-                                        let class = MClassDeclaration::cast(class_node)?;
-                                        let id = class.extends_clause()?.super_class().ok()?.text();
-                                        Some(id)
-                                    }),
-
-                                AnyMExpression::MIdentifierExpression(identifier) => {
-                                    find_identifier_by_reference(identifier.into_syntax()).and_then(
-                                        |info| {
-                                            if let SemanticInfo::RefClass(class_name) = info {
-                                                return Some(class_name);
-                                            }
-                                            None
-                                        },
-                                    )
-                                }
-
-                                _ => None,
-                            }
-                        };
-
-                        if let Some(parent) = n.parent()
-                            && let Some(call) = MCallExpression::cast(parent)
-                        {
-                            let args_count = {
-                                let args = call.arguments().ok()?.args();
-                                Some(args.len())
-                            }
-                            .unwrap_or_default();
-
-                            return Some(SemanticInfo::MethodCall(ident, args_count, class_id));
-                        }
-
-                        if let Some(class_id) = class_id {
-                            return Some(SemanticInfo::Property(ident, class_id));
-                        }
-                    }
-
-                    MSyntaxKind::M_CALL_EXPRESSION => {
-                        let call = MCallExpression::unwrap_cast(n);
-                        let args_count = {
-                            let args = call.arguments().ok()?.args();
-                            Some(args.len())
-                        }
-                        .unwrap_or_default();
-
-                        let callee = call.callee().ok();
-                        if let Some(AnyMExpression::MSuperExpression(_)) = callee {
-                            let class_id = {
-                                token
-                                    .ancestors()
-                                    .find(|p| p.kind() == MSyntaxKind::M_CLASS_DECLARATION)
-                                    .and_then(|class_node| {
-                                        let class = MClassDeclaration::cast(class_node)?;
-                                        let id = class.extends_clause()?.super_class().ok()?.text();
-                                        Some(id)
-                                    })
-                            };
-
-                            // return None if class is not founded
-                            return Some(SemanticInfo::SuperCall(ident, args_count, class_id?));
-                        }
-
-                        return Some(SemanticInfo::FunctionCall(ident, args_count));
-                    }
-
-                    _ => (),
-                };
+    // take nearest parents
+    for n in token.ancestors().take(3) {
+        match n.kind() {
+            MSyntaxKind::M_FUNCTION_DECLARATION => {
+                return Some(SemanticInfo::FunctionDeclaration(ident));
             }
+            MSyntaxKind::M_CLASS_DECLARATION => {
+                return Some(SemanticInfo::ClassDeclaration(ident));
+            }
+            MSyntaxKind::M_METHOD_CLASS_MEMBER => {
+                let class_member_list_node = n.parent()?;
+                let class_node = class_member_list_node.parent()?;
+
+                let class = MClassDeclaration::cast(class_node)?;
+                let class_id = class.id().ok()?.text();
+
+                return Some(SemanticInfo::MethodDeclaration(ident, class_id));
+            }
+            MSyntaxKind::M_EXTENDS_CLAUSE => {
+                return Some(SemanticInfo::ClassExtends(ident));
+            }
+            _ => continue,
         }
     }
 
-    if token.kind() == MSyntaxKind::SUPER_KW || token.kind() == MSyntaxKind::THIS_KW {
-        let class_id = token
-            .ancestors()
-            .find(|p| p.kind() == MSyntaxKind::M_CLASS_DECLARATION)
-            .and_then(|class_node| {
-                let class = MClassDeclaration::cast(class_node)?;
-                let id = match token.kind() == MSyntaxKind::THIS_KW {
-                    true => class.id().ok()?.text(),
-                    false => class.extends_clause()?.super_class().ok()?.text(),
-                };
-                Some(id)
-            });
-        if let Some(class_id) = class_id {
-            let info = match token.kind() {
-                MSyntaxKind::THIS_KW | MSyntaxKind::SUPER_KW => SemanticInfo::RefClass(class_id),
-                _ => unreachable!(),
-            };
-            return Some(info);
-        }
+    None
+}
+
+fn iterator_handler(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> {
+    if !matches!(token.kind(), MSyntaxKind::IDENT) {
+        return None;
+    }
+
+    let node = token.ancestors().nth(2)?;
+    if node.kind() == MSyntaxKind::M_FOR_ITERATOR_FACTORY {
+        return Some(SemanticInfo::FunctionCall(
+            token.text_trimmed().trim().to_string(),
+            2,
+        ));
+    }
+
+    None
+}
+
+fn new_expression_handler(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> {
+    if !matches!(token.kind(), MSyntaxKind::IDENT | MSyntaxKind::NEW_KW) {
+        return None;
     }
 
     if token.kind() == MSyntaxKind::NEW_KW {
@@ -233,21 +159,170 @@ fn identifier_for_token(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> 
         return Some(SemanticInfo::NewExpression(None, 0));
     }
 
-    if token.kind() == MSyntaxKind::R_PAREN {
-        return find_identifier_for_r_paren(token);
+    let node = token.ancestors().nth(2)?;
+    let new = MNewExpression::cast(node)?;
+    let args_count = {
+        let args = new.arguments()?.args();
+        Some(args.len())
+    }
+    .unwrap_or_default();
+
+    Some(SemanticInfo::NewExpression(
+        Some(token.text_trimmed().trim().to_string()),
+        args_count,
+    ))
+}
+
+fn super_expression_handler(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> {
+    if !matches!(token.kind(), MSyntaxKind::SUPER_KW) {
+        return None;
+    }
+
+    let class_id = {
+        let class = get_nearest_class_declaration(token)?;
+        let id = class.extends_clause()?.super_class().ok()?.text();
+        Some(id)
+    }?; // return None if class is not founded
+
+    let node = token.ancestors().nth(1)?;
+    if MCallExpression::can_cast(node.kind()) {
+        let call = MCallExpression::unwrap_cast(node);
+        let args_count = {
+            let args = call.arguments().ok()?.args();
+            Some(args.len())
+        }
+        .unwrap_or_default();
+
+        return Some(SemanticInfo::SuperCall(
+            token.text_trimmed().trim().to_string(),
+            args_count,
+            class_id,
+        ));
+    }
+
+    Some(SemanticInfo::RefClass(class_id))
+}
+
+fn this_expression_handler(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> {
+    if !matches!(token.kind(), MSyntaxKind::THIS_KW) {
+        return None;
+    }
+
+    let class_id = {
+        let class = get_nearest_class_declaration(token)?;
+        let id = class.id().ok()?.text();
+        Some(id)
+    }?; // return None if class is not founded
+
+    Some(SemanticInfo::RefClass(class_id))
+}
+
+fn call_handler(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> {
+    if !matches!(token.kind(), MSyntaxKind::IDENT) {
+        return None;
+    }
+
+    let node = token.ancestors().nth(2)?;
+    let call = MCallExpression::cast(node)?;
+    let args_count = {
+        let args = call.arguments().ok()?.args();
+        Some(args.len())
+    }
+    .unwrap_or_default();
+
+    let identifier = token.text_trimmed().trim().to_string();
+
+    if let Ok(callee) = call.callee() {
+        // get class id for his object
+        if let AnyMExpression::MStaticMemberExpression(expr) = callee {
+            let object = expr.object().ok()?;
+            let object = get_nearest_variable_declaration(&object);
+
+            if let Some(SemanticInfo::RefClass(class_id)) = object {
+                return Some(SemanticInfo::MethodCall(
+                    identifier,
+                    args_count,
+                    Some(class_id),
+                ));
+            }
+            return Some(SemanticInfo::MethodCall(identifier, args_count, None));
+        }
+
+        // get super class id for super expressions
+        if let AnyMExpression::MSuperExpression(expr) = callee {
+            let super_token = expr.super_token().ok()?;
+            let class_id = {
+                let class = get_nearest_class_declaration(&super_token)?;
+                let id = class.extends_clause()?.super_class().ok()?.text();
+                Some(id)
+            };
+            return Some(SemanticInfo::MethodCall(identifier, args_count, class_id));
+        };
+    }
+
+    Some(SemanticInfo::FunctionCall(identifier, args_count))
+}
+
+fn property_handler(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> {
+    if !matches!(token.kind(), MSyntaxKind::IDENT) {
+        return None;
+    }
+
+    let node = token.ancestors().nth(1)?;
+    let object = match node {
+        _ if MStaticMemberAssignment::can_cast(node.kind()) => {
+            MStaticMemberAssignment::unwrap_cast(node).object().ok()?
+        }
+        _ if MStaticMemberExpression::can_cast(node.kind()) => {
+            MStaticMemberExpression::unwrap_cast(node).object().ok()?
+        }
+        _ => return None,
+    };
+
+    let object = get_nearest_variable_declaration(&object)?;
+    if let SemanticInfo::RefClass(class_id) = object {
+        let identifier = token.text_trimmed().trim().to_string();
+        return Some(SemanticInfo::Property(identifier, class_id));
     }
     None
 }
 
-fn find_identifier_by_reference(node: SyntaxNode<MLanguage>) -> Option<SemanticInfo> {
-    let ident = node.text_trimmed().to_string().to_lowercase();
-
-    for parent in node.ancestors() {
-        if let Some(right_side) = get_first_assignment_or_declaration(&parent, &ident) {
-            return find_identifier_from_right_side(right_side);
-        }
+fn reference_handler(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> {
+    if !matches!(token.kind(), MSyntaxKind::IDENT) {
+        return None;
     }
-    None
+
+    let node = token.ancestors().nth(1)?;
+    let expression = AnyMExpression::cast(node)?;
+    get_nearest_variable_declaration(&expression)
+}
+
+// UTILITY FUNCTIONS
+
+fn get_nearest_class_declaration(token: &SyntaxToken<MLanguage>) -> Option<MClassDeclaration> {
+    token
+        .ancestors()
+        .find(|parent| parent.kind() == MSyntaxKind::M_CLASS_DECLARATION)
+        .and_then(MClassDeclaration::cast)
+}
+
+fn get_nearest_variable_declaration(variable: &AnyMExpression) -> Option<SemanticInfo> {
+    let name = match variable {
+        AnyMExpression::MIdentifierExpression(ident) => ident.name().ok()?.text().to_lowercase(),
+        AnyMExpression::MThisExpression(this) if this.this_token().is_ok() => {
+            return this_expression_handler(&this.this_token().unwrap());
+        }
+        AnyMExpression::MSuperExpression(s) if s.super_token().is_ok() => {
+            return super_expression_handler(&s.super_token().unwrap());
+        }
+        _ => return None,
+    };
+
+    variable
+        .syntax()
+        .ancestors()
+        .find_map(|parent| get_first_assignment_or_declaration(&parent, &name))
+        .and_then(find_identifier_from_right_side)
 }
 
 fn get_first_assignment_or_declaration(
@@ -287,7 +362,6 @@ fn find_sequence_expression(
     ident: &str,
 ) -> Option<SyntaxNode<MLanguage>> {
     let seq = MSequenceExpression::cast(expression)?;
-
     let left = match seq.left().ok()? {
         AnyMExpression::MAssignmentExpression(expr) => {
             find_assignment_expression(expr.into_syntax(), ident)
@@ -433,19 +507,6 @@ fn find_info_token(node: SyntaxNode<MLanguage>) -> Option<SyntaxToken<MLanguage>
     info_token
 }
 
-fn find_identifier_for_r_paren(token: &SyntaxToken<MLanguage>) -> Option<SemanticInfo> {
-    for n in token.ancestors().take(3) {
-        match n.kind() {
-            MSyntaxKind::M_NEW_EXPRESSION | MSyntaxKind::M_CALL_EXPRESSION => {
-                let info_token = find_info_token(n)?;
-                return identifier_for_token(&info_token);
-            }
-            _ => {}
-        }
-    }
-    None
-}
-
 fn find_identifier_for_signature_body(
     node: NodeOrToken<SyntaxNode<MLanguage>, SyntaxToken<MLanguage>>,
     offset: TextSize,
@@ -510,14 +571,23 @@ mod tests {
     fn test_identifier_for_offset() {
         #[rustfmt::skip]
         let inputs = [
+            ("func x() {}", 6, SemanticInfo::FunctionDeclaration("x".to_owned())),
+            ("class A {}", 7, SemanticInfo::ClassDeclaration("A".to_owned())),
+            ("class B extends A {}", 17, SemanticInfo::ClassExtends("A".to_owned())),
+            ("class A { x() {} }", 11, SemanticInfo::MethodDeclaration("x".to_owned(), "A".to_owned())),
+
+            ("forall( iterator(arr, ind)) {}", 15, SemanticInfo::FunctionCall("iterator".to_owned(), 2)),
+
+            ("new ", 2, SemanticInfo::NewExpression(None, 0)),
+            ("var x = new TodoClass()",15, SemanticInfo::NewExpression(Some("TodoClass".to_owned()), 0)),
+            ("var x = new TodoClass(1, 2, 3)",15, SemanticInfo::NewExpression(Some("TodoClass".to_owned()), 3)),
+
             ("var x = callFunction()", 15, SemanticInfo::FunctionCall("callFunction".to_owned(), 0)),
             ("var x = callFunction(1, 2, 3, 4)", 15, SemanticInfo::FunctionCall("callFunction".to_owned(), 4)),
 
-            ("var x = z.callMethod()", 15, SemanticInfo::MethodCall("callMethod".to_owned(), 0, None)),
-            ("var x = z.callMethod(1, 2)", 15, SemanticInfo::MethodCall("callMethod".to_owned(), 2, None)),
+            ("class B extends A { constructor() { super() } }", 40, SemanticInfo::SuperCall("super".to_owned(), 0, "A".to_owned())),
 
-            ("var x = new TodoClass()",15, SemanticInfo::NewExpression(Some("TodoClass".to_owned()), 0)),
-            ("var x = new TodoClass(1, 2, 3)",15, SemanticInfo::NewExpression(Some("TodoClass".to_owned()), 3)),
+            ("var x = z.callMethod(1, 2)", 15, SemanticInfo::MethodCall("callMethod".to_owned(), 2, None)),
 
             ("var z = new TodoClass(); z.callMethod();",30, SemanticInfo::MethodCall("callMethod".to_owned(), 0, Some("TodoClass".to_owned()))),
 
@@ -528,11 +598,7 @@ mod tests {
             ("#comment line
               callaFterComment()",30, SemanticInfo::FunctionCall("callaFterComment".to_owned(), 0)),
 
-            ("class B extends A {}", 17, SemanticInfo::ClassExtends("A".to_owned())),
-            ("class B extends A { constructor() { super() } }", 40, SemanticInfo::SuperCall("super".to_owned(), 0, "A".to_owned())),
-
-            ("forall( iterator(arr, ind)) {}", 15, SemanticInfo::FunctionCall("iterator".to_owned(), 2)),
-            ("new ", 2, SemanticInfo::NewExpression(None, 0)),
+            ("var xyz = xyz()", 12, SemanticInfo::FunctionCall("xyz".to_owned(), 0))
         ];
 
         for (input, offset, info) in inputs {
@@ -551,10 +617,10 @@ mod tests {
                 m1() {}
                 m2() { this.m1(); }
                 get xxx() { return 1; }
-                m3() 
+                m3()
                 {
                     this.yyy = 1;
-                    return this.xxx; 
+                    return this.xxx;
                 }
             }
         "#;
@@ -570,9 +636,9 @@ mod tests {
         ];
 
         for (offset, info) in offsets {
-            let semantic_info =
-                identifier_for_offset(parsed.syntax(), TextSize::from(offset)).unwrap();
-            assert_eq!(info, semantic_info);
+            let semantic_info = identifier_for_offset(parsed.syntax(), TextSize::from(offset))
+                .unwrap_or_else(|| panic!("failed for offset: {offset}"));
+            assert_eq!(info, semantic_info, "offset: {offset}");
         }
     }
 
