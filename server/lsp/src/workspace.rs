@@ -26,11 +26,13 @@ use tokio::task::JoinError;
 
 use tower_lsp::lsp_types::{
     CodeLens, Command, CompletionItem, CompletionResponse, DocumentSymbolResponse,
-    GotoDefinitionResponse, Hover, HoverContents, Location, Position, Range, SemanticTokens,
-    SignatureHelp, SymbolInformation, TextDocumentItem, Url, WorkspaceFolder,
+    FormattingOptions, GotoDefinitionResponse, Hover, HoverContents, Location, Position, Range,
+    SemanticTokens, SignatureHelp, SymbolInformation, TextDocumentItem, TextEdit, Url,
+    WorkspaceFolder,
 };
 
 use crate::document::CurrentDocument;
+use crate::format::format;
 use crate::tokens::semantic_tokens;
 
 #[derive(Debug, Error)]
@@ -47,10 +49,14 @@ pub enum WorkspaceInitializationError {
 
 #[derive(Debug, Error)]
 pub enum WorkspaceError {
+    #[error("Test")]
+    CommonError,
     #[error("Failed convert Url to file path {0}")]
-    UrlConvertation(Url),
+    UrlConversion(Url),
     #[error("{0}")]
     FileSource(#[from] mlang_syntax::FileSourceError),
+    #[error("{0}")]
+    Io(#[from] std::io::Error),
     #[error("{0}")]
     JoinHandle(#[from] JoinError),
 }
@@ -180,38 +186,45 @@ impl Workspace {
     pub async fn get_opened_document(
         &self,
         uri: &Url,
-    ) -> Option<OwnedRwLockReadGuard<CurrentDocument>> {
+    ) -> Result<OwnedRwLockReadGuard<CurrentDocument>, WorkspaceError> {
         if let Some(document) = self.opened_files.get(uri) {
-            return Some(Arc::clone(document.value()).read_owned().await);
+            return Ok(Arc::clone(document.value()).read_owned().await);
         }
 
         let path = uri
             .to_file_path()
-            .or(Err(WorkspaceError::UrlConvertation(uri.clone())))
-            .ok()?;
-        let file_source = MFileSource::try_from(path.as_path()).ok()?;
+            .or(Err(WorkspaceError::UrlConversion(uri.clone())))?;
 
-        let text = tokio::fs::read_to_string(&path).await.ok()?;
-        let document = Arc::new(RwLock::new(CurrentDocument::new(
-            uri.clone(),
-            &text,
-            file_source,
-        )));
+        let file_source = MFileSource::try_from(path.as_path())?;
 
+        let text = tokio::fs::read_to_string(&path).await?;
+        let file_uri = uri.clone();
+        let document =
+            tokio::task::spawn_blocking(move || CurrentDocument::new(file_uri, &text, file_source))
+                .await?;
+
+        let document = Arc::new(RwLock::new(document));
         self.opened_files.insert(uri.clone(), Arc::clone(&document));
 
-        Some(document.read_owned().await)
+        Ok(document.read_owned().await)
     }
 
-    pub async fn hover(&self, uri: &Url, position: Position) -> Option<Hover> {
+    pub async fn hover(
+        &self,
+        uri: &Url,
+        position: Position,
+    ) -> Result<Option<Hover>, WorkspaceError> {
         let semantic_info = self.identifier_from_position(uri, position).await?;
+        let Some(semantic_info) = semantic_info else {
+            return Ok(None);
+        };
 
         let core_markups = get_hover(&semantic_info, self.core.iter().map(|d| (uri.clone(), d)));
         if !core_markups.is_empty() {
-            return Some(Hover {
+            return Ok(Some(Hover {
                 contents: HoverContents::Array(core_markups),
                 range: None,
-            });
+            }));
         }
 
         let semantics = self
@@ -232,18 +245,21 @@ impl Workspace {
             .flat_map(|(uri, arc)| arc.definitions().map(|d| (uri.clone(), d)));
 
         let markups = get_hover(&semantic_info, definitions);
-        Some(Hover {
+        Ok(Some(Hover {
             contents: HoverContents::Array(markups),
             range: None,
-        })
+        }))
     }
 
     pub async fn goto_definition(
         &self,
         uri: &Url,
         position: Position,
-    ) -> Option<GotoDefinitionResponse> {
+    ) -> Result<Option<GotoDefinitionResponse>, WorkspaceError> {
         let semantic_info = self.identifier_from_position(uri, position).await?;
+        let Some(semantic_info) = semantic_info else {
+            return Ok(None);
+        };
 
         let semantics = self
             .mlang_semantics
@@ -263,11 +279,18 @@ impl Workspace {
             .flat_map(|(uri, arc)| arc.definitions().map(|d| (uri.clone(), d)));
 
         let locations = get_declaration(&semantic_info, definitions);
-        Some(GotoDefinitionResponse::Array(locations))
+        Ok(Some(GotoDefinitionResponse::Array(locations)))
     }
 
-    pub async fn references(&self, uri: &Url, position: Position) -> Option<Vec<Location>> {
+    pub async fn references(
+        &self,
+        uri: &Url,
+        position: Position,
+    ) -> Result<Option<Vec<Location>>, WorkspaceError> {
         let semantic_info = self.identifier_from_position(uri, position).await?;
+        let Some(semantic_info) = semantic_info else {
+            return Ok(None);
+        };
 
         let locations = self
             .mlang_semantics
@@ -285,16 +308,19 @@ impl Workspace {
             .flatten()
             .collect::<Vec<_>>();
 
-        Some(locations)
+        Ok(Some(locations))
     }
 
-    pub async fn document_symbol_response(&self, uri: &Url) -> Option<DocumentSymbolResponse> {
+    pub async fn document_symbol_response(
+        &self,
+        uri: &Url,
+    ) -> Result<Option<DocumentSymbolResponse>, WorkspaceError> {
         let document = self.get_opened_document(uri).await?;
 
         let definitions = document.definitions();
         let response = get_symbols(uri, definitions);
 
-        Some(DocumentSymbolResponse::Flat(response))
+        Ok(Some(DocumentSymbolResponse::Flat(response)))
     }
 
     pub async fn symbol_information(&self, query: &str) -> Option<Vec<SymbolInformation>> {
@@ -325,7 +351,7 @@ impl Workspace {
         Some(information)
     }
 
-    pub async fn code_lens(&self, uri: &Url) -> Option<Vec<CodeLens>> {
+    pub async fn code_lens(&self, uri: &Url) -> Result<Option<Vec<CodeLens>>, WorkspaceError> {
         let document = self.get_opened_document(uri).await?;
         let command = String::from("stack.movetoLine");
 
@@ -337,30 +363,38 @@ impl Workspace {
         let definitions = document.definitions();
         let response = get_lens(command_builder, definitions);
 
-        Some(response)
+        Ok(Some(response))
     }
 
     pub async fn semantic_tokens(
         &self,
         uri: &Url,
         tokens_range: Option<Range>,
-    ) -> Option<SemanticTokens> {
+    ) -> Result<Option<SemanticTokens>, WorkspaceError> {
         let document = self.get_opened_document(uri).await?;
         let syntax = document.syntax();
         let line_index = document.line_index();
 
-        Some(SemanticTokens {
+        Ok(Some(SemanticTokens {
             result_id: None,
             data: semantic_tokens(syntax, line_index, tokens_range),
-        })
+        }))
     }
 
-    pub async fn completion(&self, uri: &Url, position: Position) -> Option<CompletionResponse> {
+    pub async fn completion(
+        &self,
+        uri: &Url,
+        position: Position,
+    ) -> Result<Option<CompletionResponse>, WorkspaceError> {
         // get position before trigger
-        let position = Position::new(position.line, position.character.checked_sub(1)?);
+        let line = position.line;
+        let Some(char) = position.character.checked_sub(1) else {
+            return Ok(None);
+        };
+        let position = Position::new(line, char);
 
+        let document = self.get_opened_document(uri).await?;
         let semantic_info = async {
-            let document = self.get_opened_document(uri).await?;
             let syntax = document.syntax();
             let text = syntax.text().to_string();
 
@@ -372,7 +406,11 @@ impl Workspace {
 
             identifier_for_completion(syntax, offset)
         }
-        .await?;
+        .await;
+
+        let Some(semantic_info) = semantic_info else {
+            return Ok(None);
+        };
 
         let semantics = self
             .mlang_semantics
@@ -392,14 +430,18 @@ impl Workspace {
             .flat_map(|(uri, arc)| arc.definitions().map(|d| (uri.clone(), d)));
 
         let completions: Vec<CompletionItem> = get_completion(&semantic_info, definitions);
-        Some(CompletionResponse::Array(completions))
+        Ok(Some(CompletionResponse::Array(completions)))
     }
 
-    pub async fn signature_help(&self, uri: &Url, position: Position) -> Option<SignatureHelp> {
+    pub async fn signature_help(
+        &self,
+        uri: &Url,
+        position: Position,
+    ) -> Result<Option<SignatureHelp>, WorkspaceError> {
         let position = Position::new(position.line, position.character);
 
+        let document = self.get_opened_document(uri).await?;
         let semantic_data = async {
-            let document = self.get_opened_document(uri).await?;
             let syntax = document.syntax();
             let text = syntax.text().to_string();
 
@@ -411,7 +453,11 @@ impl Workspace {
 
             identifier_for_signature_help(syntax, offset)
         }
-        .await?;
+        .await;
+
+        let Some(semantic_data) = semantic_data else {
+            return Ok(None);
+        };
 
         let semantics = self
             .mlang_semantics
@@ -434,11 +480,24 @@ impl Workspace {
 
         let signatures = get_signatures(&semantic_info, definitions, current_argument);
 
-        Some(SignatureHelp {
+        Ok(Some(SignatureHelp {
             signatures,
             active_signature: None,
             active_parameter: None,
-        })
+        }))
+    }
+
+    pub async fn format(
+        &self,
+        uri: &Url,
+        range: Range,
+        options: FormattingOptions,
+    ) -> Result<Option<Vec<TextEdit>>, WorkspaceError> {
+        let document = self.get_opened_document(uri).await?;
+
+        let handle = tokio::task::spawn_blocking(move || format(&document, options, range));
+        let edited = handle.await?;
+        Ok(edited)
     }
 }
 
@@ -451,7 +510,7 @@ impl Workspace {
 
         let path = uri
             .to_file_path()
-            .or(Err(WorkspaceError::UrlConvertation(uri.clone())))?;
+            .or(Err(WorkspaceError::UrlConversion(uri.clone())))?;
         let file_source = MFileSource::try_from(path.as_path())?;
 
         let document_uri = uri.clone();
@@ -480,7 +539,7 @@ impl Workspace {
 
         let path = uri
             .to_file_path()
-            .or(Err(WorkspaceError::UrlConvertation(uri.clone())))?;
+            .or(Err(WorkspaceError::UrlConversion(uri.clone())))?;
         let file_source = MFileSource::try_from(path.as_path())?;
 
         // lock file for read
@@ -563,17 +622,23 @@ impl Workspace {
         &self,
         uri: &Url,
         position: Position,
-    ) -> Option<SemanticInfo> {
+    ) -> Result<Option<SemanticInfo>, WorkspaceError> {
         let document = self.get_opened_document(uri).await?;
-        let syntax = document.syntax();
-        let text = syntax.text().to_string();
 
-        let line_index = LineIndex::new(&text);
-        let offset = line_index.offset(LineCol {
-            line: position.line,
-            col: position.character,
-        })?;
+        let identifier = async {
+            let syntax = document.syntax();
+            let text = syntax.text().to_string();
 
-        identifier_for_offset(syntax, offset)
+            let line_index = LineIndex::new(&text);
+            let offset = line_index.offset(LineCol {
+                line: position.line,
+                col: position.character,
+            })?;
+
+            identifier_for_offset(syntax, offset)
+        }
+        .await;
+
+        Ok(identifier)
     }
 }

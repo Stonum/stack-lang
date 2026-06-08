@@ -1,5 +1,6 @@
 #![allow(deprecated)]
 use chrono::Local;
+use stack_lang_server::workspace::WorkspaceError;
 use std::env;
 use std::io::Write;
 
@@ -9,9 +10,9 @@ use log::{LevelFilter, error, info, trace};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use stack_lang_server::{format::format, workspace::Workspace};
+use stack_lang_server::workspace::Workspace;
 
-use tower_lsp::jsonrpc::Result;
+use tower_lsp::jsonrpc::{Error, Result};
 use tower_lsp::lsp_types::notification::Notification;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
@@ -245,9 +246,10 @@ impl LanguageServer for Backend {
         let file_uri = params.text_document.uri;
         trace!("document_symbol {}", &file_uri);
 
-        let document_symbol = self.workspace.document_symbol_response(&file_uri).await;
-
-        Ok(document_symbol)
+        self.workspace
+            .document_symbol_response(&file_uri)
+            .await
+            .map_err(log_internal_error)
     }
 
     async fn symbol(
@@ -261,7 +263,6 @@ impl LanguageServer for Backend {
         );
 
         let document_symbol = self.workspace.symbol_information(&query).await;
-
         Ok(document_symbol)
     }
 
@@ -273,9 +274,10 @@ impl LanguageServer for Backend {
         let pos = params.text_document_position_params.position;
         trace!("goto_definition {} {:?}", &file_uri, &pos);
 
-        let definition = self.workspace.goto_definition(&file_uri, pos).await;
-
-        Ok(definition)
+        self.workspace
+            .goto_definition(&file_uri, pos)
+            .await
+            .map_err(log_internal_error)
     }
 
     async fn references(&self, params: ReferenceParams) -> Result<Option<Vec<Location>>> {
@@ -283,9 +285,10 @@ impl LanguageServer for Backend {
         let pos = params.text_document_position.position;
         trace!("references {} {:?}", &file_uri, &pos);
 
-        let references = self.workspace.references(&file_uri, pos).await;
-
-        Ok(references)
+        self.workspace
+            .references(&file_uri, pos)
+            .await
+            .map_err(log_internal_error)
     }
 
     async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
@@ -293,9 +296,10 @@ impl LanguageServer for Backend {
         let pos = params.text_document_position_params.position;
         trace!("hover {} {:?}", &file_uri, &pos);
 
-        let hover = self.workspace.hover(&file_uri, pos).await;
-
-        Ok(hover)
+        self.workspace
+            .hover(&file_uri, pos)
+            .await
+            .map_err(log_internal_error)
     }
 
     async fn range_formatting(
@@ -307,30 +311,20 @@ impl LanguageServer for Backend {
         let options = params.options;
         trace!("range_formatting {} {:?}", &file_uri, &range);
 
-        let edited = async {
-            let document = self.workspace.get_opened_document(&file_uri).await?;
-
-            let handle = tokio::task::spawn_blocking(move || format(&document, options, range));
-            match handle.await {
-                Ok(edited) => edited,
-                Err(e) => {
-                    error!("Range formatting: {e}");
-                    None
-                }
-            }
-        }
-        .await;
-
-        Ok(edited)
+        self.workspace
+            .format(&file_uri, range, options)
+            .await
+            .map_err(log_internal_error)
     }
 
     async fn code_lens(&self, params: CodeLensParams) -> Result<Option<Vec<CodeLens>>> {
         let file_uri = params.text_document.uri;
         trace!("code_lens {}", &file_uri);
 
-        let code_lens = self.workspace.code_lens(&file_uri).await;
-
-        Ok(code_lens)
+        self.workspace
+            .code_lens(&file_uri)
+            .await
+            .map_err(log_internal_error)
     }
 
     async fn semantic_tokens_full(
@@ -340,10 +334,11 @@ impl LanguageServer for Backend {
         let file_uri = params.text_document.uri;
         trace!("semantic_tokens_full {}", &file_uri);
 
-        match self.workspace.semantic_tokens(&file_uri, None).await {
-            Some(tokens) => Ok(Some(SemanticTokensResult::Tokens(tokens))),
-            None => Ok(None),
-        }
+        self.workspace
+            .semantic_tokens(&file_uri, None)
+            .await
+            .map(|tokens| tokens.map(SemanticTokensResult::Tokens))
+            .map_err(log_internal_error)
     }
 
     async fn semantic_tokens_range(
@@ -353,14 +348,11 @@ impl LanguageServer for Backend {
         let file_uri = params.text_document.uri;
         trace!("semantic_tokens_range {} {:?}", &file_uri, params.range);
 
-        match self
-            .workspace
+        self.workspace
             .semantic_tokens(&file_uri, Some(params.range))
             .await
-        {
-            Some(tokens) => Ok(Some(SemanticTokensRangeResult::Tokens(tokens))),
-            None => Ok(None),
-        }
+            .map(|tokens| tokens.map(SemanticTokensRangeResult::Tokens))
+            .map_err(log_internal_error)
     }
 
     async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
@@ -369,9 +361,10 @@ impl LanguageServer for Backend {
         let context = params.context;
         trace!("completion {} {:?} {:?}", &file_uri, &pos, &context);
 
-        let completion = self.workspace.completion(&file_uri, pos).await;
-
-        Ok(completion)
+        self.workspace
+            .completion(&file_uri, pos)
+            .await
+            .map_err(log_internal_error)
     }
 
     async fn signature_help(&self, params: SignatureHelpParams) -> Result<Option<SignatureHelp>> {
@@ -380,9 +373,10 @@ impl LanguageServer for Backend {
         let context = params.context;
         trace!("signature_help {} {:?} {:?}", &file_uri, &pos, &context);
 
-        let signature_help = self.workspace.signature_help(&file_uri, pos).await;
-
-        Ok(signature_help)
+        self.workspace
+            .signature_help(&file_uri, pos)
+            .await
+            .map_err(log_internal_error)
     }
 }
 
@@ -427,6 +421,11 @@ impl Backend {
             .send_notification::<StatusBarNotification>(StatusBarNotification::create(msg))
             .await;
     }
+}
+
+fn log_internal_error(err: WorkspaceError) -> Error {
+    error!("{err}");
+    Error::internal_error()
 }
 
 #[tokio::main]
