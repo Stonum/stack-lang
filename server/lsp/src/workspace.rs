@@ -49,8 +49,6 @@ pub enum WorkspaceInitializationError {
 
 #[derive(Debug, Error)]
 pub enum WorkspaceError {
-    #[error("Test")]
-    CommonError,
     #[error("Failed convert Url to file path {0}")]
     UrlConversion(Url),
     #[error("{0}")]
