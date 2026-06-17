@@ -1,3 +1,8 @@
+# Archived!
+This repository has been split into stack-lang-server and vscode-stack-lang
+
+
+
 # Extension stack-lang for Visual Studio Code
 
 Adds features for the built-in language of the STACK Software Package  
