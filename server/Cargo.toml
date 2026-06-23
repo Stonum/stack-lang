@@ -42,7 +42,7 @@ unicase = "2.8.1"
 walkdir= "2"
 itertools = "0.14.0"
 
-log = "0.4.29"
+log = "0.4.30"
 rust-ini = "0.21.3"
 thiserror = "2.0.18"
 
